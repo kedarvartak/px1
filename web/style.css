@@ -110,6 +110,42 @@ body.side-hidden #side, body.side-hidden #resizer { display: none; }
 .diff-hunk-revert:hover { color: var(--fg); background: var(--bg3); }
 .diff-hunk-patch-note { margin-left: auto; color: var(--faint); font: 10px var(--ui); }
 .review-next { width: 100%; }
+.review-pins { border-bottom: 1px solid var(--line); padding: 8px 0 6px; }
+.review-pins-head { display: flex; align-items: center; gap: 6px; padding: 0 10px 0 12px; }
+.review-pins-head strong { font-size: 12px; }
+.review-pins-head span { color: var(--faint); font-size: 10.5px; }
+.review-explain { margin-left: auto; padding: 2px 7px; border: 1px solid var(--line); border-radius: 3px; color: var(--dim); font-size: 10.5px; }
+.review-explain:hover { color: var(--fg); background: var(--bg3); }
+.review-explain:disabled { cursor: default; opacity: .55; }
+.review-pin-list { display: grid; max-height: 38vh; overflow: auto; margin-top: 5px; }
+.review-pin { display: flex; align-items: baseline; gap: 6px; min-width: 0; padding: 4px 10px 4px 12px; text-align: left; font-size: 11.5px; }
+.review-pin:hover { background: var(--bg3); }
+.review-pin-mark, .pin-mark { flex: none; font-size: 9px; color: var(--faint); }
+.review-pin.impact-3 .review-pin-mark, .pin.impact-3 .pin-mark { color: var(--gd); }
+.review-pin.impact-2 .review-pin-mark, .pin.impact-2 .pin-mark { color: var(--accent); }
+.review-pin-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--dim); }
+.review-pin:hover .review-pin-text { color: var(--fg); }
+.review-pin-ref { margin-left: auto; flex: none; color: var(--faint); font: 10px var(--mono); }
+.review-pin.accepted .review-pin-text, .review-pin.switched .review-pin-text, .review-pin.stale .review-pin-text { color: var(--faint); text-decoration: line-through; text-decoration-color: var(--line); }
+.review-pin.accepted .review-pin-mark { color: var(--gi); }
+.pin { margin: 3px 12px 5px 62px; border: 1px solid var(--line); border-left: 2px solid var(--faint); border-radius: 4px; background: var(--bg2); font: 12px/1.45 var(--ui); white-space: normal; }
+.pin.impact-3 { border-left-color: var(--gd); }
+.pin.impact-2 { border-left-color: var(--accent); }
+.pin.pin-accepted { border-left-color: var(--gi); opacity: .8; }
+.pin.pin-stale { opacity: .6; }
+.pin-head { display: flex; align-items: baseline; gap: 7px; width: 100%; padding: 4px 8px; text-align: left; color: var(--fg); }
+.pin-decision { min-width: 0; font-weight: 600; }
+.pin-ref { margin-left: auto; flex: none; color: var(--faint); font: 10px var(--mono); }
+.pin-tag { flex: none; padding: 0 5px; border-radius: 3px; background: var(--bg3); color: var(--dim); font-size: 10px; }
+.pin-body { padding: 0 8px 7px 24px; }
+.pin-line { color: var(--dim); }
+.pin-line span { display: inline-block; width: 30px; color: var(--faint); font-size: 10.5px; }
+.pin-acts { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.pin-act { padding: 2px 7px; border: 1px solid var(--line); border-radius: 3px; color: var(--dim); font-size: 11px; }
+.pin-act:hover { color: var(--fg); background: var(--bg3); }
+.pin-act-accept { border-color: var(--accent); color: var(--accent-fg); }
+.pin-loose { padding: 6px 0; border-bottom: 1px solid var(--line); }
+.pin-loose .pin { margin-left: 12px; }
 .review-next:disabled { cursor: default; opacity: .55; }
 .review-commentbox { position: absolute; right: 16px; bottom: 16px; z-index: 22; width: min(390px, calc(100% - 32px)); padding: 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg2); box-shadow: var(--shadow-sm); }
 .review-comment-head { display: flex; gap: 8px; align-items: baseline; margin-bottom: 8px; font-size: 12px; font-weight: 600; }

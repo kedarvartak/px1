@@ -75,6 +75,8 @@
     agentTargets: [],
     review: null,
     reviewComments: [],
+    reviewPins: [],
+    reviewExplain: {},
     lastReviewPatch: null,
     reviewChecks: { commands: {}, jobs: [] }
   };
@@ -2602,6 +2604,10 @@
   var diffview = $("#diffview");
   var diffContent = $("#diffcontent");
   var shown = null;
+  var pinHandler = null;
+  function setPinHandler(fn) {
+    pinHandler = fn;
+  }
   function setLayoutPref(mode) {
     try {
       localStorage.setItem("px1.diffLayout", mode);
@@ -2712,12 +2718,126 @@
       return;
     }
     const frag = document.createDocumentFragment();
+    const tables = [];
     for (const hunk of d.diffHunks) {
       frag.append(hunkHeader(d, hunk));
-      frag.append(d.diffMode === "unified" ? unifiedTable(hunk) : splitTable(hunk));
+      const table = d.diffMode === "unified" ? unifiedTable(hunk) : splitTable(hunk);
+      tables.push(table);
+      frag.append(table);
     }
     diffContent.append(frag);
+    if (d.diffSource === "review")
+      placePins(d, tables);
     syncDiffAgentTargets();
+  }
+  function rowLines(row) {
+    const els = row.matches("[data-l]") ? [row] : [...row.querySelectorAll("[data-l]")];
+    return els.map((el) => +el.dataset.l);
+  }
+  function placePins(d, tables) {
+    const pins = (S2.reviewPins || []).filter((p) => p.path === d.path);
+    const loose = [];
+    for (const pin of pins) {
+      let target2 = null;
+      for (const table of tables) {
+        for (const row of table.children) {
+          if (rowLines(row).some((l) => l >= pin.lineStart && l <= pin.lineEnd))
+            target2 = row;
+        }
+        if (target2)
+          break;
+      }
+      if (target2)
+        target2.after(pinCard(pin));
+      else
+        loose.push(pin);
+    }
+    if (loose.length) {
+      const box = document.createElement("div");
+      box.className = "pin-loose";
+      for (const pin of loose)
+        box.append(pinCard(pin));
+      diffContent.prepend(box);
+    }
+  }
+  function lineLabel(pin) {
+    return pin.lineStart === pin.lineEnd ? "L" + pin.lineStart : "L" + pin.lineStart + "–" + pin.lineEnd;
+  }
+  function pinButton(label, action, pin, choice) {
+    const b = document.createElement("button");
+    b.className = "pin-act pin-act-" + action;
+    b.textContent = label;
+    b.addEventListener("click", (e) => {
+      e.stopPropagation();
+      pinHandler?.(action, pin, choice);
+    });
+    return b;
+  }
+  function pinCard(pin) {
+    const card = document.createElement("div");
+    card.className = "pin impact-" + pin.impact + " pin-" + pin.status + (pin.stale ? " pin-stale" : "");
+    card.dataset.pinId = pin.id;
+    const head = document.createElement("button");
+    head.className = "pin-head";
+    const mark = document.createElement("span");
+    mark.className = "pin-mark";
+    mark.textContent = "◆";
+    const text = document.createElement("span");
+    text.className = "pin-decision";
+    text.textContent = pin.status === "switched" && pin.choice ? pin.decision + " → " + pin.choice : pin.decision;
+    const ref = document.createElement("span");
+    ref.className = "pin-ref";
+    ref.textContent = lineLabel(pin);
+    head.append(mark, text, ref);
+    const state = pin.stale ? "lines changed" : pin.status === "proposed" ? "" : pin.status;
+    if (state) {
+      const tag = document.createElement("span");
+      tag.className = "pin-tag";
+      tag.textContent = state;
+      head.append(tag);
+    }
+    const body = document.createElement("div");
+    body.className = "pin-body";
+    body.hidden = true;
+    if (pin.why) {
+      const why = document.createElement("div");
+      why.className = "pin-line";
+      why.innerHTML = "<span>why</span>" + esc(pin.why);
+      body.append(why);
+    }
+    if (pin.alternatives?.length) {
+      const not = document.createElement("div");
+      not.className = "pin-line";
+      not.innerHTML = "<span>not</span>" + pin.alternatives.map(esc).join(" · ");
+      body.append(not);
+    }
+    const acts = document.createElement("div");
+    acts.className = "pin-acts";
+    if (pin.status === "proposed")
+      acts.append(pinButton("Accept", "accept", pin));
+    else
+      acts.append(pinButton("Reopen", "reopen", pin));
+    acts.append(pinButton("Ask", "ask", pin));
+    if (!pin.stale && pin.status !== "switched") {
+      for (const alt of pin.alternatives || [])
+        acts.append(pinButton("Switch → " + alt, "switch", pin, alt));
+    }
+    body.append(acts);
+    head.addEventListener("click", () => {
+      body.hidden = !body.hidden;
+      card.classList.toggle("open", !body.hidden);
+    });
+    card.append(head, body);
+    return card;
+  }
+  function revealPin(id) {
+    const card = diffContent.querySelector(`[data-pin-id="${CSS.escape(id)}"]`);
+    if (!card)
+      return false;
+    card.querySelector(".pin-body").hidden = false;
+    card.classList.add("open");
+    card.scrollIntoView({ block: "center" });
+    return true;
   }
   function syncDiffAgentTargets() {
     if (!diffview || diffview.hidden)
@@ -5761,6 +5881,8 @@
   var patchBox = $("#review-patchbox");
   var patchInput = $("#review-patch-input");
   var patchTarget = null;
+  var explaining = false;
+  var pinSig = "[]";
   var pending = (item) => item.state === "unreviewed" || item.state === "stale" || item.state === "blocked";
   async function refreshReviewQueue() {
     try {
@@ -5775,11 +5897,31 @@
       S2.reviewComments = [];
     }
     try {
+      const j = S2.review?.active ? await api("/api/review/pins") : { pins: [], explain: {} };
+      S2.reviewPins = j.pins || [];
+      S2.reviewExplain = j.explain || {};
+    } catch {
+      S2.reviewPins = [];
+      S2.reviewExplain = {};
+    }
+    try {
       S2.reviewChecks = S2.review?.active ? await api("/api/review/checks") : { commands: {}, jobs: [] };
     } catch {
       S2.reviewChecks = { commands: {}, jobs: [] };
     }
     drawReviewQueue();
+    const sig = JSON.stringify(S2.reviewPins);
+    if (sig !== pinSig) {
+      pinSig = sig;
+      syncDiffView();
+    }
+  }
+  function pinsMarkup() {
+    const pins = S2.reviewPins || [];
+    const open = pins.filter((p) => p.status === "proposed" && !p.stale).length;
+    const label = explaining ? "Explaining…" : pins.length ? "Re-explain" : "Explain changes";
+    const rows = pins.map((p) => `<button class="review-pin impact-${p.impact}${p.stale ? " stale" : ""} ${esc(p.status)}" data-review-pin="${esc(p.id)}" title="${esc(p.why || p.decision)}"><span class="review-pin-mark">◆</span><span class="review-pin-text">${esc(p.decision)}</span><span class="review-pin-ref">${esc(p.path.split("/").pop())}:${p.lineStart}</span></button>`).join("");
+    return `<div class="review-pins"><div class="review-pins-head"><strong>Decisions</strong><span>${pins.length ? open + " to confirm" : ""}</span><button class="review-explain" data-review-explain ${explaining || !S2.review?.queue?.total ? "disabled" : ""}>${label}</button></div>${rows ? `<div class="review-pin-list">${rows}</div>` : ""}</div>`;
   }
   function itemMarkup(item) {
     const state = item.state || "unreviewed";
@@ -5820,6 +5962,7 @@
     }).join("")}</div>` : '<div class="review-check-empty">Configure checks in Settings JSON: <code>"verification.commands"</code>.</div>';
     queueEl.innerHTML = `<div class="review-summary"><div><strong>Agent changes</strong><span>${reviewed} / ${count} reviewed</span></div><button class="review-close" data-review-close title="Close review session">Close</button></div>
     <div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div>
+    ${pinsMarkup()}
     <div class="review-list">${items.length ? items.map(itemMarkup).join("") : '<div class="hint">No files have changed since this review began.</div>'}</div>
     <div class="review-foot">${checkMarkup}<button class="review-feedback" data-review-feedback ${comments.length ? "" : "disabled"}>Ask agent to address ${comments.length} comment${comments.length === 1 ? "" : "s"}</button>${S2.lastReviewPatch ? '<button class="review-undo" data-review-undo>Undo last patch</button>' : ""}<button class="review-next" data-review-next ${next ? "" : "disabled"}>${next ? "Next change →" : "All changes reviewed"}</button></div>`;
   }
@@ -5942,6 +6085,62 @@
       showToast("!", e.message);
     }
   }
+  async function explain2() {
+    explaining = true;
+    drawReviewQueue();
+    try {
+      const job2 = await apiPost("/api/review/pins/explain");
+      showToast("✓", "Agent is explaining its decisions");
+      await waitForAgent(job2.id);
+      await refreshReviewQueue();
+      if (S2.reviewExplain?.error)
+        showToast("!", S2.reviewExplain.error);
+      else
+        showToast("✓", (S2.reviewPins || []).length + " decisions pinned");
+    } catch (e) {
+      showToast("!", e.message);
+    }
+    explaining = false;
+    drawReviewQueue();
+  }
+  async function openPin(id) {
+    const pin = (S2.reviewPins || []).find((p) => p.id === id);
+    if (!pin)
+      return;
+    await openFile(pin.path);
+    await openReviewDiff(pin.path);
+    revealPin(id);
+  }
+  async function onPin(action, pin, choice) {
+    try {
+      if (action === "ask") {
+        const alts = pin.alternatives?.length ? " over " + pin.alternatives.join(" / ") : "";
+        openComment({ path: pin.path, l1: pin.lineStart, l2: pin.lineEnd }, `Why ${pin.decision}${alts}?`);
+        return;
+      }
+      if (action === "accept" || action === "reopen") {
+        await apiPost("/api/review/pin/status", undefined, {
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: pin.id, status: action === "accept" ? "accepted" : "proposed" })
+        });
+        await refreshReviewQueue();
+        revealPin(pin.id);
+        return;
+      }
+      if (action === "switch") {
+        const j = await apiPost("/api/review/pin/status", undefined, {
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: pin.id, status: "switched", choice })
+        });
+        showToast("✓", "Agent is switching to " + choice);
+        await waitForAgent(j.job.id);
+        await reloadReviewWorkspace();
+        showToast("✓", "Switched to " + choice);
+      }
+    } catch (e) {
+      showToast("!", e.message);
+    }
+  }
   async function waitForAgent(id) {
     for (;; ) {
       const job2 = await api("/api/agent/job", { id });
@@ -5956,6 +6155,7 @@
   function initReviewQueue() {
     setReviewCommentHandler(openComment);
     setReviewPatchHandler(openPatch);
+    setPinHandler(onPin);
     $("#btn-review")?.addEventListener("click", async () => {
       shown2 = !shown2;
       tree.hidden = shown2;
@@ -5974,6 +6174,11 @@
         return sendFeedback();
       if (e.target.closest("[data-review-undo]"))
         return undoPatch();
+      if (e.target.closest("[data-review-explain]"))
+        return explain2();
+      const pinBtn = e.target.closest("[data-review-pin]");
+      if (pinBtn)
+        return openPin(pinBtn.dataset.reviewPin);
       const check = e.target.closest("[data-review-check]");
       if (check)
         return runCheck(check.dataset.reviewCheck);
@@ -6018,7 +6223,7 @@
   function commentRef(info) {
     return info.path + ":" + (info.l1 === info.l2 ? info.l1 : info.l1 + "-" + info.l2);
   }
-  function openComment(info) {
+  function openComment(info, text = "") {
     if (!info || !commentBox || !commentInput)
       return;
     if (!S2.review?.active) {
@@ -6027,7 +6232,7 @@
     }
     commentTarget = info;
     $("#review-comment-ref").textContent = commentRef(info);
-    commentInput.value = "";
+    commentInput.value = text;
     commentBox.hidden = false;
     commentInput.focus();
   }

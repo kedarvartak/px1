@@ -50,6 +50,7 @@ make dist
 - **Git Awareness & Visual Diffs**: Status badges (`M`, `A`, `D`, `U`, `R`), dirty folder ancestry propagation, changed-files filter, and side-by-side / unified diffs vs `HEAD` (`Cmd/Ctrl+D`).
 - **Review Sessions**: Capture a recoverable task baseline outside the repository, detect files changed since review began, and restore the workspace to that baseline when needed.
 - **Human Review Cockpit**: Review only task-session changes, open task-baseline diffs, mark files reviewed, leave line-anchored feedback, ask the local agent to address current comments, make a narrow Patch Mode correction, undo it, or restore a normal hunk to the task baseline.
+- **Decision Pins**: Every non-obvious choice an agent made (library, data shape, security, limits) appears as a short pin on the lines it affects, ranked by impact. Expand a pin to see why and the options not taken, then **Accept**, **Ask**, or **Switch** to an alternative and let the agent rework the change.
 - **Revision-Linked Verification**: Run explicitly configured tests, lint, or typechecks from the review queue. Results become stale if reviewed files change after the run.
 - **Edit with Your Coding Agent**: Select code in the source or diff view, right-click (or `Alt+E`), and describe the change. px1 runs Claude Code, OpenCode, OpenAI Codex, Antigravity, Aider, Goose, Gemini CLI, or Cursor Agent on it, reloads what changed, and shows harness errors inline. Several edits can run at once, as long as their line ranges don't overlap.
 - **Rendered Markdown Preview**: Full GFM preview with Chroma-highlighted code fences; switch between preview and source with `Alt+M` while preserving scroll.
@@ -182,6 +183,18 @@ Verification commands are opt-in and live only in your user settings. Add named 
 ```
 
 Start a review session, open **Review** in the sidebar, and run a configured check. px1 records the review revision that was tested and labels a completed result **Stale** if the session changes afterward.
+
+### Decision pins
+
+Click **Explain changes** in the review queue and the selected harness reads the task-baseline diff and pins each decision it made to the exact lines, without editing files. A harness dispatched from your own terminal can also push pins while it works:
+
+```sh
+curl -s -X POST http://127.0.0.1:7777/api/review/pins \
+  -H 'Origin: http://127.0.0.1:7777' \
+  -d '{"pins":[{"path":"auth/login.go","lineStart":18,"lineEnd":19,"decision":"JWT in httpOnly cookie","why":"stateless; API is already REST","alternatives":["server sessions","localStorage"],"impact":3}]}'
+```
+
+`impact` is 1 (low) to 3 (high). A pin whose lines change afterwards is marked **lines changed** and can no longer be switched.
 
 
 ## Why a Dedicated Code Viewer?

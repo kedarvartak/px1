@@ -79,6 +79,8 @@ export const S = {
   agentTargets: [],  // [{ id, path, l1, l2 }, ...] ranges of open compose/edit sessions
   review: null,      // active review-session reply, refreshed by review queue
   reviewComments: [],
+  reviewPins: [],
+  reviewExplain: {},
   lastReviewPatch: null,
   reviewChecks: { commands: {}, jobs: [] },
 };

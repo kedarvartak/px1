@@ -221,7 +221,16 @@ The edit endpoint runs a general-purpose coding agent with shell access as the u
 
 The explicit first-run pick matters for the same reason. Auto-enabling on discovery would mean any px1 instance on a machine with a harness installed is a code execution endpoint that nobody opted into.
 
-## 9. Limits
+## 9. Decision Pins
+
+Decision pins ([`pins.go`](../../pins.go)) put an agent's choices next to the code they shaped, so a reviewer syncs context by reading the diff instead of a transcript. Each `reviewPin` lives in the active review session manifest, outside the workspace, and carries `path`, an inclusive line range, a one-line `decision`, an optional `why`, up to four `alternatives`, an `impact` of 1-3, and `status` (`proposed`, `accepted`, `switched`).
+
+- **Anchoring.** A pin stores `rangeHash`, the SHA-256 of its lines at pin time. It is reported `stale` once those bytes differ, so an edit elsewhere in the file does not invalidate it, but a pin never silently re-attaches to moved code.
+- **Producing pins.** `POST /api/review/pins/explain` builds a prompt from every queued file's task-baseline diff (new files are sent with line numbers, capped at 60 KB) and runs it through `agentManager.Explain`. That job shares `run` with edits but has no line anchor, and at most one explain job runs at a time. Its `onDone` hook parses the first JSON array in stdout, drops entries whose path escapes the workspace or whose range does not exist, and replaces the previous `proposed` explain pins. `POST /api/review/pins` accepts pins pushed by any local harness through the same validation, guarded by `localPost`.
+- **Acting.** `POST /api/review/pin/status` sets `accepted` or `proposed`. `switched` requires a `choice`, refuses stale pins, and dispatches an ordinary anchored edit through `Start` with an instruction to replace the decision everywhere it is relied on.
+- **Rendering.** `placePins` in `web/src/diff.js` inserts each card after the last diff row whose working-tree line falls inside the pin's range, in split and unified layouts alike. Pins whose lines are not in any hunk are gathered above the first hunk. The review queue lists pins sorted by impact and opens the diff with the card expanded.
+
+## 10. Limits
 
 - The job keeps the last 32 KB of each of stdout and stderr (`tailBuffer`), enough to explain a failure without holding a full transcript.
 - A run is abandoned after 10 minutes.
