@@ -574,11 +574,15 @@ func lineSpan(b []byte, l1, l2 int) (int, int, error) {
 func (m *reviewManager) ApplyPatch(path string, l1, l2 int, expectedHash, replacement string) (reviewPatch, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if m.active == nil {
-		return reviewPatch{}, errors.New("no active review session")
-	}
 	if len(replacement) > 64<<10 {
 		return reviewPatch{}, errors.New("replacement must be at most 65536 bytes")
+	}
+	return m.applyPatchLocked(path, l1, l2, expectedHash, []byte(replacement))
+}
+
+func (m *reviewManager) applyPatchLocked(path string, l1, l2 int, expectedHash string, replacement []byte) (reviewPatch, error) {
+	if m.active == nil {
+		return reviewPatch{}, errors.New("no active review session")
 	}
 	abs := filepath.Join(m.root, filepath.FromSlash(path))
 	before, err := os.ReadFile(abs)
@@ -610,6 +614,27 @@ func (m *reviewManager) ApplyPatch(path string, l1, l2 int, expectedHash, replac
 		return reviewPatch{}, err
 	}
 	return p, nil
+}
+
+// RevertHunk restores a displayed current-file range from the corresponding
+// range in the session baseline. The browser supplies only coordinates; px1
+// reads the baseline bytes itself, so a client cannot turn a revert into an
+// arbitrary write.
+func (m *reviewManager) RevertHunk(path string, currentL1, currentL2, baselineL1, baselineL2 int, expectedHash string) (reviewPatch, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.active == nil {
+		return reviewPatch{}, errors.New("no active review session")
+	}
+	baseline, err := os.ReadFile(filepath.Join(m.sessionDir(m.active.ID), "files", filepath.FromSlash(path)))
+	if err != nil {
+		return reviewPatch{}, errors.New("file was not present at review start")
+	}
+	start, end, err := lineSpan(baseline, baselineL1, baselineL2)
+	if err != nil {
+		return reviewPatch{}, err
+	}
+	return m.applyPatchLocked(path, currentL1, currentL2, expectedHash, baseline[start:end])
 }
 
 func (m *reviewManager) UndoPatch(id string) (reviewPatch, error) {
@@ -862,6 +887,36 @@ func (s *Server) handleReviewUndoPatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	patch, err := s.review.UndoPatch(req.ID)
+	if err != nil {
+		fail(w, 409, err.Error())
+		return
+	}
+	s.ix.Build()
+	writeJSON(w, map[string]any{"patch": patch})
+}
+
+func (s *Server) handleReviewRevertHunk(w http.ResponseWriter, r *http.Request) {
+	if !localPost(w, r) {
+		return
+	}
+	var req struct {
+		Path              string `json:"path"`
+		CurrentLineStart  int    `json:"currentLineStart"`
+		CurrentLineEnd    int    `json:"currentLineEnd"`
+		BaselineLineStart int    `json:"baselineLineStart"`
+		BaselineLineEnd   int    `json:"baselineLineEnd"`
+		ExpectedHash      string `json:"expectedHash"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		fail(w, 400, "invalid hunk revert")
+		return
+	}
+	_, path, ok := s.safePath(req.Path)
+	if !ok || path == "" {
+		fail(w, 400, "bad path")
+		return
+	}
+	patch, err := s.review.RevertHunk(path, req.CurrentLineStart, req.CurrentLineEnd, req.BaselineLineStart, req.BaselineLineEnd, req.ExpectedHash)
 	if err != nil {
 		fail(w, 409, err.Error())
 		return
