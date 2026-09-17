@@ -80,6 +80,7 @@ export const S = {
   review: null,      // active review-session reply, refreshed by review queue
   reviewComments: [],
   lastReviewPatch: null,
+  reviewChecks: { commands: {}, jobs: [] },
 };
 
 export const doc_ = () => (S.active >= 0 ? S.tabs[S.active] : null);

@@ -96,6 +96,15 @@ body.side-hidden #side, body.side-hidden #resizer { display: none; }
 .review-feedback:disabled { cursor: default; opacity: .55; }
 .review-undo { width: 100%; border: 1px solid var(--line); border-radius: 4px; padding: 5px 8px; color: var(--dim); font-size: 12px; }
 .review-undo:hover { color: var(--fg); background: var(--bg3); }
+.review-checks { display: grid; gap: 4px; }
+.review-check { display: flex; justify-content: space-between; gap: 8px; width: 100%; border: 1px solid var(--line); border-radius: 4px; padding: 5px 7px; color: var(--dim); font-size: 11px; text-align: left; }
+.review-check:hover { color: var(--fg); background: var(--bg3); }
+.review-check.passed span:last-child { color: var(--gi); }
+.review-check.failed span:last-child { color: var(--gd); }
+.review-check.stale span:last-child { color: var(--accent-fg); }
+.review-check.running { opacity: .7; cursor: progress; }
+.review-check-empty { color: var(--faint); font-size: 10px; line-height: 1.4; }
+.review-check-empty code { font-family: var(--mono); }
 .diff-hunk-head { display: flex; align-items: center; gap: 8px; }
 .diff-hunk-revert { margin-left: auto; padding: 2px 6px; border: 1px solid var(--line); border-radius: 3px; color: var(--dim); font: 10px var(--ui); }
 .diff-hunk-revert:hover { color: var(--fg); background: var(--bg3); }
