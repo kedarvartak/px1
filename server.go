@@ -95,6 +95,7 @@ func NewServer(ix *Index, lsp *lspManager) *Server {
 	s.mux.HandleFunc("/api/review/comment/status", s.handleReviewCommentStatus)
 	s.mux.HandleFunc("/api/review/patch", s.handleReviewPatch)
 	s.mux.HandleFunc("/api/review/patch/undo", s.handleReviewUndoPatch)
+	s.mux.HandleFunc("/api/review/revert-hunk", s.handleReviewRevertHunk)
 	s.mux.HandleFunc("/api/settings", s.handleSettings)
 	s.lastReq.Store(time.Now().UnixNano())
 	go s.scavenge()

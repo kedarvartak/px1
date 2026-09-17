@@ -266,3 +266,42 @@ func TestReviewPatchRequiresPreviewHashAndSupportsUndo(t *testing.T) {
 		t.Fatal("second undo was accepted")
 	}
 }
+
+func TestReviewHunkRevertUsesTaskBaseline(t *testing.T) {
+	isolateSettings(t)
+	root := t.TempDir()
+	path := filepath.Join(root, "auth.go")
+	baseline := []byte("package main\nconst timeout = 30\nconst retries = 3\n")
+	if err := os.WriteFile(path, baseline, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m := newReviewManager(root)
+	if _, err := m.Start(); err != nil {
+		t.Fatal(err)
+	}
+	changed := []byte("package main\nconst timeout = 120\nconst retries = 3\n")
+	if err := os.WriteFile(path, changed, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	p, err := m.RevertHunk("auth.go", 2, 2, 2, 2, hashBytes(changed))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(baseline) {
+		t.Fatalf("revert = %q, want %q", got, baseline)
+	}
+	if _, err := m.UndoPatch(p.ID); err != nil {
+		t.Fatal(err)
+	}
+	got, err = os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(changed) {
+		t.Fatalf("undo revert = %q, want %q", got, changed)
+	}
+}
