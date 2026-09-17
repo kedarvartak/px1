@@ -2662,11 +2662,26 @@
     syncDiffView();
     updateStatus();
   }
+  async function openReviewDiff(path) {
+    const d = S2.tabs.find((t) => t.path === path);
+    if (!d)
+      return;
+    d.diffSource = "review";
+    d.diffText = undefined;
+    d.diffHunks = undefined;
+    d.diffMode = layoutPref() || "split";
+    d.diffDismissed = false;
+    syncPreview();
+    syncDiffView();
+    await drawDiff(d);
+    updateStatus();
+  }
   async function drawDiff(d) {
     if (d.diffText === undefined) {
       diffContent.replaceChildren();
       try {
-        d.diffReq = d.diffReq || api("/api/diff", { path: d.path });
+        const endpoint = d.diffSource === "review" ? "/api/review/diff" : "/api/diff";
+        d.diffReq = d.diffReq || api(endpoint, { path: d.path });
         const j = await d.diffReq;
         d.diffText = j.diff || "";
         d.diffHunks = parseDiff(d.diffText);
@@ -2697,7 +2712,7 @@
     }
     const frag = document.createDocumentFragment();
     for (const hunk of d.diffHunks) {
-      frag.append(hunkHeader(hunk));
+      frag.append(hunkHeader(d, hunk));
       frag.append(d.diffMode === "unified" ? unifiedTable(hunk) : splitTable(hunk));
     }
     diffContent.append(frag);
@@ -2716,11 +2731,55 @@
       el.classList.toggle("agent-sel", inAgent);
     }
   }
-  function hunkHeader(hunk) {
+  function hunkHeader(d, hunk) {
     const el = document.createElement("div");
     el.className = "diff-hunk-head";
-    el.textContent = "@@ -" + hunk.oldStart + " +" + hunk.newStart + " @@";
+    const ref = document.createElement("span");
+    ref.textContent = "@@ -" + hunk.oldStart + " +" + hunk.newStart + " @@";
+    el.append(ref);
+    if (d.diffSource === "review") {
+      const button = document.createElement("button");
+      button.className = "diff-hunk-revert";
+      button.textContent = "Revert hunk";
+      button.title = "Restore this hunk to the task-start baseline";
+      button.addEventListener("click", () => revertReviewHunk(d, hunk));
+      el.append(button);
+    }
     return el;
+  }
+  async function revertReviewHunk(d, hunk) {
+    const item = S2.review?.queue?.items?.find((x) => x.path === d.path);
+    if (!item?.currentHash) {
+      setStatusNote("This file is no longer current in the review queue", 4000);
+      return;
+    }
+    const oldCount = hunk.rows.filter((r) => r.oldLine !== undefined).length;
+    const newCount = hunk.rows.filter((r) => r.newLine !== undefined).length;
+    if (!oldCount || !newCount) {
+      setStatusNote("This edge-case hunk needs Patch Mode", 4000);
+      return;
+    }
+    try {
+      await apiPost("/api/review/revert-hunk", undefined, {
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          path: d.path,
+          currentLineStart: hunk.newStart,
+          currentLineEnd: hunk.newStart + newCount - 1,
+          baselineLineStart: hunk.oldStart,
+          baselineLineEnd: hunk.oldStart + oldCount - 1,
+          expectedHash: item.currentHash
+        })
+      });
+      await api("/api/reindex");
+      d.diffText = undefined;
+      d.diffHunks = undefined;
+      await drawDiff(d);
+      S2.review = await api("/api/review/session");
+      setStatusNote("Hunk restored to task baseline", 4000);
+    } catch (e) {
+      setStatusNote("Hunk restore failed: " + e.message, 5000);
+    }
   }
   var HUNK_RE = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@[ \t]?(.*)$/;
   function parseDiff(text) {
@@ -5758,6 +5817,7 @@
     if (!item)
       return;
     await openFile(item.path);
+    await openReviewDiff(item.path);
   }
   async function close() {
     try {
@@ -5872,8 +5932,10 @@
       if (markBtn)
         return mark(markBtn.dataset.reviewMark);
       const item = e.target.closest("[data-review-path]");
-      if (item)
+      if (item) {
         await openFile(item.dataset.reviewPath);
+        await openReviewDiff(item.dataset.reviewPath);
+      }
     });
     $("#review-comment-cancel")?.addEventListener("click", closeComment);
     $("#review-comment-save")?.addEventListener("click", saveComment);

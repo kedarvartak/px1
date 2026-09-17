@@ -2,6 +2,7 @@ import { $, esc, S, api, apiPost } from './state.js';
 import { openFile } from './tabs.js';
 import { reloadOpenTabs } from './tabs.js';
 import { drawTree, treeEl } from './tree.js';
+import { openReviewDiff } from './diff.js';
 import { showToast } from './ui.js';
 import { hideSelectionBar, setReviewCommentHandler, setReviewPatchHandler } from './selbar.js';
 
@@ -79,6 +80,7 @@ async function openNext() {
   const item = S.review?.queue?.items?.find(pending);
   if (!item) return;
   await openFile(item.path);
+  await openReviewDiff(item.path);
 }
 
 async function close() {
@@ -183,7 +185,10 @@ export function initReviewQueue() {
     const markBtn = e.target.closest('[data-review-mark]');
     if (markBtn) return mark(markBtn.dataset.reviewMark);
     const item = e.target.closest('[data-review-path]');
-    if (item) await openFile(item.dataset.reviewPath);
+    if (item) {
+      await openFile(item.dataset.reviewPath);
+      await openReviewDiff(item.dataset.reviewPath);
+    }
   });
   $('#review-comment-cancel')?.addEventListener('click', closeComment);
   $('#review-comment-save')?.addEventListener('click', saveComment);
