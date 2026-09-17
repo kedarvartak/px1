@@ -332,7 +332,7 @@ func (s *Server) handleReviewPinsExplain(w http.ResponseWriter, r *http.Request)
 		fail(w, http.StatusConflict, err.Error())
 		return
 	}
-	job, err := s.agent.Explain(prompt, func(stdout string, runErr error) {
+	job, err := s.agent.RunPrompt("explain", prompt, func(stdout string, runErr error) {
 		msg := ""
 		if runErr != nil {
 			msg = runErr.Error()

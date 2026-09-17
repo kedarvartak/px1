@@ -160,6 +160,17 @@ function rowCurrent(row) {
 function placePins(d, tables) {
   const pins = (S.reviewPins || []).filter(p => p.path === d.path);
   const loose = [];
+  for (const hit of (S.reviewRuleHits || []).filter(h => h.path === d.path)) {
+    let target = null;
+    for (const table of tables) {
+      for (const row of table.children) {
+        if (rowLines(row).includes(hit.line)) target = row;
+      }
+      if (target) break;
+    }
+    if (target) target.after(ruleHitCard(hit));
+    else loose.push(ruleHitCard(hit));
+  }
   for (const ch of (S.reviewChallenges || []).filter(c => c.path === d.path)) {
     let target = null;
     const current = [];
@@ -195,6 +206,40 @@ function placePins(d, tables) {
     box.append(...loose);
     diffContent.prepend(box);
   }
+}
+
+function ruleHitCard(hit) {
+  const card = document.createElement('div');
+  card.className = 'pin pin-rule open';
+  card.dataset.ruleHit = hit.key + '@' + hit.line;
+  const head = document.createElement('div');
+  head.className = 'pin-head';
+  const mark = document.createElement('span');
+  mark.className = 'pin-mark';
+  mark.textContent = '⚑';
+  const text = document.createElement('span');
+  text.className = 'pin-decision';
+  text.textContent = hit.message;
+  const ref = document.createElement('span');
+  ref.className = 'pin-ref';
+  ref.textContent = (hit.source === 'team' ? 'team rule' : 'your rule') + ' · L' + hit.line;
+  head.append(mark, text, ref);
+  const acts = document.createElement('div');
+  acts.className = 'pin-acts pin-body';
+  acts.append(
+    pinButton('Add as comment', 'rule-comment', hit),
+    pinButton('Ignore here', 'rule-dismiss', hit),
+  );
+  if (hit.source !== 'team') acts.append(pinButton('Disable rule', 'rule-disable', hit));
+  card.append(head, acts);
+  return card;
+}
+
+export function revealRuleHit(key, line) {
+  const card = diffContent.querySelector(`[data-rule-hit="${CSS.escape(key + '@' + line)}"]`);
+  if (!card) return false;
+  card.scrollIntoView({ block: 'center' });
+  return true;
 }
 
 function challengeCard(ch, at) {

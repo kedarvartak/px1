@@ -239,7 +239,18 @@ Decision memory ([`memory.go`](../../memory.go)) keeps decisions alive after the
 - **Challenges.** `GET /api/review/challenges` checks every queued file: a record is challenged when its snippet is present in the task-baseline copy and absent from the current file. Records made in the current session and records dismissed for it (`dismissedDecisions` in the manifest) are skipped. The client places the card after the last diff row whose old-side line (`data-o`) falls in the baseline range. **Ask agent to keep it** anchors a review comment on the corresponding current lines.
 - **Resolving.** `POST /api/decisions/resolve` with `supersede` marks the record `superseded` for good; `dismiss` only hides it for the active session.
 
-## 11. Limits
+## 11. Review Memory
+
+Review memory ([`rules.go`](../../rules.go)) turns reviewer feedback into checks that run on every later task without a model in the loop.
+
+- **Rules.** A `reviewRule` is a Go RE2 `pattern`, an optional `glob`, and a `message`. `validateRule` rejects patterns that do not compile, exceed 300 bytes, or match the empty string, since a pattern like `.*` would flag every line. Personal rules persist in `rules/<sha256(root)>.json` in the px1 state directory, capped at 500. Team rules are read from `.px1/rules.json` in the workspace on every request and are never written; a malformed entry is reported in the Rules list rather than failing the review.
+- **Globs.** `globRegexp` compiles `*`, `?`, and `**` into an anchored regexp. A glob without a `/` is prefixed with `**/`, so `*.ts` matches at any depth.
+- **Checking.** `GET /api/review/rule-hits` parses the task-baseline diff of each queued file into its added lines (`addedLines`, new-file numbering) or takes every line of a new file, and matches enabled rules whose glob fits. Context and deleted lines are never checked, so existing code does not re-trigger a rule. Files under `.px1/` are skipped. Hits are capped at 500 per request and 20 per identical line.
+- **Hit identity.** A hit's `key` is the rule id, path, and a hash of the trimmed line text, not its line number, so **Ignore here** (`dismissedRuleHits` in the session manifest) survives edits that move the line. Rule `hits` counts each key once: the rule keeps its last 200 counted keys (`hitKeys`), so reopening a review or restarting px1 does not count the same hit again.
+- **Drafting.** The composer prefills the pattern client-side from the first call expression (or identifier) in the selection and shows how many selected lines it matches. **Suggest** posts to `/api/rules/suggest`, which runs a `rule` prompt job through `agentManager.RunPrompt`. The harness must answer with a JSON object that passes `validateRule`; the result is read back with `GET /api/rules/suggest?job=`. `RunPrompt` allows one running job per kind, so explaining pins and drafting a rule can run together.
+- **Fixing.** `POST /api/review/rule-hits/send` adds a `Rule: <message>` review comment for each hit that does not already have an identical open comment on that line, then dispatches every current open comment through the same path as **Ask agent to address comments**.
+
+## 12. Limits
 
 - The job keeps the last 32 KB of each of stdout and stderr (`tailBuffer`), enough to explain a failure without holding a full transcript.
 - A run is abandoned after 10 minutes.

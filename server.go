@@ -44,12 +44,16 @@ type Server struct {
 	agent  *agentManager // nil unless main wires editing for this session
 	review *reviewManager
 	memory *decisionMemory
+	rules  *ruleMemory
 	verify *verificationManager
 	mux    *http.ServeMux
 
 	pinMu  sync.Mutex
 	pinJob int64
 	pinErr string
+
+	ruleMu      sync.Mutex
+	ruleSuggest map[int64]map[string]any
 
 	lastReq atomic.Int64 // unix nanos of the most recent request
 }
@@ -58,7 +62,7 @@ func NewServer(ix *Index, lsp *lspManager) *Server {
 	if lsp == nil {
 		lsp = newLSPManager(ix.Root(), false)
 	}
-	s := &Server{ix: ix, lsp: lsp, mux: http.NewServeMux(), review: newReviewManager(ix.Root()), memory: newDecisionMemory(ix.Root()), verify: newVerificationManager(ix.Root())}
+	s := &Server{ix: ix, lsp: lsp, mux: http.NewServeMux(), review: newReviewManager(ix.Root()), memory: newDecisionMemory(ix.Root()), rules: newRuleMemory(ix.Root()), ruleSuggest: map[int64]map[string]any{}, verify: newVerificationManager(ix.Root())}
 	sub, _ := fs.Sub(assets, "web")
 	s.mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(sub))))
 	s.mux.HandleFunc("/static/themes.css", s.handleThemes)
@@ -112,6 +116,12 @@ func NewServer(ix *Index, lsp *lspManager) *Server {
 	s.mux.HandleFunc("/api/review/challenges", s.handleReviewChallenges)
 	s.mux.HandleFunc("/api/decisions", s.handleDecisions)
 	s.mux.HandleFunc("/api/decisions/resolve", s.handleDecisionResolve)
+	s.mux.HandleFunc("/api/rules", s.handleRules)
+	s.mux.HandleFunc("/api/rules/update", s.handleRuleUpdate)
+	s.mux.HandleFunc("/api/rules/suggest", s.handleRuleSuggest)
+	s.mux.HandleFunc("/api/review/rule-hits", s.handleReviewRuleHits)
+	s.mux.HandleFunc("/api/review/rule-hits/dismiss", s.handleReviewRuleHitDismiss)
+	s.mux.HandleFunc("/api/review/rule-hits/send", s.handleReviewRuleHitsSend)
 	s.mux.HandleFunc("/api/settings", s.handleSettings)
 	s.lastReq.Store(time.Now().UnixNano())
 	go s.scavenge()
