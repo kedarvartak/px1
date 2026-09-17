@@ -29,14 +29,38 @@ type reviewFile struct {
 }
 
 type reviewSession struct {
-	Version   int          `json:"version"`
-	ID        string       `json:"id"`
-	Root      string       `json:"root"`
-	StartedAt time.Time    `json:"startedAt"`
-	Head      string       `json:"head,omitempty"`
-	Files     []reviewFile `json:"files"`
-	Dirs      []string     `json:"dirs"`
-	ClosedAt  *time.Time   `json:"closedAt,omitempty"`
+	Version   int                       `json:"version"`
+	ID        string                    `json:"id"`
+	Root      string                    `json:"root"`
+	StartedAt time.Time                 `json:"startedAt"`
+	Head      string                    `json:"head,omitempty"`
+	Files     []reviewFile              `json:"files"`
+	Dirs      []string                  `json:"dirs"`
+	Reviews   map[string]reviewDecision `json:"reviews,omitempty"`
+	ClosedAt  *time.Time                `json:"closedAt,omitempty"`
+}
+
+// reviewDecision is tied to the exact content a human saw. A later write to
+// that path never inherits approval: it becomes stale and returns to the queue.
+type reviewDecision struct {
+	State      string    `json:"state"` // reviewed or blocked
+	Hash       string    `json:"hash"`
+	ReviewedAt time.Time `json:"reviewedAt"`
+}
+
+type reviewItem struct {
+	Path         string `json:"path"`
+	State        string `json:"state"` // unreviewed, reviewed, stale, blocked
+	BaselineHash string `json:"baselineHash,omitempty"`
+	CurrentHash  string `json:"currentHash,omitempty"`
+}
+
+type reviewQueue struct {
+	Items     []reviewItem `json:"items"`
+	Reviewed  int          `json:"reviewed"`
+	Stale     int          `json:"stale"`
+	Remaining int          `json:"remaining"`
+	Total     int          `json:"total"`
 }
 
 type reviewManager struct {
@@ -206,7 +230,7 @@ func (m *reviewManager) Start() (*reviewSession, error) {
 		os.RemoveAll(staging)
 		return nil, err
 	}
-	s := &reviewSession{Version: reviewManifestVersion, ID: id, Root: m.root, StartedAt: time.Now().UTC(), Head: reviewHead(m.root), Files: files, Dirs: dirs}
+	s := &reviewSession{Version: reviewManifestVersion, ID: id, Root: m.root, StartedAt: time.Now().UTC(), Head: reviewHead(m.root), Files: files, Dirs: dirs, Reviews: map[string]reviewDecision{}}
 	b, err := json.Marshal(s)
 	if err != nil {
 		os.RemoveAll(staging)
@@ -268,6 +292,123 @@ func (m *reviewManager) changedLocked(s *reviewSession) []string {
 	return changed
 }
 
+func (m *reviewManager) saveLocked() error {
+	b, err := json.Marshal(m.active)
+	if err != nil {
+		return err
+	}
+	return writeAtomic(m.manifestPath(m.active.ID), b, 0o600)
+}
+
+func reviewHash(f reviewFile, present bool) string {
+	if !present {
+		return "<deleted>"
+	}
+	return f.Hash
+}
+
+func (m *reviewManager) queueLocked() (reviewQueue, error) {
+	if m.active == nil {
+		return reviewQueue{}, errors.New("no active review session")
+	}
+	current, _, err := snapshotTree(m.root, "")
+	if err != nil {
+		return reviewQueue{}, err
+	}
+	baseline := map[string]reviewFile{}
+	now := map[string]reviewFile{}
+	for _, f := range m.active.Files {
+		baseline[f.Path] = f
+	}
+	for _, f := range current {
+		now[f.Path] = f
+	}
+	paths := map[string]bool{}
+	for path, old := range baseline {
+		new, exists := now[path]
+		if !exists || old.Hash != new.Hash {
+			paths[path] = true
+		}
+	}
+	for path := range now {
+		if _, existed := baseline[path]; !existed {
+			paths[path] = true
+		}
+	}
+	q := reviewQueue{}
+	for path := range paths {
+		old, hadOld := baseline[path]
+		new, hasNew := now[path]
+		curHash := reviewHash(new, hasNew)
+		item := reviewItem{Path: path, BaselineHash: reviewHash(old, hadOld), CurrentHash: curHash, State: "unreviewed"}
+		if d, ok := m.active.Reviews[path]; ok {
+			switch {
+			case d.Hash != curHash:
+				item.State = "stale"
+			case d.State == "blocked":
+				item.State = "blocked"
+			default:
+				item.State = "reviewed"
+			}
+		}
+		switch item.State {
+		case "reviewed":
+			q.Reviewed++
+		case "stale":
+			q.Stale++
+			q.Remaining++
+		default:
+			q.Remaining++
+		}
+		q.Items = append(q.Items, item)
+	}
+	sort.Slice(q.Items, func(i, j int) bool { return q.Items[i].Path < q.Items[j].Path })
+	q.Total = len(q.Items)
+	return q, nil
+}
+
+func (m *reviewManager) Queue() (reviewQueue, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.queueLocked()
+}
+
+func (m *reviewManager) Mark(path, state string) (reviewQueue, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.active == nil {
+		return reviewQueue{}, errors.New("no active review session")
+	}
+	if state == "" {
+		state = "reviewed"
+	}
+	if state != "reviewed" && state != "blocked" {
+		return reviewQueue{}, errors.New("review state must be reviewed or blocked")
+	}
+	q, err := m.queueLocked()
+	if err != nil {
+		return reviewQueue{}, err
+	}
+	var found *reviewItem
+	for i := range q.Items {
+		if q.Items[i].Path == path {
+			found = &q.Items[i]
+			break
+		}
+	}
+	if found == nil {
+		return reviewQueue{}, errors.New("path has no changes in this review session")
+	}
+	if m.active.Reviews == nil {
+		m.active.Reviews = map[string]reviewDecision{}
+	}
+	m.active.Reviews[path] = reviewDecision{State: state, Hash: found.CurrentHash, ReviewedAt: time.Now().UTC()}
+	if err := m.saveLocked(); err != nil {
+		return reviewQueue{}, err
+	}
+	return m.queueLocked()
+}
+
 func (m *reviewManager) Restore() (*reviewSession, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -326,11 +467,7 @@ func (m *reviewManager) Close() (*reviewSession, error) {
 	}
 	now := time.Now().UTC()
 	m.active.ClosedAt = &now
-	b, err := json.Marshal(m.active)
-	if err != nil {
-		return nil, err
-	}
-	if err = writeAtomic(m.manifestPath(m.active.ID), b, 0o600); err != nil {
+	if err := m.saveLocked(); err != nil {
 		return nil, err
 	}
 	_ = os.Remove(m.activePath())
@@ -348,7 +485,34 @@ func (s *Server) handleReviewSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	active, changed := s.review.Active()
-	writeJSON(w, map[string]any{"active": active, "changed": changed})
+	if active == nil {
+		writeJSON(w, map[string]any{"active": nil, "changed": []string{}, "queue": reviewQueue{}})
+		return
+	}
+	queue, err := s.review.Queue()
+	if err != nil {
+		fail(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, map[string]any{"active": active, "changed": changed, "queue": queue})
+}
+
+func (s *Server) handleReviewMark(w http.ResponseWriter, r *http.Request) {
+	if !localPost(w, r) {
+		return
+	}
+	path := r.URL.Query().Get("path")
+	_, clean, ok := s.safePath(path)
+	if !ok || clean == "" {
+		fail(w, 400, "bad path")
+		return
+	}
+	queue, err := s.review.Mark(clean, r.URL.Query().Get("state"))
+	if err != nil {
+		fail(w, 409, err.Error())
+		return
+	}
+	writeJSON(w, map[string]any{"queue": queue})
 }
 
 func (s *Server) handleReviewStart(w http.ResponseWriter, r *http.Request) {

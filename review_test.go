@@ -116,3 +116,66 @@ func TestReviewSessionHTTPUsesLocalPostGuard(t *testing.T) {
 		t.Fatalf("cross-origin restore = %d, want 403", rec.Code)
 	}
 }
+
+func TestReviewQueueTracksReviewStateAndStaleness(t *testing.T) {
+	isolateSettings(t)
+	root := t.TempDir()
+	write := func(name, body string) {
+		t.Helper()
+		if err := os.WriteFile(filepath.Join(root, name), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("a.go", "before a\n")
+	write("b.go", "before b\n")
+	m := newReviewManager(root)
+	if _, err := m.Start(); err != nil {
+		t.Fatal(err)
+	}
+	write("a.go", "agent a\n")
+	write("b.go", "agent b\n")
+
+	q, err := m.Queue()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if q.Total != 2 || q.Remaining != 2 || q.Reviewed != 0 {
+		t.Fatalf("initial queue = %#v", q)
+	}
+	if _, err := m.Mark("a.go", "reviewed"); err != nil {
+		t.Fatal(err)
+	}
+	q, err = m.Queue()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if q.Reviewed != 1 || q.Remaining != 1 || q.Stale != 0 {
+		t.Fatalf("reviewed queue = %#v", q)
+	}
+
+	// A new write never inherits a previous decision.
+	write("a.go", "agent corrected a\n")
+	q, err = newReviewManager(root).Queue()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if q.Reviewed != 0 || q.Stale != 1 || q.Remaining != 2 {
+		t.Fatalf("stale queue = %#v", q)
+	}
+	if _, err := m.Mark("b.go", "blocked"); err != nil {
+		t.Fatal(err)
+	}
+	q, err = m.Queue()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var blocked bool
+	for _, item := range q.Items {
+		if item.Path == "b.go" && item.State == "blocked" {
+			blocked = true
+		}
+	}
+	if !blocked {
+		t.Fatalf("blocked item missing: %#v", q.Items)
+	}
+}
