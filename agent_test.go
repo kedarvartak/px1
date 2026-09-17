@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -404,6 +405,20 @@ func TestPresetArgvOrder(t *testing.T) {
 			t.Fatalf("resolved %s args %v: want {prompt} at the very end", p.Name, resolved)
 		}
 	}
+}
+
+func TestCodexPresetUsesCurrentUnattendedFlag(t *testing.T) {
+	for _, p := range agentPresets {
+		if p.Name != "codex" {
+			continue
+		}
+		want := []string{"codex", "exec", "--approve-for-me", "{prompt}"}
+		if !reflect.DeepEqual(p.Args, want) {
+			t.Fatalf("codex args = %v, want %v", p.Args, want)
+		}
+		return
+	}
+	t.Fatal("codex preset not found")
 }
 
 func TestClaudeModelDiscovery(t *testing.T) {
