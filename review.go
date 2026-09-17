@@ -38,6 +38,7 @@ type reviewSession struct {
 	Dirs      []string                  `json:"dirs"`
 	Reviews   map[string]reviewDecision `json:"reviews,omitempty"`
 	Comments  []reviewComment           `json:"comments,omitempty"`
+	Patches   []reviewPatch             `json:"patches,omitempty"`
 	ClosedAt  *time.Time                `json:"closedAt,omitempty"`
 }
 
@@ -82,6 +83,20 @@ type reviewComment struct {
 type reviewCommentView struct {
 	reviewComment
 	Stale bool `json:"stale"`
+}
+
+// reviewPatch records an intentional, narrow human correction. The prior
+// bytes live beside the session manifest and are restored only if the file has
+// not changed since the patch was applied.
+type reviewPatch struct {
+	ID         string     `json:"id"`
+	Path       string     `json:"path"`
+	LineStart  int        `json:"lineStart"`
+	LineEnd    int        `json:"lineEnd"`
+	BeforeHash string     `json:"beforeHash"`
+	AfterHash  string     `json:"afterHash"`
+	CreatedAt  time.Time  `json:"createdAt"`
+	UndoneAt   *time.Time `json:"undoneAt,omitempty"`
 }
 
 type reviewManager struct {
@@ -129,6 +144,10 @@ func (m *reviewManager) activePath() string {
 func (m *reviewManager) sessionDir(id string) string { return filepath.Join(m.state, "sessions", id) }
 func (m *reviewManager) manifestPath(id string) string {
 	return filepath.Join(m.sessionDir(id), "session.json")
+}
+
+func (m *reviewManager) patchPath(id string) string {
+	return filepath.Join(m.sessionDir(m.active.ID), "patches", id+".before")
 }
 
 func (m *reviewManager) load(id string) (*reviewSession, error) {
@@ -524,6 +543,118 @@ func (m *reviewManager) Comments() ([]reviewCommentView, error) {
 	return out, nil
 }
 
+func hashBytes(b []byte) string {
+	h := sha256.Sum256(b)
+	return hex.EncodeToString(h[:])
+}
+
+// lineSpan returns the byte boundaries of an inclusive 1-based line range,
+// without consuming the newline after the final selected line.
+func lineSpan(b []byte, l1, l2 int) (int, int, error) {
+	if l1 < 1 || l2 < l1 {
+		return 0, 0, errors.New("invalid line range")
+	}
+	starts := []int{0}
+	for i, c := range b {
+		if c == '\n' && i+1 < len(b) {
+			starts = append(starts, i+1)
+		}
+	}
+	if l2 > len(starts) {
+		return 0, 0, errors.New("line range is outside the file")
+	}
+	start := starts[l1-1]
+	end := len(b)
+	if l2 < len(starts) {
+		end = starts[l2] - 1
+	}
+	return start, end, nil
+}
+
+func (m *reviewManager) ApplyPatch(path string, l1, l2 int, expectedHash, replacement string) (reviewPatch, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.active == nil {
+		return reviewPatch{}, errors.New("no active review session")
+	}
+	if len(replacement) > 64<<10 {
+		return reviewPatch{}, errors.New("replacement must be at most 65536 bytes")
+	}
+	abs := filepath.Join(m.root, filepath.FromSlash(path))
+	before, err := os.ReadFile(abs)
+	if err != nil {
+		return reviewPatch{}, err
+	}
+	if actual := hashBytes(before); expectedHash == "" || actual != expectedHash {
+		return reviewPatch{}, errors.New("file changed since patch preview")
+	}
+	start, end, err := lineSpan(before, l1, l2)
+	if err != nil {
+		return reviewPatch{}, err
+	}
+	after := append(append(append([]byte(nil), before[:start]...), []byte(replacement)...), before[end:]...)
+	info, err := os.Stat(abs)
+	if err != nil {
+		return reviewPatch{}, err
+	}
+	id := time.Now().UTC().Format("20060102T150405.000000000")
+	if err := writeAtomic(m.patchPath(id), before, 0o600); err != nil {
+		return reviewPatch{}, err
+	}
+	if err := writeAtomic(abs, after, info.Mode().Perm()); err != nil {
+		return reviewPatch{}, err
+	}
+	p := reviewPatch{ID: id, Path: path, LineStart: l1, LineEnd: l2, BeforeHash: hashBytes(before), AfterHash: hashBytes(after), CreatedAt: time.Now().UTC()}
+	m.active.Patches = append(m.active.Patches, p)
+	if err := m.saveLocked(); err != nil {
+		return reviewPatch{}, err
+	}
+	return p, nil
+}
+
+func (m *reviewManager) UndoPatch(id string) (reviewPatch, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.active == nil {
+		return reviewPatch{}, errors.New("no active review session")
+	}
+	for i := len(m.active.Patches) - 1; i >= 0; i-- {
+		p := &m.active.Patches[i]
+		if p.ID != id {
+			continue
+		}
+		if p.UndoneAt != nil {
+			return reviewPatch{}, errors.New("patch was already undone")
+		}
+		abs := filepath.Join(m.root, filepath.FromSlash(p.Path))
+		current, err := os.ReadFile(abs)
+		if err != nil {
+			return reviewPatch{}, err
+		}
+		if hashBytes(current) != p.AfterHash {
+			return reviewPatch{}, errors.New("file changed since patch was applied")
+		}
+		before, err := os.ReadFile(m.patchPath(p.ID))
+		if err != nil {
+			return reviewPatch{}, err
+		}
+		info, err := os.Stat(abs)
+		if err != nil {
+			return reviewPatch{}, err
+		}
+		if err := writeAtomic(abs, before, info.Mode().Perm()); err != nil {
+			return reviewPatch{}, err
+		}
+		now := time.Now().UTC()
+		p.UndoneAt = &now
+		if err := m.saveLocked(); err != nil {
+			return reviewPatch{}, err
+		}
+		return *p, nil
+	}
+	return reviewPatch{}, errors.New("patch not found")
+}
+
 func (m *reviewManager) Restore() (*reviewSession, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -688,6 +819,55 @@ func (s *Server) handleReviewCommentStatus(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	writeJSON(w, map[string]any{"comment": comment})
+}
+
+func (s *Server) handleReviewPatch(w http.ResponseWriter, r *http.Request) {
+	if !localPost(w, r) {
+		return
+	}
+	var req struct {
+		Path         string `json:"path"`
+		LineStart    int    `json:"lineStart"`
+		LineEnd      int    `json:"lineEnd"`
+		ExpectedHash string `json:"expectedHash"`
+		Replacement  string `json:"replacement"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		fail(w, 400, "invalid patch")
+		return
+	}
+	_, path, ok := s.safePath(req.Path)
+	if !ok || path == "" {
+		fail(w, 400, "bad path")
+		return
+	}
+	patch, err := s.review.ApplyPatch(path, req.LineStart, req.LineEnd, req.ExpectedHash, req.Replacement)
+	if err != nil {
+		fail(w, 409, err.Error())
+		return
+	}
+	s.ix.Build()
+	writeJSON(w, map[string]any{"patch": patch})
+}
+
+func (s *Server) handleReviewUndoPatch(w http.ResponseWriter, r *http.Request) {
+	if !localPost(w, r) {
+		return
+	}
+	var req struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		fail(w, 400, "invalid patch undo")
+		return
+	}
+	patch, err := s.review.UndoPatch(req.ID)
+	if err != nil {
+		fail(w, 409, err.Error())
+		return
+	}
+	s.ix.Build()
+	writeJSON(w, map[string]any{"patch": patch})
 }
 
 func (s *Server) handleReviewStart(w http.ResponseWriter, r *http.Request) {
