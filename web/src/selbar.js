@@ -24,6 +24,8 @@ let agentHandler = null;
 export function setAgentHandler(fn) { agentHandler = fn; }
 let reviewCommentHandler = null;
 export function setReviewCommentHandler(fn) { reviewCommentHandler = fn; }
+let reviewPatchHandler = null;
+export function setReviewPatchHandler(fn) { reviewPatchHandler = fn; }
 
 let current = null;   // the selection the bar is showing, or null when it is not
 let allText = null;   // Ctrl+A: promise of the S.selAll file's full text
@@ -182,6 +184,9 @@ export function runSelectionAction(act) {
   } else if (act === 'review-comment') {
     if (!reviewCommentHandler) return false;
     reviewCommentHandler(current);
+  } else if (act === 'review-patch') {
+    if (!reviewPatchHandler) return false;
+    reviewPatchHandler(current);
   } else if (act === 'usages') {
     findReferences(text.split(/\s+/)[0] || text);
   } else {
@@ -202,6 +207,7 @@ const SEL_MENU_ITEMS = [
   { sel: 'copy-ref', label: 'Copy Ref', keys: 'Alt+C' },
   { sel: 'copy-agent', label: 'Copy with Context', keys: 'Alt+A' },
   { sel: 'review-comment', label: 'Add Review Comment', keys: '' },
+  { sel: 'review-patch', label: 'Patch Selection', keys: '' },
   { sel: 'agent-edit', label: 'Edit Inline', keys: 'Alt+E' },
   { sel: 'usages', label: 'Find Usages', keys: 'Alt+U' },
 ];

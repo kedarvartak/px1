@@ -79,6 +79,7 @@ export const S = {
   agentTargets: [],  // [{ id, path, l1, l2 }, ...] ranges of open compose/edit sessions
   review: null,      // active review-session reply, refreshed by review queue
   reviewComments: [],
+  lastReviewPatch: null,
 };
 
 export const doc_ = () => (S.active >= 0 ? S.tabs[S.active] : null);
