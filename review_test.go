@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -303,5 +304,28 @@ func TestReviewHunkRevertUsesTaskBaseline(t *testing.T) {
 	}
 	if string(got) != string(changed) {
 		t.Fatalf("undo revert = %q, want %q", got, changed)
+	}
+}
+
+func TestReviewBaselineDiffUsesTaskStartSnapshot(t *testing.T) {
+	isolateSettings(t)
+	root := t.TempDir()
+	p := filepath.Join(root, "config.txt")
+	if err := os.WriteFile(p, []byte("before\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m := newReviewManager(root)
+	if _, err := m.Start(); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(p, []byte("after\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	diff, err := m.BaselineDiff("config.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(diff, "-before") || !strings.Contains(diff, "+after") {
+		t.Fatalf("unexpected baseline diff:\n%s", diff)
 	}
 }
