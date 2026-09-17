@@ -72,7 +72,8 @@
     lineNumbers: true,
     mdPreview: true,
     settings: null,
-    agentTargets: []
+    agentTargets: [],
+    review: null
   };
   var doc_ = () => S2.active >= 0 ? S2.tabs[S2.active] : null;
 
@@ -5660,6 +5661,106 @@
     });
   }
 
+  // web/src/review.js
+  var queueEl = $("#review-queue");
+  var tree = $("#tree");
+  var shown2 = false;
+  var pending = (item) => item.state === "unreviewed" || item.state === "stale" || item.state === "blocked";
+  async function refreshReviewQueue() {
+    try {
+      S2.review = await api("/api/review/session");
+    } catch {
+      S2.review = null;
+    }
+    drawReviewQueue();
+  }
+  function itemMarkup(item) {
+    const state = item.state || "unreviewed";
+    const label = state === "unreviewed" ? "Needs review" : state;
+    return `<div class="review-item" data-review-path="${esc(item.path)}">
+    <button class="review-open" title="Open ${esc(item.path)}"><span class="review-state ${esc(state)}"></span><span class="review-path">${esc(item.path)}</span><span class="review-label">${esc(label)}</span></button>
+    <button class="review-mark" data-review-mark="${esc(item.path)}" title="Mark reviewed" ${state === "reviewed" ? "disabled" : ""}>✓</button>
+  </div>`;
+  }
+  function drawReviewQueue() {
+    if (!queueEl)
+      return;
+    const active = S2.review?.active;
+    const q = S2.review?.queue;
+    if (!active) {
+      queueEl.innerHTML = `<div class="review-empty"><strong>Review agent changes</strong><p>Snapshot the workspace before an agent task. px1 will queue only files changed after that point.</p><button class="review-primary" data-review-start>Start review session</button></div>`;
+      return;
+    }
+    const items = q?.items || [];
+    const count = q?.total || items.length;
+    const reviewed = q?.reviewed || 0;
+    const next = items.find(pending);
+    queueEl.innerHTML = `<div class="review-summary"><div><strong>Agent changes</strong><span>${reviewed} / ${count} reviewed</span></div><button class="review-close" data-review-close title="Close review session">Close</button></div>
+    <div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div>
+    <div class="review-list">${items.length ? items.map(itemMarkup).join("") : '<div class="hint">No files have changed since this review began.</div>'}</div>
+    <div class="review-foot"><button class="review-next" data-review-next ${next ? "" : "disabled"}>${next ? "Next change →" : "All changes reviewed"}</button></div>`;
+  }
+  async function start2() {
+    try {
+      await apiPost("/api/review/session/start");
+      await refreshReviewQueue();
+      showToast("✓", "Review baseline captured");
+    } catch (e) {
+      showToast("!", e.message);
+    }
+  }
+  async function mark(path) {
+    try {
+      const q = await apiPost("/api/review/mark", { path, state: "reviewed" });
+      if (S2.review)
+        S2.review.queue = q.queue;
+      drawReviewQueue();
+      showToast("✓", "Marked reviewed");
+    } catch (e) {
+      showToast("!", e.message);
+    }
+  }
+  async function openNext() {
+    const item = S2.review?.queue?.items?.find(pending);
+    if (!item)
+      return;
+    await openFile(item.path);
+  }
+  async function close() {
+    try {
+      await apiPost("/api/review/session/close");
+      await refreshReviewQueue();
+      showToast("✓", "Review session closed");
+    } catch (e) {
+      showToast("!", e.message);
+    }
+  }
+  function initReviewQueue() {
+    $("#btn-review")?.addEventListener("click", async () => {
+      shown2 = !shown2;
+      tree.hidden = shown2;
+      queueEl.hidden = !shown2;
+      $("#btn-review").classList.toggle("active", shown2);
+      if (shown2)
+        await refreshReviewQueue();
+    });
+    queueEl?.addEventListener("click", async (e) => {
+      const startBtn = e.target.closest("[data-review-start]");
+      if (startBtn)
+        return start2();
+      if (e.target.closest("[data-review-close]"))
+        return close();
+      if (e.target.closest("[data-review-next]"))
+        return openNext();
+      const markBtn = e.target.closest("[data-review-mark]");
+      if (markBtn)
+        return mark(markBtn.dataset.reviewMark);
+      const item = e.target.closest("[data-review-path]");
+      if (item)
+        await openFile(item.dataset.reviewPath);
+    });
+  }
+
   // web/src/main.js
   initRenderer();
   initTabs();
@@ -5681,6 +5782,7 @@
   initMetrics();
   initStatusFit();
   initSettings();
+  initReviewQueue();
   (async function boot() {
     try {
       initTheme();
@@ -5714,6 +5816,7 @@
     }
     updateStatus();
     await drawTree("", treeEl, 0);
+    await refreshReviewQueue();
     const params = new URLSearchParams(window.location.search);
     const initialPath = params.get("path");
     const initialLine = parseInt(params.get("line"), 10) || undefined;
