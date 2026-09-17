@@ -305,9 +305,12 @@
 <div id="settings-modal" class="modal-overlay" hidden>
   <div class="settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settings-title">
     <header class="settings-header">
-      <div class="settings-title-group">
-        <h2 id="settings-title">Settings</h2>
-        <span id="settings-path" class="settings-path-badge" title="Click to copy path">~/.px1/settings.json</span>
+      <h2 id="settings-title">Settings</h2>
+      <!-- Search bar for filtering settings -->
+      <div id="settings-search-bar" class="settings-search-bar">
+        <svg class="settings-search-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="settings-search" placeholder="Search settings" autocomplete="off" spellcheck="false">
+        <button id="settings-search-clear" class="mini" title="Clear search">&#10005;</button>
       </div>
       <div class="settings-header-actions">
         <div class="settings-mode-switch" role="group" aria-label="Settings View Mode">
@@ -318,23 +321,19 @@
       </div>
     </header>
 
-    <!-- Search bar for filtering settings -->
-    <div id="settings-search-bar" class="settings-search-bar">
-      <svg class="settings-search-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="text" id="settings-search" placeholder="Search settings..." autocomplete="off" spellcheck="false">
-      <button id="settings-search-clear" class="mini" title="Clear search">&#10005;</button>
-    </div>
-
     <!-- UI View Mode -->
     <div id="settings-ui-container" class="settings-body">
-      <nav id="settings-nav" class="settings-nav" aria-label="Settings categories"></nav>
+      <aside class="settings-side">
+        <nav id="settings-nav" class="settings-nav" aria-label="Settings categories"></nav>
+        <button id="settings-path" class="settings-path-badge" title="Copy settings file path">~/.px1/settings.json</button>
+      </aside>
       <section id="settings-list" class="settings-list" aria-label="Settings list"></section>
     </div>
 
     <!-- JSON View Mode -->
     <div id="settings-json-container" class="settings-json-body" hidden>
       <div class="settings-json-toolbar">
-        <span class="settings-json-hint">Edit settings.json directly. Changes apply immediately upon saving.</span>
+        <span class="settings-json-hint">Edit settings.json directly. Changes apply when you save.</span>
         <div class="settings-json-actions">
           <button id="btn-settings-reset-raw" class="settings-btn-secondary">Discard</button>
           <button id="btn-settings-save-raw" class="settings-btn-primary">Save</button>

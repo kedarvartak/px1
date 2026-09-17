@@ -1,0 +1,20 @@
+/* Vesper: true black with two quiet hues, peach and mint. Token reference: docs/internals/styling-and-themes.md. */
+:root[data-theme="vesper"] {
+  --theme-name: "Vesper";
+  color-scheme: dark;
+
+  --bg: #101010; --bg2: #0a0a0a; --bg3: #161616; --bg4: #1f1f1f;
+  --fg: #e8e8e8; --dim: #a0a0a0; --faint: #6b6b6b;
+  --line: #232323; --accent: #ffc799; --accent-fg: #ffc799; --on-accent: #101010;
+  --sel: rgba(255, 199, 153, 0.16); --mark: rgba(255, 199, 153, 0.2); --mark-active: #ffc799; --cur: #151515;
+  --on-mark-active: #101010;
+  --shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
+
+  --k: #a0a0a0; --kt: #a0a0a0; --nf: #ffc799; --nc: #ffc799; --nb: #ffc799;
+  --nv: #e8e8e8; --no: #99ffe4; --na: #ffc799; --nt: #a0a0a0; --nd: #ffc799;
+  --np: #e8e8e8; --s: #99ffe4; --m: #ffc799; --o: #a0a0a0; --p: #7a7a7a;
+  --c: #585858; --cp: #a0a0a0; --err: #ff8080;
+
+  --gi: #99ffe4; --gd: #ff8080;
+  --gi-bg: rgba(153, 255, 228, 0.08); --gd-bg: rgba(255, 128, 128, 0.1);
+}

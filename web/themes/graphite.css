@@ -1,0 +1,20 @@
+/* Graphite: neutral charcoal, near-monochrome syntax with faint tints. Token reference: docs/internals/styling-and-themes.md. */
+:root[data-theme="graphite"] {
+  --theme-name: "Graphite";
+  color-scheme: dark;
+
+  --bg: #111113; --bg2: #0b0b0c; --bg3: #19191c; --bg4: #232327;
+  --fg: #ececef; --dim: #9a9aa3; --faint: #6b6b73;
+  --line: #26262b; --accent: #d4d4d8; --accent-fg: #e4e4e7; --on-accent: #111113;
+  --sel: rgba(161, 161, 170, 0.22); --mark: rgba(214, 178, 74, 0.2); --mark-active: #d6b24a; --cur: #161618;
+  --on-mark-active: #111113;
+  --shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+
+  --k: #b4a7f5; --kt: #b4a7f5; --nf: #e4e4e7; --nc: #d8c7a3; --nb: #9ec1d9;
+  --nv: #ececef; --no: #d8c7a3; --na: #9ec1d9; --nt: #b4a7f5; --nd: #9ec1d9;
+  --np: #ececef; --s: #a3c9a8; --m: #d8c7a3; --o: #9a9aa3; --p: #7c7c85;
+  --c: #5f5f67; --cp: #b4a7f5; --err: #f07178;
+
+  --gi: #7bc58b; --gd: #f0827a;
+  --gi-bg: rgba(123, 197, 139, 0.1); --gd-bg: rgba(240, 130, 122, 0.1);
+}

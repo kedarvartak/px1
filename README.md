@@ -56,7 +56,7 @@ make dist
 - **Revision-Linked Verification**: Run explicitly configured tests, lint, or typechecks from the review queue. Results become stale if reviewed files change after the run.
 - **Edit with Your Coding Agent**: Select code in the source or diff view, right-click (or `Alt+E`), and describe the change. px1 runs Claude Code, OpenCode, OpenAI Codex, Antigravity, Aider, Goose, Gemini CLI, or Cursor Agent on it, reloads what changed, and shows harness errors inline. Several edits can run at once, as long as their line ranges don't overlap.
 - **Rendered Markdown Preview**: Full GFM preview with Chroma-highlighted code fences; switch between preview and source with `Alt+M` while preserving scroll.
-- **Custom Themes**: 14 built-in themes (GitHub Dark, Tokyo Night, Catppuccin, Dracula, Gruvbox, Nord, Solarized, and more).
+- **Custom Themes**: 6 built-in dark themes with muted, low-saturation palettes: GitHub Dark (default), Graphite, Midnight, Vesper, Poimandres, and Kanagawa Dragon.
 - **Optional Language Server Protocol (LSP)**: Zero-config auto-detection (`gopls`, `rust-analyzer`, `pyright`, `typescript-language-server`, `clangd`) for Go-to-Definition (`F12`), Hover, references, and call trails. Falls back automatically to regex outlines.
 - **Settings & Configuration Modal**: Press `Cmd/Ctrl+,` or click the ⚙️ icon in the status bar to open the VS Code-style Settings editor. Configure editor typography, cursor styles, diff modes, themes, search behavior, file exclusions, and coding agents with live preview and raw JSON synchronization (`~/.px1/settings.json`).
 - **Virtual DOM / Zero Overhead**: Opening a 400,000-line file costs the same as a 10-line file; only visible rows are mounted. Reclaims memory after 15 seconds of inactivity.
@@ -154,7 +154,7 @@ px1 provides a built-in Settings editor modeled after VS Code. Settings are stor
 | `editor.occurrencesHighlight` | `true` | `true`, `false` | Highlight occurrences of selected word |
 | `editor.scrollBeyondLastLine` | `true` | `true`, `false` | Allow scrolling past file end |
 | `editor.bracketPairColorization` | `true` | `true`, `false` | Rainbow bracket pairs and bracket matching |
-| `workbench.colorTheme` | `"github-dark"` | 14 built-in themes | Workbench color theme |
+| `workbench.colorTheme` | `"github-dark"` | 6 built-in dark themes | Workbench color theme |
 | `diffEditor.renderSideBySide` | `true` | `true`, `false` | Split vs. unified diff view |
 | `diffEditor.ignoreTrimWhitespace` | `true` | `true`, `false` | Ignore leading/trailing whitespace diffs |
 | `git.gutterIndicators` | `true` | `true`, `false` | Gutter change indicators |
