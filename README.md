@@ -92,7 +92,7 @@ px1 does not have a text editor. It hands changes to a coding agent already inst
 | Cursor Agent | `gemini-3.6-flash-minimal` | `cursor-agent --force --model gemini-3.6-flash-minimal -p {prompt}` |
 | Antigravity | `gemini-3.6-flash-low` | `agy --dangerously-skip-permissions --mode accept-edits --model gemini-3.6-flash-low -p {prompt}` |
 | OpenCode | `opencode/big-pickle` | `opencode run -m opencode/big-pickle {prompt}` |
-| OpenAI Codex | `gpt-5-codex` | `codex exec --ask-for-approval never -m gpt-5-codex {prompt}` |
+| OpenAI Codex | `gpt-5.6-sol` | `codex exec --approve-for-me -m gpt-5.6-sol {prompt}` |
 | Aider | `claude-3-7-sonnet` | `aider --yes-always --no-auto-commits --model claude-3-7-sonnet --message {prompt}` |
 | Goose | `gpt-4o` | `goose run --no-session --model gpt-4o -t {prompt}` |
 

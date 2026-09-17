@@ -643,6 +643,20 @@ func (m *reviewManager) applyPatchLocked(path string, l1, l2 int, expectedHash s
 	if err != nil {
 		return reviewPatch{}, err
 	}
+	// An empty replacement is a line deletion in Patch Mode. Include the
+	// selected lines' trailing newline so removing inserted lines does not
+	// leave a phantom blank line behind.
+	if len(replacement) == 0 {
+		starts := []int{0}
+		for i, c := range before {
+			if c == '\n' && i+1 < len(before) {
+				starts = append(starts, i+1)
+			}
+		}
+		if l2 < len(starts) {
+			end = starts[l2]
+		}
+	}
 	after := append(append(append([]byte(nil), before[:start]...), []byte(replacement)...), before[end:]...)
 	info, err := os.Stat(abs)
 	if err != nil {
