@@ -225,3 +225,44 @@ func TestReviewCommentsPersistAndReportStaleAnchors(t *testing.T) {
 		t.Fatal("invalid status was accepted")
 	}
 }
+
+func TestReviewPatchRequiresPreviewHashAndSupportsUndo(t *testing.T) {
+	isolateSettings(t)
+	root := t.TempDir()
+	path := filepath.Join(root, "config.go")
+	before := []byte("package main\nconst timeout = 120\nconst retries = 3\n")
+	if err := os.WriteFile(path, before, 0o640); err != nil {
+		t.Fatal(err)
+	}
+	m := newReviewManager(root)
+	if _, err := m.Start(); err != nil {
+		t.Fatal(err)
+	}
+	p, err := m.ApplyPatch("config.go", 2, 2, hashBytes(before), "const timeout = 60")
+	if err != nil {
+		t.Fatal(err)
+	}
+	after, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := string(after), "package main\nconst timeout = 60\nconst retries = 3\n"; got != want {
+		t.Fatalf("patched = %q, want %q", got, want)
+	}
+	if _, err := m.ApplyPatch("config.go", 2, 2, p.BeforeHash, "const timeout = 30"); err == nil {
+		t.Fatal("stale preview was accepted")
+	}
+	if _, err := m.UndoPatch(p.ID); err != nil {
+		t.Fatal(err)
+	}
+	restored, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(restored) != string(before) {
+		t.Fatalf("undo = %q, want %q", restored, before)
+	}
+	if _, err := m.UndoPatch(p.ID); err == nil {
+		t.Fatal("second undo was accepted")
+	}
+}
