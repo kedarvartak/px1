@@ -43,6 +43,7 @@ type Server struct {
 	lsp    *lspManager
 	agent  *agentManager // nil unless main wires editing for this session
 	review *reviewManager
+	verify *verificationManager
 	mux    *http.ServeMux
 
 	lastReq atomic.Int64 // unix nanos of the most recent request
@@ -52,7 +53,7 @@ func NewServer(ix *Index, lsp *lspManager) *Server {
 	if lsp == nil {
 		lsp = newLSPManager(ix.Root(), false)
 	}
-	s := &Server{ix: ix, lsp: lsp, mux: http.NewServeMux(), review: newReviewManager(ix.Root())}
+	s := &Server{ix: ix, lsp: lsp, mux: http.NewServeMux(), review: newReviewManager(ix.Root()), verify: newVerificationManager(ix.Root())}
 	sub, _ := fs.Sub(assets, "web")
 	s.mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(sub))))
 	s.mux.HandleFunc("/static/themes.css", s.handleThemes)
@@ -90,6 +91,8 @@ func NewServer(ix *Index, lsp *lspManager) *Server {
 	s.mux.HandleFunc("/api/review/session/restore", s.handleReviewRestore)
 	s.mux.HandleFunc("/api/review/session/close", s.handleReviewClose)
 	s.mux.HandleFunc("/api/review/diff", s.handleReviewDiff)
+	s.mux.HandleFunc("/api/review/checks", s.handleReviewChecks)
+	s.mux.HandleFunc("/api/review/check/run", s.handleReviewCheckRun)
 	s.mux.HandleFunc("/api/review/mark", s.handleReviewMark)
 	s.mux.HandleFunc("/api/review/comments", s.handleReviewComments)
 	s.mux.HandleFunc("/api/review/comments/agent", s.handleReviewCommentsAgent)

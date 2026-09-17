@@ -414,6 +414,21 @@ func (m *reviewManager) Queue() (reviewQueue, error) {
 	return m.queueLocked()
 }
 
+func (m *reviewManager) Revision() (string, error) {
+	q, err := m.Queue()
+	if err != nil {
+		return "", err
+	}
+	var b strings.Builder
+	for _, item := range q.Items {
+		b.WriteString(item.Path)
+		b.WriteByte(0)
+		b.WriteString(item.CurrentHash)
+		b.WriteByte(0)
+	}
+	return hashBytes([]byte(b.String())), nil
+}
+
 // BaselineDiff returns a unified diff from the task-start snapshot to the
 // current file. It deliberately avoids HEAD: a workspace may already have
 // legitimate local changes before an agent task begins.

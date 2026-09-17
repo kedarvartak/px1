@@ -13,8 +13,9 @@ import (
 // never in the working tree.
 
 type settings struct {
-	Agent  string            `json:"agent,omitempty"`
-	Models map[string]string `json:"models,omitempty"`
+	Agent                string            `json:"agent,omitempty"`
+	Models               map[string]string `json:"models,omitempty"`
+	VerificationCommands map[string]string `json:"verification.commands,omitempty"`
 
 	EditorFontSize             *float64 `json:"editor.fontSize,omitempty"`
 	EditorFontFamily           *string  `json:"editor.fontFamily,omitempty"`
