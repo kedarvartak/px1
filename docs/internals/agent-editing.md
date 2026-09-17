@@ -230,7 +230,16 @@ Decision pins ([`pins.go`](../../pins.go)) put an agent's choices next to the co
 - **Acting.** `POST /api/review/pin/status` sets `accepted` or `proposed`. `switched` requires a `choice`, refuses stale pins, and dispatches an ordinary anchored edit through `Start` with an instruction to replace the decision everywhere it is relied on.
 - **Rendering.** `placePins` in `web/src/diff.js` inserts each card after the last diff row whose working-tree line falls inside the pin's range, in split and unified layouts alike. Pins whose lines are not in any hunk are gathered above the first hunk. The review queue lists pins sorted by impact and opens the diff with the card expanded.
 
-## 10. Limits
+## 10. Decision Memory
+
+Decision memory ([`memory.go`](../../memory.go)) keeps decisions alive after the review session that made them closes. `decisionMemory` stores `decisionRecord`s in `decisions/<sha256(root)>.json` beside `review-sessions/` in the px1 state directory, capped at 2000 records, written atomically.
+
+- **Recording.** Accepting a pin reads its current lines and records them as `snippet`. Switching records only after the switch job succeeds (`StartWithDone`), with `decision` set to the chosen alternative and the rejected decision moved to the front of `alternatives`. The pin status is set before dispatch so a fast harness cannot finish first. Reopening a pin forgets its record. Snippets whose non-blank text is under 12 bytes are not remembered: a lone `}` would anchor anywhere.
+- **Anchoring.** `locateSnippet` compares whitespace-normalized, non-blank lines, so reindenting or adding blank lines does not lose a decision, and prefers the match nearest the recorded line when the snippet repeats. `GET /api/decisions?path=` returns the file's active records with their current range, and the source view marks those lines (`gut-dec` in `renderer.js`, tooltip from the record).
+- **Challenges.** `GET /api/review/challenges` checks every queued file: a record is challenged when its snippet is present in the task-baseline copy and absent from the current file. Records made in the current session and records dismissed for it (`dismissedDecisions` in the manifest) are skipped. The client places the card after the last diff row whose old-side line (`data-o`) falls in the baseline range. **Ask agent to keep it** anchors a review comment on the corresponding current lines.
+- **Resolving.** `POST /api/decisions/resolve` with `supersede` marks the record `superseded` for good; `dismiss` only hides it for the active session.
+
+## 11. Limits
 
 - The job keeps the last 32 KB of each of stdout and stderr (`tailBuffer`), enough to explain a failure without holding a full transcript.
 - A run is abandoned after 10 minutes.

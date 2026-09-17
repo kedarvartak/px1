@@ -1609,3 +1609,8 @@ body.hide-git-gutter .g-git, body.hide-git-gutter [class*="git-"] { display: non
   resize: none;
   tab-size: 2;
 }
+.pin.pin-challenge { border-left-color: var(--gd); background: color-mix(in srgb, var(--gd) 7%, var(--bg2)); }
+.pin.pin-challenge .pin-mark, .review-challenge .review-pin-mark { color: var(--gd); font-size: 11px; }
+.review-challenges .review-pins-head span { color: var(--gd); }
+.g.gut-dec { cursor: help; }
+.g.gut-dec::after { content: "◆"; position: absolute; right: 3px; top: 50%; transform: translateY(-50%); color: var(--accent); font-size: 7px; line-height: 1; }

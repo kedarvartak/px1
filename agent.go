@@ -723,6 +723,10 @@ func (m *agentManager) overlapLocked(rel string, l1, l2 int) bool {
 // Start dispatches an instruction anchored to abs:l1-l2. It returns as soon as
 // the harness is running.
 func (m *agentManager) Start(abs, rel string, l1, l2 int, instruction string, force bool) (*agentJob, error) {
+	return m.StartWithDone(abs, rel, l1, l2, instruction, force, nil)
+}
+
+func (m *agentManager) StartWithDone(abs, rel string, l1, l2 int, instruction string, force bool, onDone func(stdout string, err error)) (*agentJob, error) {
 	instruction = strings.TrimSpace(instruction)
 	if instruction == "" {
 		return nil, errors.New("instruction is empty")
@@ -773,6 +777,7 @@ func (m *agentManager) Start(abs, rel string, l1, l2 int, instruction string, fo
 		stderr:  &tailBuffer{max: agentLogBytes},
 		start:   time.Now(),
 		cancel:  cancel,
+		onDone:  onDone,
 	}
 	if m.jobs == nil {
 		m.jobs = map[int64]*agentJob{}

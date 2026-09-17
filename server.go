@@ -43,6 +43,7 @@ type Server struct {
 	lsp    *lspManager
 	agent  *agentManager // nil unless main wires editing for this session
 	review *reviewManager
+	memory *decisionMemory
 	verify *verificationManager
 	mux    *http.ServeMux
 
@@ -57,7 +58,7 @@ func NewServer(ix *Index, lsp *lspManager) *Server {
 	if lsp == nil {
 		lsp = newLSPManager(ix.Root(), false)
 	}
-	s := &Server{ix: ix, lsp: lsp, mux: http.NewServeMux(), review: newReviewManager(ix.Root()), verify: newVerificationManager(ix.Root())}
+	s := &Server{ix: ix, lsp: lsp, mux: http.NewServeMux(), review: newReviewManager(ix.Root()), memory: newDecisionMemory(ix.Root()), verify: newVerificationManager(ix.Root())}
 	sub, _ := fs.Sub(assets, "web")
 	s.mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(sub))))
 	s.mux.HandleFunc("/static/themes.css", s.handleThemes)
@@ -108,6 +109,9 @@ func NewServer(ix *Index, lsp *lspManager) *Server {
 	s.mux.HandleFunc("/api/review/pins", s.handleReviewPins)
 	s.mux.HandleFunc("/api/review/pins/explain", s.handleReviewPinsExplain)
 	s.mux.HandleFunc("/api/review/pin/status", s.handleReviewPinStatus)
+	s.mux.HandleFunc("/api/review/challenges", s.handleReviewChallenges)
+	s.mux.HandleFunc("/api/decisions", s.handleDecisions)
+	s.mux.HandleFunc("/api/decisions/resolve", s.handleDecisionResolve)
 	s.mux.HandleFunc("/api/settings", s.handleSettings)
 	s.lastReq.Store(time.Now().UnixNano())
 	go s.scavenge()

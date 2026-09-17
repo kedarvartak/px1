@@ -201,6 +201,20 @@
       paint();
     });
   }
+  function decisionTitleText(recs) {
+    return recs.map((r) => {
+      const lines = ["◆ " + r.decision];
+      if (r.why)
+        lines.push("why: " + r.why);
+      if (r.alternatives && r.alternatives.length)
+        lines.push("not: " + r.alternatives.join(" · "));
+      lines.push((r.status === "switched" ? "switched " : "decided ") + new Date(r.recordedAt).toLocaleDateString());
+      return lines.join(`
+`);
+    }).join(`
+
+`);
+  }
   function paint() {
     const d = doc_();
     if (!d) {
@@ -225,6 +239,12 @@
         rc += " cur";
       if (agentRanges.some((r) => n >= r.l1 && n <= r.l2))
         rc += " agent-sel";
+      let gt = "";
+      const recs = d.decisions && d.decisions.get(n);
+      if (recs) {
+        gc += " gut-dec";
+        gt = ' title="' + esc(decisionTitleText(recs)) + '"';
+      }
       if (gut) {
         const m = gut.marks.get(n);
         if (m)
@@ -232,7 +252,7 @@
         if (gut.dels.has(n))
           rc += " gut-del";
       }
-      html += '<div class="' + rc + '" data-l="' + n + '">' + '<div class="' + gc + '">' + n + '</div><div class="c">' + (body === undefined ? "" : body) + "</div></div>";
+      html += '<div class="' + rc + '" data-l="' + n + '">' + '<div class="' + gc + '"' + gt + ">" + n + '</div><div class="c">' + (body === undefined ? "" : body) + "</div></div>";
     }
     const sel = saveSelection();
     rowsEl.style.transform = "translateY(" + first * LH + "px)";
@@ -2734,9 +2754,38 @@
     const els = row.matches("[data-l]") ? [row] : [...row.querySelectorAll("[data-l]")];
     return els.map((el) => +el.dataset.l);
   }
+  function rowOld(row) {
+    const els = row.matches("[data-o]") ? [row] : [...row.querySelectorAll("[data-o]")];
+    return els.map((el) => +el.dataset.o);
+  }
+  function rowCurrent(row) {
+    const els = row.matches("[data-l],[data-at]") ? [row] : [...row.querySelectorAll("[data-l],[data-at]")];
+    return els.map((el) => +(el.dataset.l || el.dataset.at));
+  }
   function placePins(d, tables) {
     const pins = (S2.reviewPins || []).filter((p) => p.path === d.path);
     const loose = [];
+    for (const ch of (S2.reviewChallenges || []).filter((c) => c.path === d.path)) {
+      let target2 = null;
+      const current = [];
+      for (const table of tables) {
+        for (const row of table.children) {
+          if (rowOld(row).some((l) => l >= ch.baselineFrom && l <= ch.baselineTo)) {
+            target2 = row;
+            current.push(...rowCurrent(row));
+          }
+        }
+        if (target2)
+          break;
+      }
+      const lines = current.filter((n) => n > 0);
+      const at = lines.length ? { l1: Math.min(...lines), l2: Math.max(...lines) } : { l1: 1, l2: 1 };
+      const card = challengeCard(ch, at);
+      if (target2)
+        target2.after(card);
+      else
+        loose.push(card);
+    }
     for (const pin of pins) {
       let target2 = null;
       for (const table of tables) {
@@ -2750,15 +2799,62 @@
       if (target2)
         target2.after(pinCard(pin));
       else
-        loose.push(pin);
+        loose.push(pinCard(pin));
     }
     if (loose.length) {
       const box = document.createElement("div");
       box.className = "pin-loose";
-      for (const pin of loose)
-        box.append(pinCard(pin));
+      box.append(...loose);
       diffContent.prepend(box);
     }
+  }
+  function challengeCard(ch, at) {
+    const card = document.createElement("div");
+    card.className = "pin pin-challenge";
+    card.dataset.challengeId = ch.id;
+    const head = document.createElement("button");
+    head.className = "pin-head";
+    const mark = document.createElement("span");
+    mark.className = "pin-mark";
+    mark.textContent = "⟲";
+    const text = document.createElement("span");
+    text.className = "pin-decision";
+    text.textContent = "Reverses a past decision: " + ch.decision;
+    const ref = document.createElement("span");
+    ref.className = "pin-ref";
+    ref.textContent = new Date(ch.recordedAt).toLocaleDateString();
+    head.append(mark, text, ref);
+    const body = document.createElement("div");
+    body.className = "pin-body";
+    const lines = [];
+    if (ch.why)
+      lines.push(["why", ch.why]);
+    if (ch.alternatives?.length)
+      lines.push(["not", ch.alternatives.join(" · ")]);
+    for (const [k, v] of lines) {
+      const el = document.createElement("div");
+      el.className = "pin-line";
+      el.innerHTML = "<span>" + k + "</span>" + esc(v);
+      body.append(el);
+    }
+    const acts = document.createElement("div");
+    acts.className = "pin-acts";
+    acts.append(pinButton("Ask agent to keep it", "challenge-ask", { ...ch, at }), pinButton("Decision changed", "challenge-supersede", ch), pinButton("Still holds", "challenge-dismiss", ch));
+    body.append(acts);
+    head.addEventListener("click", () => {
+      body.hidden = !body.hidden;
+      card.classList.toggle("open", !body.hidden);
+    });
+    card.classList.add("open");
+    card.append(head, body);
+    return card;
+  }
+  function revealChallenge(id) {
+    const card = diffContent.querySelector(`[data-challenge-id="${CSS.escape(id)}"]`);
+    if (!card)
+      return false;
+    card.scrollIntoView({ block: "center" });
+    return true;
   }
   function lineLabel(pin) {
     return pin.lineStart === pin.lineEnd ? "L" + pin.lineStart : "L" + pin.lineStart + "–" + pin.lineEnd;
@@ -2997,6 +3093,8 @@
     return el;
   }
   function anchor(el, row) {
+    if (row.oldLine !== undefined)
+      el.dataset.o = row.oldLine;
     if (row.newLine !== undefined)
       el.dataset.l = row.newLine;
     else if (row.at !== undefined)
@@ -3598,6 +3696,7 @@
       if (j.refine)
         refineChunk(d2, start2 / CHUNK);
       loadGutter(d2);
+      loadDecisions(d2);
     }
     const prev = doc_();
     if (prev && prev !== S2.tabs[idx])
@@ -3632,6 +3731,23 @@
       loadOutline();
     if (push)
       pushHistory(path, line || d.cur, col);
+  }
+  function loadDecisions(d) {
+    api("/api/decisions", { path: d.path }).then((j) => {
+      const byLine = new Map;
+      for (const rec of j.decisions || []) {
+        if (!rec.located)
+          continue;
+        for (let n = rec.currentFrom;n <= rec.currentTo; n++) {
+          if (!byLine.has(n))
+            byLine.set(n, []);
+          byLine.get(n).push(rec);
+        }
+      }
+      d.decisions = byLine;
+      if (doc_() === d)
+        render();
+    }).catch(() => {});
   }
   function loadGutter(d) {
     if (!S2.meta?.git)
@@ -3729,6 +3845,7 @@
       if (j.refine)
         refineChunk(d2, tgt.start / CHUNK);
       loadGutter(d2);
+      loadDecisions(d2);
     }
     const d = doc_();
     if (d) {
@@ -5882,7 +5999,7 @@
   var patchInput = $("#review-patch-input");
   var patchTarget = null;
   var explaining = false;
-  var pinSig = "[]";
+  var pinSig = "";
   var pending = (item) => item.state === "unreviewed" || item.state === "stale" || item.state === "blocked";
   async function refreshReviewQueue() {
     try {
@@ -5905,16 +6022,29 @@
       S2.reviewExplain = {};
     }
     try {
+      const j = S2.review?.active ? await api("/api/review/challenges") : { challenges: [] };
+      S2.reviewChallenges = j.challenges || [];
+    } catch {
+      S2.reviewChallenges = [];
+    }
+    try {
       S2.reviewChecks = S2.review?.active ? await api("/api/review/checks") : { commands: {}, jobs: [] };
     } catch {
       S2.reviewChecks = { commands: {}, jobs: [] };
     }
     drawReviewQueue();
-    const sig = JSON.stringify(S2.reviewPins);
+    const sig = JSON.stringify([S2.reviewPins, S2.reviewChallenges]);
     if (sig !== pinSig) {
       pinSig = sig;
       syncDiffView();
     }
+  }
+  function challengesMarkup() {
+    const list = S2.reviewChallenges || [];
+    if (!list.length)
+      return "";
+    const rows = list.map((c) => `<button class="review-pin review-challenge" data-review-challenge="${esc(c.id)}" data-path="${esc(c.path)}" title="${esc(c.why || c.decision)}"><span class="review-pin-mark">⟲</span><span class="review-pin-text">${esc(c.decision)}</span><span class="review-pin-ref">${esc(c.path.split("/").pop())}</span></button>`).join("");
+    return `<div class="review-pins review-challenges"><div class="review-pins-head"><strong>Reversed decisions</strong><span>${list.length} to resolve</span></div><div class="review-pin-list">${rows}</div></div>`;
   }
   function pinsMarkup() {
     const pins = S2.reviewPins || [];
@@ -5962,6 +6092,7 @@
     }).join("")}</div>` : '<div class="review-check-empty">Configure checks in Settings JSON: <code>"verification.commands"</code>.</div>';
     queueEl.innerHTML = `<div class="review-summary"><div><strong>Agent changes</strong><span>${reviewed} / ${count} reviewed</span></div><button class="review-close" data-review-close title="Close review session">Close</button></div>
     <div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div>
+    ${challengesMarkup()}
     ${pinsMarkup()}
     <div class="review-list">${items.length ? items.map(itemMarkup).join("") : '<div class="hint">No files have changed since this review began.</div>'}</div>
     <div class="review-foot">${checkMarkup}<button class="review-feedback" data-review-feedback ${comments.length ? "" : "disabled"}>Ask agent to address ${comments.length} comment${comments.length === 1 ? "" : "s"}</button>${S2.lastReviewPatch ? '<button class="review-undo" data-review-undo>Undo last patch</button>' : ""}<button class="review-next" data-review-next ${next ? "" : "disabled"}>${next ? "Next change →" : "All changes reviewed"}</button></div>`;
@@ -6111,20 +6242,41 @@
     await openReviewDiff(pin.path);
     revealPin(id);
   }
+  async function openChallenge(id, path) {
+    await openFile(path);
+    await openReviewDiff(path);
+    revealChallenge(id);
+  }
   async function onPin(action, pin, choice) {
     try {
+      if (action === "challenge-ask") {
+        const why = pin.why ? ` (${pin.why})` : "";
+        openComment({ path: pin.path, l1: pin.at.l1, l2: pin.at.l2 }, `This change reverses an earlier decision: ${pin.decision}${why}. Restore it unless the requirement changed.`);
+        return;
+      }
+      if (action === "challenge-supersede" || action === "challenge-dismiss") {
+        await apiPost("/api/decisions/resolve", undefined, {
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: pin.id, action: action === "challenge-supersede" ? "supersede" : "dismiss" })
+        });
+        await refreshReviewQueue();
+        showToast("✓", action === "challenge-supersede" ? "Decision retired" : "Decision kept; change allowed");
+        return;
+      }
       if (action === "ask") {
         const alts = pin.alternatives?.length ? " over " + pin.alternatives.join(" / ") : "";
         openComment({ path: pin.path, l1: pin.lineStart, l2: pin.lineEnd }, `Why ${pin.decision}${alts}?`);
         return;
       }
       if (action === "accept" || action === "reopen") {
-        await apiPost("/api/review/pin/status", undefined, {
+        const j = await apiPost("/api/review/pin/status", undefined, {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id: pin.id, status: action === "accept" ? "accepted" : "proposed" })
         });
         await refreshReviewQueue();
         revealPin(pin.id);
+        if (action === "accept")
+          showToast("✓", j.remembered ? "Accepted and remembered for future reviews" : "Accepted (lines too short to remember)");
         return;
       }
       if (action === "switch") {
@@ -6176,6 +6328,9 @@
         return undoPatch();
       if (e.target.closest("[data-review-explain]"))
         return explain2();
+      const chBtn = e.target.closest("[data-review-challenge]");
+      if (chBtn)
+        return openChallenge(chBtn.dataset.reviewChallenge, chBtn.dataset.path);
       const pinBtn = e.target.closest("[data-review-pin]");
       if (pinBtn)
         return openPin(pinBtn.dataset.reviewPin);
