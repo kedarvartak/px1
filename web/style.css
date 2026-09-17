@@ -93,6 +93,16 @@ body.side-hidden #side, body.side-hidden #resizer { display: none; }
 .review-foot { padding: 8px 10px; border-top: 1px solid var(--line); }
 .review-next { width: 100%; }
 .review-next:disabled { cursor: default; opacity: .55; }
+.review-commentbox { position: absolute; right: 16px; bottom: 16px; z-index: 22; width: min(390px, calc(100% - 32px)); padding: 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg2); box-shadow: var(--shadow-sm); }
+.review-comment-head { display: flex; gap: 8px; align-items: baseline; margin-bottom: 8px; font-size: 12px; font-weight: 600; }
+#review-comment-ref { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--faint); font: 10px var(--mono); }
+#review-comment-input { display: block; width: 100%; min-height: 66px; padding: 7px; resize: vertical; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--fg); font: 12px/1.45 var(--ui); outline: none; }
+#review-comment-input:focus { border-color: var(--accent); }
+.review-comment-actions { display: flex; justify-content: end; gap: 6px; margin-top: 8px; }
+.review-comment-actions button { border-radius: 4px; padding: 5px 7px; color: var(--dim); font-size: 12px; }
+.review-comment-actions button:hover { color: var(--fg); background: var(--bg3); }
+#review-comment-save { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+#review-comment-save:hover { filter: brightness(1.08); }
 /* Version and theme, level with the status bar beside it. */
 .side-foot {
   flex: none; height: 24px; display: flex; align-items: center; gap: 6px;

@@ -1,10 +1,14 @@
 import { $, esc, S, api, apiPost } from './state.js';
 import { openFile } from './tabs.js';
 import { showToast } from './ui.js';
+import { hideSelectionBar, setReviewCommentHandler } from './selbar.js';
 
 const queueEl = $('#review-queue');
 const tree = $('#tree');
 let shown = false;
+let commentTarget = null;
+const commentBox = $('#review-commentbox');
+const commentInput = $('#review-comment-input');
 
 const pending = item => item.state === 'unreviewed' || item.state === 'stale' || item.state === 'blocked';
 
@@ -76,6 +80,7 @@ async function close() {
 }
 
 export function initReviewQueue() {
+  setReviewCommentHandler(openComment);
   $('#btn-review')?.addEventListener('click', async () => {
     shown = !shown;
     tree.hidden = shown;
@@ -93,4 +98,47 @@ export function initReviewQueue() {
     const item = e.target.closest('[data-review-path]');
     if (item) await openFile(item.dataset.reviewPath);
   });
+  $('#review-comment-cancel')?.addEventListener('click', closeComment);
+  $('#review-comment-save')?.addEventListener('click', saveComment);
+  commentInput?.addEventListener('keydown', e => {
+    e.stopPropagation();
+    if (e.key === 'Escape') { e.preventDefault(); closeComment(); }
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveComment(); }
+  });
+}
+
+function commentRef(info) {
+  return info.path + ':' + (info.l1 === info.l2 ? info.l1 : info.l1 + '-' + info.l2);
+}
+
+function openComment(info) {
+  if (!info || !commentBox || !commentInput) return;
+  if (!S.review?.active) {
+    showToast('!', 'Start a review session before adding comments');
+    return;
+  }
+  commentTarget = info;
+  $('#review-comment-ref').textContent = commentRef(info);
+  commentInput.value = '';
+  commentBox.hidden = false;
+  commentInput.focus();
+}
+
+function closeComment() {
+  commentTarget = null;
+  if (commentBox) commentBox.hidden = true;
+}
+
+async function saveComment() {
+  const text = commentInput?.value.trim();
+  if (!commentTarget || !text) return;
+  try {
+    await apiPost('/api/review/comment', undefined, {
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: commentTarget.path, lineStart: commentTarget.l1, lineEnd: commentTarget.l2, text }),
+    });
+    closeComment();
+    hideSelectionBar();
+    showToast('✓', 'Review comment added');
+  } catch (e) { showToast('!', e.message); }
 }
