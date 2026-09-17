@@ -15,7 +15,7 @@ Instead, the most valuable contribution you can provide is a clear, detailed bug
 
 If you encounter unexpected behavior, memory leaks, navigation bugs, or performance issues:
 
-- Check existing [GitHub Issues](https://github.com/kedarvartak/px0/issues) first to avoid duplicates.
+- Check existing [GitHub Issues](https://github.com/kedarvartak/px1/issues) first to avoid duplicates.
 - Open a new issue using our [Bug Report Template](.github/ISSUE_TEMPLATE/bug_report.md).
 - Provide comprehensive context: operating system, browser, workspace size, steps to reproduce, expected vs. observed behavior, logs, and screenshots if applicable.
 

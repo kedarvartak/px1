@@ -26,7 +26,7 @@ Releases will be published from this repository. Until then, build from source.
 Requires Go 1.24+. No npm, node, CGO, or external dependencies:
 
 ```bash
-git clone https://github.com/kedarvartak/px0.git
+git clone https://github.com/kedarvartak/px1.git
 cd px0
 make build
 install -d ~/.local/bin && install px1 ~/.local/bin/
@@ -352,7 +352,7 @@ Contributions that keep px1 fast, minimal, and dependable are welcome. Please re
 
 1. Clone the repository:
   ```bash
-  git clone https://github.com/kedarvartak/px0.git
+  git clone https://github.com/kedarvartak/px1.git
   cd px0
   ```
 1. Run tests:

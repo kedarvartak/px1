@@ -6,7 +6,7 @@ This document outlines the step-by-step instructions for preparing, testing, and
 
 Before cutting a new release, ensure you have:
 
-- Git with push and tag permissions for `kedarvartak/px0`.
+- Git with push and tag permissions for `kedarvartak/px1`.
 - Go (version 1.24+).
 - Node.js (v18+ or v20+) or Bun for bundling frontend assets.
 - A clean working tree with all tests passing.
@@ -71,7 +71,7 @@ git push origin v0.2.0
 
 ### Method 3: GitHub Actions Workflow Dispatch
 
-1. Navigate to Actions -> Release on GitHub: `https://github.com/kedarvartak/px0/actions/workflows/release.yml`
+1. Navigate to Actions -> Release on GitHub: `https://github.com/kedarvartak/px1/actions/workflows/release.yml`
 1. Click Run workflow.
 1. Enter the version tag (e.g. `v0.2.0`).
 1. Trigger the workflow.
@@ -79,10 +79,10 @@ git push origin v0.2.0
 ## 4. Post-Release Verification
 
 1. Verify GitHub Actions workflow completion on the Actions tab.
-1. Confirm artifacts on the [Releases](https://github.com/kedarvartak/px0/releases) page (cross-platform binaries and `checksums.txt`). The self-updater requires this file and verifies the selected binary against it before execution.
+1. Confirm artifacts on the [Releases](https://github.com/kedarvartak/px1/releases) page (cross-platform binaries and `checksums.txt`). The self-updater requires this file and verifies the selected binary against it before execution.
 1. Verify the installer script:
   ```bash
-  curl -fsSL https://raw.githubusercontent.com/kedarvartak/px0/master/install.sh | sh
+  curl -fsSL https://raw.githubusercontent.com/kedarvartak/px1/master/install.sh | sh
   ```
 1. Verify self-update functionality:
   ```bash

@@ -29,14 +29,59 @@ type reviewFile struct {
 }
 
 type reviewSession struct {
-	Version   int          `json:"version"`
-	ID        string       `json:"id"`
-	Root      string       `json:"root"`
-	StartedAt time.Time    `json:"startedAt"`
-	Head      string       `json:"head,omitempty"`
-	Files     []reviewFile `json:"files"`
-	Dirs      []string     `json:"dirs"`
-	ClosedAt  *time.Time   `json:"closedAt,omitempty"`
+	Version   int                       `json:"version"`
+	ID        string                    `json:"id"`
+	Root      string                    `json:"root"`
+	StartedAt time.Time                 `json:"startedAt"`
+	Head      string                    `json:"head,omitempty"`
+	Files     []reviewFile              `json:"files"`
+	Dirs      []string                  `json:"dirs"`
+	Reviews   map[string]reviewDecision `json:"reviews,omitempty"`
+	Comments  []reviewComment           `json:"comments,omitempty"`
+	ClosedAt  *time.Time                `json:"closedAt,omitempty"`
+}
+
+// reviewDecision is tied to the exact content a human saw. A later write to
+// that path never inherits approval: it becomes stale and returns to the queue.
+type reviewDecision struct {
+	State      string    `json:"state"` // reviewed or blocked
+	Hash       string    `json:"hash"`
+	ReviewedAt time.Time `json:"reviewedAt"`
+}
+
+type reviewItem struct {
+	Path         string `json:"path"`
+	State        string `json:"state"` // unreviewed, reviewed, stale, blocked
+	BaselineHash string `json:"baselineHash,omitempty"`
+	CurrentHash  string `json:"currentHash,omitempty"`
+}
+
+type reviewQueue struct {
+	Items     []reviewItem `json:"items"`
+	Reviewed  int          `json:"reviewed"`
+	Stale     int          `json:"stale"`
+	Remaining int          `json:"remaining"`
+	Total     int          `json:"total"`
+}
+
+// reviewComment anchors feedback to the exact bytes the reviewer saw. The
+// comment remains visible after a file moves, but is marked stale instead of
+// silently attaching itself to a different line.
+type reviewComment struct {
+	ID        string    `json:"id"`
+	Path      string    `json:"path"`
+	LineStart int       `json:"lineStart"`
+	LineEnd   int       `json:"lineEnd"`
+	Text      string    `json:"text"`
+	FileHash  string    `json:"fileHash"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+type reviewCommentView struct {
+	reviewComment
+	Stale bool `json:"stale"`
 }
 
 type reviewManager struct {
@@ -206,7 +251,7 @@ func (m *reviewManager) Start() (*reviewSession, error) {
 		os.RemoveAll(staging)
 		return nil, err
 	}
-	s := &reviewSession{Version: reviewManifestVersion, ID: id, Root: m.root, StartedAt: time.Now().UTC(), Head: reviewHead(m.root), Files: files, Dirs: dirs}
+	s := &reviewSession{Version: reviewManifestVersion, ID: id, Root: m.root, StartedAt: time.Now().UTC(), Head: reviewHead(m.root), Files: files, Dirs: dirs, Reviews: map[string]reviewDecision{}}
 	b, err := json.Marshal(s)
 	if err != nil {
 		os.RemoveAll(staging)
@@ -268,6 +313,217 @@ func (m *reviewManager) changedLocked(s *reviewSession) []string {
 	return changed
 }
 
+func (m *reviewManager) saveLocked() error {
+	b, err := json.Marshal(m.active)
+	if err != nil {
+		return err
+	}
+	return writeAtomic(m.manifestPath(m.active.ID), b, 0o600)
+}
+
+func reviewHash(f reviewFile, present bool) string {
+	if !present {
+		return "<deleted>"
+	}
+	return f.Hash
+}
+
+func (m *reviewManager) queueLocked() (reviewQueue, error) {
+	if m.active == nil {
+		return reviewQueue{}, errors.New("no active review session")
+	}
+	current, _, err := snapshotTree(m.root, "")
+	if err != nil {
+		return reviewQueue{}, err
+	}
+	baseline := map[string]reviewFile{}
+	now := map[string]reviewFile{}
+	for _, f := range m.active.Files {
+		baseline[f.Path] = f
+	}
+	for _, f := range current {
+		now[f.Path] = f
+	}
+	paths := map[string]bool{}
+	for path, old := range baseline {
+		new, exists := now[path]
+		if !exists || old.Hash != new.Hash {
+			paths[path] = true
+		}
+	}
+	for path := range now {
+		if _, existed := baseline[path]; !existed {
+			paths[path] = true
+		}
+	}
+	q := reviewQueue{}
+	for path := range paths {
+		old, hadOld := baseline[path]
+		new, hasNew := now[path]
+		curHash := reviewHash(new, hasNew)
+		item := reviewItem{Path: path, BaselineHash: reviewHash(old, hadOld), CurrentHash: curHash, State: "unreviewed"}
+		if d, ok := m.active.Reviews[path]; ok {
+			switch {
+			case d.Hash != curHash:
+				item.State = "stale"
+			case d.State == "blocked":
+				item.State = "blocked"
+			default:
+				item.State = "reviewed"
+			}
+		}
+		switch item.State {
+		case "reviewed":
+			q.Reviewed++
+		case "stale":
+			q.Stale++
+			q.Remaining++
+		default:
+			q.Remaining++
+		}
+		q.Items = append(q.Items, item)
+	}
+	sort.Slice(q.Items, func(i, j int) bool { return q.Items[i].Path < q.Items[j].Path })
+	q.Total = len(q.Items)
+	return q, nil
+}
+
+func (m *reviewManager) Queue() (reviewQueue, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.queueLocked()
+}
+
+func (m *reviewManager) Mark(path, state string) (reviewQueue, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.active == nil {
+		return reviewQueue{}, errors.New("no active review session")
+	}
+	if state == "" {
+		state = "reviewed"
+	}
+	if state != "reviewed" && state != "blocked" {
+		return reviewQueue{}, errors.New("review state must be reviewed or blocked")
+	}
+	q, err := m.queueLocked()
+	if err != nil {
+		return reviewQueue{}, err
+	}
+	var found *reviewItem
+	for i := range q.Items {
+		if q.Items[i].Path == path {
+			found = &q.Items[i]
+			break
+		}
+	}
+	if found == nil {
+		return reviewQueue{}, errors.New("path has no changes in this review session")
+	}
+	if m.active.Reviews == nil {
+		m.active.Reviews = map[string]reviewDecision{}
+	}
+	m.active.Reviews[path] = reviewDecision{State: state, Hash: found.CurrentHash, ReviewedAt: time.Now().UTC()}
+	if err := m.saveLocked(); err != nil {
+		return reviewQueue{}, err
+	}
+	return m.queueLocked()
+}
+
+func (m *reviewManager) currentHashLocked(path string) (string, error) {
+	files, _, err := snapshotTree(m.root, "")
+	if err != nil {
+		return "", err
+	}
+	for _, f := range files {
+		if f.Path == path {
+			return f.Hash, nil
+		}
+	}
+	return "<deleted>", nil
+}
+
+func (m *reviewManager) AddComment(path string, l1, l2 int, text string) (reviewComment, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.active == nil {
+		return reviewComment{}, errors.New("no active review session")
+	}
+	text = strings.TrimSpace(text)
+	if l1 < 1 || l2 < l1 {
+		return reviewComment{}, errors.New("invalid line range")
+	}
+	if text == "" || len(text) > 16<<10 {
+		return reviewComment{}, errors.New("comment must be between 1 and 16384 bytes")
+	}
+	hash, err := m.currentHashLocked(path)
+	if err != nil {
+		return reviewComment{}, err
+	}
+	now := time.Now().UTC()
+	c := reviewComment{ID: now.Format("20060102T150405.000000000"), Path: path, LineStart: l1, LineEnd: l2, Text: text, FileHash: hash, Status: "open", CreatedAt: now, UpdatedAt: now}
+	m.active.Comments = append(m.active.Comments, c)
+	if err := m.saveLocked(); err != nil {
+		return reviewComment{}, err
+	}
+	return c, nil
+}
+
+func validCommentStatus(status string) bool {
+	switch status {
+	case "open", "sent", "agent-attempted", "needs-verification", "resolved", "orphaned":
+		return true
+	}
+	return false
+}
+
+func (m *reviewManager) SetCommentStatus(id, status string) (reviewComment, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.active == nil {
+		return reviewComment{}, errors.New("no active review session")
+	}
+	if !validCommentStatus(status) {
+		return reviewComment{}, errors.New("invalid comment status")
+	}
+	for i := range m.active.Comments {
+		if m.active.Comments[i].ID != id {
+			continue
+		}
+		m.active.Comments[i].Status, m.active.Comments[i].UpdatedAt = status, time.Now().UTC()
+		if err := m.saveLocked(); err != nil {
+			return reviewComment{}, err
+		}
+		return m.active.Comments[i], nil
+	}
+	return reviewComment{}, errors.New("comment not found")
+}
+
+func (m *reviewManager) Comments() ([]reviewCommentView, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.active == nil {
+		return nil, errors.New("no active review session")
+	}
+	current, _, err := snapshotTree(m.root, "")
+	if err != nil {
+		return nil, err
+	}
+	hashes := map[string]string{}
+	for _, f := range current {
+		hashes[f.Path] = f.Hash
+	}
+	out := make([]reviewCommentView, 0, len(m.active.Comments))
+	for _, c := range m.active.Comments {
+		hash := hashes[c.Path]
+		if hash == "" {
+			hash = "<deleted>"
+		}
+		out = append(out, reviewCommentView{reviewComment: c, Stale: hash != c.FileHash})
+	}
+	return out, nil
+}
+
 func (m *reviewManager) Restore() (*reviewSession, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -326,11 +582,7 @@ func (m *reviewManager) Close() (*reviewSession, error) {
 	}
 	now := time.Now().UTC()
 	m.active.ClosedAt = &now
-	b, err := json.Marshal(m.active)
-	if err != nil {
-		return nil, err
-	}
-	if err = writeAtomic(m.manifestPath(m.active.ID), b, 0o600); err != nil {
+	if err := m.saveLocked(); err != nil {
 		return nil, err
 	}
 	_ = os.Remove(m.activePath())
@@ -348,7 +600,94 @@ func (s *Server) handleReviewSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	active, changed := s.review.Active()
-	writeJSON(w, map[string]any{"active": active, "changed": changed})
+	if active == nil {
+		writeJSON(w, map[string]any{"active": nil, "changed": []string{}, "queue": reviewQueue{}})
+		return
+	}
+	queue, err := s.review.Queue()
+	if err != nil {
+		fail(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, map[string]any{"active": active, "changed": changed, "queue": queue})
+}
+
+func (s *Server) handleReviewMark(w http.ResponseWriter, r *http.Request) {
+	if !localPost(w, r) {
+		return
+	}
+	path := r.URL.Query().Get("path")
+	_, clean, ok := s.safePath(path)
+	if !ok || clean == "" {
+		fail(w, 400, "bad path")
+		return
+	}
+	queue, err := s.review.Mark(clean, r.URL.Query().Get("state"))
+	if err != nil {
+		fail(w, 409, err.Error())
+		return
+	}
+	writeJSON(w, map[string]any{"queue": queue})
+}
+
+func (s *Server) handleReviewComments(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		fail(w, 405, "GET only")
+		return
+	}
+	comments, err := s.review.Comments()
+	if err != nil {
+		fail(w, 409, err.Error())
+		return
+	}
+	writeJSON(w, map[string]any{"comments": comments})
+}
+
+func (s *Server) handleReviewComment(w http.ResponseWriter, r *http.Request) {
+	if !localPost(w, r) {
+		return
+	}
+	var req struct {
+		Path      string `json:"path"`
+		LineStart int    `json:"lineStart"`
+		LineEnd   int    `json:"lineEnd"`
+		Text      string `json:"text"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		fail(w, 400, "invalid comment")
+		return
+	}
+	_, path, ok := s.safePath(req.Path)
+	if !ok || path == "" {
+		fail(w, 400, "bad path")
+		return
+	}
+	comment, err := s.review.AddComment(path, req.LineStart, req.LineEnd, req.Text)
+	if err != nil {
+		fail(w, 409, err.Error())
+		return
+	}
+	writeJSON(w, map[string]any{"comment": comment})
+}
+
+func (s *Server) handleReviewCommentStatus(w http.ResponseWriter, r *http.Request) {
+	if !localPost(w, r) {
+		return
+	}
+	var req struct {
+		ID     string `json:"id"`
+		Status string `json:"status"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		fail(w, 400, "invalid comment status")
+		return
+	}
+	comment, err := s.review.SetCommentStatus(req.ID, req.Status)
+	if err != nil {
+		fail(w, 409, err.Error())
+		return
+	}
+	writeJSON(w, map[string]any{"comment": comment})
 }
 
 func (s *Server) handleReviewStart(w http.ResponseWriter, r *http.Request) {
