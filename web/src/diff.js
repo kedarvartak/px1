@@ -4,7 +4,7 @@
 // side-by-side split layout (default) or a single-column unified layout.
 // Unlike the code viewport this is not virtualized -- a file's own diff is
 // bounded in size, so a plain DOM render is simple and fast enough.
-import { $, S, doc_, esc, api } from './state.js';
+import { $, S, doc_, esc, api, apiPost } from './state.js';
 import { syncPreview } from './markdown.js';
 import { setStatusNote, updateStatus } from './status.js';
 
@@ -75,11 +75,29 @@ export async function setDiffMode(mode) {
   updateStatus();
 }
 
+// Opens the review queue's authoritative view: task-start snapshot versus the
+// current file, not Git HEAD. This keeps pre-existing local work out of the
+// agent review surface.
+export async function openReviewDiff(path) {
+  const d = S.tabs.find(t => t.path === path);
+  if (!d) return;
+  d.diffSource = 'review';
+  d.diffText = undefined;
+  d.diffHunks = undefined;
+  d.diffMode = layoutPref() || 'split';
+  d.diffDismissed = false;
+  syncPreview();
+  syncDiffView();
+  await drawDiff(d);
+  updateStatus();
+}
+
 async function drawDiff(d) {
   if (d.diffText === undefined) {
     diffContent.replaceChildren();
     try {
-      d.diffReq = d.diffReq || api('/api/diff', { path: d.path });
+      const endpoint = d.diffSource === 'review' ? '/api/review/diff' : '/api/diff';
+      d.diffReq = d.diffReq || api(endpoint, { path: d.path });
       const j = await d.diffReq;
       d.diffText = j.diff || '';
       d.diffHunks = parseDiff(d.diffText);
@@ -110,7 +128,7 @@ function renderDiff(d) {
   }
   const frag = document.createDocumentFragment();
   for (const hunk of d.diffHunks) {
-    frag.append(hunkHeader(hunk));
+    frag.append(hunkHeader(d, hunk));
     frag.append(d.diffMode === 'unified' ? unifiedTable(hunk) : splitTable(hunk));
   }
   diffContent.append(frag);
@@ -129,11 +147,54 @@ export function syncDiffAgentTargets() {
   }
 }
 
-function hunkHeader(hunk) {
+function hunkHeader(d, hunk) {
   const el = document.createElement('div');
   el.className = 'diff-hunk-head';
-  el.textContent = '@@ -' + hunk.oldStart + ' +' + hunk.newStart + ' @@';
+  const ref = document.createElement('span');
+  ref.textContent = '@@ -' + hunk.oldStart + ' +' + hunk.newStart + ' @@';
+  el.append(ref);
+  if (d.diffSource === 'review') {
+    const button = document.createElement('button');
+    button.className = 'diff-hunk-revert';
+    button.textContent = 'Revert hunk';
+    button.title = 'Restore this hunk to the task-start baseline';
+    button.addEventListener('click', () => revertReviewHunk(d, hunk));
+    el.append(button);
+  }
   return el;
+}
+
+async function revertReviewHunk(d, hunk) {
+  const item = S.review?.queue?.items?.find(x => x.path === d.path);
+  if (!item?.currentHash) {
+    setStatusNote('This file is no longer current in the review queue', 4000);
+    return;
+  }
+  const oldCount = hunk.rows.filter(r => r.oldLine !== undefined).length;
+  const newCount = hunk.rows.filter(r => r.newLine !== undefined).length;
+  if (!oldCount || !newCount) {
+    setStatusNote('This edge-case hunk needs Patch Mode', 4000);
+    return;
+  }
+  try {
+    await apiPost('/api/review/revert-hunk', undefined, {
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        path: d.path,
+        currentLineStart: hunk.newStart,
+        currentLineEnd: hunk.newStart + newCount - 1,
+        baselineLineStart: hunk.oldStart,
+        baselineLineEnd: hunk.oldStart + oldCount - 1,
+        expectedHash: item.currentHash,
+      }),
+    });
+    await api('/api/reindex');
+    d.diffText = undefined;
+    d.diffHunks = undefined;
+    await drawDiff(d);
+    S.review = await api('/api/review/session');
+    setStatusNote('Hunk restored to task baseline', 4000);
+  } catch (e) { setStatusNote('Hunk restore failed: ' + e.message, 5000); }
 }
 
 /* ---------- unified diff parsing ---------- */
