@@ -20,6 +20,7 @@ import { initDiff } from './diff.js';
 import { initAgent, applyAgentMeta, loadAgentAsync } from './agent.js';
 import { initMetrics, initStatusFit, updateMetricsDisplay, updateStatus } from './status.js';
 import { initSettings } from './settings.js';
+import { initReviewQueue, refreshReviewQueue } from './review.js';
 
 // Initialize all subsystems
 initRenderer();
@@ -42,6 +43,7 @@ initAgent();
 initMetrics();
 initStatusFit();
 initSettings();
+initReviewQueue();
 
 // Bootstrap application lifecycle
 (async function boot() {
@@ -80,6 +82,7 @@ initSettings();
   }
   updateStatus();
   await drawTree('', treeEl, 0);
+  await refreshReviewQueue();
 
   const params = new URLSearchParams(window.location.search);
   const initialPath = params.get('path');
