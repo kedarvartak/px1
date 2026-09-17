@@ -75,7 +75,8 @@
     agentTargets: [],
     review: null,
     reviewComments: [],
-    lastReviewPatch: null
+    lastReviewPatch: null,
+    reviewChecks: { commands: {}, jobs: [] }
   };
   var doc_ = () => S2.active >= 0 ? S2.tabs[S2.active] : null;
 
@@ -5763,6 +5764,11 @@
     } catch {
       S2.reviewComments = [];
     }
+    try {
+      S2.reviewChecks = S2.review?.active ? await api("/api/review/checks") : { commands: {}, jobs: [] };
+    } catch {
+      S2.reviewChecks = { commands: {}, jobs: [] };
+    }
     drawReviewQueue();
   }
   function itemMarkup(item) {
@@ -5787,10 +5793,25 @@
     const reviewed = q?.reviewed || 0;
     const next = items.find(pending);
     const comments = (S2.reviewComments || []).filter((c) => c.status === "open" && !c.stale);
+    const checks = S2.reviewChecks || { commands: {}, jobs: [] };
+    const names = Object.keys(checks.commands || {}).sort();
+    const latest = new Map;
+    for (const job2 of checks.jobs || [])
+      if (!latest.has(job2.name))
+        latest.set(job2.name, job2);
+    const checkMarkup = names.length ? `<div class="review-checks">${names.map((name) => {
+      const j = latest.get(name);
+      const state = j?.running ? "running" : j?.stale ? "stale" : j?.exitCode ? "failed" : j ? "passed" : "idle";
+      const label = j?.running ? "Running…" : j?.stale ? "Stale" : j?.exitCode ? "Failed" : j ? "Passed" : "Run";
+      const detail = j?.output ? checks.commands[name] + `
+
+` + j.output.slice(-1200) : checks.commands[name];
+      return `<button class="review-check ${state}" data-review-check="${esc(name)}" title="${esc(detail)}" ${j?.running ? "disabled" : ""}><span>${esc(name)}</span><span>${label}</span></button>`;
+    }).join("")}</div>` : '<div class="review-check-empty">Configure checks in Settings JSON: <code>"verification.commands"</code>.</div>';
     queueEl.innerHTML = `<div class="review-summary"><div><strong>Agent changes</strong><span>${reviewed} / ${count} reviewed</span></div><button class="review-close" data-review-close title="Close review session">Close</button></div>
     <div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div>
     <div class="review-list">${items.length ? items.map(itemMarkup).join("") : '<div class="hint">No files have changed since this review began.</div>'}</div>
-    <div class="review-foot"><button class="review-feedback" data-review-feedback ${comments.length ? "" : "disabled"}>Ask agent to address ${comments.length} comment${comments.length === 1 ? "" : "s"}</button>${S2.lastReviewPatch ? '<button class="review-undo" data-review-undo>Undo last patch</button>' : ""}<button class="review-next" data-review-next ${next ? "" : "disabled"}>${next ? "Next change →" : "All changes reviewed"}</button></div>`;
+    <div class="review-foot">${checkMarkup}<button class="review-feedback" data-review-feedback ${comments.length ? "" : "disabled"}>Ask agent to address ${comments.length} comment${comments.length === 1 ? "" : "s"}</button>${S2.lastReviewPatch ? '<button class="review-undo" data-review-undo>Undo last patch</button>' : ""}<button class="review-next" data-review-next ${next ? "" : "disabled"}>${next ? "Next change →" : "All changes reviewed"}</button></div>`;
   }
   async function start2() {
     try {
@@ -5894,6 +5915,23 @@
       showToast("!", e.message);
     }
   }
+  async function runCheck(name) {
+    try {
+      const j = await apiPost("/api/review/check/run", { name });
+      await refreshReviewQueue();
+      while (true) {
+        await new Promise((resolve) => setTimeout(resolve, 700));
+        await refreshReviewQueue();
+        const job2 = (S2.reviewChecks.jobs || []).find((x) => x.id === j.job.id);
+        if (!job2?.running) {
+          showToast(job2?.exitCode ? "!" : "✓", job2?.exitCode ? name + " failed" : name + " passed");
+          return;
+        }
+      }
+    } catch (e) {
+      showToast("!", e.message);
+    }
+  }
   async function waitForAgent(id) {
     for (;; ) {
       const job2 = await api("/api/agent/job", { id });
@@ -5926,6 +5964,9 @@
         return sendFeedback();
       if (e.target.closest("[data-review-undo]"))
         return undoPatch();
+      const check = e.target.closest("[data-review-check]");
+      if (check)
+        return runCheck(check.dataset.reviewCheck);
       if (e.target.closest("[data-review-next]"))
         return openNext();
       const markBtn = e.target.closest("[data-review-mark]");
