@@ -2909,10 +2909,10 @@
     }
     const acts = document.createElement("div");
     acts.className = "pin-acts";
-    if (pin.status === "proposed")
-      acts.append(pinButton("Accept", "accept", pin));
-    else
+    if (pin.status !== "proposed")
       acts.append(pinButton("Reopen", "reopen", pin));
+    else if (!pin.stale)
+      acts.append(pinButton("Accept", "accept", pin));
     acts.append(pinButton("Ask", "ask", pin));
     if (!pin.stale && pin.status !== "switched") {
       for (const alt of pin.alternatives || [])

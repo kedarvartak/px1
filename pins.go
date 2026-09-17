@@ -386,6 +386,12 @@ func (s *Server) handleReviewPinStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.Status != "switched" {
+		if req.Status == "accepted" {
+			if current, err := s.review.Pin(req.ID); err == nil && current.Stale {
+				fail(w, http.StatusConflict, "these lines changed since the decision was pinned")
+				return
+			}
+		}
 		pin, err := s.review.SetPinStatus(req.ID, req.Status, "")
 		if err != nil {
 			fail(w, http.StatusConflict, err.Error())

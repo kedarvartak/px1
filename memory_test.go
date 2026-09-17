@@ -123,6 +123,41 @@ func TestAcceptedPinBecomesChallengeInLaterSession(t *testing.T) {
 	}
 }
 
+func TestStalePinCannotBeAccepted(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, "auth.go")
+	if err := os.WriteFile(path, []byte("package auth\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	isolateSettings(t)
+	ix := NewIndex(root)
+	ix.Build()
+	s := NewServer(ix, nil)
+	if code, body := reviewPost(t, s, "/api/review/session/start"); code != 200 {
+		t.Fatalf("start = %d %v", code, body)
+	}
+	if err := os.WriteFile(path, []byte("package auth\nhash := argon2.IDKey(pass, salt, 1, 64*1024, 4, 32)\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	pins, err := s.review.AddPins([]pinInput{{Path: "auth.go", LineStart: 2, LineEnd: 2, Decision: "argon2id instead of bcrypt"}}, "agent", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("package auth\nhash := argon2.IDKey(pass, salt, 2, 64*1024, 4, 32)\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	code, body := pinPost(t, s, "/api/review/pin/status", map[string]string{"id": pins[0].ID, "status": "accepted"})
+	if code != http.StatusConflict {
+		t.Fatalf("stale accept = %d %v", code, body)
+	}
+	if got, _ := s.review.Pin(pins[0].ID); got.Status != "proposed" {
+		t.Fatalf("stale pin status = %q", got.Status)
+	}
+	if got := s.memory.ForFile("auth.go"); len(got) != 0 {
+		t.Fatalf("stale pin was remembered: %#v", got)
+	}
+}
+
 func TestSwitchedPinIsRememberedAsTheChoice(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, "auth.go")
