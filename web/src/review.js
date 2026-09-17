@@ -2,7 +2,7 @@ import { $, esc, S, api, apiPost } from './state.js';
 import { openFile } from './tabs.js';
 import { reloadOpenTabs } from './tabs.js';
 import { drawTree, treeEl } from './tree.js';
-import { openReviewDiff } from './diff.js';
+import { openReviewDiff, setPinHandler, syncDiffView, revealPin } from './diff.js';
 import { showToast } from './ui.js';
 import { hideSelectionBar, setReviewCommentHandler, setReviewPatchHandler } from './selbar.js';
 
@@ -15,6 +15,8 @@ const commentInput = $('#review-comment-input');
 const patchBox = $('#review-patchbox');
 const patchInput = $('#review-patch-input');
 let patchTarget = null;
+let explaining = false;
+let pinSig = '[]';
 
 const pending = item => item.state === 'unreviewed' || item.state === 'stale' || item.state === 'blocked';
 
@@ -28,8 +30,26 @@ export async function refreshReviewQueue() {
     const j = S.review?.active ? await api('/api/review/comments') : { comments: [] };
     S.reviewComments = j.comments || [];
   } catch { S.reviewComments = []; }
+  try {
+    const j = S.review?.active ? await api('/api/review/pins') : { pins: [], explain: {} };
+    S.reviewPins = j.pins || [];
+    S.reviewExplain = j.explain || {};
+  } catch { S.reviewPins = []; S.reviewExplain = {}; }
   try { S.reviewChecks = S.review?.active ? await api('/api/review/checks') : { commands: {}, jobs: [] }; } catch { S.reviewChecks = { commands: {}, jobs: [] }; }
   drawReviewQueue();
+  const sig = JSON.stringify(S.reviewPins);
+  if (sig !== pinSig) {
+    pinSig = sig;
+    syncDiffView();
+  }
+}
+
+function pinsMarkup() {
+  const pins = S.reviewPins || [];
+  const open = pins.filter(p => p.status === 'proposed' && !p.stale).length;
+  const label = explaining ? 'Explaining…' : pins.length ? 'Re-explain' : 'Explain changes';
+  const rows = pins.map(p => `<button class="review-pin impact-${p.impact}${p.stale ? ' stale' : ''} ${esc(p.status)}" data-review-pin="${esc(p.id)}" title="${esc(p.why || p.decision)}"><span class="review-pin-mark">◆</span><span class="review-pin-text">${esc(p.decision)}</span><span class="review-pin-ref">${esc(p.path.split('/').pop())}:${p.lineStart}</span></button>`).join('');
+  return `<div class="review-pins"><div class="review-pins-head"><strong>Decisions</strong><span>${pins.length ? open + ' to confirm' : ''}</span><button class="review-explain" data-review-explain ${explaining || !(S.review?.queue?.total) ? 'disabled' : ''}>${label}</button></div>${rows ? `<div class="review-pin-list">${rows}</div>` : ''}</div>`;
 }
 
 function itemMarkup(item) {
@@ -66,6 +86,7 @@ function drawReviewQueue() {
   }).join('')}</div>` : '<div class="review-check-empty">Configure checks in Settings JSON: <code>"verification.commands"</code>.</div>';
   queueEl.innerHTML = `<div class="review-summary"><div><strong>Agent changes</strong><span>${reviewed} / ${count} reviewed</span></div><button class="review-close" data-review-close title="Close review session">Close</button></div>
     <div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div>
+    ${pinsMarkup()}
     <div class="review-list">${items.length ? items.map(itemMarkup).join('') : '<div class="hint">No files have changed since this review began.</div>'}</div>
     <div class="review-foot">${checkMarkup}<button class="review-feedback" data-review-feedback ${comments.length ? '' : 'disabled'}>Ask agent to address ${comments.length} comment${comments.length === 1 ? '' : 's'}</button>${S.lastReviewPatch ? '<button class="review-undo" data-review-undo>Undo last patch</button>' : ''}<button class="review-next" data-review-next ${next ? '' : 'disabled'}>${next ? 'Next change →' : 'All changes reviewed'}</button></div>`;
 }
@@ -181,6 +202,58 @@ async function runCheck(name) {
   } catch (e) { showToast('!', e.message); }
 }
 
+async function explain() {
+  explaining = true;
+  drawReviewQueue();
+  try {
+    const job = await apiPost('/api/review/pins/explain');
+    showToast('✓', 'Agent is explaining its decisions');
+    await waitForAgent(job.id);
+    await refreshReviewQueue();
+    if (S.reviewExplain?.error) showToast('!', S.reviewExplain.error);
+    else showToast('✓', (S.reviewPins || []).length + ' decisions pinned');
+  } catch (e) { showToast('!', e.message); }
+  explaining = false;
+  drawReviewQueue();
+}
+
+async function openPin(id) {
+  const pin = (S.reviewPins || []).find(p => p.id === id);
+  if (!pin) return;
+  await openFile(pin.path);
+  await openReviewDiff(pin.path);
+  revealPin(id);
+}
+
+async function onPin(action, pin, choice) {
+  try {
+    if (action === 'ask') {
+      const alts = pin.alternatives?.length ? ' over ' + pin.alternatives.join(' / ') : '';
+      openComment({ path: pin.path, l1: pin.lineStart, l2: pin.lineEnd }, `Why ${pin.decision}${alts}?`);
+      return;
+    }
+    if (action === 'accept' || action === 'reopen') {
+      await apiPost('/api/review/pin/status', undefined, {
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: pin.id, status: action === 'accept' ? 'accepted' : 'proposed' }),
+      });
+      await refreshReviewQueue();
+      revealPin(pin.id);
+      return;
+    }
+    if (action === 'switch') {
+      const j = await apiPost('/api/review/pin/status', undefined, {
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: pin.id, status: 'switched', choice }),
+      });
+      showToast('✓', 'Agent is switching to ' + choice);
+      await waitForAgent(j.job.id);
+      await reloadReviewWorkspace();
+      showToast('✓', 'Switched to ' + choice);
+    }
+  } catch (e) { showToast('!', e.message); }
+}
+
 async function waitForAgent(id) {
   for (;;) {
     const job = await api('/api/agent/job', { id });
@@ -195,6 +268,7 @@ async function waitForAgent(id) {
 export function initReviewQueue() {
   setReviewCommentHandler(openComment);
   setReviewPatchHandler(openPatch);
+  setPinHandler(onPin);
   $('#btn-review')?.addEventListener('click', async () => {
     shown = !shown;
     tree.hidden = shown;
@@ -208,6 +282,9 @@ export function initReviewQueue() {
     if (e.target.closest('[data-review-close]')) return close();
     if (e.target.closest('[data-review-feedback]')) return sendFeedback();
     if (e.target.closest('[data-review-undo]')) return undoPatch();
+    if (e.target.closest('[data-review-explain]')) return explain();
+    const pinBtn = e.target.closest('[data-review-pin]');
+    if (pinBtn) return openPin(pinBtn.dataset.reviewPin);
     const check = e.target.closest('[data-review-check]');
     if (check) return runCheck(check.dataset.reviewCheck);
     if (e.target.closest('[data-review-next]')) return openNext();
@@ -239,7 +316,7 @@ function commentRef(info) {
   return info.path + ':' + (info.l1 === info.l2 ? info.l1 : info.l1 + '-' + info.l2);
 }
 
-function openComment(info) {
+function openComment(info, text = '') {
   if (!info || !commentBox || !commentInput) return;
   if (!S.review?.active) {
     showToast('!', 'Start a review session before adding comments');
@@ -247,7 +324,7 @@ function openComment(info) {
   }
   commentTarget = info;
   $('#review-comment-ref').textContent = commentRef(info);
-  commentInput.value = '';
+  commentInput.value = text;
   commentBox.hidden = false;
   commentInput.focus();
 }

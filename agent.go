@@ -347,6 +347,7 @@ type agentJob struct {
 	// Lines already carries the display form.
 	l1, l2 int
 	cancel context.CancelFunc
+	onDone func(stdout string, err error)
 	out    *tailBuffer
 	stderr *tailBuffer
 	start  time.Time
@@ -788,6 +789,46 @@ func (m *agentManager) Start(abs, rel string, l1, l2 int, instruction string, fo
 	return m.Job(job.ID), nil
 }
 
+func (m *agentManager) Explain(prompt string, onDone func(stdout string, err error)) (*agentJob, error) {
+	if strings.TrimSpace(prompt) == "" {
+		return nil, errors.New("nothing to explain")
+	}
+	m.mu.Lock()
+	if m.args == nil {
+		m.mu.Unlock()
+		return nil, errAgentNone
+	}
+	for _, j := range m.jobs {
+		if j.Running && j.onDone != nil {
+			m.mu.Unlock()
+			return nil, errAgentBusy
+		}
+	}
+	m.seq++
+	ctx, cancel := context.WithTimeout(context.Background(), agentTimeout)
+	job := &agentJob{
+		ID:      m.seq,
+		Harness: m.selected,
+		Running: true,
+		Changed: []string{},
+		Tracked: gitAvailable(m.root),
+		out:     &tailBuffer{max: agentLogBytes},
+		stderr:  &tailBuffer{max: agentLogBytes},
+		start:   time.Now(),
+		cancel:  cancel,
+		onDone:  onDone,
+	}
+	if m.jobs == nil {
+		m.jobs = map[int64]*agentJob{}
+	}
+	m.jobs[job.ID] = job
+	args := m.args
+	m.mu.Unlock()
+	uiStatus("step", "agent", fmt.Sprintf("#%d %s · explaining review decisions", job.ID, job.Harness), 0, os.Stdout)
+	go m.run(ctx, cancel, job, args, prompt)
+	return m.Job(job.ID), nil
+}
+
 func (m *agentManager) run(ctx context.Context, cancel context.CancelFunc, job *agentJob, template []string, prompt string) {
 	defer cancel()
 
@@ -821,6 +862,9 @@ func (m *agentManager) run(ctx context.Context, cancel context.CancelFunc, job *
 
 	changed := changedSince(m.root, before)
 	m.settle(changed)
+	if job.onDone != nil {
+		job.onDone(job.out.String(), err)
+	}
 
 	m.mu.Lock()
 	job.Running = false

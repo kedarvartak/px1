@@ -46,6 +46,10 @@ type Server struct {
 	verify *verificationManager
 	mux    *http.ServeMux
 
+	pinMu  sync.Mutex
+	pinJob int64
+	pinErr string
+
 	lastReq atomic.Int64 // unix nanos of the most recent request
 }
 
@@ -101,6 +105,9 @@ func NewServer(ix *Index, lsp *lspManager) *Server {
 	s.mux.HandleFunc("/api/review/patch", s.handleReviewPatch)
 	s.mux.HandleFunc("/api/review/patch/undo", s.handleReviewUndoPatch)
 	s.mux.HandleFunc("/api/review/revert-hunk", s.handleReviewRevertHunk)
+	s.mux.HandleFunc("/api/review/pins", s.handleReviewPins)
+	s.mux.HandleFunc("/api/review/pins/explain", s.handleReviewPinsExplain)
+	s.mux.HandleFunc("/api/review/pin/status", s.handleReviewPinStatus)
 	s.mux.HandleFunc("/api/settings", s.handleSettings)
 	s.lastReq.Store(time.Now().UnixNano())
 	go s.scavenge()
