@@ -414,6 +414,37 @@ func (m *reviewManager) Queue() (reviewQueue, error) {
 	return m.queueLocked()
 }
 
+// BaselineDiff returns a unified diff from the task-start snapshot to the
+// current file. It deliberately avoids HEAD: a workspace may already have
+// legitimate local changes before an agent task begins.
+func (m *reviewManager) BaselineDiff(path string) (string, error) {
+	m.mu.Lock()
+	if m.active == nil {
+		m.mu.Unlock()
+		return "", errors.New("no active review session")
+	}
+	baseline := filepath.Join(m.sessionDir(m.active.ID), "files", filepath.FromSlash(path))
+	m.mu.Unlock()
+	if _, err := os.Stat(baseline); err != nil {
+		if os.IsNotExist(err) {
+			return "", errors.New("file was not present at review start")
+		}
+		return "", err
+	}
+	current := filepath.Join(m.root, filepath.FromSlash(path))
+	if _, err := os.Stat(current); err != nil {
+		return "", err
+	}
+	cmd := exec.Command("git", "diff", "--no-index", "--no-color", "--", baseline, current)
+	out, err := cmd.Output()
+	if err != nil {
+		if exit, ok := err.(*exec.ExitError); !ok || exit.ExitCode() != 1 {
+			return "", err
+		}
+	}
+	return string(out), nil
+}
+
 func (m *reviewManager) Mark(path, state string) (reviewQueue, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -767,6 +798,24 @@ func (s *Server) handleReviewSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, map[string]any{"active": active, "changed": changed, "queue": queue})
+}
+
+func (s *Server) handleReviewDiff(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		fail(w, http.StatusMethodNotAllowed, "GET only")
+		return
+	}
+	_, path, ok := s.safePath(r.URL.Query().Get("path"))
+	if !ok || path == "" {
+		fail(w, http.StatusBadRequest, "bad path")
+		return
+	}
+	diff, err := s.review.BaselineDiff(path)
+	if err != nil {
+		fail(w, http.StatusConflict, err.Error())
+		return
+	}
+	writeJSON(w, map[string]any{"path": path, "diff": diff, "available": diff != ""})
 }
 
 func (s *Server) handleReviewMark(w http.ResponseWriter, r *http.Request) {
