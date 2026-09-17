@@ -268,6 +268,30 @@ func TestReviewPatchRequiresPreviewHashAndSupportsUndo(t *testing.T) {
 	}
 }
 
+func TestReviewPatchEmptyReplacementDeletesSelectedLines(t *testing.T) {
+	isolateSettings(t)
+	root := t.TempDir()
+	path := filepath.Join(root, "lines.txt")
+	before := []byte("line one\nline two\ninserted alpha\ninserted beta\nline three\n")
+	if err := os.WriteFile(path, before, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m := newReviewManager(root)
+	if _, err := m.Start(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.ApplyPatch("lines.txt", 3, 4, hashBytes(before), ""); err != nil {
+		t.Fatal(err)
+	}
+	after, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := string(after), "line one\nline two\nline three\n"; got != want {
+		t.Fatalf("empty replacement = %q, want %q", got, want)
+	}
+}
+
 func TestReviewHunkRevertUsesTaskBaseline(t *testing.T) {
 	isolateSettings(t)
 	root := t.TempDir()
