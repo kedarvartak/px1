@@ -3077,6 +3077,10 @@
   function setAgentHandler(fn) {
     agentHandler = fn;
   }
+  var reviewCommentHandler = null;
+  function setReviewCommentHandler(fn) {
+    reviewCommentHandler = fn;
+  }
   var current = null;
   var allText = null;
   var allInfo = null;
@@ -3240,6 +3244,10 @@
       if (!agentHandler)
         return false;
       agentHandler(current);
+    } else if (act === "review-comment") {
+      if (!reviewCommentHandler)
+        return false;
+      reviewCommentHandler(current);
     } else if (act === "usages") {
       findReferences(text.split(/\s+/)[0] || text);
     } else {
@@ -3255,6 +3263,7 @@
   var SEL_MENU_ITEMS = [
     { sel: "copy-ref", label: "Copy Ref", keys: "Alt+C" },
     { sel: "copy-agent", label: "Copy with Context", keys: "Alt+A" },
+    { sel: "review-comment", label: "Add Review Comment", keys: "" },
     { sel: "agent-edit", label: "Edit Inline", keys: "Alt+E" },
     { sel: "usages", label: "Find Usages", keys: "Alt+U" }
   ];
@@ -5665,6 +5674,9 @@
   var queueEl = $("#review-queue");
   var tree = $("#tree");
   var shown2 = false;
+  var commentTarget = null;
+  var commentBox = $("#review-commentbox");
+  var commentInput = $("#review-comment-input");
   var pending = (item) => item.state === "unreviewed" || item.state === "stale" || item.state === "blocked";
   async function refreshReviewQueue() {
     try {
@@ -5736,6 +5748,7 @@
     }
   }
   function initReviewQueue() {
+    setReviewCommentHandler(openComment);
     $("#btn-review")?.addEventListener("click", async () => {
       shown2 = !shown2;
       tree.hidden = shown2;
@@ -5759,6 +5772,56 @@
       if (item)
         await openFile(item.dataset.reviewPath);
     });
+    $("#review-comment-cancel")?.addEventListener("click", closeComment);
+    $("#review-comment-save")?.addEventListener("click", saveComment);
+    commentInput?.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeComment();
+      }
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        saveComment();
+      }
+    });
+  }
+  function commentRef(info) {
+    return info.path + ":" + (info.l1 === info.l2 ? info.l1 : info.l1 + "-" + info.l2);
+  }
+  function openComment(info) {
+    if (!info || !commentBox || !commentInput)
+      return;
+    if (!S2.review?.active) {
+      showToast("!", "Start a review session before adding comments");
+      return;
+    }
+    commentTarget = info;
+    $("#review-comment-ref").textContent = commentRef(info);
+    commentInput.value = "";
+    commentBox.hidden = false;
+    commentInput.focus();
+  }
+  function closeComment() {
+    commentTarget = null;
+    if (commentBox)
+      commentBox.hidden = true;
+  }
+  async function saveComment() {
+    const text = commentInput?.value.trim();
+    if (!commentTarget || !text)
+      return;
+    try {
+      await apiPost("/api/review/comment", undefined, {
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: commentTarget.path, lineStart: commentTarget.l1, lineEnd: commentTarget.l2, text })
+      });
+      closeComment();
+      hideSelectionBar();
+      showToast("✓", "Review comment added");
+    } catch (e) {
+      showToast("!", e.message);
+    }
   }
 
   // web/src/main.js
