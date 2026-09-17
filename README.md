@@ -23,7 +23,7 @@ Releases will be published from this repository. Until then, build from source.
 
 ### Build from Source
 
-Requires Go 1.24+. No npm, node, CGO, or external dependencies:
+Requires Go 1.25+. No npm, node, CGO, or external dependencies:
 
 ```bash
 git clone https://github.com/kedarvartak/px1.git
@@ -45,6 +45,8 @@ make dist
 - **Rich Syntax Highlighting**: Native tokenization for ~280 languages via Chroma with windowed rendering.
 - **Git Awareness & Visual Diffs**: Status badges (`M`, `A`, `D`, `U`, `R`), dirty folder ancestry propagation, changed-files filter, and side-by-side / unified diffs vs `HEAD` (`Cmd/Ctrl+D`).
 - **Review Sessions**: Capture a recoverable task baseline outside the repository, detect files changed since review began, and restore the workspace to that baseline when needed.
+- **Human Review Cockpit**: Review only task-session changes, open task-baseline diffs, mark files reviewed, leave line-anchored feedback, ask the local agent to address current comments, make a narrow Patch Mode correction, undo it, or restore a normal hunk to the task baseline.
+- **Revision-Linked Verification**: Run explicitly configured tests, lint, or typechecks from the review queue. Results become stale if reviewed files change after the run.
 - **Edit with Your Coding Agent**: Select code in the source or diff view, right-click (or `Alt+E`), and describe the change. px1 runs Claude Code, OpenCode, OpenAI Codex, Antigravity, Aider, Goose, Gemini CLI, or Cursor Agent on it, reloads what changed, and shows harness errors inline. Several edits can run at once, as long as their line ranges don't overlap.
 - **Rendered Markdown Preview**: Full GFM preview with Chroma-highlighted code fences; switch between preview and source with `Alt+M` while preserving scroll.
 - **Custom Themes**: 14 built-in themes (GitHub Dark, Tokyo Night, Catppuccin, Dracula, Gruvbox, Nord, Solarized, and more).
@@ -160,6 +162,22 @@ px1 provides a built-in Settings editor modeled after VS Code. Settings are stor
 | `agent.timeoutSeconds` | `120` | `10` – `600` (s) | Max execution time for agent edits |
 | `agent.autoAcceptEdits` | `false` | `true`, `false` | Auto-confirm agent diffs |
 | `telemetry.enabled` | `true` | `true`, `false` | Anonymous usage metrics |
+
+### Review verification commands
+
+Verification commands are opt-in and live only in your user settings. Add named commands through **Settings → JSON**; px1 never accepts a shell command from the browser request itself.
+
+```json
+{
+  "verification.commands": {
+    "Tests": "go test ./...",
+    "Lint": "golangci-lint run",
+    "Typecheck": "npm run typecheck"
+  }
+}
+```
+
+Start a review session, open **Review** in the sidebar, and run a configured check. px1 records the review revision that was tested and labels a completed result **Stale** if the session changes afterward.
 
 
 ## Why a Dedicated Code Viewer?
