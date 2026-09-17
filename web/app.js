@@ -73,7 +73,8 @@
     mdPreview: true,
     settings: null,
     agentTargets: [],
-    review: null
+    review: null,
+    reviewComments: []
   };
   var doc_ = () => S2.active >= 0 ? S2.tabs[S2.active] : null;
 
@@ -5684,6 +5685,12 @@
     } catch {
       S2.review = null;
     }
+    try {
+      const j = S2.review?.active ? await api("/api/review/comments") : { comments: [] };
+      S2.reviewComments = j.comments || [];
+    } catch {
+      S2.reviewComments = [];
+    }
     drawReviewQueue();
   }
   function itemMarkup(item) {
@@ -5707,10 +5714,11 @@
     const count = q?.total || items.length;
     const reviewed = q?.reviewed || 0;
     const next = items.find(pending);
+    const comments = (S2.reviewComments || []).filter((c) => c.status === "open" && !c.stale);
     queueEl.innerHTML = `<div class="review-summary"><div><strong>Agent changes</strong><span>${reviewed} / ${count} reviewed</span></div><button class="review-close" data-review-close title="Close review session">Close</button></div>
     <div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div>
     <div class="review-list">${items.length ? items.map(itemMarkup).join("") : '<div class="hint">No files have changed since this review began.</div>'}</div>
-    <div class="review-foot"><button class="review-next" data-review-next ${next ? "" : "disabled"}>${next ? "Next change →" : "All changes reviewed"}</button></div>`;
+    <div class="review-foot"><button class="review-feedback" data-review-feedback ${comments.length ? "" : "disabled"}>Ask agent to address ${comments.length} comment${comments.length === 1 ? "" : "s"}</button><button class="review-next" data-review-next ${next ? "" : "disabled"}>${next ? "Next change →" : "All changes reviewed"}</button></div>`;
   }
   async function start2() {
     try {
@@ -5747,6 +5755,31 @@
       showToast("!", e.message);
     }
   }
+  async function sendFeedback() {
+    try {
+      const job2 = await apiPost("/api/review/comments/agent");
+      showToast("✓", "Agent is addressing review comments");
+      await waitForAgent(job2.id);
+      await api("/api/reindex");
+      await reloadOpenTabs();
+      await drawTree("", treeEl, 0);
+      await refreshReviewQueue();
+      showToast("✓", "Review changes refreshed");
+    } catch (e) {
+      showToast("!", e.message);
+    }
+  }
+  async function waitForAgent(id) {
+    for (;; ) {
+      const job2 = await api("/api/agent/job", { id });
+      if (!job2.running) {
+        if (job2.error)
+          throw new Error(job2.error);
+        return job2;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    }
+  }
   function initReviewQueue() {
     setReviewCommentHandler(openComment);
     $("#btn-review")?.addEventListener("click", async () => {
@@ -5763,6 +5796,8 @@
         return start2();
       if (e.target.closest("[data-review-close]"))
         return close();
+      if (e.target.closest("[data-review-feedback]"))
+        return sendFeedback();
       if (e.target.closest("[data-review-next]"))
         return openNext();
       const markBtn = e.target.closest("[data-review-mark]");

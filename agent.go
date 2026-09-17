@@ -1004,6 +1004,19 @@ func agentPrompt(rel string, l1, l2 int, snippet, instruction string) string {
 	return b.String()
 }
 
+// reviewFeedbackInstruction is deliberately plain text: coding harnesses
+// already understand file:line references, while Start still supplies the
+// first comment's exact current snippet as the immutable anchor.
+func reviewFeedbackInstruction(comments []reviewCommentView) string {
+	var b strings.Builder
+	b.WriteString("Address these human review comments. Inspect each referenced location, make only the needed changes, and keep unrelated work intact.\n\n")
+	for i, c := range comments {
+		fmt.Fprintf(&b, "%d. %s:%s — %s\n", i+1, c.Path, lineRef(c.LineStart, c.LineEnd), c.Text)
+	}
+	b.WriteString("\nDo not explain the changes; edit the workspace in place.")
+	return b.String()
+}
+
 // ---------------------------------------------------------------- HTTP
 
 func (s *Server) agentOrFail(w http.ResponseWriter) bool {
