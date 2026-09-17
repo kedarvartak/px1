@@ -50,6 +50,7 @@ export async function openFile(path, opts = {}) {
     idx = S.tabs.length - 1;
     if (j.refine) refineChunk(d, start / CHUNK);
     loadGutter(d);
+    loadDecisions(d);
   }
   const prev = doc_();
   if (prev && prev !== S.tabs[idx]) prev.scrollTop = vp.scrollTop;
@@ -81,6 +82,21 @@ export async function openFile(path, opts = {}) {
 // Fetches on any open in a git repo rather than threading per-file status
 // through every open path — the backend returns available:false for
 // clean/untracked files, so the extra request is cheap and self-limiting.
+function loadDecisions(d) {
+  api('/api/decisions', { path: d.path }).then(j => {
+    const byLine = new Map();
+    for (const rec of j.decisions || []) {
+      if (!rec.located) continue;
+      for (let n = rec.currentFrom; n <= rec.currentTo; n++) {
+        if (!byLine.has(n)) byLine.set(n, []);
+        byLine.get(n).push(rec);
+      }
+    }
+    d.decisions = byLine;
+    if (doc_() === d) render();
+  }).catch(() => {});
+}
+
 function loadGutter(d) {
   if (!S.meta?.git) return;
   api('/api/gutter', { path: d.path }).then(j => {
@@ -185,6 +201,7 @@ export async function reloadOpenTabs() {
     S.tabs[idx] = d;
     if (j.refine) refineChunk(d, tgt.start / CHUNK);
     loadGutter(d);
+    loadDecisions(d);
   }
 
   const d = doc_();

@@ -386,12 +386,27 @@ func (s *Server) handleReviewPinStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.Status != "switched" {
+		if req.Status == "accepted" {
+			if current, err := s.review.Pin(req.ID); err == nil && current.Stale {
+				fail(w, http.StatusConflict, "these lines changed since the decision was pinned")
+				return
+			}
+		}
 		pin, err := s.review.SetPinStatus(req.ID, req.Status, "")
 		if err != nil {
 			fail(w, http.StatusConflict, err.Error())
 			return
 		}
-		writeJSON(w, map[string]any{"pin": pin})
+		remembered := false
+		if pin.Status == "accepted" {
+			abs, _, ok := s.resolvePath(pin.Path)
+			if snippet, err := readLineRange(abs, pin.LineStart, pin.LineEnd); ok && err == nil {
+				remembered = s.rememberPin(pin, snippet) == nil
+			}
+		} else {
+			_ = s.memory.ForgetPin(pin.ID)
+		}
+		writeJSON(w, map[string]any{"pin": pin, "remembered": remembered})
 		return
 	}
 	if !s.agentOrFail(w) {
@@ -416,18 +431,30 @@ func (s *Server) handleReviewPinStatus(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusBadRequest, "bad pin path")
 		return
 	}
-	job, err := s.agent.Start(abs, rel, current.LineStart, current.LineEnd, switchInstruction(current.reviewPin, choice), false)
+	pin, err := s.review.SetPinStatus(req.ID, "switched", choice)
 	if err != nil {
+		fail(w, http.StatusConflict, err.Error())
+		return
+	}
+	job, err := s.agent.StartWithDone(abs, rel, current.LineStart, current.LineEnd, switchInstruction(current.reviewPin, choice), false, func(_ string, runErr error) {
+		if runErr != nil {
+			return
+		}
+		latest, err := s.review.Pin(req.ID)
+		if err != nil || latest.Status != "switched" {
+			return
+		}
+		if snippet, err := readLineRange(abs, latest.LineStart, latest.LineEnd); err == nil {
+			_ = s.rememberPin(latest.reviewPin, snippet)
+		}
+	})
+	if err != nil {
+		_, _ = s.review.SetPinStatus(req.ID, "proposed", "")
 		code := http.StatusBadRequest
 		if errors.Is(err, errAgentBusy) || errors.Is(err, errAgentDirty) {
 			code = http.StatusConflict
 		}
 		fail(w, code, err.Error())
-		return
-	}
-	pin, err := s.review.SetPinStatus(req.ID, "switched", choice)
-	if err != nil {
-		fail(w, http.StatusConflict, err.Error())
 		return
 	}
 	writeJSON(w, map[string]any{"pin": pin, "job": job})
