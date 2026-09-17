@@ -24,6 +24,7 @@ const (
 	ruleMaxRules      = 500
 	ruleMaxHits       = 500
 	ruleMaxHitsPerKey = 20
+	ruleMaxHitKeys    = 200
 	ruleTeamFile      = ".px1/rules.json"
 )
 
@@ -38,6 +39,7 @@ type reviewRule struct {
 	CreatedAt time.Time  `json:"createdAt"`
 	Hits      int        `json:"hits"`
 	LastHitAt *time.Time `json:"lastHitAt,omitempty"`
+	HitKeys   []string   `json:"hitKeys,omitempty"`
 }
 
 type ruleHit struct {
@@ -68,11 +70,10 @@ type ruleMemory struct {
 	root, path string
 	mu         sync.Mutex
 	store      *ruleStore
-	seen       map[string]bool
 }
 
 func newRuleMemory(root string) *ruleMemory {
-	m := &ruleMemory{root: root, seen: map[string]bool{}}
+	m := &ruleMemory{root: root}
 	if state := reviewStateRoot(); state != "" {
 		key := (&reviewManager{root: root}).workspaceKey()
 		m.path = filepath.Join(filepath.Dir(state), "rules", key+".json")
@@ -261,21 +262,32 @@ func (m *ruleMemory) noteHits(hits []ruleHit) {
 	now := time.Now().UTC()
 	changed := false
 	for _, h := range hits {
-		if m.seen[h.Key] {
-			continue
-		}
-		m.seen[h.Key] = true
 		for i := range s.Rules {
-			if s.Rules[i].ID == h.RuleID {
-				s.Rules[i].Hits++
-				s.Rules[i].LastHitAt = &now
-				changed = true
+			r := &s.Rules[i]
+			if r.ID != h.RuleID || containsString(r.HitKeys, h.Key) {
+				continue
 			}
+			r.HitKeys = append(r.HitKeys, h.Key)
+			if over := len(r.HitKeys) - ruleMaxHitKeys; over > 0 {
+				r.HitKeys = append([]string(nil), r.HitKeys[over:]...)
+			}
+			r.Hits++
+			r.LastHitAt = &now
+			changed = true
 		}
 	}
 	if changed {
 		_ = m.saveLocked()
 	}
+}
+
+func containsString(list []string, s string) bool {
+	for _, v := range list {
+		if v == s {
+			return true
+		}
+	}
+	return false
 }
 
 func addedLines(diff string) map[int]string {

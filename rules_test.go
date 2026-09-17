@@ -160,10 +160,12 @@ func TestRulesFlagAddedLinesAcrossSessions(t *testing.T) {
 
 	s.rules.noteHits(after)
 	s.rules.noteHits(after)
+	restarted := newRuleMemory(root)
+	restarted.noteHits(after)
 	own, _ := newRuleMemory(root).All()
 	for _, r := range own {
 		if r.ID == ruleID && r.Hits != 1 {
-			t.Fatalf("hits counted %d times", r.Hits)
+			t.Fatalf("hits counted %d times across a restart", r.Hits)
 		}
 	}
 
