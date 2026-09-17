@@ -115,6 +115,18 @@ func TestAgentSpecResolution(t *testing.T) {
 	}
 }
 
+func TestReviewFeedbackInstructionIncludesAnchors(t *testing.T) {
+	got := reviewFeedbackInstruction([]reviewCommentView{
+		{reviewComment: reviewComment{Path: "src/auth.go", LineStart: 4, LineEnd: 6, Text: "Handle expiry."}},
+		{reviewComment: reviewComment{Path: "tests/auth_test.go", LineStart: 10, LineEnd: 10, Text: "Cover the failure."}},
+	})
+	for _, want := range []string{"src/auth.go:4-6", "Handle expiry.", "tests/auth_test.go:10", "Cover the failure."} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("feedback prompt missing %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestAgentDetectListsKnownHarnesses(t *testing.T) {
 	isolateSettings(t)
 	m, err := newAgentManager(t.TempDir(), "", nil)

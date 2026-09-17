@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io/fs"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -797,6 +798,46 @@ func (s *Server) handleReviewComments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, map[string]any{"comments": comments})
+}
+
+// handleReviewCommentsAgent hands only current, open comments to the selected
+// local harness. A stale comment must be reconsidered by the human instead of
+// silently being applied to bytes that have moved.
+func (s *Server) handleReviewCommentsAgent(w http.ResponseWriter, r *http.Request) {
+	if !localPost(w, r) || !s.agentOrFail(w) {
+		return
+	}
+	comments, err := s.review.Comments()
+	if err != nil {
+		fail(w, 409, err.Error())
+		return
+	}
+	ready := make([]reviewCommentView, 0, len(comments))
+	for _, c := range comments {
+		if c.Status == "open" && !c.Stale {
+			ready = append(ready, c)
+		}
+	}
+	if len(ready) == 0 {
+		fail(w, 409, "no current open review comments")
+		return
+	}
+	anchor := ready[0]
+	abs, rel, ok := s.resolvePath(anchor.Path)
+	if !ok {
+		fail(w, 400, "bad comment path")
+		return
+	}
+	job, err := s.agent.Start(abs, rel, anchor.LineStart, anchor.LineEnd, reviewFeedbackInstruction(ready), false)
+	if err != nil {
+		code := 400
+		if errors.Is(err, errAgentBusy) || errors.Is(err, errAgentDirty) {
+			code = http.StatusConflict
+		}
+		fail(w, code, err.Error())
+		return
+	}
+	writeJSON(w, job)
 }
 
 func (s *Server) handleReviewComment(w http.ResponseWriter, r *http.Request) {

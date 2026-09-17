@@ -90,7 +90,10 @@ body.side-hidden #side, body.side-hidden #resizer { display: none; }
 .review-mark { color: var(--faint); border-radius: 3px; padding: 2px 4px; font-size: 12px; }
 .review-mark:hover { color: var(--gi); background: var(--bg3); }
 .review-mark:disabled { color: var(--gi); cursor: default; }
-.review-foot { padding: 8px 10px; border-top: 1px solid var(--line); }
+.review-foot { padding: 8px 10px; border-top: 1px solid var(--line); display: grid; gap: 6px; }
+.review-feedback { width: 100%; border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; color: var(--dim); font-size: 12px; }
+.review-feedback:hover { color: var(--fg); background: var(--bg3); }
+.review-feedback:disabled { cursor: default; opacity: .55; }
 .review-next { width: 100%; }
 .review-next:disabled { cursor: default; opacity: .55; }
 .review-commentbox { position: absolute; right: 16px; bottom: 16px; z-index: 22; width: min(390px, calc(100% - 32px)); padding: 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg2); box-shadow: var(--shadow-sm); }
