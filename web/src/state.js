@@ -80,6 +80,8 @@ export const S = {
   review: null,      // active review-session reply, refreshed by review queue
   reviewComments: [],
   reviewPins: [],
+  reviewRuleHits: [],
+  reviewRules: { rules: [] },
   reviewExplain: {},
   lastReviewPatch: null,
   reviewChecks: { commands: {}, jobs: [] },

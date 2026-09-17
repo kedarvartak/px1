@@ -348,6 +348,7 @@ type agentJob struct {
 	l1, l2 int
 	cancel context.CancelFunc
 	onDone func(stdout string, err error)
+	kind   string
 	out    *tailBuffer
 	stderr *tailBuffer
 	start  time.Time
@@ -794,7 +795,7 @@ func (m *agentManager) StartWithDone(abs, rel string, l1, l2 int, instruction st
 	return m.Job(job.ID), nil
 }
 
-func (m *agentManager) Explain(prompt string, onDone func(stdout string, err error)) (*agentJob, error) {
+func (m *agentManager) RunPrompt(kind, prompt string, onDone func(stdout string, err error)) (*agentJob, error) {
 	if strings.TrimSpace(prompt) == "" {
 		return nil, errors.New("nothing to explain")
 	}
@@ -804,7 +805,7 @@ func (m *agentManager) Explain(prompt string, onDone func(stdout string, err err
 		return nil, errAgentNone
 	}
 	for _, j := range m.jobs {
-		if j.Running && j.onDone != nil {
+		if j.Running && j.kind == kind {
 			m.mu.Unlock()
 			return nil, errAgentBusy
 		}
@@ -822,6 +823,7 @@ func (m *agentManager) Explain(prompt string, onDone func(stdout string, err err
 		start:   time.Now(),
 		cancel:  cancel,
 		onDone:  onDone,
+		kind:    kind,
 	}
 	if m.jobs == nil {
 		m.jobs = map[int64]*agentJob{}
@@ -829,7 +831,7 @@ func (m *agentManager) Explain(prompt string, onDone func(stdout string, err err
 	m.jobs[job.ID] = job
 	args := m.args
 	m.mu.Unlock()
-	uiStatus("step", "agent", fmt.Sprintf("#%d %s · explaining review decisions", job.ID, job.Harness), 0, os.Stdout)
+	uiStatus("step", "agent", fmt.Sprintf("#%d %s · %s", job.ID, job.Harness, kind), 0, os.Stdout)
 	go m.run(ctx, cancel, job, args, prompt)
 	return m.Job(job.ID), nil
 }

@@ -2,7 +2,7 @@ import { $, esc, S, api, apiPost } from './state.js';
 import { openFile } from './tabs.js';
 import { reloadOpenTabs } from './tabs.js';
 import { drawTree, treeEl } from './tree.js';
-import { openReviewDiff, setPinHandler, syncDiffView, revealPin, revealChallenge } from './diff.js';
+import { openReviewDiff, setPinHandler, syncDiffView, revealPin, revealChallenge, revealRuleHit } from './diff.js';
 import { showToast } from './ui.js';
 import { hideSelectionBar, setReviewCommentHandler, setReviewPatchHandler } from './selbar.js';
 
@@ -16,7 +16,11 @@ const patchBox = $('#review-patchbox');
 const patchInput = $('#review-patch-input');
 let patchTarget = null;
 let explaining = false;
+let sendingRules = false;
+let rulesOpen = false;
 let pinSig = '';
+let ruleTarget = null;
+const ruleBox = $('#review-rulebox');
 
 const pending = item => item.state === 'unreviewed' || item.state === 'stale' || item.state === 'blocked';
 
@@ -36,16 +40,36 @@ export async function refreshReviewQueue() {
     S.reviewExplain = j.explain || {};
   } catch { S.reviewPins = []; S.reviewExplain = {}; }
   try {
+    const j = S.review?.active ? await api('/api/review/rule-hits') : { hits: [] };
+    S.reviewRuleHits = j.hits || [];
+  } catch { S.reviewRuleHits = []; }
+  try { S.reviewRules = (await api('/api/rules')) || { rules: [] }; } catch { S.reviewRules = { rules: [] }; }
+  try {
     const j = S.review?.active ? await api('/api/review/challenges') : { challenges: [] };
     S.reviewChallenges = j.challenges || [];
   } catch { S.reviewChallenges = []; }
   try { S.reviewChecks = S.review?.active ? await api('/api/review/checks') : { commands: {}, jobs: [] }; } catch { S.reviewChecks = { commands: {}, jobs: [] }; }
   drawReviewQueue();
-  const sig = JSON.stringify([S.reviewPins, S.reviewChallenges]);
+  const sig = JSON.stringify([S.reviewPins, S.reviewChallenges, S.reviewRuleHits]);
   if (sig !== pinSig) {
     pinSig = sig;
     syncDiffView();
   }
+}
+
+function ruleHitsMarkup() {
+  const hits = S.reviewRuleHits || [];
+  if (!hits.length) return '';
+  const rows = hits.map(h => `<button class="review-pin review-rulehit" data-review-rulehit="${esc(h.key)}" data-line="${h.line}" data-path="${esc(h.path)}" title="${esc(h.text)}"><span class="review-pin-mark">⚑</span><span class="review-pin-text">${esc(h.message)}</span><span class="review-pin-ref">${esc(h.path.split('/').pop())}:${h.line}</span></button>`).join('');
+  return `<div class="review-pins review-rulehits"><div class="review-pins-head"><strong>Rule hits</strong><span>${hits.length}</span><button class="review-explain" data-review-rulehits-send ${sendingRules ? 'disabled' : ''}>${sendingRules ? 'Sending…' : 'Send to agent'}</button></div><div class="review-pin-list">${rows}</div></div>`;
+}
+
+function rulesMarkup() {
+  const rules = S.reviewRules?.rules || [];
+  const err = S.reviewRules?.error ? `<div class="review-rule-error">${esc(S.reviewRules.error)}</div>` : '';
+  if (!rules.length && !err) return '';
+  const rows = rules.map(r => `<div class="review-rule${r.enabled ? '' : ' off'}"><span class="review-rule-text" title="${esc(r.pattern + (r.glob ? '  in ' + r.glob : ''))}">${esc(r.message)}</span><span class="review-rule-meta">${r.source === 'team' ? 'team' : r.hits + ' hit' + (r.hits === 1 ? '' : 's')}</span>${r.source === 'team' ? '' : `<button data-rule-toggle="${esc(r.id)}" data-enabled="${r.enabled ? '1' : ''}" title="${r.enabled ? 'Disable' : 'Enable'}">${r.enabled ? 'On' : 'Off'}</button><button data-rule-copy="${esc(r.id)}" title="Copy as a team rule for ${esc(S.reviewRules.teamFile || '.px1/rules.json')}">Copy</button><button data-rule-delete="${esc(r.id)}" title="Delete rule">×</button>`}</div>`).join('');
+  return `<details class="review-rules"${rulesOpen ? ' open' : ''}><summary>Rules <span>${rules.filter(r => r.enabled).length} active</span></summary>${err}${rows}</details>`;
 }
 
 function challengesMarkup() {
@@ -98,8 +122,10 @@ function drawReviewQueue() {
   queueEl.innerHTML = `<div class="review-summary"><div><strong>Agent changes</strong><span>${reviewed} / ${count} reviewed</span></div><button class="review-close" data-review-close title="Close review session">Close</button></div>
     <div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div>
     ${challengesMarkup()}
+    ${ruleHitsMarkup()}
     ${pinsMarkup()}
     <div class="review-list">${items.length ? items.map(itemMarkup).join('') : '<div class="hint">No files have changed since this review began.</div>'}</div>
+    ${rulesMarkup()}
     <div class="review-foot">${checkMarkup}<button class="review-feedback" data-review-feedback ${comments.length ? '' : 'disabled'}>Ask agent to address ${comments.length} comment${comments.length === 1 ? '' : 's'}</button>${S.lastReviewPatch ? '<button class="review-undo" data-review-undo>Undo last patch</button>' : ''}<button class="review-next" data-review-next ${next ? '' : 'disabled'}>${next ? 'Next change →' : 'All changes reviewed'}</button></div>`;
 }
 
@@ -243,8 +269,133 @@ async function openChallenge(id, path) {
   revealChallenge(id);
 }
 
+function suggestPattern(code) {
+  const text = code || '';
+  const call = /([A-Za-z_$][\w$.]*)\s*\(/.exec(text);
+  if (call) return '\\b' + call[1].replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\(';
+  const word = (text.match(/[A-Za-z_$][\w$]{3,}/) || [])[0];
+  return word ? '\\b' + word + '\\b' : '';
+}
+
+function openRule(info, message) {
+  if (!ruleBox) return;
+  const ext = (info.path.split('/').pop().match(/\.[^.]+$/) || [''])[0];
+  ruleTarget = { ...info, message };
+  $('#review-rule-ref').textContent = commentRef(info);
+  $('#review-rule-message').value = message;
+  $('#review-rule-pattern').value = suggestPattern(info.text);
+  $('#review-rule-glob').value = ext ? '*' + ext : '';
+  previewRule();
+  ruleBox.hidden = false;
+  $('#review-rule-pattern').focus();
+}
+
+function closeRule() {
+  ruleTarget = null;
+  if (ruleBox) ruleBox.hidden = true;
+}
+
+function previewRule() {
+  const el = $('#review-rule-preview');
+  if (!el || !ruleTarget) return;
+  const pattern = $('#review-rule-pattern').value;
+  try {
+    const re = new RegExp(pattern);
+    if (!pattern) { el.textContent = ''; return; }
+    const lines = (ruleTarget.text || '').split('\n');
+    const n = lines.filter(l => re.test(l)).length;
+    el.textContent = n ? `Matches ${n} of ${lines.length} selected line${lines.length === 1 ? '' : 's'}` : 'Does not match the selected code';
+    el.classList.toggle('warn', !n);
+  } catch (e) {
+    el.textContent = 'Invalid pattern';
+    el.classList.add('warn');
+  }
+}
+
+async function saveRule() {
+  if (!ruleTarget) return;
+  try {
+    await apiPost('/api/rules', undefined, {
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: $('#review-rule-message').value,
+        pattern: $('#review-rule-pattern').value,
+        glob: $('#review-rule-glob').value,
+        origin: commentRef(ruleTarget),
+      }),
+    });
+    closeRule();
+    await refreshReviewQueue();
+    showToast('✓', 'Rule saved; future changes will be checked');
+  } catch (e) { showToast('!', e.message); }
+}
+
+async function suggestRule() {
+  if (!ruleTarget) return;
+  const btn = $('#review-rule-suggest');
+  btn.disabled = true;
+  btn.textContent = 'Suggesting…';
+  try {
+    const job = await apiPost('/api/rules/suggest', undefined, {
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: ruleTarget.path, lineStart: ruleTarget.l1, lineEnd: ruleTarget.l2, comment: ruleTarget.message }),
+    });
+    await waitForAgent(job.id);
+    const res = await api('/api/rules/suggest', { job: job.id });
+    if (res.error) throw new Error(res.error);
+    if (ruleTarget) {
+      $('#review-rule-pattern').value = res.pattern || '';
+      $('#review-rule-glob').value = res.glob || '';
+      if (res.message) $('#review-rule-message').value = res.message;
+      previewRule();
+    }
+  } catch (e) { showToast('!', e.message); }
+  btn.disabled = false;
+  btn.textContent = 'Suggest';
+}
+
+async function sendRuleHits() {
+  sendingRules = true;
+  drawReviewQueue();
+  try {
+    const job = await apiPost('/api/review/rule-hits/send');
+    showToast('✓', 'Agent is fixing rule hits');
+    await waitForAgent(job.id);
+    await reloadReviewWorkspace();
+    showToast('✓', 'Rule hits refreshed');
+  } catch (e) { showToast('!', e.message); }
+  sendingRules = false;
+  drawReviewQueue();
+}
+
+async function updateRule(body) {
+  try {
+    await apiPost('/api/rules/update', undefined, { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    await refreshReviewQueue();
+  } catch (e) { showToast('!', e.message); }
+}
+
 async function onPin(action, pin, choice) {
   try {
+    if (action === 'rule-comment') {
+      await apiPost('/api/review/comment', undefined, {
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: pin.path, lineStart: pin.line, lineEnd: pin.line, text: 'Rule: ' + pin.message }),
+      });
+      await refreshReviewQueue();
+      showToast('✓', 'Review comment added');
+      return;
+    }
+    if (action === 'rule-dismiss') {
+      await apiPost('/api/review/rule-hits/dismiss', undefined, { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: pin.key }) });
+      await refreshReviewQueue();
+      return;
+    }
+    if (action === 'rule-disable') {
+      await updateRule({ id: pin.ruleId, enabled: false });
+      showToast('✓', 'Rule disabled');
+      return;
+    }
     if (action === 'challenge-ask') {
       const why = pin.why ? ` (${pin.why})` : '';
       openComment({ path: pin.path, l1: pin.at.l1, l2: pin.at.l2 }, `This change reverses an earlier decision: ${pin.decision}${why}. Restore it unless the requirement changed.`);
@@ -309,6 +460,9 @@ export function initReviewQueue() {
     $('#btn-review').classList.toggle('active', shown);
     if (shown) await refreshReviewQueue();
   });
+  queueEl?.addEventListener('toggle', e => {
+    if (e.target.matches('.review-rules')) rulesOpen = e.target.open;
+  }, true);
   queueEl?.addEventListener('click', async e => {
     const startBtn = e.target.closest('[data-review-start]');
     if (startBtn) return start();
@@ -316,6 +470,26 @@ export function initReviewQueue() {
     if (e.target.closest('[data-review-feedback]')) return sendFeedback();
     if (e.target.closest('[data-review-undo]')) return undoPatch();
     if (e.target.closest('[data-review-explain]')) return explain();
+    if (e.target.closest('[data-review-rulehits-send]')) return sendRuleHits();
+    const hitBtn = e.target.closest('[data-review-rulehit]');
+    if (hitBtn) {
+      await openFile(hitBtn.dataset.path);
+      await openReviewDiff(hitBtn.dataset.path);
+      return revealRuleHit(hitBtn.dataset.reviewRulehit, +hitBtn.dataset.line);
+    }
+    const toggle = e.target.closest('[data-rule-toggle]');
+    if (toggle) return updateRule({ id: toggle.dataset.ruleToggle, enabled: !toggle.dataset.enabled });
+    const del = e.target.closest('[data-rule-delete]');
+    if (del) return updateRule({ id: del.dataset.ruleDelete, delete: true });
+    const copy = e.target.closest('[data-rule-copy]');
+    if (copy) {
+      const r = (S.reviewRules?.rules || []).find(x => x.id === copy.dataset.ruleCopy);
+      if (r) {
+        await navigator.clipboard?.writeText(JSON.stringify({ pattern: r.pattern, glob: r.glob || '', message: r.message }, null, 2));
+        showToast('✓', 'Copied; add it to the "rules" array in ' + (S.reviewRules.teamFile || '.px1/rules.json'));
+      }
+      return;
+    }
     const chBtn = e.target.closest('[data-review-challenge]');
     if (chBtn) return openChallenge(chBtn.dataset.reviewChallenge, chBtn.dataset.path);
     const pinBtn = e.target.closest('[data-review-pin]');
@@ -333,6 +507,21 @@ export function initReviewQueue() {
   });
   $('#review-comment-cancel')?.addEventListener('click', closeComment);
   $('#review-comment-save')?.addEventListener('click', saveComment);
+  $('#review-comment-rule')?.addEventListener('click', async () => {
+    const info = commentTarget;
+    const text = commentInput?.value.trim();
+    if (!info || !text) return;
+    if (await saveComment()) openRule(info, text);
+  });
+  $('#review-rule-cancel')?.addEventListener('click', closeRule);
+  $('#review-rule-save')?.addEventListener('click', saveRule);
+  $('#review-rule-suggest')?.addEventListener('click', suggestRule);
+  $('#review-rule-pattern')?.addEventListener('input', previewRule);
+  ruleBox?.addEventListener('keydown', e => {
+    e.stopPropagation();
+    if (e.key === 'Escape') { e.preventDefault(); closeRule(); }
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveRule(); }
+  });
   commentInput?.addEventListener('keydown', e => {
     e.stopPropagation();
     if (e.key === 'Escape') { e.preventDefault(); closeComment(); }
@@ -380,5 +569,6 @@ async function saveComment() {
     closeComment();
     hideSelectionBar();
     showToast('✓', 'Review comment added');
-  } catch (e) { showToast('!', e.message); }
+    return true;
+  } catch (e) { showToast('!', e.message); return false; }
 }

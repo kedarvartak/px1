@@ -52,6 +52,7 @@ make dist
 - **Human Review Cockpit**: Review only task-session changes, open task-baseline diffs, mark files reviewed, leave line-anchored feedback, ask the local agent to address current comments, make a narrow Patch Mode correction, undo it, or restore a normal hunk to the task baseline.
 - **Decision Pins**: Every non-obvious choice an agent made (library, data shape, security, limits) appears as a short pin on the lines it affects, ranked by impact. Expand a pin to see why and the options not taken, then **Accept**, **Ask**, or **Switch** to an alternative and let the agent rework the change.
 - **Decision Memory**: Accepting or switching a pin remembers that decision for the workspace. Lines behind a remembered decision carry a ◆ in the gutter with the decision, reason, and date on hover, and a later review flags any change that removes that code as **Reversed decisions**, with **Ask agent to keep it**, **Decision changed**, or **Still holds**.
+- **Review Memory**: Turn a review comment into a rule with **Comment + rule**: a pattern, a file glob, and the message. px1 prefills the pattern from the selected code or asks the harness to **Suggest** one, then checks the lines every later task adds. Hits appear under the offending line and in **Rule hits**, where **Send to agent** turns them into review comments and dispatches the fix. Teams share rules by committing `.px1/rules.json`, which px1 only reads.
 - **Revision-Linked Verification**: Run explicitly configured tests, lint, or typechecks from the review queue. Results become stale if reviewed files change after the run.
 - **Edit with Your Coding Agent**: Select code in the source or diff view, right-click (or `Alt+E`), and describe the change. px1 runs Claude Code, OpenCode, OpenAI Codex, Antigravity, Aider, Goose, Gemini CLI, or Cursor Agent on it, reloads what changed, and shows harness errors inline. Several edits can run at once, as long as their line ranges don't overlap.
 - **Rendered Markdown Preview**: Full GFM preview with Chroma-highlighted code fences; switch between preview and source with `Alt+M` while preserving scroll.
@@ -198,6 +199,20 @@ curl -s -X POST http://127.0.0.1:7777/api/review/pins \
 `impact` is 1 (low) to 3 (high). A pin whose lines change afterwards is marked **lines changed** and can no longer be switched.
 
 Accepted and switched pins are remembered in `~/.px1/decisions/` (or `$XDG_CONFIG_HOME/px1/decisions/`), one file per workspace, never inside the repository. **Decision changed** retires a decision; **Still holds** allows the change for the current review only.
+
+### Review rules
+
+Rules you save live in `~/.px1/rules/`, one file per workspace. To share rules with a team, use **Copy** in the Rules list and commit them to `.px1/rules.json`; px1 reads that file and never writes it:
+
+```json
+{
+  "rules": [
+    { "pattern": "\\bfetch\\s*\\(", "glob": "src/**/*.ts", "message": "Use apiClient, not fetch" }
+  ]
+}
+```
+
+Patterns are Go RE2 regular expressions matched against each added line. A glob without `/` matches the file name anywhere; `**` crosses directories. **Ignore here** hides one hit for the current review and keeps ignoring it if the line moves.
 
 
 ## Why a Dedicated Code Viewer?

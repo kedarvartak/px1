@@ -160,7 +160,15 @@
       <div id="review-commentbox" class="review-commentbox" hidden>
         <div class="review-comment-head"><span>Review comment</span><span id="review-comment-ref"></span></div>
         <textarea id="review-comment-input" rows="3" spellcheck="false" placeholder="Tell the agent what needs attention"></textarea>
-        <div class="review-comment-actions"><button id="review-comment-cancel">Cancel</button><button id="review-comment-save">Add comment</button></div>
+        <div class="review-comment-actions"><button id="review-comment-cancel">Cancel</button><button id="review-comment-rule" title="Add the comment and remember it as a rule for future changes">Comment + rule</button><button id="review-comment-save">Add comment</button></div>
+      </div>
+      <div id="review-rulebox" class="review-commentbox" hidden>
+        <div class="review-comment-head"><span>Remember as rule</span><span id="review-rule-ref"></span></div>
+        <label class="review-rule-field"><span>Rule</span><input id="review-rule-message" spellcheck="false"></label>
+        <label class="review-rule-field"><span>Flag lines matching</span><input id="review-rule-pattern" spellcheck="false" placeholder="regular expression"></label>
+        <label class="review-rule-field"><span>In files</span><input id="review-rule-glob" spellcheck="false" placeholder="*.ts, src/**/*.go, empty for all"></label>
+        <div id="review-rule-preview" class="review-rule-preview"></div>
+        <div class="review-comment-actions"><button id="review-rule-suggest" title="Ask the selected harness to draft the pattern">Suggest</button><button id="review-rule-cancel">Cancel</button><button id="review-rule-save">Save rule</button></div>
       </div>
       <div id="review-patchbox" class="review-commentbox" hidden>
         <div class="review-comment-head"><span>Patch selection</span><span id="review-patch-ref"></span></div>
