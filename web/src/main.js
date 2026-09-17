@@ -49,7 +49,7 @@ initSettings();
     initTheme();
 
     // Restore word wrap (default ON)
-    const wrapPref = localStorage.getItem('px0.wrap');
+    const wrapPref = localStorage.getItem('px1.wrap');
     S.wrap = wrapPref !== null ? wrapPref === 'true' : true;
     document.body.classList.toggle('word-wrap', S.wrap);
 
@@ -58,7 +58,7 @@ initSettings();
     document.body.classList.remove('hide-lines');
 
     // Restore Markdown preview (default ON)
-    const mdPref = localStorage.getItem('px0.mdPreview');
+    const mdPref = localStorage.getItem('px1.mdPreview');
     S.mdPreview = mdPref !== null ? mdPref === 'true' : true;
 
     updateEditorOptionControls();
@@ -71,7 +71,7 @@ initSettings();
   if (S.meta.metrics) updateMetricsDisplay(S.meta.metrics);
   if (S.meta.git) { const b = $('#btn-changed'); if (b) b.hidden = false; }
   applyAgentMeta();
-  document.title = S.meta.name + ' - px0';
+  document.title = S.meta.name + ' - px1';
   $('#root-name').textContent = S.meta.name;
   $('#root-name').title = S.meta.root;
   if (S.meta.version) {

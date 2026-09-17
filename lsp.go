@@ -351,7 +351,7 @@ func (c *lspClient) initialize(ctx context.Context) error {
 		"processId": os.Getpid(),
 		"rootUri":   pathToURI(c.root),
 		"clientInfo": map[string]string{
-			"name": "px0", "version": version,
+			"name": "px1", "version": version,
 		},
 		"workspaceFolders": []any{
 			map[string]string{"uri": pathToURI(c.root), "name": filepath.Base(c.root)},

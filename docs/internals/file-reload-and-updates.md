@@ -6,7 +6,7 @@ This document details the end-to-end architecture, performance optimizations, an
 
 ## 1. Problem Statement & Motivation
 
-Most file mutations (such as `git checkout`, `git pull`, branch switching, code generation, or edits from an external IDE) occur on the host filesystem outside of px0's process boundary. Edits px0 dispatches to a coding harness reuse the same reload path once they finish (see [Harness Editing & Agent Dispatch](agent-editing.md)).
+Most file mutations (such as `git checkout`, `git pull`, branch switching, code generation, or edits from an external IDE) occur on the host filesystem outside of px1's process boundary. Edits px1 dispatches to a coding harness reuse the same reload path once they finish (see [Harness Editing & Agent Dispatch](agent-editing.md)).
 
 Users trigger a workspace re-index by clicking the **Re-index** button (`#btn-reindex` in the sidebar header) or via the Command Palette (`Mod+K` &rarr; `Re-index Workspace`).
 
@@ -15,7 +15,7 @@ Users trigger a workspace re-index by clicking the **Re-index** button (`#btn-re
 Prior to this implementation:
 1. Re-indexing rescanned the directory tree via `POST /api/reindex` and redrew the file explorer.
 2. **Open tabs remained stale**: The document objects in memory (`S.tabs`) retained old file lines, stale line totals, outdated git diff annotations, and previous syntax highlighting states.
-3. If an open file was edited or truncated on disk, px0 showed stale cached lines. If the file shrank, attempting to scroll or jump to previous line numbers resulted in blank lines or out-of-bounds errors.
+3. If an open file was edited or truncated on disk, px1 showed stale cached lines. If the file shrank, attempting to scroll or jump to previous line numbers resulted in blank lines or out-of-bounds errors.
 4. Users were forced to manually close and re-open every tab, or execute a full browser reload (which destroyed active tabs, cursor positions, navigation history, and scroll offsets).
 5. Simply re-running `openFile()` in a loop across open tabs was unacceptable: it caused jarring tab-switching UI flicker, multiple full-DOM layout calculations, scroll resets, and history stack pollution.
 
@@ -111,7 +111,7 @@ if (activeDoc) {
 
 ### Step 2: Virtualized Chunk Target Calculation
 
-Instead of fetching entire files, px0 leverages its windowed virtualization architecture (`CHUNK = 1000` lines):
+Instead of fetching entire files, px1 leverages its windowed virtualization architecture (`CHUNK = 1000` lines):
 
 ```javascript
 const targets = S.tabs.map(t => ({
@@ -123,7 +123,7 @@ const targets = S.tabs.map(t => ({
 ```
 
 - Each tab's current viewing line (`t.cur`) acts as the anchor.
-- px0 calculates the precise 1000-line chunk boundary enclosing that anchor:
+- px1 calculates the precise 1000-line chunk boundary enclosing that anchor:
   $$\text{start} = \left\lfloor \frac{\text{cur} - 1}{\text{CHUNK}} \right\rfloor \times \text{CHUNK}$$
 - Offscreen chunks are not requested upfront; they load on-demand when scrolled into view via `ensureChunk()`.
 
@@ -186,7 +186,7 @@ const newCur = Math.max(1, Math.min(keep.cur || 1, j.total));
 
 ### Step 6: Active Document Resynchronization & Single-Pass Render
 
-Once all tabs have been updated in memory, px0 updates the view surface:
+Once all tabs have been updated in memory, px1 updates the view surface:
 
 ```javascript
 const d = doc_();
@@ -231,7 +231,7 @@ updateStatus();
 
 ### 1. Concurrent Tab Closure during In-Flight Network Requests
 - **Problem**: While `Promise.allSettled` is waiting on HTTP responses, the user might close one or more tabs.
-- **Solution**: px0 looks up the index dynamically using the object reference captured before the request:
+- **Solution**: px1 looks up the index dynamically using the object reference captured before the request:
   ```javascript
   const idx = S.tabs.indexOf(tgt.oldDoc);
   if (idx < 0) continue;

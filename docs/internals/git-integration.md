@@ -1,15 +1,15 @@
 # Git Awareness & Diffing
 
-This document describes the design and implementation of px0's git integration engine ([`git.go`](../../git.go)) and its diff-rendering frontend ([`web/src/diff.js`](../../web/src/diff.js)).
+This document describes the design and implementation of px1's git integration engine ([`git.go`](../../git.go)) and its diff-rendering frontend ([`web/src/diff.js`](../../web/src/diff.js)).
 
 ## 1. Zero-Dependency Shell-Out Architecture
 
-px0 avoids heavy third-party Go git libraries (such as `go-git`, which can consume large amounts of memory re-parsing packfiles, or `libgit2`, which requires CGO).
+px1 avoids heavy third-party Go git libraries (such as `go-git`, which can consume large amounts of memory re-parsing packfiles, or `libgit2`, which requires CGO).
 
-Instead, px0 adheres to a Pure Shell-Out Architecture:
+Instead, px1 adheres to a Pure Shell-Out Architecture:
 
 - Shells out directly to the host `git` binary.
-- Never stages, commits, or changes refs or the index. The only workspace writes px0 makes are the ones a dispatched coding harness makes itself ([Harness Editing & Agent Dispatch](agent-editing.md)).
+- Never stages, commits, or changes refs or the index. The only workspace writes px1 makes are the ones a dispatched coding harness makes itself ([Harness Editing & Agent Dispatch](agent-editing.md)).
 - Zero disk footprint: holds all status and diff structures in volatile memory on the `Index` (`Node.Status`).
 - Graceful degradation: if `git` is not installed, or if the opened directory is not a git repository, git features degrade silently without warnings or errors.
 - Can be disabled explicitly using the `-no-git` CLI flag.
@@ -18,7 +18,7 @@ Instead, px0 adheres to a Pure Shell-Out Architecture:
 
 On large repositories, running `git status` can take 50-100 milliseconds. Running this serially during startup would delay index readiness.
 
-px0 runs `git status` concurrently alongside the filesystem walk:
+px1 runs `git status` concurrently alongside the filesystem walk:
 
 ```go
 gsCh := make(chan map[string]string, 1)
@@ -33,7 +33,7 @@ gs := <-gsCh
 
 ### Git Command Specification
 
-px0 invokes:
+px1 invokes:
 
 ```bash
 git status --porcelain=v2 -z
@@ -99,7 +99,7 @@ When viewing a file, the editor displays green, blue, and red markers in the lin
 
 ### Split & Unified Views (`web/src/diff.js`)
 
-The active tab gets a `Source | Diff` switch next to the tab bar (`#diff-switch`, shown only when `d.diffAvailable`) whenever the open file is modified in a git repo. `#diff-source` and `#diff-btn` each show their own view, and hovering the Diff half opens the Split/Unified menu; `Cmd/Ctrl+D` toggles the same thing, resuming whichever layout was used last (`localStorage['px0.diffLayout']`, default `split`). Diff view and the Markdown preview are mutually exclusive — entering one hides the other — and each tab remembers its own state on `d.diffMode` (`'split' | 'unified' | null`).
+The active tab gets a `Source | Diff` switch next to the tab bar (`#diff-switch`, shown only when `d.diffAvailable`) whenever the open file is modified in a git repo. `#diff-source` and `#diff-btn` each show their own view, and hovering the Diff half opens the Split/Unified menu; `Cmd/Ctrl+D` toggles the same thing, resuming whichever layout was used last (`localStorage['px1.diffLayout']`, default `split`). Diff view and the Markdown preview are mutually exclusive — entering one hides the other — and each tab remembers its own state on `d.diffMode` (`'split' | 'unified' | null`).
 
 Unlike the main code view, the diff is **not** rendered through the virtualized `#rows` viewport. A single file's diff is small (bounded by the size of that one file), so `diff.js` renders it as plain DOM into a dedicated `#diffview` overlay — the same overlay-over-`#viewport` pattern the Markdown preview uses (see [Markdown Preview](markdown.md)), just with its own content:
 

@@ -11,7 +11,7 @@ import (
 
 // Call trails: who calls a function, and what it calls, one level at a time.
 // The server identifies each function by an opaque CallHierarchyItem that has
-// to be handed back verbatim to expand the next level. px0 keeps no state
+// to be handed back verbatim to expand the next level. px1 keeps no state
 // between requests, so every node carries its item to the browser, which sends
 // it back when the reader expands that node.
 

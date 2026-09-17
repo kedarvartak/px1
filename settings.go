@@ -8,8 +8,8 @@ import (
 	"sync"
 )
 
-// px0 keeps no state inside a workspace. The user's preferences and choices
-// are stored with the other per-user files px0 writes (~/.px0/settings.json),
+// px1 keeps no state inside a workspace. The user's preferences and choices
+// are stored with the other per-user files px1 writes (~/.px1/settings.json),
 // never in the working tree.
 
 type settings struct {
@@ -33,16 +33,16 @@ type settings struct {
 var settingsMu sync.Mutex
 
 // settingsPath mirrors stateFilePath in update.go: honour the XDG location when
-// it is set, otherwise fall back to ~/.px0.
+// it is set, otherwise fall back to ~/.px1.
 func settingsPath() string {
 	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
-		return filepath.Join(xdg, "px0", "settings.json")
+		return filepath.Join(xdg, "px1", "settings.json")
 	}
 	home, err := os.UserHomeDir()
 	if err != nil || home == "" {
 		return ""
 	}
-	return filepath.Join(home, ".px0", "settings.json")
+	return filepath.Join(home, ".px1", "settings.json")
 }
 
 type settingSchemaItem struct {
@@ -322,7 +322,7 @@ var settingsSchema = []settingSchemaItem{
 	{
 		Key:         "telemetry.enabled",
 		Title:       "Telemetry",
-		Description: "Enable anonymous usage metrics to help improve px0.",
+		Description: "Enable anonymous usage metrics to help improve px1.",
 		Category:    "Security & Privacy",
 		Type:        "boolean",
 		Default:     true,

@@ -39,10 +39,11 @@ func useDiskAssets(dir string) error {
 }
 
 type Server struct {
-	ix    *Index
-	lsp   *lspManager
-	agent *agentManager // nil unless main wires editing for this session
-	mux   *http.ServeMux
+	ix     *Index
+	lsp    *lspManager
+	agent  *agentManager // nil unless main wires editing for this session
+	review *reviewManager
+	mux    *http.ServeMux
 
 	lastReq atomic.Int64 // unix nanos of the most recent request
 }
@@ -51,7 +52,7 @@ func NewServer(ix *Index, lsp *lspManager) *Server {
 	if lsp == nil {
 		lsp = newLSPManager(ix.Root(), false)
 	}
-	s := &Server{ix: ix, lsp: lsp, mux: http.NewServeMux()}
+	s := &Server{ix: ix, lsp: lsp, mux: http.NewServeMux(), review: newReviewManager(ix.Root())}
 	sub, _ := fs.Sub(assets, "web")
 	s.mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(sub))))
 	s.mux.HandleFunc("/static/themes.css", s.handleThemes)
@@ -84,6 +85,10 @@ func NewServer(ix *Index, lsp *lspManager) *Server {
 	s.mux.HandleFunc("/api/agent/edit", s.handleAgentEdit)
 	s.mux.HandleFunc("/api/agent/job", s.handleAgentJob)
 	s.mux.HandleFunc("/api/agent/cancel", s.handleAgentCancel)
+	s.mux.HandleFunc("/api/review/session", s.handleReviewSession)
+	s.mux.HandleFunc("/api/review/session/start", s.handleReviewStart)
+	s.mux.HandleFunc("/api/review/session/restore", s.handleReviewRestore)
+	s.mux.HandleFunc("/api/review/session/close", s.handleReviewClose)
 	s.mux.HandleFunc("/api/settings", s.handleSettings)
 	s.lastReq.Store(time.Now().UnixNano())
 	go s.scavenge()
@@ -834,4 +839,3 @@ func (s *Server) handleSettings(w http.ResponseWriter, r *http.Request) {
 		fail(w, 405, "method not allowed")
 	}
 }
-

@@ -19,13 +19,13 @@ import (
 )
 
 // Setting up a language server from the UI: report what is missing for a file,
-// run a known installer for it, and pick the result up without restarting px0.
+// run a known installer for it, and pick the result up without restarting px1.
 
 // lspInstall is one way to get a language server's binary.
 type lspInstall struct {
 	OS   string   // "darwin", "linux" or "windows"; empty for any
 	Cmd  []string // Cmd[0] is the installer, which must be present to use this
-	Auto bool     // px0 may run it: user-level and non-interactive. Otherwise only shown.
+	Auto bool     // px1 may run it: user-level and non-interactive. Otherwise only shown.
 }
 
 func (d lspServerDef) installsFor(goos string) []lspInstall {
@@ -38,7 +38,7 @@ func (d lspServerDef) installsFor(goos string) []lspInstall {
 	return out
 }
 
-// registryFor lists every server px0 knows for rel's extension, best first,
+// registryFor lists every server px1 knows for rel's extension, best first,
 // installed or not.
 func registryFor(rel string) []*lspServerDef {
 	ext := strings.ToLower(filepath.Ext(rel))
@@ -51,7 +51,7 @@ func registryFor(rel string) []*lspServerDef {
 	return out
 }
 
-// MissingLang names the language of rel when px0 knows servers for it but none
+// MissingLang names the language of rel when px1 knows servers for it but none
 // is installed, and is empty otherwise.
 func (m *lspManager) MissingLang(rel string) string {
 	if !m.enabled || !m.isDiscovered() || m.defFor(rel) != nil {
@@ -115,7 +115,7 @@ func (m *lspManager) Setup(rel string) lspSetup {
 }
 
 // Rescan looks for servers again and forgets earlier start failures, so a server
-// installed while px0 is running is used on the next request.
+// installed while px1 is running is used on the next request.
 func (m *lspManager) Rescan() {
 	if !m.enabled {
 		return
@@ -177,7 +177,7 @@ func (m *lspManager) Install(name string, option int) (*lspJob, error) {
 	}
 	in := opts[option]
 	if !in.Auto {
-		return nil, fmt.Errorf("px0 does not run %q; run it in a terminal", strings.Join(in.Cmd, " "))
+		return nil, fmt.Errorf("px1 does not run %q; run it in a terminal", strings.Join(in.Cmd, " "))
 	}
 	tool, ok := lookPathIn(in.Cmd[0], lspBinDirs())
 	if !ok {
@@ -256,7 +256,7 @@ func (t *tailBuffer) String() string {
 // ---------------------------------------------------------------- HTTP
 
 // localPost admits a request that changes the machine only when it is a POST
-// from px0's own page. Browsers send Origin on every POST, so a page from another
+// from px1's own page. Browsers send Origin on every POST, so a page from another
 // site cannot pass. Requiring the Host to be an IP address or localhost also
 // shuts out DNS rebinding, where an attacker's domain is pointed at this machine
 // and its Origin would otherwise match.
@@ -271,11 +271,11 @@ func localPost(w http.ResponseWriter, r *http.Request) bool {
 	}
 	host = strings.Trim(host, "[]")
 	if host != "localhost" && net.ParseIP(host) == nil {
-		fail(w, http.StatusForbidden, "open px0 by IP address or localhost to set up language servers")
+		fail(w, http.StatusForbidden, "open px1 by IP address or localhost to set up language servers")
 		return false
 	}
 	if o, err := url.Parse(r.Header.Get("Origin")); err != nil || o.Host != r.Host {
-		fail(w, http.StatusForbidden, "request did not come from px0")
+		fail(w, http.StatusForbidden, "request did not come from px1")
 		return false
 	}
 	return true

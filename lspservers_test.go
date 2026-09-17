@@ -9,7 +9,7 @@ import (
 
 // A crashed client is replaced by a fresh spawn, a bounded number of times.
 func TestCrashedServerIsRespawned(t *testing.T) {
-	def := lspServerDef{Name: "gone", Cmd: []string{"px0-test-no-such-language-server"}, Exts: []string{".go"}}
+	def := lspServerDef{Name: "gone", Cmd: []string{"px1-test-no-such-language-server"}, Exts: []string{".go"}}
 	dead := func() *lspClient {
 		c := newLSPClient(def, t.TempDir())
 		c.fail(errors.New("gone exited"))

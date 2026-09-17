@@ -1,10 +1,10 @@
 #!/usr/bin/env sh
-# Build px0 for every supported platform into dist/.
+# Build px1 for every supported platform into dist/.
 set -eu
 
 VERSION=$(cat VERSION | tr -d ' \r\n')
 OUT=${OUT:-dist}
-POSTHOG_KEY="${POSTHOG_KEY:-${PX0_POSTHOG_KEY:-}}"
+POSTHOG_KEY="${POSTHOG_KEY:-${PX1_POSTHOG_KEY:-}}"
 
 LDFLAGS="-s -w"
 if [ -n "$POSTHOG_KEY" ]; then
@@ -29,7 +29,7 @@ for t in $TARGETS; do
   arch=${t#*/}
   ext=""
   [ "$os" = "windows" ] && ext=".exe"
-  name="px0-$VERSION-$os-$arch$ext"
+  name="px1-$VERSION-$os-$arch$ext"
   printf '  %-28s' "$name"
   CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" \
     go build -trimpath -ldflags="$LDFLAGS" -o "$OUT/$name" .

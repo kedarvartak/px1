@@ -93,7 +93,7 @@ export function togglePreview() {
 
 function mdSetPref(on) {
   S.mdPreview = on;
-  try { localStorage.setItem('px0.mdPreview', on ? 'true' : 'false'); } catch {}
+  try { localStorage.setItem('px1.mdPreview', on ? 'true' : 'false'); } catch {}
 }
 
 /* ---------- sanitising ---------- */
@@ -113,7 +113,7 @@ const MD_ATTRS = new Set(('align valign alt title lang dir width height colspan 
 const MD_TOKENS = new Set('k kt nf nc nb nv no na nt nd np s m o p c cp gi gd gh ge gs err g'.split(' '));
 const MD_SCHEME = /^([a-z][a-z0-9+.-]*):/i;
 // Relative references resolve against this stand-in origin; landing anywhere else means they were not relative.
-const MD_ORIGIN = 'http://px0.invalid';
+const MD_ORIGIN = 'http://px1.invalid';
 
 /* The URL parser drops tabs and newlines anywhere and control characters at
    either end, so "java&#9;script:" still has a scheme. Test what it will see. */
@@ -178,7 +178,7 @@ function mdSetImage(img, src, base) {
 }
 
 /* Links within the file scroll the preview, links to workspace files open them
-   in px0, web links open a new browser tab, and any other scheme loses its href. */
+   in px1, web links open a new browser tab, and any other scheme loses its href. */
 function mdSetLink(a, href, base) {
   if (href.startsWith('#')) {
     a.setAttribute('href', href);

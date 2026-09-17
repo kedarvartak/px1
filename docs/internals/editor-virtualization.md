@@ -1,6 +1,6 @@
 # Editor Virtualization & Caret Engine
 
-This document provides a comprehensive technical breakdown of px0's bespoke virtualized code viewer, caret engine, and selection preservation system ([`web/src/renderer.js`](../../web/src/renderer.js), [`web/src/cursor.js`](../../web/src/cursor.js), and [`web/style.css`](../../web/style.css)).
+This document provides a comprehensive technical breakdown of px1's bespoke virtualized code viewer, caret engine, and selection preservation system ([`web/src/renderer.js`](../../web/src/renderer.js), [`web/src/cursor.js`](../../web/src/cursor.js), and [`web/style.css`](../../web/style.css)).
 
 ## 1. Why a Bespoke Virtualized Viewer?
 
@@ -10,7 +10,7 @@ General-purpose browser code editors (such as Monaco, CodeMirror 6, or Ace) are 
 - Their initialization latency takes hundreds of milliseconds.
 - Complex DOM representations degrade frame rates when scrolling large files.
 
-Because px0 is a code inspection and navigation tool that never edits text in place (changes go through a coding harness), it bypasses heavy third-party editor runtimes entirely. Instead, it implements a custom, high-performance virtualized surface with a fixed DOM footprint (~60 active nodes) and sub-millisecond paint budgets.
+Because px1 is a code inspection and navigation tool that never edits text in place (changes go through a coding harness), it bypasses heavy third-party editor runtimes entirely. Instead, it implements a custom, high-performance virtualized surface with a fixed DOM footprint (~60 active nodes) and sub-millisecond paint budgets.
 
 ## 2. DOM Surface Hierarchy
 
@@ -106,7 +106,7 @@ export function render() {
 
 Proportional gutter widths and accurate scroll geometry require exact character dimensions. However, querying DOM layout properties (`offsetWidth`, `getBoundingClientRect`) during rendering triggers costly browser layout thrashing.
 
-Instead, px0 measures typography once via an offscreen DOM element (`#measure`):
+Instead, px1 measures typography once via an offscreen DOM element (`#measure`):
 
 - `LH` (Line Height) and `chW` (Character Width) are measured with sub-pixel fractional precision.
 - Values are cached in state `S.chW` and `S.LH`.
@@ -116,7 +116,7 @@ Instead, px0 measures typography once via an offscreen DOM element (`#measure`):
 
 A major pitfall of virtualized DOMs is that rebuilding or recycling `.row` elements drops the browser's active native text selection (e.g., when scrolling or refreshing background syntax highlighting).
 
-px0 solves this with Coordinate-Based Selection Persistence:
+px1 solves this with Coordinate-Based Selection Persistence:
 
 ```mermaid
 sequenceDiagram
@@ -140,7 +140,7 @@ sequenceDiagram
 
 ## 6. Decoupled Overlay Caret (`placeCaret()`)
 
-Unlike traditional editors that insert a cursor DOM element inside code lines, px0's caret is decoupled:
+Unlike traditional editors that insert a cursor DOM element inside code lines, px1's caret is decoupled:
 
 - The `#caret` element lives as a direct child of `#sizer`.
 - `placeCaret(line, col)` computes the collapsed range geometry using `toPoint(line, col)`.

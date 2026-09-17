@@ -1,6 +1,6 @@
 # Fuzzy Path Matching Engine
 
-This document describes the algorithms, scoring heuristics, and concurrency strategies behind px0's ultra-fast fuzzy file finder ([`fuzzy.go`](../../fuzzy.go)).
+This document describes the algorithms, scoring heuristics, and concurrency strategies behind px1's ultra-fast fuzzy file finder ([`fuzzy.go`](../../fuzzy.go)).
 
 ## 1. The Fuzzy Matching Challenge
 
@@ -8,7 +8,7 @@ Traditional fuzzy matchers (such as Smith-Waterman or Needleman-Wunsch dynamic p
 
 Conversely, naive greedy linear scans run in $O(N)$ time but frequently produce poor match clusters, matching the earliest available character rather than the tightest and most intuitive run.
 
-px0 solves this with a Two-Pass Bounded Search Algorithm:
+px1 solves this with a Two-Pass Bounded Search Algorithm:
 
 - It achieves the clustering and ranking accuracy of dynamic programming.
 - It operates strictly in $O(N)$ linear time without intermediate allocations.

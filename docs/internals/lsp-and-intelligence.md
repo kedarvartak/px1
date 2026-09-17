@@ -1,12 +1,12 @@
 # Language Server Protocol (LSP) Architecture & Intelligence
 
-This document details the architecture, lifecycle management, and security boundaries of px0's Language Server Protocol subsystem ([`lsp.go`](../../lsp.go), [`lspnav.go`](../../lspnav.go), [`lspservers.go`](../../lspservers.go), [`lspsetup.go`](../../lspsetup.go), and [`calls.go`](../../calls.go)).
+This document details the architecture, lifecycle management, and security boundaries of px1's Language Server Protocol subsystem ([`lsp.go`](../../lsp.go), [`lspnav.go`](../../lspnav.go), [`lspservers.go`](../../lspservers.go), [`lspsetup.go`](../../lspsetup.go), and [`calls.go`](../../calls.go)).
 
 ## 1. Zero-Cost Lazy Architecture
 
 Traditional IDEs start multiple language server processes during project initialization, consuming hundreds of megabytes of RAM before the developer opens a single file.
 
-px0 adopts a strictly Zero-Cost Lazy Architecture:
+px1 adopts a strictly Zero-Cost Lazy Architecture:
 
 ```mermaid
 stateDiagram-v2
@@ -22,7 +22,7 @@ stateDiagram-v2
 
 ### Key Principles
 
-1. Zero Boot Overhead: During startup, px0 does not launch any language servers. It scans `$PATH` concurrently via `exec.LookPath` to identify which server binaries exist on the host system.
+1. Zero Boot Overhead: During startup, px1 does not launch any language servers. It scans `$PATH` concurrently via `exec.LookPath` to identify which server binaries exist on the host system.
 1. On-Demand Spawning: A language server process is launched only when the user opens or queries a file matching its registered file extensions.
 1. Graceful Fallback: If a server is missing, crashes, or fails initialization, the system falls back to instant regex-based symbol definitions without displaying error dialogs.
 
@@ -63,13 +63,13 @@ Each active language server is managed by an `lspClient` struct:
 
 When a developer navigates code using Go-to-Definition (`F12`), the target definition often resides outside the workspace directory (e.g., standard library packages in `/usr/lib/go/src` or third-party dependencies in `~/.cargo/registry`).
 
-Allowing arbitrary filesystem reads would introduce path traversal vulnerabilities. px0 solves this with an In-Memory Target Allowlist:
+Allowing arbitrary filesystem reads would introduce path traversal vulnerabilities. px1 solves this with an In-Memory Target Allowlist:
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant UI as Browser Client
-    participant Server as px0 /api/lsp/def
+    participant Server as px1 /api/lsp/def
     participant LSP as Language Server (gopls)
     participant FS as Host Filesystem
 
@@ -93,14 +93,14 @@ sequenceDiagram
 
 ## 5. Stateless Call Hierarchy Trails ([`calls.go`](../../calls.go))
 
-px0 provides full incoming and outgoing call hierarchy navigation (`Calls` tab in the right inspector) without holding complex graph state in server memory.
+px1 provides full incoming and outgoing call hierarchy navigation (`Calls` tab in the right inspector) without holding complex graph state in server memory.
 
 ### Opaque Item Round-Tripping
 
 - The LSP specification identifies call hierarchy items with an implementation-specific `CallHierarchyItem` object.
 - When expanding a function, the server sends this JSON object to the client browser.
 - When the user clicks to expand a caller or callee, the browser sends the exact `CallHierarchyItem` back to `/api/lsp/calls`.
-- Zero Server State: px0 maintains no in-memory graph trees; cost scales strictly with the nodes the user expands.
+- Zero Server State: px1 maintains no in-memory graph trees; cost scales strictly with the nodes the user expands.
 - Client-Side Cycle Detection: Recursive call loops are detected in JavaScript by checking ancestor node identifiers in the tree path.
 
 ## 6. In-App Setup & One-Click Installers

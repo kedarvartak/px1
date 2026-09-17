@@ -1,37 +1,35 @@
-# px0
+# px1
 
-px0 is a fast, ultra-light, remote-first IDE designed for instant code navigation and review in your browser. Booting in under 1 ms and using ~20 MB of RAM, it turns your browser into a zero-latency inspection console with symbol-level navigation, deep search, and syntax highlighting across massive codebases.
+px1 is a fast, lightweight human control plane for coding agents. It gives you an immediate browser view of a worktree, then helps you inspect, direct, correct, and verify agent-generated changes without turning into another full editor.
 
-## Optimized for Reads
+## Human control over agent changes
 
-More and more code generation happens directly in the terminal—driven by coding agents, CLI tools, and background orchestrators. Developers spend significantly less time typing boilerplate and more time reviewing, auditing, and navigating.
+Agents write code; humans decide whether it is ready. px1 keeps reading and navigation fast, while adding a durable review workflow: task baselines, review state, targeted corrections, agent feedback, and evidence that checks ran against the version under review.
 
-Because speed of access is everything when inspecting code, **px0 is obsessively optimized for reads.** You don't need a heavy editing environment with background extension churn just to verify code; you need a sub-millisecond, zero-latency window into the repository, especially across remote machines. When something needs to change, select it and hand it to the coding agent you already use: px0 runs it and reloads what moved.
+### Where px1 fits in best:
 
-### Where px0 fits in best:
-
-- **Verifying AI Agent Output**: Trace symbol references, inspect live git diffs against `HEAD`, review generated code, send a fix back to the agent from the diff, and close the tab without leaving your terminal flow.
+- **Reviewing agent output**: Start a review session, inspect the exact delta since the task began, send precise feedback, and return directly to what needs another look.
+- **Correcting without context switching**: Make a narrow patch or restore an incorrect agent change to the task baseline, then go back to review.
+- **Verifying work on remote machines**: Inspect code and agent changes on a server or runner with a small native process and no remote desktop.
 - **Remote & Cloud Server Inspection**: Spin up on any remote server, VM, or CI runner and browse the codebase instantly from your local browser—no SSH keys, no port forwarding hassle, and no heavy remote desktop/daemons.
 - **Auditing Large Repositories**: Read through massive, 50,000+ file codebases on a laptop without background indexers hogging RAM or spinning up fans.
-- **Sidecar to Terminal Editors**: Keep lightweight editors (like Vim, Neovim, or Helix) in the terminal for typing, while using px0 as a high-density, rich graphical inspection and diff console.
+- **Sidecar to Terminal Editors**: Keep lightweight editors (like Vim, Neovim, or Helix) in the terminal for typing, while using px1 as a high-density, rich graphical inspection and diff console.
 
 ## Installation
 
 ### Quick Install (macOS, Linux, BSD)
 
-```bash
-curl -fsSL https://px0.ai/install.sh | sh
-```
+Releases will be published from this repository. Until then, build from source.
 
 ### Build from Source
 
 Requires Go 1.24+. No npm, node, CGO, or external dependencies:
 
 ```bash
-git clone https://github.com/px0-ai/px0.git
+git clone https://github.com/kedarvartak/px0.git
 cd px0
 make build
-install -d ~/.local/bin && install px0 ~/.local/bin/
+install -d ~/.local/bin && install px1 ~/.local/bin/
 ```
 
 To cross-compile binaries for all supported platforms:
@@ -46,19 +44,20 @@ make dist
 - **Remote-First, Zero SSH Hassle**: Spin up on any remote server, cloud instance, or runner in < 1 ms. Inspect remote code in your local browser over a single port (Tailscale, WireGuard, reverse proxy, or tunnel) without SSH key setups, port forwarding churn, or remote extension daemons.
 - **Rich Syntax Highlighting**: Native tokenization for ~280 languages via Chroma with windowed rendering.
 - **Git Awareness & Visual Diffs**: Status badges (`M`, `A`, `D`, `U`, `R`), dirty folder ancestry propagation, changed-files filter, and side-by-side / unified diffs vs `HEAD` (`Cmd/Ctrl+D`).
-- **Edit with Your Coding Agent**: Select code in the source or diff view, right-click (or `Alt+E`), and describe the change. px0 runs Claude Code, OpenCode, OpenAI Codex, Antigravity, Aider, Goose, Gemini CLI, or Cursor Agent on it, reloads what changed, and shows harness errors inline. Several edits can run at once, as long as their line ranges don't overlap.
+- **Review Sessions**: Capture a recoverable task baseline outside the repository, detect files changed since review began, and restore the workspace to that baseline when needed.
+- **Edit with Your Coding Agent**: Select code in the source or diff view, right-click (or `Alt+E`), and describe the change. px1 runs Claude Code, OpenCode, OpenAI Codex, Antigravity, Aider, Goose, Gemini CLI, or Cursor Agent on it, reloads what changed, and shows harness errors inline. Several edits can run at once, as long as their line ranges don't overlap.
 - **Rendered Markdown Preview**: Full GFM preview with Chroma-highlighted code fences; switch between preview and source with `Alt+M` while preserving scroll.
 - **Custom Themes**: 14 built-in themes (GitHub Dark, Tokyo Night, Catppuccin, Dracula, Gruvbox, Nord, Solarized, and more).
 - **Optional Language Server Protocol (LSP)**: Zero-config auto-detection (`gopls`, `rust-analyzer`, `pyright`, `typescript-language-server`, `clangd`) for Go-to-Definition (`F12`), Hover, references, and call trails. Falls back automatically to regex outlines.
-- **Settings & Configuration Modal**: Press `Cmd/Ctrl+,` or click the ⚙️ icon in the status bar to open the VS Code-style Settings editor. Configure editor typography, cursor styles, diff modes, themes, search behavior, file exclusions, and coding agents with live preview and raw JSON synchronization (`~/.px0/settings.json`).
+- **Settings & Configuration Modal**: Press `Cmd/Ctrl+,` or click the ⚙️ icon in the status bar to open the VS Code-style Settings editor. Configure editor typography, cursor styles, diff modes, themes, search behavior, file exclusions, and coding agents with live preview and raw JSON synchronization (`~/.px1/settings.json`).
 - **Virtual DOM / Zero Overhead**: Opening a 400,000-line file costs the same as a 10-line file; only visible rows are mounted. Reclaims memory after 15 seconds of inactivity.
 - **Completely Self-Contained**: Single static binary embedding all web assets. Zero runtime dependencies, no Electron, no Node, no cloud phone-homes.
 
 ## Language Server (LSP) Setup (Optional)
 
-`px0` works fully out of the box without language servers using built-in fuzzy search and regex outlines.
+`px1` works fully out of the box without language servers using built-in fuzzy search and regex outlines.
 
-When installed, language servers provide semantic Go-to-Definition (`F12`), hover types/docs, and call trails. px0 auto-detects servers on your `PATH` or standard install directories:
+When installed, language servers provide semantic Go-to-Definition (`F12`), hover types/docs, and call trails. px1 auto-detects servers on your `PATH` or standard install directories:
 
 | Language | Server | Quick Install |
 | --- | --- | --- |
@@ -74,13 +73,13 @@ When installed, language servers provide semantic Go-to-Definition (`F12`), hove
 | C# | `omnisharp` | Install OmniSharp on `PATH` |
 | LaTeX | `texlab` | `brew install texlab` |
 
-Servers spawn lazily on first request and shut down cleanly upon exit. Disable with `px0 -no-lsp`. You can also click **LSP: set up** in the status bar to view or trigger automatic installation for your OS.
+Servers spawn lazily on first request and shut down cleanly upon exit. Disable with `px1 -no-lsp`. You can also click **LSP: set up** in the status bar to view or trigger automatic installation for your OS.
 
 ## Editing with a Coding Agent (Optional)
 
-px0 does not have a text editor. It hands changes to a coding agent already installed on your machine, then reloads what the agent changed.
+px1 does not have a text editor. It hands changes to a coding agent already installed on your machine, then reloads what the agent changed.
 
-| Harness | Default Model | Command px0 runs |
+| Harness | Default Model | Command px1 runs |
 | --- | --- | --- |
 | Claude Code | `haiku` | `claude --permission-mode acceptEdits --model haiku -p {prompt}` |
 | Gemini CLI | `gemini-2.5-flash-lite` | `gemini --approval-mode auto_edit -m gemini-2.5-flash-lite -p {prompt}` |
@@ -91,16 +90,16 @@ px0 does not have a text editor. It hands changes to a coding agent already inst
 | Aider | `claude-3-7-sonnet` | `aider --yes-always --no-auto-commits --model claude-3-7-sonnet --message {prompt}` |
 | Goose | `gpt-4o` | `goose run --no-session --model gpt-4o -t {prompt}` |
 
-By default, px0 selects the least capable (fastest and most economical) model for each harness, and allows you to choose any available model from the harness menu.
+By default, px1 selects the least capable (fastest and most economical) model for each harness, and allows you to choose any available model from the harness menu.
 
 ### How an Edit Works
 
 1. Select code in the source view or the git diff view (split or unified, either side).
 1. Pick **Edit with Agent** from the right-click menu, the footer selection bar, or press `Alt+E`.
-1. The first time, choose a harness (and optional model). The choice is remembered in `~/.px0/settings.json` (or `$XDG_CONFIG_HOME/px0/settings.json`), never inside your repository.
-1. Type what should change and press `Enter`. px0 sends the harness the instruction, the file and line range, and the selected lines.
-1. As the agent runs, its progress and actions stream in real time to the terminal stdout where px0 was launched.
-1. When the harness exits, px0 reloads the files it changed. Each tab stays in the view it was in: source stays source, diff stays diff.
+1. The first time, choose a harness (and optional model). The choice is remembered in `~/.px1/settings.json` (or `$XDG_CONFIG_HOME/px1/settings.json`), never inside your repository.
+1. Type what should change and press `Enter`. px1 sends the harness the instruction, the file and line range, and the selected lines.
+1. As the agent runs, its progress and actions stream in real time to the terminal stdout where px1 was launched.
+1. When the harness exits, px1 reloads the files it changed. Each tab stays in the view it was in: source stays source, diff stays diff.
 
 The footer always shows the harness and model in use (**Agent: agy (gemini-3.6-flash-low)**). Click it to switch harnesses or choose a different model.
 
@@ -112,12 +111,12 @@ If the harness fails, the error appears inline under your instruction together w
 
 - Several edits can run at once, each in its own box, as long as their line ranges don't overlap. A range that overlaps an edit already in flight is refused: two harnesses rewriting the same lines would produce a result nobody could review.
 - Closing the tab while an edit is still running asks for confirmation first, so a harness is never abandoned mid-write with no way to see how it went.
-- Edits are accepted only from px0's own page, opened by IP address or `localhost`. Through a hostname (reverse proxy, tunnel domain) they are refused. Anyone who can reach px0 by IP can run the harness as you, so keep `-host 0.0.0.0` to private networks.
+- Edits are accepted only from px1's own page, opened by IP address or `localhost`. Through a hostname (reverse proxy, tunnel domain) they are refused. Anyone who can reach px1 by IP can run the harness as you, so keep `-host 0.0.0.0` to private networks.
 - Nothing runs until you pick a harness. `-agent` pins one for the session; `-no-agent` turns editing off.
 
 ## Settings & Configuration (`settings.json`)
 
-px0 provides a built-in Settings editor modeled after VS Code. Settings are stored per-user in `~/.px0/settings.json` (or `$XDG_CONFIG_HOME/px0/settings.json`), keeping your workspace repository clean.
+px1 provides a built-in Settings editor modeled after VS Code. Settings are stored per-user in `~/.px1/settings.json` (or `$XDG_CONFIG_HOME/px1/settings.json`), keeping your workspace repository clean.
 
 ### Opening Settings
 - Press **`Cmd+,`** (macOS) or **`Ctrl+,`** (Linux/Windows).
@@ -167,7 +166,7 @@ px0 provides a built-in Settings editor modeled after VS Code. Settings are stor
 
 Traditional IDEs carry tens of thousands of authoring features, Electron runtimes, background indexers, and gigabytes of memory overhead. In modern AI-assisted workflows, developers spend significantly more time reviewing code than typing it.
 
-| Parameter | Traditional IDE (e.g., VS Code) | px0 (Code Viewer) |
+| Parameter | Traditional IDE (e.g., VS Code) | px1 (Code Viewer) |
 | --- | --- | --- |
 | Primary Purpose | Manual code authoring & plugin host | Instant code reading & navigation |
 | Base Memory (RSS) | ~1,440 MB (1.4+ GB) | ~20 MB (~70x lighter) |
@@ -181,7 +180,7 @@ Traditional IDEs carry tens of thousands of authoring features, Electron runtime
 
 All metrics are measured on real-world repositories and reproducible using [`./benchmark.sh`](benchmark.sh).
 
-### Real Corpus Performance (px0 standalone)
+### Real Corpus Performance (px1 standalone)
 
 | Repository   | Source Size | Files Indexed | Index Time | Fuzzy Search | Full-Tree Regex Scan | Resident RAM (RSS) |
 | ------------ | ----------- | ------------- | ---------- | ------------ | -------------------- | ------------------ |
@@ -193,30 +192,30 @@ All metrics are measured on real-world repositories and reproducible using [`./b
 | TypeScript   | 414 MB      | 66,533        | 566 ms     | 6.2 ms       | 150.3 ms             | 69 MB              |
 | linux kernel | 1,809 MB    | 95,710        | 370 ms     | 6.0 ms       | 451.8 ms             | 55 MB              |
 
-### Head-to-Head: px0 vs. VS Code
+### Head-to-Head: px1 vs. VS Code
 
 Run `./benchmark.sh --vscode .` to measure both on your active machine:
 
 ```text
-### px0 vs. VS Code Comparison
+### px1 vs. VS Code Comparison
 
-| Metric / Parameter | px0                    | VS Code (Server/Remote) | Notes                   |
+| Metric / Parameter | px1                    | VS Code (Server/Remote) | Notes                   |
 | ------------------ | ---------------------- | ----------------------- | ----------------------- |
 | Memory (RSS)       | 20 MB                  | 1,166 - 1,440 MB        | ~70x lighter            |
 | Instant CPU %      | 0.0%                   | 4.0% - 39.0%            | Minimal CPU churn       |
-| Index Time         | < 1 ms                 | ~4 - 10 s               | px0 is instantaneous    |
+| Index Time         | < 1 ms                 | ~4 - 10 s               | px1 is instantaneous    |
 | Process Count      | 1 single Go binary     | 15+ processes           | Multi-process Node tree |
 ```
 
 ## Usage
 
-Run `px0` with an optional file or directory:
+Run `px1` with an optional file or directory:
 
 ```bash
-px0                     # view current workspace
-px0 ~/src/kernel        # view another repository
-px0 web/src/main.js     # view a file in its project workspace
-px0 main.go:42          # open directly to a line number
+px1                     # view current workspace
+px1 ~/src/kernel        # view another repository
+px1 web/src/main.js     # view a file in its project workspace
+px1 main.go:42          # open directly to a line number
 ```
 
 ### Remote & Cloud Workspaces
@@ -225,26 +224,26 @@ Spin up on any remote server, VM, or container and view code directly in your lo
 
 ```bash
 # Bind all interfaces on a remote machine / cloud instance
-px0 -host 0.0.0.0 -port 7777 ~/work/repo
+px1 -host 0.0.0.0 -port 7777 ~/work/repo
 
 # Headless / server mode without opening local browser
-px0 -no-open -port 8080 /workspace
+px1 -no-open -port 8080 /workspace
 
 # In Docker / CI runner
-docker run -p 7777:7777 -v $(pwd):/src px0:latest
+docker run -p 7777:7777 -v $(pwd):/src px1:latest
 ```
 
-Access securely over Tailscale, WireGuard, reverse proxy, or Cloudflare Tunnel with zero remote setup overhead and sandboxing (path traversal protection & DNS rebinding checks). Anyone who can reach px0 can dispatch agent edits when it is opened by IP address (for example over Tailscale), so bind to a private network. Opened through a hostname, such as a reverse proxy or tunnel domain, editing is refused.
+Access securely over Tailscale, WireGuard, reverse proxy, or Cloudflare Tunnel with zero remote setup overhead and sandboxing (path traversal protection & DNS rebinding checks). Anyone who can reach px1 can dispatch agent edits when it is opened by IP address (for example over Tailscale), so bind to a private network. Opened through a hostname, such as a reverse proxy or tunnel domain, editing is refused.
 
-### Updating px0
+### Updating px1
 
-To check for updates and automatically upgrade `px0` to the latest release:
+To check for updates and automatically upgrade `px1` to the latest release:
 
 ```bash
-px0 --update
+px1 --update
 ```
 
-`px0` also checks asynchronously in the background once every 24 hours without delaying startup (<1 ms) and notifies you on stderr when an update is available.
+`px1` also checks asynchronously in the background once every 24 hours without delaying startup (<1 ms) and notifies you on stderr when an update is available.
 
 ### CLI Flags
 
@@ -298,14 +297,15 @@ px0 --update
 
 ## Philosophy and Design Principles
 
-- **Optimized for Reads**: px0 does not attempt to be a heavy code editor. Code authoring belongs to AI agents, CLI tools, or dedicated editors. px0 focuses on the reader experience, and changes go through the coding agent you choose, never through a save button.
+- **Human control over agent changes**: px1 is a review and intervention surface. Agents implement; people inspect, leave feedback, apply narrow corrections, restore a known baseline, and verify the resulting work.
+- **Read fast, intervene precisely**: px1 remains a compact navigator rather than a general-purpose editor. Any write must be intentional, bounded, previewable, and reversible.
 - **Remote-First & SSH-Free**: Works seamlessly whether inspecting a local directory or a cloud instance over Tailscale/VPN—no remote daemons, no X11 forwarding, and no SSH session maintenance.
 - **Private & Sandboxed**: Zero accounts, zero cloud dependencies. Code and queries stay on the running machine. Protected by path traversal guards and DNS rebinding prevention.
 - **Reclaims Memory**: Automatically recovers memory after 15 seconds of inactivity so idle sessions don't hoard host RAM.
 
 ### Telemetry & Privacy
 
-px0 collects lightweight, anonymous backend session metrics (via PostHog) strictly to calculate DAU/MAU and session duration (start time and stop time).
+px1 collects lightweight, anonymous backend session metrics (via PostHog) strictly to calculate DAU/MAU and session duration (start time and stop time).
 
 **What is NEVER collected:**
 - No feature interactions, user actions, or command activity
@@ -317,8 +317,8 @@ px0 collects lightweight, anonymous backend session metrics (via PostHog) strict
 
 **How to opt out:**
 You can disable telemetry completely at any time through any of the following:
-- CLI flag: `px0 -no-telemetry`
-- Environment variable: `export DO_NOT_TRACK=1` or `export PX0_TELEMETRY=0`
+- CLI flag: `px1 -no-telemetry`
+- Environment variable: `export DO_NOT_TRACK=1` or `export PX1_TELEMETRY=0`
 
 
 ## Reproducing Benchmarks
@@ -332,7 +332,7 @@ All benchmark figures can be measured directly on your own system:
 # 2. Run the full benchmark suite
 ./benchmark.sh
 
-# 3. Compare px0 directly against VS Code process tree on your workspace
+# 3. Compare px1 directly against VS Code process tree on your workspace
 ./benchmark.sh --vscode .
 
 # 4. Profile memory lifecycle across index, search, and idle recovery
@@ -346,13 +346,13 @@ See [Performance Benchmarks](BENCHMARKS.md) for full methodology and detailed ch
 
 ## Contributing
 
-Contributions that keep px0 fast, minimal, and dependable are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting issues or pull requests.
+Contributions that keep px1 fast, minimal, and dependable are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting issues or pull requests.
 
 ### Development Workflow
 
 1. Clone the repository:
   ```bash
-  git clone https://github.com/px0-ai/px0.git
+  git clone https://github.com/kedarvartak/px0.git
   cd px0
   ```
 1. Run tests:
@@ -381,10 +381,13 @@ For comprehensive technical deep-dives into the architecture, indexing, virtuali
 - `search.go` / `fuzzy.go`: High-performance substring and fuzzy file/symbol matching algorithms.
 - `lsp.go` / `lspnav.go` / `calls.go`: Lightweight JSON-RPC client communicating with local language servers over stdio, plus definitions, references and call trails.
 - `lspservers.go` / `lspsetup.go`: Language server registry, discovery, and install on request.
-- `agent.go` / `settings.go`: Coding harness discovery and dispatch, change detection, user configuration store (`~/.px0/settings.json`), and settings schema validation.
+- `agent.go` / `settings.go`: Coding harness discovery and dispatch, change detection, user configuration store (`~/.px1/settings.json`), and settings schema validation.
 - `web/`: Native zero-dependency ES module frontend (custom virtual scroll, syntax highlight rendering, tab manager).
 - `web/themes/`: One CSS file per colour theme, joined by the server into `/static/themes.css`. Token reference in [Styling & Themes](docs/internals/styling-and-themes.md).
 
 ## License
 
 [MIT License](LICENSE) (c) 2026 Arpit Bhayani
+
+px1 is a fork of [px0](https://github.com/px0-ai/px0). Upstream copyright and
+permission notices are retained in accordance with the MIT License.

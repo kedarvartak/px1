@@ -23,12 +23,12 @@ func TestIsOptedOut(t *testing.T) {
 	os.Unsetenv("DO_NOT_TRACK")
 
 	for _, val := range []string{"0", "false", "off", "no"} {
-		os.Setenv("PX0_TELEMETRY", val)
+		os.Setenv("PX1_TELEMETRY", val)
 		if !isOptedOut(false) {
-			t.Fatalf("expected isOptedOut to respect PX0_TELEMETRY=%s", val)
+			t.Fatalf("expected isOptedOut to respect PX1_TELEMETRY=%s", val)
 		}
 	}
-	os.Unsetenv("PX0_TELEMETRY")
+	os.Unsetenv("PX1_TELEMETRY")
 
 	if isOptedOut(false) {
 		t.Fatal("expected isOptedOut to be false when no opt-out is set")
@@ -91,10 +91,10 @@ func TestTelemetrySessionLifecycle(t *testing.T) {
 	}))
 	defer server.Close()
 
-	os.Setenv("PX0_POSTHOG_KEY", "phc_test_key_xyz")
-	os.Setenv("PX0_POSTHOG_HOST", server.URL)
-	defer os.Unsetenv("PX0_POSTHOG_KEY")
-	defer os.Unsetenv("PX0_POSTHOG_HOST")
+	os.Setenv("PX1_POSTHOG_KEY", "phc_test_key_xyz")
+	os.Setenv("PX1_POSTHOG_HOST", server.URL)
+	defer os.Unsetenv("PX1_POSTHOG_KEY")
+	defer os.Unsetenv("PX1_POSTHOG_HOST")
 
 	tel := NewTelemetryService(false)
 	if !tel.enabled {
@@ -174,7 +174,7 @@ func TestTelemetrySessionLifecycle(t *testing.T) {
 }
 
 func TestTelemetryDisabledWithoutKey(t *testing.T) {
-	os.Unsetenv("PX0_POSTHOG_KEY")
+	os.Unsetenv("PX1_POSTHOG_KEY")
 	tel := NewTelemetryService(false)
 	if tel.enabled {
 		t.Fatal("expected telemetry disabled without key")
