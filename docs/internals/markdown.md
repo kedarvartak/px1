@@ -1,6 +1,6 @@
 # Markdown Preview Implementation
 
-This document describes how px0 renders Markdown files: the server-side conversion, the browser-side sanitizer, and the logic that keeps the rendered view and the source view in step.
+This document describes how px1 renders Markdown files: the server-side conversion, the browser-side sanitizer, and the logic that keeps the rendered view and the source view in step.
 
 A Markdown tab (`.md` or `.markdown`) opens rendered by default. The reader switches to the raw source with the Preview / Source switch in the tab bar, the Preview button in the status bar, or Alt+M. The code lives in two files: [`markdown.go`](../../markdown.go) on the server and [`web/src/markdown.js`](../../web/src/markdown.js) in the browser.
 
@@ -38,7 +38,7 @@ A generation counter (`mdGen`) discards a draw whose fetch finishes after the re
 
 When the fetch fails (for example a file over 4 MB), `drawPreview` stores the message in `d.mdError`, shows a toast, and calls `syncPreview()` again. Because `previewing(d)` is now false, the tab falls back to its source. Choosing Preview again clears `mdError` and retries.
 
-The preference persists in `localStorage` under `px0.mdPreview` and is restored in `boot()` in [`web/src/main.js`](../../web/src/main.js).
+The preference persists in `localStorage` under `px1.mdPreview` and is restored in `boot()` in [`web/src/main.js`](../../web/src/main.js).
 
 ## 3. Server Rendering
 ### Converter Configuration
@@ -121,7 +121,7 @@ Two cases stay plain and HTML-escaped:
 ## 4. Sanitization
 ### Why the Browser Treats the HTML as Untrusted
 
-The preview renders on px0's own origin. That origin also serves `/api/lsp/install` and `/api/lsp/start`, which accept a POST whose `Origin` matches the host. Script injected into the preview would pass that check. A Markdown file in any repository the reader opens is attacker-controlled input, so every byte from `/api/markdown` goes through `mdSanitize` before it touches the page.
+The preview renders on px1's own origin. That origin also serves `/api/lsp/install` and `/api/lsp/start`, which accept a POST whose `Origin` matches the host. Script injected into the preview would pass that check. A Markdown file in any repository the reader opens is attacker-controlled input, so every byte from `/api/markdown` goes through `mdSanitize` before it touches the page.
 
 ### Pipeline
 
@@ -134,7 +134,7 @@ The preview renders on px0's own origin. That origin also serves `/api/lsp/insta
 1. Strip every attribute from kept elements, then restore only those that follow these rules:
   - Attributes in `MD_ATTRS`: `align valign alt title lang dir width height colspan rowspan start reversed open checked disabled type data-line data-lang`.
   - `id`, and `name` on `<a>`, rewritten as `id="md-<value>"`. A heading called "Status" becomes `md-status` and cannot shadow the status bar's `#status`.
-  - Class tokens only when they are `md-code`, start with `footnote`, or are highlighter tokens on `<i>`. Content cannot borrow px0's layout classes such as `row`.
+  - Class tokens only when they are `md-code`, start with `footnote`, or are highlighter tokens on `<i>`. Content cannot borrow px1's layout classes such as `row`.
   - `src` and `href` through the URL rules below.
 
 The cleaned children move into a `DocumentFragment` with `document.adoptNode`. The cleaned tree is never serialized and re-parsed, which rules out mutation XSS from parser round trips. `style` attributes never survive, so content cannot position an overlay over the UI.
@@ -152,7 +152,7 @@ The cleaned children move into a `DocumentFragment` with `document.adoptNode`. T
 | Any other scheme (`javascript:`, `file:`)   | Dropped                                                         | Dropped                            |
 | No scheme (`docs/a.md#x`, `../img.png`)     | `/api/raw?path=<resolved>` plus `data-path` and `data-anchor`   | `/api/raw?path=<resolved>`         |
 
-`mdLocal` resolves a scheme-less reference with `new URL(ref, base)`, where `base` is the stand-in origin `http://px0.invalid/` plus the Markdown file's directory, each segment percent-encoded. A leading `/` resolves to the workspace root, as on GitHub. If the result lands on any other origin, the reference was not relative after all and gets no URL.
+`mdLocal` resolves a scheme-less reference with `new URL(ref, base)`, where `base` is the stand-in origin `http://px1.invalid/` plus the Markdown file's directory, each segment percent-encoded. A leading `/` resolves to the workspace root, as on GitHub. If the result lands on any other origin, the reference was not relative after all and gets no URL.
 
 ### Hostile Input Examples
 
@@ -171,7 +171,7 @@ These cases come from the browser checks run against the implementation:
 
 ## 5. Presentation
 
-`mdEnhance` runs after sanitization and adds markup that px0 itself creates:
+`mdEnhance` runs after sanitization and adds markup that px1 itself creates:
 
 - GitHub alerts. A blockquote whose first paragraph opens with `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]` or `[!CAUTION]` loses the marker, gains a `.md-alert-title` paragraph, and gets `.md-alert .md-alert-<kind>`.
 - Code block wrappers. Each `<pre>` moves into `.md-pre`, which carries `data-lang` for a corner label and a copy button. The button holds an SVG icon rather than a text label, because find in the preview walks text nodes and would otherwise match the word "Copy".
@@ -180,7 +180,7 @@ Styles live under `/* ---------- markdown preview ---------- */` in [`web/style.
 
 ## 6. Keeping the Reader's Place
 
-Navigation in px0 is line-based: the outline, go to line, search results, references, history, and `openFile(path, { line })`. All of them call `centerLine(n)` in [`web/src/tabs.js`](../../web/src/tabs.js), which hands off to `previewLine(n)` while previewing.
+Navigation in px1 is line-based: the outline, go to line, search results, references, history, and `openFile(path, { line })`. All of them call `centerLine(n)` in [`web/src/tabs.js`](../../web/src/tabs.js), which hands off to `previewLine(n)` while previewing.
 
 ### Line to Block (`previewLine`)
 

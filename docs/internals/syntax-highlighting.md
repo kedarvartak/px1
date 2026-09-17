@@ -1,10 +1,10 @@
 # Windowed Syntax Highlighting Engine
 
-This document details the architecture and performance strategies of px0's windowed syntax highlighting engine ([`highlight.go`](../../highlight.go)).
+This document details the architecture and performance strategies of px1's windowed syntax highlighting engine ([`highlight.go`](../../highlight.go)).
 
 ## 1. The Syntax Highlighting Bottleneck
 
-px0 utilizes [Chroma](https://github.com/alecthomas/chroma) (a pure Go syntax highlighter modeled after Pygments) to tokenize ~280 programming languages without external dependencies or CGO.
+px1 utilizes [Chroma](https://github.com/alecthomas/chroma) (a pure Go syntax highlighter modeled after Pygments) to tokenize ~280 programming languages without external dependencies or CGO.
 
 However, full-AST lexical analysis is computationally intensive:
 
@@ -12,11 +12,11 @@ However, full-AST lexical analysis is computationally intensive:
 - Highlighting a 100,000-line file (several megabytes of code) upfront would introduce a 3-to-8 second freeze before displaying the first line.
 - Naive lexing of an entire file requires holding millions of syntax token structs on the heap.
 
-To deliver instantaneous file opening (under 5 milliseconds), px0 implements Viewport-Based Windowed Highlighting with Dual-Tier Background Refinement.
+To deliver instantaneous file opening (under 5 milliseconds), px1 implements Viewport-Based Windowed Highlighting with Dual-Tier Background Refinement.
 
 ## 2. Windowed Highlighting Architecture
 
-Rather than tokenizing the entire file, px0 tokenizes only the slice of lines needed by the user's current scroll viewport, padded with leading and trailing context:
+Rather than tokenizing the entire file, px1 tokenizes only the slice of lines needed by the user's current scroll viewport, padded with leading and trailing context:
 
 ```mermaid
 flowchart LR
@@ -50,7 +50,7 @@ In minified JavaScript or massive one-line JSON documents, 1,000 lines could equ
 
 While 400 lines of context correctly identifies >99.5% of syntax states, extreme cases exist where a raw string literal or comment block opens 2,000 lines earlier.
 
-px0 handles this with a Dual-Tier Processing Strategy:
+px1 handles this with a Dual-Tier Processing Strategy:
 
 ```mermaid
 sequenceDiagram
@@ -83,7 +83,7 @@ sequenceDiagram
 
 Chroma's default HTML formatter outputs lengthy inline CSS or verbose class names (e.g. `<span class="chroma-keyword-declaration">func</span>`), which bloats the DOM and increases network payload size.
 
-px0 maps token types to minimal 1-to-2 character CSS classes:
+px1 maps token types to minimal 1-to-2 character CSS classes:
 
 | Class  | Chroma Token Type    | Semantic Role                                 |
 | ------ | -------------------- | --------------------------------------------- |

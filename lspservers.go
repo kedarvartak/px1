@@ -12,7 +12,7 @@ import (
 )
 
 // lspServerDef describes one language server we know how to drive. Nothing here
-// is required for px0 to work; a server is used only if its binary is found on
+// is required for px1 to work; a server is used only if its binary is found on
 // PATH or in one of the folders installers commonly use (lspBinDirs).
 type lspServerDef struct {
 	Name        string
@@ -247,8 +247,8 @@ func (m *lspManager) isDiscovered() bool {
 }
 
 // lspBinDirs lists folders installers put binaries in that are often missing
-// from PATH, so a server installed from px0, or by hand after px0 started, is
-// found without restarting the shell px0 was launched from.
+// from PATH, so a server installed from px1, or by hand after px1 started, is
+// found without restarting the shell px1 was launched from.
 func lspBinDirs() []string {
 	var dirs []string
 	add := func(elem ...string) { dirs = append(dirs, filepath.Join(elem...)) }
@@ -329,7 +329,7 @@ func (m *lspManager) State(rel string) (lspState, string) {
 	def := m.defFor(rel)
 	if def == nil {
 		// Discovery runs in the background at startup. Until it finishes, a
-		// file type px0 knows may still get a server, so keep the UI asking.
+		// file type px1 knows may still get a server, so keep the UI asking.
 		if m.enabled && !m.isDiscovered() && len(registryFor(rel)) > 0 {
 			return lspStarting, ""
 		}

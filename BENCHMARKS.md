@@ -1,6 +1,6 @@
 # Performance Benchmarks & Methodology
 
-This document outlines how px0 measures performance, documents its scores across real-world repositories, and breaks down comparative resource consumption against VS Code.
+This document outlines how px1 measures performance, documents its scores across real-world repositories, and breaks down comparative resource consumption against VS Code.
 
 ## 1. Requirements
 
@@ -14,7 +14,7 @@ This document outlines how px0 measures performance, documents its scores across
 ### 1. Build the binary
 
 ```bash
-go build -o px0 .
+go build -o px1 .
 ```
 
 ### 2. Fetch the standard corpus
@@ -27,7 +27,7 @@ Clones shallow copies (`--depth 1`) of seven diverse open-source repositories:
 
 ### 3. Execute benchmark suite
 
-Spawns an isolated px0 server process per repository, records metrics, and terminates the instance:
+Spawns an isolated px1 server process per repository, records metrics, and terminates the instance:
 
 ```bash
 ./benchmark.sh
@@ -73,22 +73,22 @@ Measured on Linux x86_64 with language servers disabled (`-no-lsp`):
 - `Base Mem`: Resident memory (RSS) after indexing.
 - `Peak Mem`: Peak memory during aggressive search and navigation prior to idle scavenging.
 
-## 5. px0 vs. Editors Comparison
+## 5. px1 vs. Editors Comparison
 
-Side-by-side comparison on identical Linux hardware across px0 and several other IDE/Editors, focusing on architectural weight and responsiveness constraints:
+Side-by-side comparison on identical Linux hardware across px1 and several other IDE/Editors, focusing on architectural weight and responsiveness constraints:
 
 ### Multi-Editor Benchmark Matrix
 
 | Editor / Configuration | Memory (RSS) | Time to Open | Time to First Interaction | Process Architecture |
 | :--- | :--- | :--- | :--- | :--- |
-| **px0** | **~15 - 18 MB** | **~10 ms** | **~15 ms** | 1 process (native Go) |
+| **px1** | **~15 - 18 MB** | **~10 ms** | **~15 ms** | 1 process (native Go) |
 | **Vim** (clean terminal) | ~10 - 15 MB | ~15 ms | ~15 ms | 1 process |
 | **Neovim** (clean terminal) | ~10 - 20 MB | ~150 ms | ~150 ms | 1 process |
 | **Zed** (running workspace) | ~200 - 450 MB | *GUI dependent* | ~300 - 600 ms | 1-3 processes (Rust) |
 | **Sublime Text** (running) | ~100 - 250 MB | *GUI dependent* | ~250 - 500 ms | 2-4 processes (C++) |
 | **VS Code** (active extensions) | ~1,100 - 1,440 MB| ~3.0 - 5.0 s | ~6.0 - 10.0 s | 12 - 15+ processes |
 
-*Note: CLI editors (Vim/Neovim) do not provide inline LSP out-of-the-box (like px0 does) without extra processes. Zed and Sublime Text were evaluated as active running GUI configurations. px0 serves a full workspace complete with instantaneous indexing natively in sub-20 Megabytes.*
+*Note: CLI editors (Vim/Neovim) do not provide inline LSP out-of-the-box (like px1 does) without extra processes. Zed and Sublime Text were evaluated as active running GUI configurations. px1 serves a full workspace complete with instantaneous indexing natively in sub-20 Megabytes.*
 
 ### Measured VS Code Process Tree Breakdown (Baseline Contrast)
 
@@ -106,7 +106,7 @@ PID     Role / Component                 RSS (MB)   CPU %
 ...
 ```
 
-In contrast, px0 embeds real-time indexing, fuzzy search, syntax highlighting, language-routing, and server endpoints inside a single, zero-dependency native process.
+In contrast, px1 embeds real-time indexing, fuzzy search, syntax highlighting, language-routing, and server endpoints inside a single, zero-dependency native process.
 
 ## 6. Memory Scavenging Verification
 
@@ -127,4 +127,4 @@ To observe resident memory scavenging in real time, run:
   30 seconds idle                    57 MB
 ```
 
-After 15 seconds of inactivity, px0 triggers `debug.FreeOSMemory()`, returning unused heap pages back to the Linux kernel and settling back to baseline.
+After 15 seconds of inactivity, px1 triggers `debug.FreeOSMemory()`, returning unused heap pages back to the Linux kernel and settling back to baseline.

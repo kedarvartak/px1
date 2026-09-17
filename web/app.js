@@ -153,7 +153,7 @@
     S2.wrap = typeof forced === "boolean" ? forced : !S2.wrap;
     document.body.classList.toggle("word-wrap", S2.wrap);
     try {
-      localStorage.setItem("px0.wrap", S2.wrap ? "true" : "false");
+      localStorage.setItem("px1.wrap", S2.wrap ? "true" : "false");
     } catch {}
     updateEditorOptionControls();
     layout();
@@ -1739,10 +1739,10 @@
   function drawSetup(s, d) {
     const ext = (d.path.match(/\.[^./]+$/) || [d.name])[0];
     if (!s.enabled) {
-      return hintHtml("Language servers are turned off: px0 was started with <b>-no-lsp</b>. " + "Restart it without that flag for call trails, hover and precise references.");
+      return hintHtml("Language servers are turned off: px1 was started with <b>-no-lsp</b>. " + "Restart it without that flag for call trails, hover and precise references.");
     }
     if (!s.servers.length) {
-      return hintHtml("px0 knows no language server for <b>" + esc(ext) + "</b> files, so call trails are not available here.");
+      return hintHtml("px1 knows no language server for <b>" + esc(ext) + "</b> files, so call trails are not available here.");
     }
     const offer = s.servers.filter((v) => v.options.length || v.job);
     const running = s.servers.some((v) => v.job && v.job.running);
@@ -1771,7 +1771,7 @@
       html += "</div>";
     }
     if (!offer.length) {
-      html += "<p>px0 has no installer for this one. Install " + s.servers.map((v) => "<b>" + esc(v.name) + "</b>").join(" or ") + " and make sure it is on PATH.</p>";
+      html += "<p>px1 has no installer for this one. Install " + s.servers.map((v) => "<b>" + esc(v.name) + "</b>").join(" or ") + " and make sure it is on PATH.</p>";
     }
     html += '<div class="lsp-row"><span>Installed one yourself?</span><button class="lsp-btn" data-start>Detect and start</button></div></div>';
     return html;
@@ -1817,7 +1817,7 @@
       el.innerHTML = '<div class="hint">' + html + "</div>";
   };
   var base = (p) => p.split("/").pop();
-  var explain = (msg) => /connection lost|exited|EOF/i.test(msg) ? msg + " (the language server crashed answering this; px0 restarts it on the next request)" : msg;
+  var explain = (msg) => /connection lost|exited|EOF/i.test(msg) ? msg + " (the language server crashed answering this; px1 restarts it on the next request)" : msg;
   function wrap(n, parent) {
     let cycle = false;
     for (let p = parent;p; p = p.parent) {
@@ -2250,7 +2250,7 @@
   function mdSetPref(on) {
     S2.mdPreview = on;
     try {
-      localStorage.setItem("px0.mdPreview", on ? "true" : "false");
+      localStorage.setItem("px1.mdPreview", on ? "true" : "false");
     } catch {}
   }
   var HTML_NS = "http://www.w3.org/1999/xhtml";
@@ -2259,7 +2259,7 @@
   var MD_ATTRS = new Set(("align valign alt title lang dir width height colspan rowspan start reversed open checked " + "disabled type data-line data-lang").split(" "));
   var MD_TOKENS = new Set("k kt nf nc nb nv no na nt nd np s m o p c cp gi gd gh ge gs err g".split(" "));
   var MD_SCHEME = /^([a-z][a-z0-9+.-]*):/i;
-  var MD_ORIGIN = "http://px0.invalid";
+  var MD_ORIGIN = "http://px1.invalid";
   var mdURL = (ref) => ref.replace(/[\t\n\r]/g, "").replace(/^[\x00-\x20]+|[\x00-\x20]+$/g, "");
   function mdSanitize(html, docPath) {
     const body = new DOMParser().parseFromString(html, "text/html").body;
@@ -2600,12 +2600,12 @@
   var shown = null;
   function setLayoutPref(mode) {
     try {
-      localStorage.setItem("px0.diffLayout", mode);
+      localStorage.setItem("px1.diffLayout", mode);
     } catch {}
   }
   function layoutPref() {
     try {
-      return localStorage.getItem("px0.diffLayout") || "split";
+      return localStorage.getItem("px1.diffLayout") || "split";
     } catch {
       return "split";
     }
@@ -2897,7 +2897,7 @@
     const verEl = $("#st-ver");
     if (verEl && S2.meta?.version) {
       verEl.textContent = "v" + S2.meta.version;
-      verEl.title = `px0 v${S2.meta.version} (Click for shortcuts & help)`;
+      verEl.title = `px1 v${S2.meta.version} (Click for shortcuts & help)`;
     }
     drawLspStatus();
   }
@@ -2962,7 +2962,7 @@
     metricsMenuEl.innerHTML = `
     <div class="metrics-title">
       <span>Process Metrics</span>
-      <span class="toast-chip">px0</span>
+      <span class="toast-chip">px1</span>
     </div>
     <div class="metrics-grid">
       <div class="metrics-row">
@@ -3681,7 +3681,7 @@
   }
 
   // web/src/theme.js
-  var KEY = "px0.theme";
+  var KEY = "px1.theme";
   var DEFAULT_THEME = "github-dark";
   var THEME_SELECTOR = /^(?::root|html)?\[data-theme=["']?([\w-]+)["']?\]$/;
   var themes = null;
@@ -4032,7 +4032,7 @@
     {
       key: "telemetry.enabled",
       title: "Telemetry",
-      description: "Enable anonymous usage metrics to help improve px0.",
+      description: "Enable anonymous usage metrics to help improve px1.",
       category: "Security & Privacy",
       type: "boolean",
       default: true
@@ -4045,7 +4045,7 @@
     raw: `{
 }
 `,
-    path: "~/.px0/settings.json"
+    path: "~/.px1/settings.json"
   };
   var activeSettingsCategory = "Commonly Used";
   var settingsViewMode = "ui";
@@ -4157,7 +4157,7 @@
       case "markdown.preview.open": {
         S2.mdPreview = val === true || val === "true";
         try {
-          localStorage.setItem("px0.mdPreview", S2.mdPreview ? "true" : "false");
+          localStorage.setItem("px1.mdPreview", S2.mdPreview ? "true" : "false");
         } catch {}
         break;
       }
@@ -5472,8 +5472,8 @@
     }
     const ready = list.filter((h) => h.installed);
     if (!ready.length) {
-      showToast("!", "Could not find any coding harness like Claude Code, OpenCode, Codex, Antigravity, Aider, etc. Install one and restart px0.", 6000);
-      session.pickEl.innerHTML = '<div class="hint" style="line-height: 1.5; padding: 4px 2px;">' + "Could not find any coding harness like <b>Claude Code</b>, <b>OpenCode</b>, <b>Codex</b>, <b>Antigravity</b> (<code>agy</code>), <b>Aider</b>, <b>Goose</b>, <b>Gemini CLI</b>, or <b>Cursor Agent</b>.<br><br>" + "Please install a coding harness, make sure it is on your <code>PATH</code>, and restart px0 after that.</div>";
+      showToast("!", "Could not find any coding harness like Claude Code, OpenCode, Codex, Antigravity, Aider, etc. Install one and restart px1.", 6000);
+      session.pickEl.innerHTML = '<div class="hint" style="line-height: 1.5; padding: 4px 2px;">' + "Could not find any coding harness like <b>Claude Code</b>, <b>OpenCode</b>, <b>Codex</b>, <b>Antigravity</b> (<code>agy</code>), <b>Aider</b>, <b>Goose</b>, <b>Gemini CLI</b>, or <b>Cursor Agent</b>.<br><br>" + "Please install a coding harness, make sure it is on your <code>PATH</code>, and restart px1 after that.</div>";
       return;
     }
     session.pickEl.innerHTML = '<div class="hint">This harness will edit files in this workspace.</div>' + optionsHtml(ready, settingsPath);
@@ -5684,12 +5684,12 @@
   (async function boot() {
     try {
       initTheme();
-      const wrapPref = localStorage.getItem("px0.wrap");
+      const wrapPref = localStorage.getItem("px1.wrap");
       S2.wrap = wrapPref !== null ? wrapPref === "true" : true;
       document.body.classList.toggle("word-wrap", S2.wrap);
       S2.lineNumbers = true;
       document.body.classList.remove("hide-lines");
-      const mdPref = localStorage.getItem("px0.mdPreview");
+      const mdPref = localStorage.getItem("px1.mdPreview");
       S2.mdPreview = mdPref !== null ? mdPref === "true" : true;
       updateEditorOptionControls();
     } catch {}
@@ -5704,7 +5704,7 @@
         b.hidden = false;
     }
     applyAgentMeta();
-    document.title = S2.meta.name + " - px0";
+    document.title = S2.meta.name + " - px1";
     $("#root-name").textContent = S2.meta.name;
     $("#root-name").title = S2.meta.root;
     if (S2.meta.version) {

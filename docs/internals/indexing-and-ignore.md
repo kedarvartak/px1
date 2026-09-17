@@ -1,6 +1,6 @@
 # Filesystem Indexing & Ignore Engine
 
-This document explains the technical implementation of px0's in-memory indexer ([`index.go`](../../index.go)) and custom `.gitignore` evaluation engine ([`ignore.go`](../../ignore.go)).
+This document explains the technical implementation of px1's in-memory indexer ([`index.go`](../../index.go)) and custom `.gitignore` evaluation engine ([`ignore.go`](../../ignore.go)).
 
 ## 1. Directory Traversal Architecture
 
@@ -33,7 +33,7 @@ flowchart TD
 
 ### Bounded Concurrency Semaphore
 
-Unbounded goroutine creation during directory traversal can cause thread contention, high memory churn, and "too many open files" errors. px0 controls traversal concurrency using a buffered channel semaphore:
+Unbounded goroutine creation during directory traversal can cause thread contention, high memory churn, and "too many open files" errors. px1 controls traversal concurrency using a buffered channel semaphore:
 
 ```go
 sem := make(chan struct{}, runtime.NumCPU() * 4)
@@ -116,7 +116,7 @@ type Node struct {
 
 ## 3. High-Performance `.gitignore` Engine
 
-Evaluating regular expressions for hundreds of `.gitignore` patterns against tens of thousands of paths can cripple indexing performance. In [`ignore.go`](../../ignore.go), px0 classifies patterns into specialized non-regex fast paths and adds heuristic pre-filters to regexes.
+Evaluating regular expressions for hundreds of `.gitignore` patterns against tens of thousands of paths can cripple indexing performance. In [`ignore.go`](../../ignore.go), px1 classifies patterns into specialized non-regex fast paths and adds heuristic pre-filters to regexes.
 
 ### Rule Classification (`ruleKind`)
 
@@ -156,7 +156,7 @@ Directories can contain nested `.gitignore` files that override or extend parent
 
 ## 4. Ignored Directory Semantics (Listing vs. Descent)
 
-px0 implements a clear distinction between ignored entries and version control internals:
+px1 implements a clear distinction between ignored entries and version control internals:
 
 1. Version Control Internals (`.git`, `.hg`, `.svn`): Dropped completely. They are neither indexed nor listed in `/api/tree`.
 1. Ignored Directories (`node_modules/`, `target/`, etc.): Added to the parent node listing with `Ignored: true`. Never descended into during `Index.Build()`. Never entered into the flat `files` slice used by fuzzy find and workspace search. The file explorer displays them with dimmed opacity.

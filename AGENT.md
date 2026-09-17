@@ -10,3 +10,4 @@ All operational instructions, architectural tenets, documentation maintenance re
   1. Pre-Commit Verification Checklist: Test suites, web bundling, and architecture synchronization.
   1. Frontend Architecture & Code Map: Section index of `web/index.html` and ES module catalog of `web/src/`.
 - Internal Architecture Documentation: See [`docs/internals/README.md`](docs/internals/README.md) for deep-dive technical write-ups covering server lifecycle, indexing, fuzzy matching, search, syntax highlighting, DOM virtualization, and LSP.
+- Pull requests: Every agent-authored PR must use the repository template in [`.github/pull_request_template.md`](.github/pull_request_template.md).

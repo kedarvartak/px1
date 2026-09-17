@@ -13,7 +13,7 @@ import (
 // the user when the background pass lands.
 func fixtures(t *testing.T) []string {
 	var files []string
-	root := os.Getenv("PX0_FIXTURES")
+	root := os.Getenv("PX1_FIXTURES")
 	if root == "" {
 		root = "."
 	}

@@ -65,11 +65,11 @@ async function start(el, d, onReady) {
 function drawSetup(s, d) {
   const ext = (d.path.match(/\.[^./]+$/) || [d.name])[0];
   if (!s.enabled) {
-    return hintHtml('Language servers are turned off: px0 was started with <b>-no-lsp</b>. ' +
+    return hintHtml('Language servers are turned off: px1 was started with <b>-no-lsp</b>. ' +
       'Restart it without that flag for call trails, hover and precise references.');
   }
   if (!s.servers.length) {
-    return hintHtml('px0 knows no language server for <b>' + esc(ext) + '</b> files, so call trails are not available here.');
+    return hintHtml('px1 knows no language server for <b>' + esc(ext) + '</b> files, so call trails are not available here.');
   }
 
   const offer = s.servers.filter(v => v.options.length || v.job);
@@ -96,7 +96,7 @@ function drawSetup(s, d) {
     html += '</div>';
   }
   if (!offer.length) {
-    html += '<p>px0 has no installer for this one. Install ' + s.servers.map(v => '<b>' + esc(v.name) + '</b>').join(' or ') +
+    html += '<p>px1 has no installer for this one. Install ' + s.servers.map(v => '<b>' + esc(v.name) + '</b>').join(' or ') +
       ' and make sure it is on PATH.</p>';
   }
   html += '<div class="lsp-row"><span>Installed one yourself?</span><button class="lsp-btn" data-start>Detect and start</button></div></div>';

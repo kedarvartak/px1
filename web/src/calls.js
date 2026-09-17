@@ -21,7 +21,7 @@ const hint = html => { const el = listEl(); if (el) el.innerHTML = '<div class="
 const base = p => p.split('/').pop();
 // Some servers crash on particular call hierarchy requests; say so plainly.
 const explain = msg => /connection lost|exited|EOF/i.test(msg)
-  ? msg + ' (the language server crashed answering this; px0 restarts it on the next request)'
+  ? msg + ' (the language server crashed answering this; px1 restarts it on the next request)'
   : msg;
 
 function wrap(n, parent) {

@@ -19,23 +19,23 @@ func TestRunSelfUpdateMock(t *testing.T) {
 		ext = ".exe"
 	}
 
-	newBinPath := filepath.Join(tmpDir, "new-px0"+ext)
+	newBinPath := filepath.Join(tmpDir, "new-px1"+ext)
 	// Write a shell script / batch script or copy existing current test binary
-	script := "#!/bin/sh\necho 'px0 0.2.0 (" + runtime.GOOS + "/" + runtime.GOARCH + ")'\n"
+	script := "#!/bin/sh\necho 'px1 0.2.0 (" + runtime.GOOS + "/" + runtime.GOARCH + ")'\n"
 	if err := os.WriteFile(newBinPath, []byte(script), 0o755); err != nil {
 		t.Fatalf("failed to write fake binary: %v", err)
 	}
 
-	assetName := fmt.Sprintf("px0-0.2.0-%s-%s%s", runtime.GOOS, runtime.GOARCH, ext)
+	assetName := fmt.Sprintf("px1-0.2.0-%s-%s%s", runtime.GOOS, runtime.GOARCH, ext)
 
 	// Setup mock server
 	var serverURL string
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/repos/test/px0/releases/latest":
+		case "/repos/test/px1/releases/latest":
 			rel := githubRelease{
 				TagName: "v0.2.0",
-				Name:    "px0 v0.2.0",
+				Name:    "px1 v0.2.0",
 				Assets: []struct {
 					Name               string `json:"name"`
 					BrowserDownloadURL string `json:"browser_download_url"`
@@ -57,11 +57,11 @@ func TestRunSelfUpdateMock(t *testing.T) {
 	defer ts.Close()
 	serverURL = ts.URL
 
-	t.Setenv("PX0_REPO", "test/px0")
-	t.Setenv("PX0_UPDATE_URL", ts.URL+"/repos/test/px0/releases/latest")
+	t.Setenv("PX1_REPO", "test/px1")
+	t.Setenv("PX1_UPDATE_URL", ts.URL+"/repos/test/px1/releases/latest")
 	t.Setenv("XDG_STATE_HOME", tmpDir)
 
-	rel, err := fetchLatestRelease("test/px0")
+	rel, err := fetchLatestRelease("test/px1")
 	if err != nil {
 		t.Fatalf("fetchLatestRelease returned error: %v", err)
 	}

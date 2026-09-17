@@ -18,10 +18,10 @@ import (
 	"time"
 )
 
-// Editing through a coding harness. px0 never authors a change itself: it
+// Editing through a coding harness. px1 never authors a change itself: it
 // composes an instruction anchored to a line range, hands it to a harness
 // already installed on this machine, and reloads whatever moved once that
-// harness exits. The harness edits; px0 stays the reader that knows exactly
+// harness exits. The harness edits; px1 stays the reader that knows exactly
 // when to look again.
 //
 // Harnesses are discovered the same way language servers are, and the one to
@@ -34,7 +34,7 @@ const (
 	agentLogBytes = 32 << 10
 )
 
-// agentPreset is a harness px0 knows and the argv that runs it headless. Each
+// agentPreset is a harness px1 knows and the argv that runs it headless. Each
 // of these starts an interactive session by default and would sit forever
 // waiting for approval, so every preset carries the flag that turns that off
 // and the one that lets it apply edits without asking.
@@ -342,7 +342,7 @@ type agentJob struct {
 	Stderr  string   `json:"stderr,omitempty"`
 	Changed []string `json:"changed"`
 	Ms      int64    `json:"ms"`
-	// Tracked is false outside a git repository, where px0 cannot tell which
+	// Tracked is false outside a git repository, where px1 cannot tell which
 	// files a harness touched. An empty Changed then means "unknown", not
 	// "nothing", and the client reloads regardless.
 	Tracked bool `json:"tracked"`
@@ -539,7 +539,7 @@ func agentPresetNames() []string {
 	return names
 }
 
-// Detect reports every harness px0 knows and whether it is installed right
+// Detect reports every harness px1 knows and whether it is installed right
 // now, so a tool installed since startup shows up without a restart.
 func (m *agentManager) Detect() []agentHarness {
 	m.mu.Lock()
@@ -612,7 +612,7 @@ func (m *agentManager) Select(name string, modelOpt ...string) error {
 	m.mu.Lock()
 	if m.pinned {
 		m.mu.Unlock()
-		return errors.New("px0 was started with -agent, so the harness is fixed for this run")
+		return errors.New("px1 was started with -agent, so the harness is fixed for this run")
 	}
 	if m.anyRunningLocked() {
 		m.mu.Unlock()
@@ -1084,7 +1084,7 @@ func (s *Server) handleAgentEdit(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleAgentJob is polled while an edit runs, once per in-flight compose box.
-// px0 dispatched the harness, so it knows when the work ended without
+// px1 dispatched the harness, so it knows when the work ended without
 // watching the filesystem for it. id=0 (or missing) means the most recently
 // started job.
 func (s *Server) handleAgentJob(w http.ResponseWriter, r *http.Request) {

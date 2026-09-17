@@ -23,7 +23,7 @@ export function layout() {
 export function toggleWordWrap(forced) {
   S.wrap = typeof forced === 'boolean' ? forced : !S.wrap;
   document.body.classList.toggle('word-wrap', S.wrap);
-  try { localStorage.setItem('px0.wrap', S.wrap ? 'true' : 'false'); } catch {}
+  try { localStorage.setItem('px1.wrap', S.wrap ? 'true' : 'false'); } catch {}
   updateEditorOptionControls();
   layout();
   render();

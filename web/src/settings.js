@@ -267,7 +267,7 @@ const BUILTIN_SCHEMA = [
   {
     key: "telemetry.enabled",
     title: "Telemetry",
-    description: "Enable anonymous usage metrics to help improve px0.",
+    description: "Enable anonymous usage metrics to help improve px1.",
     category: "Security & Privacy",
     type: "boolean",
     default: true
@@ -279,7 +279,7 @@ let settingsData = {
   defaults: Object.fromEntries(BUILTIN_SCHEMA.map(s => [s.key, s.default])),
   schema: BUILTIN_SCHEMA,
   raw: '{\n}\n',
-  path: '~/.px0/settings.json'
+  path: '~/.px1/settings.json'
 };
 let activeSettingsCategory = 'Commonly Used';
 let settingsViewMode = 'ui'; // 'ui' | 'json'
@@ -385,7 +385,7 @@ export function applySettingLive(key, val) {
     }
     case 'markdown.preview.open': {
       S.mdPreview = val === true || val === 'true';
-      try { localStorage.setItem('px0.mdPreview', S.mdPreview ? 'true' : 'false'); } catch {}
+      try { localStorage.setItem('px1.mdPreview', S.mdPreview ? 'true' : 'false'); } catch {}
       break;
     }
   }

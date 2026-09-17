@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	defaultRepo       = "px0-ai/px0"
+	defaultRepo       = "kedarvartak/px0"
 	updateCheckPeriod = 24 * time.Hour
 )
 
@@ -38,22 +38,22 @@ type updateState struct {
 }
 
 func getRepoName() string {
-	if r := os.Getenv("PX0_REPO"); r != "" {
+	if r := os.Getenv("PX1_REPO"); r != "" {
 		return r
 	}
 	return defaultRepo
 }
 
 func stateFilePath() string {
-	// Respect XDG_STATE_HOME or fallback to ~/.local/state/px0 or ~/.px0
+	// Respect XDG_STATE_HOME or fallback to ~/.local/state/px1 or ~/.px1
 	if xdg := os.Getenv("XDG_STATE_HOME"); xdg != "" {
-		return filepath.Join(xdg, "px0", "update_check.json")
+		return filepath.Join(xdg, "px1", "update_check.json")
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return filepath.Join(os.TempDir(), "px0_update_check.json")
+		return filepath.Join(os.TempDir(), "px1_update_check.json")
 	}
-	return filepath.Join(home, ".px0", "update_check.json")
+	return filepath.Join(home, ".px1", "update_check.json")
 }
 
 func readUpdateState() (*updateState, error) {
@@ -121,7 +121,7 @@ func compareSemver(v1, v2 string) int {
 
 // fetchLatestRelease queries the GitHub API or release redirect for the latest version.
 func fetchLatestRelease(repo string) (*githubRelease, error) {
-	apiURL := os.Getenv("PX0_UPDATE_URL")
+	apiURL := os.Getenv("PX1_UPDATE_URL")
 	if apiURL == "" {
 		apiURL = fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo)
 	}
@@ -131,7 +131,7 @@ func fetchLatestRelease(repo string) (*githubRelease, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "px0-updater")
+	req.Header.Set("User-Agent", "px1-updater")
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 
 	resp, err := client.Do(req)
@@ -224,7 +224,7 @@ func downloadVerifiedAsset(client *http.Client, assetURL, checksumURL, assetName
 }
 
 // checkDailyUpdate runs in a background goroutine on CLI startup.
-// It ensures that checking for updates never blocks px0 startup (<1ms).
+// It ensures that checking for updates never blocks px1 startup (<1ms).
 func checkDailyUpdate(currentVersion string) {
 	if uiQuiet {
 		return
@@ -258,11 +258,11 @@ func checkDailyUpdate(currentVersion string) {
 }
 
 func printUpdateNotification(latestVer, currentVersion string) {
-	msg := fmt.Sprintf("a new version of px0 (v%s) is available (current: v%s)", latestVer, currentVersion)
-	uiStatus("step", msg, "run 'px0 --update' to upgrade", 0, os.Stderr)
+	msg := fmt.Sprintf("a new version of px1 (v%s) is available (current: v%s)", latestVer, currentVersion)
+	uiStatus("step", msg, "run 'px1 --update' to upgrade", 0, os.Stderr)
 }
 
-// runSelfUpdate implements px0 --update.
+// runSelfUpdate implements px1 --update.
 func runSelfUpdate(currentVer string) error {
 	repo := getRepoName()
 	uiStatus("step", fmt.Sprintf("checking for updates from %s...", repo), "", 0, os.Stdout)
@@ -274,7 +274,7 @@ func runSelfUpdate(currentVer string) error {
 
 	latestVer := strings.TrimPrefix(rel.TagName, "v")
 	if compareSemver(latestVer, currentVer) <= 0 {
-		uiStatus("ok", fmt.Sprintf("px0 is already up to date (v%s)", currentVer), "", 0, os.Stdout)
+		uiStatus("ok", fmt.Sprintf("px1 is already up to date (v%s)", currentVer), "", 0, os.Stdout)
 		return nil
 	}
 
@@ -284,7 +284,7 @@ func runSelfUpdate(currentVer string) error {
 	if runtime.GOOS == "windows" {
 		ext = ".exe"
 	}
-	expectedAsset := fmt.Sprintf("px0-%s-%s-%s%s", latestVer, runtime.GOOS, runtime.GOARCH, ext)
+	expectedAsset := fmt.Sprintf("px1-%s-%s-%s%s", latestVer, runtime.GOOS, runtime.GOARCH, ext)
 
 	var downloadURL, checksumURL string
 	for _, asset := range rel.Assets {
@@ -316,14 +316,14 @@ func runSelfUpdate(currentVer string) error {
 
 	// Download to temporary file in the same directory as the executable (for atomic rename)
 	dir := filepath.Dir(execPath)
-	tmpFile, err := os.CreateTemp(dir, "px0-update-*")
+	tmpFile, err := os.CreateTemp(dir, "px1-update-*")
 	if err != nil {
 		// If directory is not writable, warn user about permissions
 		if os.IsPermission(err) {
-			return fmt.Errorf("permission denied writing to %s. Try running with 'sudo px0 --update'", dir)
+			return fmt.Errorf("permission denied writing to %s. Try running with 'sudo px1 --update'", dir)
 		}
 		// Try temp directory as fallback
-		tmpFile, err = os.CreateTemp("", "px0-update-*")
+		tmpFile, err = os.CreateTemp("", "px1-update-*")
 		if err != nil {
 			return fmt.Errorf("could not create temporary file: %w", err)
 		}
@@ -370,7 +370,7 @@ func runSelfUpdate(currentVer string) error {
 			// If cross-device link error, copy instead
 			if err := copyOrMove(tmpPath, execPath); err != nil {
 				if os.IsPermission(err) {
-					return fmt.Errorf("permission denied replacing %s. Try running with 'sudo px0 --update'", execPath)
+					return fmt.Errorf("permission denied replacing %s. Try running with 'sudo px1 --update'", execPath)
 				}
 				return fmt.Errorf("failed to replace binary %s: %w", execPath, err)
 			}
@@ -383,7 +383,7 @@ func runSelfUpdate(currentVer string) error {
 		LatestVer:   latestVer,
 	})
 
-	uiStatus("ok", fmt.Sprintf("px0 successfully updated to v%s at %s", latestVer, execPath), "", 0, os.Stdout)
+	uiStatus("ok", fmt.Sprintf("px1 successfully updated to v%s at %s", latestVer, execPath), "", 0, os.Stdout)
 	return nil
 }
 
@@ -396,7 +396,7 @@ func copyOrMove(src, dst string) error {
 
 	// Write to temporary file in target directory first
 	dir := filepath.Dir(dst)
-	tmp, err := os.CreateTemp(dir, "px0-replace-*")
+	tmp, err := os.CreateTemp(dir, "px1-replace-*")
 	if err != nil {
 		return err
 	}
