@@ -3,7 +3,7 @@ import { openFile } from './tabs.js';
 import { reloadOpenTabs } from './tabs.js';
 import { drawTree, treeEl } from './tree.js';
 import { showToast } from './ui.js';
-import { hideSelectionBar, setReviewCommentHandler } from './selbar.js';
+import { hideSelectionBar, setReviewCommentHandler, setReviewPatchHandler } from './selbar.js';
 
 const queueEl = $('#review-queue');
 const tree = $('#tree');
@@ -11,6 +11,9 @@ let shown = false;
 let commentTarget = null;
 const commentBox = $('#review-commentbox');
 const commentInput = $('#review-comment-input');
+const patchBox = $('#review-patchbox');
+const patchInput = $('#review-patch-input');
+let patchTarget = null;
 
 const pending = item => item.state === 'unreviewed' || item.state === 'stale' || item.state === 'blocked';
 
@@ -52,7 +55,7 @@ function drawReviewQueue() {
   queueEl.innerHTML = `<div class="review-summary"><div><strong>Agent changes</strong><span>${reviewed} / ${count} reviewed</span></div><button class="review-close" data-review-close title="Close review session">Close</button></div>
     <div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div>
     <div class="review-list">${items.length ? items.map(itemMarkup).join('') : '<div class="hint">No files have changed since this review began.</div>'}</div>
-    <div class="review-foot"><button class="review-feedback" data-review-feedback ${comments.length ? '' : 'disabled'}>Ask agent to address ${comments.length} comment${comments.length === 1 ? '' : 's'}</button><button class="review-next" data-review-next ${next ? '' : 'disabled'}>${next ? 'Next change →' : 'All changes reviewed'}</button></div>`;
+    <div class="review-foot"><button class="review-feedback" data-review-feedback ${comments.length ? '' : 'disabled'}>Ask agent to address ${comments.length} comment${comments.length === 1 ? '' : 's'}</button>${S.lastReviewPatch ? '<button class="review-undo" data-review-undo>Undo last patch</button>' : ''}<button class="review-next" data-review-next ${next ? '' : 'disabled'}>${next ? 'Next change →' : 'All changes reviewed'}</button></div>`;
 }
 
 async function start() {
@@ -99,6 +102,56 @@ async function sendFeedback() {
   } catch (e) { showToast('!', e.message); }
 }
 
+async function reloadReviewWorkspace() {
+  await api('/api/reindex');
+  await reloadOpenTabs();
+  await drawTree('', treeEl, 0);
+  await refreshReviewQueue();
+}
+
+function openPatch(info) {
+  const item = S.review?.queue?.items?.find(x => x.path === info?.path);
+  if (!S.review?.active || !item?.currentHash) {
+    showToast('!', 'Patch Mode is available for files changed in this review');
+    return;
+  }
+  patchTarget = { ...info, expectedHash: item.currentHash };
+  $('#review-patch-ref').textContent = commentRef(info);
+  patchInput.value = info.text;
+  patchBox.hidden = false;
+  patchInput.focus();
+}
+
+function closePatch() {
+  patchTarget = null;
+  if (patchBox) patchBox.hidden = true;
+}
+
+async function applyPatch() {
+  if (!patchTarget || !patchInput) return;
+  try {
+    const j = await apiPost('/api/review/patch', undefined, {
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: patchTarget.path, lineStart: patchTarget.l1, lineEnd: patchTarget.l2, expectedHash: patchTarget.expectedHash, replacement: patchInput.value }),
+    });
+    S.lastReviewPatch = j.patch;
+    closePatch();
+    hideSelectionBar();
+    await reloadReviewWorkspace();
+    showToast('✓', 'Patch applied');
+  } catch (e) { showToast('!', e.message); }
+}
+
+async function undoPatch() {
+  if (!S.lastReviewPatch) return;
+  try {
+    await apiPost('/api/review/patch/undo', undefined, { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: S.lastReviewPatch.id }) });
+    S.lastReviewPatch = null;
+    await reloadReviewWorkspace();
+    showToast('✓', 'Patch undone');
+  } catch (e) { showToast('!', e.message); }
+}
+
 async function waitForAgent(id) {
   for (;;) {
     const job = await api('/api/agent/job', { id });
@@ -112,6 +165,7 @@ async function waitForAgent(id) {
 
 export function initReviewQueue() {
   setReviewCommentHandler(openComment);
+  setReviewPatchHandler(openPatch);
   $('#btn-review')?.addEventListener('click', async () => {
     shown = !shown;
     tree.hidden = shown;
@@ -124,6 +178,7 @@ export function initReviewQueue() {
     if (startBtn) return start();
     if (e.target.closest('[data-review-close]')) return close();
     if (e.target.closest('[data-review-feedback]')) return sendFeedback();
+    if (e.target.closest('[data-review-undo]')) return undoPatch();
     if (e.target.closest('[data-review-next]')) return openNext();
     const markBtn = e.target.closest('[data-review-mark]');
     if (markBtn) return mark(markBtn.dataset.reviewMark);
@@ -136,6 +191,13 @@ export function initReviewQueue() {
     e.stopPropagation();
     if (e.key === 'Escape') { e.preventDefault(); closeComment(); }
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveComment(); }
+  });
+  $('#review-patch-cancel')?.addEventListener('click', closePatch);
+  $('#review-patch-apply')?.addEventListener('click', applyPatch);
+  patchInput?.addEventListener('keydown', e => {
+    e.stopPropagation();
+    if (e.key === 'Escape') { e.preventDefault(); closePatch(); }
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); applyPatch(); }
   });
 }
 

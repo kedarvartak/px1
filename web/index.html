@@ -162,6 +162,11 @@
         <textarea id="review-comment-input" rows="3" spellcheck="false" placeholder="Tell the agent what needs attention"></textarea>
         <div class="review-comment-actions"><button id="review-comment-cancel">Cancel</button><button id="review-comment-save">Add comment</button></div>
       </div>
+      <div id="review-patchbox" class="review-commentbox" hidden>
+        <div class="review-comment-head"><span>Patch selection</span><span id="review-patch-ref"></span></div>
+        <textarea id="review-patch-input" rows="6" spellcheck="false" aria-label="Replacement code"></textarea>
+        <div class="review-comment-actions"><button id="review-patch-cancel">Cancel</button><button id="review-patch-apply">Apply patch</button></div>
+      </div>
     </div>
 
     <!-- Floating Copy Toast Notification -->
@@ -181,6 +186,7 @@
         <button class="footer-btn" data-sel="copy-ref" title="Copy file and line reference ({Alt+C})"><span class="footer-btn-label">Copy Ref</span><kbd class="footer-kbd" data-keys="Alt+C"></kbd></button>
         <button class="footer-btn" data-sel="copy-agent" title="Copy snippet with file path and line numbers ({Alt+A})"><span class="footer-btn-label">Copy with Context</span><kbd class="footer-kbd" data-keys="Alt+A"></kbd></button>
         <button class="footer-btn" data-sel="review-comment" title="Add a review comment for the agent"><span class="footer-btn-label">Comment</span></button>
+        <button class="footer-btn" data-sel="review-patch" title="Temporarily edit this selection"><span class="footer-btn-label">Patch</span></button>
         <button class="footer-btn" data-sel="agent-edit" title="Edit this selection inline ({Alt+E})"><span class="footer-btn-label">Edit Inline</span><kbd class="footer-kbd" data-keys="Alt+E"></kbd></button>
       </div>
       <div id="footer-actions">

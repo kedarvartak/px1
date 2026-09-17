@@ -74,7 +74,8 @@
     settings: null,
     agentTargets: [],
     review: null,
-    reviewComments: []
+    reviewComments: [],
+    lastReviewPatch: null
   };
   var doc_ = () => S2.active >= 0 ? S2.tabs[S2.active] : null;
 
@@ -3082,6 +3083,10 @@
   function setReviewCommentHandler(fn) {
     reviewCommentHandler = fn;
   }
+  var reviewPatchHandler = null;
+  function setReviewPatchHandler(fn) {
+    reviewPatchHandler = fn;
+  }
   var current = null;
   var allText = null;
   var allInfo = null;
@@ -3249,6 +3254,10 @@
       if (!reviewCommentHandler)
         return false;
       reviewCommentHandler(current);
+    } else if (act === "review-patch") {
+      if (!reviewPatchHandler)
+        return false;
+      reviewPatchHandler(current);
     } else if (act === "usages") {
       findReferences(text.split(/\s+/)[0] || text);
     } else {
@@ -3265,6 +3274,7 @@
     { sel: "copy-ref", label: "Copy Ref", keys: "Alt+C" },
     { sel: "copy-agent", label: "Copy with Context", keys: "Alt+A" },
     { sel: "review-comment", label: "Add Review Comment", keys: "" },
+    { sel: "review-patch", label: "Patch Selection", keys: "" },
     { sel: "agent-edit", label: "Edit Inline", keys: "Alt+E" },
     { sel: "usages", label: "Find Usages", keys: "Alt+U" }
   ];
@@ -5678,6 +5688,9 @@
   var commentTarget = null;
   var commentBox = $("#review-commentbox");
   var commentInput = $("#review-comment-input");
+  var patchBox = $("#review-patchbox");
+  var patchInput = $("#review-patch-input");
+  var patchTarget = null;
   var pending = (item) => item.state === "unreviewed" || item.state === "stale" || item.state === "blocked";
   async function refreshReviewQueue() {
     try {
@@ -5718,7 +5731,7 @@
     queueEl.innerHTML = `<div class="review-summary"><div><strong>Agent changes</strong><span>${reviewed} / ${count} reviewed</span></div><button class="review-close" data-review-close title="Close review session">Close</button></div>
     <div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div>
     <div class="review-list">${items.length ? items.map(itemMarkup).join("") : '<div class="hint">No files have changed since this review began.</div>'}</div>
-    <div class="review-foot"><button class="review-feedback" data-review-feedback ${comments.length ? "" : "disabled"}>Ask agent to address ${comments.length} comment${comments.length === 1 ? "" : "s"}</button><button class="review-next" data-review-next ${next ? "" : "disabled"}>${next ? "Next change →" : "All changes reviewed"}</button></div>`;
+    <div class="review-foot"><button class="review-feedback" data-review-feedback ${comments.length ? "" : "disabled"}>Ask agent to address ${comments.length} comment${comments.length === 1 ? "" : "s"}</button>${S2.lastReviewPatch ? '<button class="review-undo" data-review-undo>Undo last patch</button>' : ""}<button class="review-next" data-review-next ${next ? "" : "disabled"}>${next ? "Next change →" : "All changes reviewed"}</button></div>`;
   }
   async function start2() {
     try {
@@ -5769,6 +5782,58 @@
       showToast("!", e.message);
     }
   }
+  async function reloadReviewWorkspace() {
+    await api("/api/reindex");
+    await reloadOpenTabs();
+    await drawTree("", treeEl, 0);
+    await refreshReviewQueue();
+  }
+  function openPatch(info) {
+    const item = S2.review?.queue?.items?.find((x) => x.path === info?.path);
+    if (!S2.review?.active || !item?.currentHash) {
+      showToast("!", "Patch Mode is available for files changed in this review");
+      return;
+    }
+    patchTarget = { ...info, expectedHash: item.currentHash };
+    $("#review-patch-ref").textContent = commentRef(info);
+    patchInput.value = info.text;
+    patchBox.hidden = false;
+    patchInput.focus();
+  }
+  function closePatch() {
+    patchTarget = null;
+    if (patchBox)
+      patchBox.hidden = true;
+  }
+  async function applyPatch() {
+    if (!patchTarget || !patchInput)
+      return;
+    try {
+      const j = await apiPost("/api/review/patch", undefined, {
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: patchTarget.path, lineStart: patchTarget.l1, lineEnd: patchTarget.l2, expectedHash: patchTarget.expectedHash, replacement: patchInput.value })
+      });
+      S2.lastReviewPatch = j.patch;
+      closePatch();
+      hideSelectionBar();
+      await reloadReviewWorkspace();
+      showToast("✓", "Patch applied");
+    } catch (e) {
+      showToast("!", e.message);
+    }
+  }
+  async function undoPatch() {
+    if (!S2.lastReviewPatch)
+      return;
+    try {
+      await apiPost("/api/review/patch/undo", undefined, { headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: S2.lastReviewPatch.id }) });
+      S2.lastReviewPatch = null;
+      await reloadReviewWorkspace();
+      showToast("✓", "Patch undone");
+    } catch (e) {
+      showToast("!", e.message);
+    }
+  }
   async function waitForAgent(id) {
     for (;; ) {
       const job2 = await api("/api/agent/job", { id });
@@ -5782,6 +5847,7 @@
   }
   function initReviewQueue() {
     setReviewCommentHandler(openComment);
+    setReviewPatchHandler(openPatch);
     $("#btn-review")?.addEventListener("click", async () => {
       shown2 = !shown2;
       tree.hidden = shown2;
@@ -5798,6 +5864,8 @@
         return close();
       if (e.target.closest("[data-review-feedback]"))
         return sendFeedback();
+      if (e.target.closest("[data-review-undo]"))
+        return undoPatch();
       if (e.target.closest("[data-review-next]"))
         return openNext();
       const markBtn = e.target.closest("[data-review-mark]");
@@ -5818,6 +5886,19 @@
       if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         saveComment();
+      }
+    });
+    $("#review-patch-cancel")?.addEventListener("click", closePatch);
+    $("#review-patch-apply")?.addEventListener("click", applyPatch);
+    patchInput?.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closePatch();
+      }
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        applyPatch();
       }
     });
   }
