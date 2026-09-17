@@ -139,11 +139,8 @@ const BUILTIN_SCHEMA = [
     type: "select",
     default: "github-dark",
     options: [
-      "github-dark", "dark", "light",
-      "catppuccin-mocha", "catppuccin-latte",
-      "dracula", "gruvbox-dark", "gruvbox-light",
-      "monokai", "nord", "one-dark", "rose-pine",
-      "solarized-dark", "solarized-light"
+      "github-dark", "graphite", "midnight",
+      "vesper", "poimandres", "kanagawa-dragon"
     ]
   },
   {
@@ -535,140 +532,68 @@ function renderSettingsList() {
   }
 
   if (items.length === 0) {
-    container.innerHTML = `<div class="settings-empty">No matching settings found for "${esc(q || activeSettingsCategory)}".</div>`;
+    container.innerHTML = `<div class="settings-empty">No settings match "${esc(q)}".</div>`;
     return;
   }
 
-  const html = items.map(item => {
+  const row = item => {
     const key = item.key || item.Key;
     const title = item.title || item.Title || key;
     const desc = item.description || item.Description || '';
-    const cat = item.category || item.Category || 'General';
     const type = item.type || item.Type || 'string';
     const itemDef = item.default !== undefined ? item.default : item.Default;
     const def = defaults[key] !== undefined ? defaults[key] : itemDef;
     const val = currentSettings[key] !== undefined ? currentSettings[key] : def;
     const modified = isSettingModified(key, currentSettings[key], def);
-    const modClass = modified ? ' is-modified' : '';
 
-    let controlHtml = '';
-    let aptValuesHtml = '';
-
+    let control = '';
     if (type === 'boolean') {
       const checked = (val === true || val === 'true') ? 'checked' : '';
-      controlHtml = `
-        <label class="settings-switch">
-          <input type="checkbox" data-key="${esc(key)}" ${checked}>
-          <span class="settings-slider"></span>
-        </label>`;
-      const isT = val === true || val === 'true';
-      aptValuesHtml = `
-        <div class="settings-apt-bar">
-          <span class="settings-apt-label">Allowed Values:</span>
-          <div class="settings-apt-pills">
-            <button type="button" class="settings-pill-tag${isT ? ' active' : ''}" data-set-key="${esc(key)}" data-set-val="true" title="Set to true">true</button>
-            <button type="button" class="settings-pill-tag${!isT ? ' active' : ''}" data-set-key="${esc(key)}" data-set-val="false" title="Set to false">false</button>
-          </div>
-        </div>`;
+      control = `<label class="settings-switch"><input type="checkbox" data-key="${esc(key)}" ${checked}><span class="settings-slider"></span></label>`;
     } else if (type === 'select') {
       const opts = item.options || item.Options || [];
-      const optHtml = opts.map(o => {
-        const sel = String(o) === String(val) ? 'selected' : '';
-        return `<option value="${esc(o)}" ${sel}>${esc(o)}</option>`;
-      }).join('');
-      controlHtml = `<select class="settings-select" data-key="${esc(key)}">${optHtml}</select>`;
-      const pills = opts.map(o => {
-        const isSel = String(o) === String(val);
-        return `<button type="button" class="settings-pill-tag${isSel ? ' active' : ''}" data-set-key="${esc(key)}" data-set-val="${esc(String(o))}" title="Select ${esc(String(o))}">${esc(String(o))}</button>`;
-      }).join('');
-      aptValuesHtml = `
-        <div class="settings-apt-bar">
-          <span class="settings-apt-label">Options:</span>
-          <div class="settings-apt-pills">
-            ${pills}
-          </div>
-        </div>`;
+      if (opts.length <= 4) {
+        control = `<div class="settings-segment" role="group">${opts.map(o => {
+          const on = String(o) === String(val);
+          return `<button type="button" class="settings-pill-tag${on ? ' active' : ''}" data-set-key="${esc(key)}" data-set-val="${esc(String(o))}" aria-pressed="${on}">${esc(String(o))}</button>`;
+        }).join('')}</div>`;
+      } else {
+        control = `<select class="settings-select" data-key="${esc(key)}">${opts.map(o => `<option value="${esc(o)}" ${String(o) === String(val) ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
+      }
     } else if (type === 'number') {
       const min = item.min !== undefined ? item.min : item.Min;
       const max = item.max !== undefined ? item.max : item.Max;
       const step = item.step !== undefined ? item.step : item.Step;
-      const minAttr = min !== undefined ? `min="${min}"` : '';
-      const maxAttr = max !== undefined ? `max="${max}"` : '';
-      const stepAttr = step !== undefined ? `step="${step}"` : 'step="1"';
-      controlHtml = `<input type="number" class="settings-input settings-input-num" data-key="${esc(key)}" value="${esc(String(val))}" ${minAttr} ${maxAttr} ${stepAttr}>`;
-
-      let numberPresets = [];
-      if (key === 'editor.fontSize') numberPresets = [12, 13, 13.5, 14, 16, 18];
-      else if (key === 'editor.lineHeight') numberPresets = [18, 20, 21, 24, 28];
-      else if (key === 'search.maxResults') numberPresets = [200, 500, 1000, 5000];
-      else if (key === 'agent.timeoutSeconds') numberPresets = [60, 120, 180, 300];
-
-      const presetPills = numberPresets.length ? `
-        <span class="settings-apt-label">Presets:</span>
-        <div class="settings-apt-pills">
-          ${numberPresets.map(n => {
-            const isSel = Number(val) === n;
-            return `<button type="button" class="settings-pill-tag${isSel ? ' active' : ''}" data-set-key="${esc(key)}" data-set-val="${n}">${n}</button>`;
-          }).join('')}
-        </div>` : '';
-
-      aptValuesHtml = `
-        <div class="settings-apt-bar">
-          <span class="settings-tag tag-range">Min: <b>${min !== undefined ? min : '—'}</b></span>
-          <span class="settings-tag tag-range">Max: <b>${max !== undefined ? max : '—'}</b></span>
-          ${step !== undefined ? `<span class="settings-tag tag-step">Step: <b>${step}</b></span>` : ''}
-          ${presetPills}
-        </div>`;
+      control = `<input type="number" class="settings-input settings-input-num" data-key="${esc(key)}" value="${esc(String(val))}" ${min !== undefined ? `min="${min}"` : ''} ${max !== undefined ? `max="${max}"` : ''} step="${step !== undefined ? step : 1}">`;
     } else {
-      controlHtml = `<input type="text" class="settings-input" data-key="${esc(key)}" value="${esc(String(val || ''))}">`;
-      let stringPresets = [];
-      if (key === 'agent.harness') {
-        stringPresets = ['claude', 'gemini', 'cursor-agent', 'agy', 'aider'];
-      }
-      const presetPills = stringPresets.length ? `
-        <div class="settings-apt-bar">
-          <span class="settings-apt-label">Suggestions:</span>
-          <div class="settings-apt-pills">
-            ${stringPresets.map(s => {
-              const isSel = String(val) === s;
-              return `<button type="button" class="settings-pill-tag${isSel ? ' active' : ''}" data-set-key="${esc(key)}" data-set-val="${esc(s)}">${esc(s)}</button>`;
-            }).join('')}
-          </div>
-        </div>` : '';
-
-      aptValuesHtml = presetPills;
+      control = `<input type="text" class="settings-input" data-key="${esc(key)}" value="${esc(String(val || ''))}" placeholder="${esc(String(def ?? ''))}">`;
     }
 
-    const resetBtn = modified
-      ? `<button class="settings-reset-btn" data-reset="${esc(key)}" title="Reset to default (${esc(String(def))})">Reset</button>`
+    const reset = modified
+      ? `<button class="settings-reset-btn" data-reset="${esc(key)}" title="Reset to ${esc(String(def))}">Reset</button>`
       : '';
-
     return `
-      <div class="settings-card${modClass}" data-setting="${esc(key)}">
+      <div class="settings-card${modified ? ' is-modified' : ''}" data-setting="${esc(key)}">
         <div class="settings-card-left">
-          <div class="settings-card-header">
-            <span class="settings-card-title">${esc(title)}</span>
-            <span class="settings-card-key">${esc(key)}</span>
-            <span class="settings-tag tag-cat">${esc(cat)}</span>
-            <span class="settings-tag tag-type">${esc(type)}</span>
-          </div>
-          <div class="settings-card-desc">${esc(desc)}</div>
-          ${aptValuesHtml}
-          <div class="settings-card-meta">
-            <span class="settings-tag tag-current">Current: <b>${esc(String(val))}</b></span>
-            <span class="settings-tag tag-default">Default: <code>${esc(String(def))}</code></span>
-            ${modified ? `<span class="settings-tag tag-modified">Modified</span>` : ''}
-            ${resetBtn}
-          </div>
+          <div class="settings-card-title">${esc(title)}</div>
+          ${desc ? `<div class="settings-card-desc">${esc(desc)}</div>` : ''}
+          <div class="settings-card-key">${esc(key)}</div>
         </div>
-        <div class="settings-card-right">
-          ${controlHtml}
-        </div>
-      </div>
-    `;
-  }).join('');
+        <div class="settings-card-right">${reset}${control}</div>
+      </div>`;
+  };
 
-  container.innerHTML = html;
+  const groups = new Map();
+  for (const item of items) {
+    const cat = q ? (item.category || item.Category || 'General') : activeSettingsCategory;
+    if (!groups.has(cat)) groups.set(cat, []);
+    groups.get(cat).push(item);
+  }
+  container.innerHTML = [...groups].map(([cat, list]) => `
+    <section class="settings-group">
+      <h3 class="settings-group-title">${esc(cat)}</h3>
+      <div class="settings-group-card">${list.map(row).join('')}</div>
+    </section>`).join('');
 }
 
 async function handleSettingChange(key, value) {

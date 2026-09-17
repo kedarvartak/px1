@@ -1,0 +1,20 @@
+/* Midnight: deep slate with a soft indigo accent. Token reference: docs/internals/styling-and-themes.md. */
+:root[data-theme="midnight"] {
+  --theme-name: "Midnight";
+  color-scheme: dark;
+
+  --bg: #101116; --bg2: #0b0c10; --bg3: #17181f; --bg4: #20222b;
+  --fg: #e3e4ea; --dim: #8f93a3; --faint: #62667a;
+  --line: #252733; --accent: #6c73e0; --accent-fg: #9aa0f5; --on-accent: #ffffff;
+  --sel: rgba(108, 115, 224, 0.28); --mark: rgba(224, 180, 90, 0.2); --mark-active: #d9b36a; --cur: #15161d;
+  --on-mark-active: #101116;
+  --shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+
+  --k: #9aa0f5; --kt: #9aa0f5; --nf: #82c4e8; --nc: #e0b98a; --nb: #82c4e8;
+  --nv: #e3e4ea; --no: #e0b98a; --na: #82c4e8; --nt: #9aa0f5; --nd: #c8a2e8;
+  --np: #e3e4ea; --s: #9bd1a8; --m: #e0b98a; --o: #8f93a3; --p: #7a7e90;
+  --c: #5d6175; --cp: #c8a2e8; --err: #ef7a85;
+
+  --gi: #73c492; --gd: #ef7a85;
+  --gi-bg: rgba(115, 196, 146, 0.12); --gd-bg: rgba(239, 122, 133, 0.12);
+}

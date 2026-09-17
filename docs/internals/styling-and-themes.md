@@ -17,22 +17,16 @@ px1 reads every colour in the user interface through a CSS custom property, know
 
 ## 2. Built-in Themes
 
-| Name             | ID                 | Scheme | Inspiration / Palette                  |
-| ---------------- | ------------------ | ------ | -------------------------------------- |
-| Catppuccin Latte | `catppuccin-latte` | light  | Catppuccin palette (contrast-tuned)    |
-| Catppuccin Mocha | `catppuccin-mocha` | dark   | Catppuccin palette                     |
-| Dracula          | `dracula`          | dark   | Classic Dracula palette                |
-| GitHub Dark      | `github-dark`      | dark   | GitHub dark default (default px1 theme)|
-| Gruvbox Dark     | `gruvbox-dark`     | dark   | Gruvbox dark retro groove              |
-| Gruvbox Light    | `gruvbox-light`    | light  | Gruvbox light                          |
-| Monokai          | `monokai`          | dark   | Classic Monokai high-contrast          |
-| Nord             | `nord`             | dark   | Arctic Nord palette                    |
-| One Dark         | `one-dark`         | dark   | Atom One Dark                          |
-| Paper            | `light`            | light  | Minimalist GitHub light                |
-| Rose Pine        | `rose-pine`        | dark   | Rose Pine Soho vibes                   |
-| Solarized Dark   | `solarized-dark`   | dark   | Canonical Ethan Schoonover Solarized   |
-| Solarized Light  | `solarized-light`  | light  | Canonical Solarized light              |
-| Tokyo Night      | `dark`             | dark   | Tokyo Night deep blue                  |
+| Name             | ID                 | Scheme | Character                                                    |
+| ---------------- | ------------------ | ------ | ------------------------------------------------------------ |
+| GitHub Dark      | `github-dark`      | dark   | GitHub's dark default (default px1 theme)                    |
+| Graphite         | `graphite`         | dark   | Neutral charcoal, near-monochrome syntax with faint tints    |
+| Kanagawa Dragon  | `kanagawa-dragon`  | dark   | Warm ink with faded earth tones                              |
+| Midnight         | `midnight`         | dark   | Deep slate with a soft indigo accent                         |
+| Poimandres       | `poimandres`       | dark   | Muted blue-grey with pale teal                               |
+| Vesper           | `vesper`           | dark   | True black with two quiet hues, peach and mint               |
+
+All built-in themes are dark and low in saturation: syntax uses a few muted hues rather than a full spectrum, so code reads by shape first. A theme that sets `--accent` to a light colour should also set `--on-accent` to a dark one, since primary buttons draw their text in it.
 
 ## 3. Creating a Custom Theme
 

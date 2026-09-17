@@ -1,0 +1,20 @@
+/* Kanagawa Dragon: warm ink with faded earth tones. Token reference: docs/internals/styling-and-themes.md. */
+:root[data-theme="kanagawa-dragon"] {
+  --theme-name: "Kanagawa Dragon";
+  color-scheme: dark;
+
+  --bg: #181616; --bg2: #12120f; --bg3: #201d1d; --bg4: #282727;
+  --fg: #c5c9c5; --dim: #a6a69c; --faint: #737c73;
+  --line: #2d2a28; --accent: #8ba4b0; --accent-fg: #8ba4b0; --on-accent: #181616;
+  --sel: rgba(139, 164, 176, 0.25); --mark: rgba(196, 178, 138, 0.25); --mark-active: #c4b28a; --cur: #1d1c19;
+  --on-mark-active: #181616;
+  --shadow: 0 16px 48px rgba(0, 0, 0, 0.65);
+
+  --k: #8992a7; --kt: #8ea4a2; --nf: #8ba4b0; --nc: #8ea4a2; --nb: #b6927b;
+  --nv: #c5c9c5; --no: #b6927b; --na: #c4b28a; --nt: #c4746e; --nd: #a292a3;
+  --np: #c5c9c5; --s: #8a9a7b; --m: #a292a3; --o: #c4b28a; --p: #9e9b93;
+  --c: #737c73; --cp: #c4746e; --err: #e46876;
+
+  --gi: #87a987; --gd: #c4746e;
+  --gi-bg: rgba(135, 169, 135, 0.12); --gd-bg: rgba(196, 116, 110, 0.12);
+}

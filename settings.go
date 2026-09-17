@@ -144,11 +144,8 @@ var settingsSchema = []settingSchemaItem{
 		Type:        "select",
 		Default:     "github-dark",
 		Options: []string{
-			"github-dark", "dark", "light",
-			"catppuccin-mocha", "catppuccin-latte",
-			"dracula", "gruvbox-dark", "gruvbox-light",
-			"monokai", "nord", "one-dark", "rose-pine",
-			"solarized-dark", "solarized-light",
+			"github-dark", "graphite", "midnight",
+			"vesper", "poimandres", "kanagawa-dragon",
 		},
 	},
 	{

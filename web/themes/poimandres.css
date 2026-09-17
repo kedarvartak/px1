@@ -1,0 +1,20 @@
+/* Poimandres: muted blue-grey with pale teal and soft blues. Token reference: docs/internals/styling-and-themes.md. */
+:root[data-theme="poimandres"] {
+  --theme-name: "Poimandres";
+  color-scheme: dark;
+
+  --bg: #1b1e28; --bg2: #171922; --bg3: #222634; --bg4: #2a2f3f;
+  --fg: #e4f0fb; --dim: #a6accd; --faint: #767c9d;
+  --line: #2c3040; --accent: #5de4c7; --accent-fg: #5de4c7; --on-accent: #1b1e28;
+  --sel: rgba(117, 124, 157, 0.3); --mark: rgba(255, 250, 194, 0.16); --mark-active: #fffac2; --cur: #202331;
+  --on-mark-active: #1b1e28;
+  --shadow: 0 16px 48px rgba(10, 12, 18, 0.7);
+
+  --k: #91b4d5; --kt: #89ddff; --nf: #add7ff; --nc: #fcc5e9; --nb: #89ddff;
+  --nv: #e4f0fb; --no: #5de4c7; --na: #91b4d5; --nt: #5de4c7; --nd: #add7ff;
+  --np: #a6accd; --s: #5de4c7; --m: #5de4c7; --o: #91b4d5; --p: #a6accd;
+  --c: #767c9d; --cp: #91b4d5; --err: #d0679d;
+
+  --gi: #5de4c7; --gd: #d0679d;
+  --gi-bg: rgba(93, 228, 199, 0.1); --gd-bg: rgba(208, 103, 157, 0.12);
+}
