@@ -15,6 +15,10 @@ Agents write code; humans decide whether it is ready. px1 keeps reading and navi
 - **Auditing Large Repositories**: Read through massive, 50,000+ file codebases on a laptop without background indexers hogging RAM or spinning up fans.
 - **Sidecar to Terminal Editors**: Keep lightweight editors (like Vim, Neovim, or Helix) in the terminal for typing, while using px1 as a high-density, rich graphical inspection and diff console.
 
+### A five-minute review loop
+
+Start **Review** before asking your coding agent to work. When it finishes, px1 queues only the files that changed during that task. Open **Next change**, inspect the task-baseline diff, mark the file reviewed, and use **Comment**, **Patch**, **Revert hunk**, or **Ask agent** when something needs attention. Run a configured check before approving the final queue.
+
 ## Installation
 
 ### Quick Install (macOS, Linux, BSD)
