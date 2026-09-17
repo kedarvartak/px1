@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	defaultRepo       = "kedarvartak/px0"
+	defaultRepo       = "kedarvartak/px1"
 	updateCheckPeriod = 24 * time.Hour
 )
 

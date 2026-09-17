@@ -2,16 +2,16 @@
 # Universal installer script for px1.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/kedarvartak/px0/master/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/kedarvartak/px1/master/install.sh | sh
 #
 # Environment variables:
 #   VERSION      - target version to install (e.g. "0.1.0" or "latest", default: "latest")
 #   INSTALL_DIR  - target directory for binary (default: /usr/local/bin or ~/.local/bin)
-#   PX1_REPO     - GitHub repository (default: kedarvartak/px0)
+#   PX1_REPO     - GitHub repository (default: kedarvartak/px1)
 
 set -eu
 
-REPO="${PX1_REPO:-kedarvartak/px0}"
+REPO="${PX1_REPO:-kedarvartak/px1}"
 VERSION="${VERSION:-latest}"
 
 # Color codes
