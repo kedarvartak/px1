@@ -37,6 +37,7 @@ type reviewSession struct {
 	Files     []reviewFile              `json:"files"`
 	Dirs      []string                  `json:"dirs"`
 	Reviews   map[string]reviewDecision `json:"reviews,omitempty"`
+	Comments  []reviewComment           `json:"comments,omitempty"`
 	ClosedAt  *time.Time                `json:"closedAt,omitempty"`
 }
 
@@ -61,6 +62,26 @@ type reviewQueue struct {
 	Stale     int          `json:"stale"`
 	Remaining int          `json:"remaining"`
 	Total     int          `json:"total"`
+}
+
+// reviewComment anchors feedback to the exact bytes the reviewer saw. The
+// comment remains visible after a file moves, but is marked stale instead of
+// silently attaching itself to a different line.
+type reviewComment struct {
+	ID        string    `json:"id"`
+	Path      string    `json:"path"`
+	LineStart int       `json:"lineStart"`
+	LineEnd   int       `json:"lineEnd"`
+	Text      string    `json:"text"`
+	FileHash  string    `json:"fileHash"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+type reviewCommentView struct {
+	reviewComment
+	Stale bool `json:"stale"`
 }
 
 type reviewManager struct {
@@ -409,6 +430,100 @@ func (m *reviewManager) Mark(path, state string) (reviewQueue, error) {
 	return m.queueLocked()
 }
 
+func (m *reviewManager) currentHashLocked(path string) (string, error) {
+	files, _, err := snapshotTree(m.root, "")
+	if err != nil {
+		return "", err
+	}
+	for _, f := range files {
+		if f.Path == path {
+			return f.Hash, nil
+		}
+	}
+	return "<deleted>", nil
+}
+
+func (m *reviewManager) AddComment(path string, l1, l2 int, text string) (reviewComment, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.active == nil {
+		return reviewComment{}, errors.New("no active review session")
+	}
+	text = strings.TrimSpace(text)
+	if l1 < 1 || l2 < l1 {
+		return reviewComment{}, errors.New("invalid line range")
+	}
+	if text == "" || len(text) > 16<<10 {
+		return reviewComment{}, errors.New("comment must be between 1 and 16384 bytes")
+	}
+	hash, err := m.currentHashLocked(path)
+	if err != nil {
+		return reviewComment{}, err
+	}
+	now := time.Now().UTC()
+	c := reviewComment{ID: now.Format("20060102T150405.000000000"), Path: path, LineStart: l1, LineEnd: l2, Text: text, FileHash: hash, Status: "open", CreatedAt: now, UpdatedAt: now}
+	m.active.Comments = append(m.active.Comments, c)
+	if err := m.saveLocked(); err != nil {
+		return reviewComment{}, err
+	}
+	return c, nil
+}
+
+func validCommentStatus(status string) bool {
+	switch status {
+	case "open", "sent", "agent-attempted", "needs-verification", "resolved", "orphaned":
+		return true
+	}
+	return false
+}
+
+func (m *reviewManager) SetCommentStatus(id, status string) (reviewComment, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.active == nil {
+		return reviewComment{}, errors.New("no active review session")
+	}
+	if !validCommentStatus(status) {
+		return reviewComment{}, errors.New("invalid comment status")
+	}
+	for i := range m.active.Comments {
+		if m.active.Comments[i].ID != id {
+			continue
+		}
+		m.active.Comments[i].Status, m.active.Comments[i].UpdatedAt = status, time.Now().UTC()
+		if err := m.saveLocked(); err != nil {
+			return reviewComment{}, err
+		}
+		return m.active.Comments[i], nil
+	}
+	return reviewComment{}, errors.New("comment not found")
+}
+
+func (m *reviewManager) Comments() ([]reviewCommentView, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.active == nil {
+		return nil, errors.New("no active review session")
+	}
+	current, _, err := snapshotTree(m.root, "")
+	if err != nil {
+		return nil, err
+	}
+	hashes := map[string]string{}
+	for _, f := range current {
+		hashes[f.Path] = f.Hash
+	}
+	out := make([]reviewCommentView, 0, len(m.active.Comments))
+	for _, c := range m.active.Comments {
+		hash := hashes[c.Path]
+		if hash == "" {
+			hash = "<deleted>"
+		}
+		out = append(out, reviewCommentView{reviewComment: c, Stale: hash != c.FileHash})
+	}
+	return out, nil
+}
+
 func (m *reviewManager) Restore() (*reviewSession, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -513,6 +628,66 @@ func (s *Server) handleReviewMark(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, map[string]any{"queue": queue})
+}
+
+func (s *Server) handleReviewComments(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		fail(w, 405, "GET only")
+		return
+	}
+	comments, err := s.review.Comments()
+	if err != nil {
+		fail(w, 409, err.Error())
+		return
+	}
+	writeJSON(w, map[string]any{"comments": comments})
+}
+
+func (s *Server) handleReviewComment(w http.ResponseWriter, r *http.Request) {
+	if !localPost(w, r) {
+		return
+	}
+	var req struct {
+		Path      string `json:"path"`
+		LineStart int    `json:"lineStart"`
+		LineEnd   int    `json:"lineEnd"`
+		Text      string `json:"text"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		fail(w, 400, "invalid comment")
+		return
+	}
+	_, path, ok := s.safePath(req.Path)
+	if !ok || path == "" {
+		fail(w, 400, "bad path")
+		return
+	}
+	comment, err := s.review.AddComment(path, req.LineStart, req.LineEnd, req.Text)
+	if err != nil {
+		fail(w, 409, err.Error())
+		return
+	}
+	writeJSON(w, map[string]any{"comment": comment})
+}
+
+func (s *Server) handleReviewCommentStatus(w http.ResponseWriter, r *http.Request) {
+	if !localPost(w, r) {
+		return
+	}
+	var req struct {
+		ID     string `json:"id"`
+		Status string `json:"status"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		fail(w, 400, "invalid comment status")
+		return
+	}
+	comment, err := s.review.SetCommentStatus(req.ID, req.Status)
+	if err != nil {
+		fail(w, 409, err.Error())
+		return
+	}
+	writeJSON(w, map[string]any{"comment": comment})
 }
 
 func (s *Server) handleReviewStart(w http.ResponseWriter, r *http.Request) {

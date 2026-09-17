@@ -179,3 +179,49 @@ func TestReviewQueueTracksReviewStateAndStaleness(t *testing.T) {
 		t.Fatalf("blocked item missing: %#v", q.Items)
 	}
 }
+
+func TestReviewCommentsPersistAndReportStaleAnchors(t *testing.T) {
+	isolateSettings(t)
+	root := t.TempDir()
+	path := filepath.Join(root, "handler.go")
+	if err := os.WriteFile(path, []byte("package main\nfunc handler() {}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m := newReviewManager(root)
+	if _, err := m.Start(); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("package main\nfunc handler() { retry() }\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	comment, err := m.AddComment("handler.go", 2, 2, "Use exponential backoff.")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if comment.Status != "open" || comment.FileHash == "" {
+		t.Fatalf("new comment = %#v", comment)
+	}
+	if _, err := m.SetCommentStatus(comment.ID, "sent"); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := newReviewManager(root).Comments(); err != nil || len(got) != 1 || got[0].Status != "sent" || got[0].Stale {
+		t.Fatalf("persisted comments = %#v err=%v", got, err)
+	}
+
+	if err := os.WriteFile(path, []byte("package main\nfunc handler() { retryWithBackoff() }\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	comments, err := m.Comments()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !comments[0].Stale {
+		t.Fatalf("changed anchor was not stale: %#v", comments[0])
+	}
+	if _, err := m.SetCommentStatus(comment.ID, "resolved"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.SetCommentStatus(comment.ID, "not-a-state"); err == nil {
+		t.Fatal("invalid status was accepted")
+	}
+}
