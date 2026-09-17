@@ -2739,12 +2739,22 @@
     ref.textContent = "@@ -" + hunk.oldStart + " +" + hunk.newStart + " @@";
     el.append(ref);
     if (d.diffSource === "review") {
-      const button = document.createElement("button");
-      button.className = "diff-hunk-revert";
-      button.textContent = "Revert hunk";
-      button.title = "Restore this hunk to the task-start baseline";
-      button.addEventListener("click", () => revertReviewHunk(d, hunk));
-      el.append(button);
+      const hasAdd = hunk.rows.some((row) => row.type === "add");
+      const hasDel = hunk.rows.some((row) => row.type === "del");
+      if (hasAdd && hasDel) {
+        const button = document.createElement("button");
+        button.className = "diff-hunk-revert";
+        button.textContent = "Revert hunk";
+        button.title = "Restore this hunk to the task-start baseline";
+        button.addEventListener("click", () => revertReviewHunk(d, hunk));
+        el.append(button);
+      } else {
+        const note = document.createElement("span");
+        note.className = "diff-hunk-patch-note";
+        note.textContent = "Use Patch Mode";
+        note.title = hasAdd ? "Pure insertion: select the added lines and use Patch Mode to remove them." : hasDel ? "Pure deletion: use Patch Mode to restore the deleted lines." : "This hunk cannot be restored automatically.";
+        el.append(note);
+      }
     }
     return el;
   }
@@ -2756,7 +2766,7 @@
     }
     const oldCount = hunk.rows.filter((r) => r.oldLine !== undefined).length;
     const newCount = hunk.rows.filter((r) => r.newLine !== undefined).length;
-    if (!oldCount || !newCount) {
+    if (!oldCount || !newCount || !hunk.rows.some((r) => r.type === "add") || !hunk.rows.some((r) => r.type === "del")) {
       setStatusNote("This edge-case hunk needs Patch Mode", 4000);
       return;
     }
