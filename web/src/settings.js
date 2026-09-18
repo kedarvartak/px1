@@ -264,7 +264,7 @@ const BUILTIN_SCHEMA = [
   {
     key: "review.autoStart",
     title: "Start Reviews Automatically",
-    description: "Start a review session on its own when px1 opens a git worktree, with the branch's fork commit as the baseline. The main checkout is never started automatically.",
+    description: "Start a review session on its own when px1 opens a git worktree, with the commit checked out when that worktree was created as the baseline. The main checkout is never started automatically.",
     category: "Agent / AI",
     type: "boolean",
     default: true,

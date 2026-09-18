@@ -155,8 +155,8 @@ func TestWorktreeSwitchRepointsWorkspace(t *testing.T) {
 // The case this feature exists for: the agent makes its own worktree and starts
 // editing before anyone opens px1. A baseline taken when the human arrives would
 // record the finished work as the starting state, so it is taken from the commit
-// the branch forked from instead.
-func TestReviewStartsFromBranchBaseAfterAgentWorked(t *testing.T) {
+// checked out when the worktree was created instead.
+func TestReviewStartsFromWorktreeBaseAfterAgentWorked(t *testing.T) {
 	root, wt := worktreeRepo(t)
 	run := func(dir string, args ...string) {
 		t.Helper()
@@ -177,7 +177,7 @@ func TestReviewStartsFromBranchBaseAfterAgentWorked(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	base := branchBase(wt)
+	base := worktreeBase(wt)
 	if base == "" {
 		t.Fatal("no branch base for the worktree")
 	}
@@ -208,6 +208,48 @@ func TestReviewStartsFromBranchBaseAfterAgentWorked(t *testing.T) {
 	// The main checkout is left alone: people keep unrelated work there.
 	if wtMain := currentWorktree(root); wtMain == nil || !wtMain.Main {
 		t.Fatalf("main checkout not detected: %#v", wtMain)
+	}
+}
+
+func TestWorktreeBaseExcludesChangesAlreadyOnItsStartingBranch(t *testing.T) {
+	root, _ := worktreeRepo(t)
+	run := func(dir string, args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Dir = dir
+		cmd.Env = append(os.Environ(), "GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t", "GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t")
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\\n%s", args, err, out)
+		}
+	}
+	// The agent's worktree starts from staging, which has a change main lacks.
+	run(root, "switch", "-qc", "staging")
+	if err := os.WriteFile(filepath.Join(root, "already-on-staging.ts"), []byte("export const existing = true\\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	run(root, "add", "-A")
+	run(root, "commit", "-qm", "staging work")
+	run(root, "switch", "-q", "main")
+	wt := filepath.Join(filepath.Dir(root), "from-staging")
+	run(root, "worktree", "add", "-q", "-b", "agent/docs", wt, "staging")
+	if err := os.WriteFile(filepath.Join(wt, "teach.md"), []byte("agent change\\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	m := newReviewManager(wt)
+	if _, err := m.StartFromRef(worktreeBase(wt)); err != nil {
+		t.Fatal(err)
+	}
+	q, err := m.Queue()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]bool{}
+	for _, item := range q.Items {
+		got[item.Path] = true
+	}
+	if !got["teach.md"] || got["already-on-staging.ts"] {
+		t.Fatalf("queue includes pre-existing branch work: %#v", q.Items)
 	}
 }
 
