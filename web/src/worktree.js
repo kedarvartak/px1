@@ -4,7 +4,7 @@
 // px1 was started in. The header names the checkout px1 is showing and opens a
 // menu of the repository's others; picking one re-points the server (index,
 // language servers, checks, and the per-checkout review session) and reloads.
-import { $, S, api, apiPost } from './state.js';
+import { $, S, esc, api, apiPost } from './state.js';
 import { showToast } from './ui.js';
 
 const nameEl = () => $('#root-name');
@@ -24,6 +24,17 @@ function current() {
   return list.find(w => w.current);
 }
 
+// How long ago a worktree was added, for the row's tooltip. Newest is first in
+// the list, which is usually the one an agent was just told to work in.
+function age(iso) {
+  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.round(hours / 24)}d ago`;
+}
+
 function draw() {
   const btn = nameEl();
   const menu = menuEl();
@@ -36,7 +47,7 @@ function draw() {
     ? (here?.branch ? `${here.branch} · ${S.meta?.root}\nSwitch worktree` : 'Switch worktree')
     : (S.meta?.root || '');
   menu.innerHTML = list.map(w => `
-    <button class="worktree-item${w.current ? ' active' : ''}${w.missing ? ' missing' : ''}" data-worktree="${w.path.replace(/"/g, '&quot;')}" ${w.missing ? 'disabled' : ''}>
+    <button class="worktree-item${w.current ? ' active' : ''}${w.missing ? ' missing' : ''}" data-worktree="${w.path.replace(/"/g, '&quot;')}" title="${esc(w.path)}${w.addedAt ? ' · added ' + age(w.addedAt) : ''}" ${w.missing ? 'disabled' : ''}>
       <span class="worktree-name">${w.name}</span>
       <span class="worktree-branch">${w.missing ? 'missing' : (w.branch || w.head?.slice(0, 7) || '')}</span>
     </button>`).join('');

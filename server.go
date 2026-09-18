@@ -935,5 +935,8 @@ func (s *Server) handleWorktreeSwitch(w http.ResponseWriter, r *http.Request) {
 	s.ix.SetRoot(target.Path)
 	s.ix.Build()
 	uiStatus("ok", "worktree", target.Path, 0, os.Stdout)
+	// The agent has usually been working here for a while already, so the
+	// review starts itself, from the branch's fork commit.
+	s.autoStartReview()
 	writeJSON(w, map[string]any{"root": s.ix.Root(), "switched": true, "worktrees": worktrees(s.ix.Root())})
 }

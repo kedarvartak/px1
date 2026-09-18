@@ -5,14 +5,18 @@ package main
 // (and restored to) that state without treating HEAD as the only baseline.
 
 import (
+	"archive/tar"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"io/fs"
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -35,6 +39,10 @@ type reviewSession struct {
 	Root      string                    `json:"root"`
 	StartedAt time.Time                 `json:"startedAt"`
 	Head      string                    `json:"head,omitempty"`
+	// BaseRef is set when the baseline was taken from a commit rather than from
+	// the working tree, which is how a worktree an agent already started in can
+	// still be reviewed in full.
+	BaseRef string `json:"baseRef,omitempty"`
 	Files     []reviewFile              `json:"files"`
 	Dirs      []string                  `json:"dirs"`
 	Reviews   map[string]reviewDecision `json:"reviews,omitempty"`
@@ -294,7 +302,80 @@ func snapshotTree(root, copyTo string) ([]reviewFile, []string, error) {
 	return files, dirs, err
 }
 
-func (m *reviewManager) Start() (*reviewSession, error) {
+// snapshotRef records a commit as the baseline, reading it straight out of git
+// rather than off disk. Only tracked files exist at a commit, so anything the
+// agent added afterwards reads as new, which is what it is.
+func snapshotRef(root, ref, copyTo string) ([]reviewFile, []string, error) {
+	cmd := exec.Command("git", "-C", root, "archive", "--format=tar", ref)
+	out, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := cmd.Start(); err != nil {
+		return nil, nil, err
+	}
+	var files []reviewFile
+	seenDirs := map[string]bool{}
+	var dirs []string
+	tr := tar.NewReader(out)
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			cmd.Wait()
+			return nil, nil, err
+		}
+		p := filepath.ToSlash(filepath.Clean(hdr.Name))
+		if p == "." || strings.HasPrefix(p, "../") {
+			continue
+		}
+		if hdr.Typeflag == tar.TypeDir {
+			continue
+		}
+		if hdr.Typeflag != tar.TypeReg {
+			// Submodules and symlinks are not reviewable content.
+			continue
+		}
+		b, err := io.ReadAll(tr)
+		if err != nil {
+			cmd.Wait()
+			return nil, nil, err
+		}
+		for d := path.Dir(p); d != "." && d != "/" && !seenDirs[d]; d = path.Dir(d) {
+			seenDirs[d] = true
+			dirs = append(dirs, d)
+		}
+		mode := fs.FileMode(hdr.Mode).Perm()
+		if mode == 0 {
+			mode = 0o644
+		}
+		h := sha256.Sum256(b)
+		files = append(files, reviewFile{Path: p, Mode: mode, Size: int64(len(b)), Hash: hex.EncodeToString(h[:])})
+		if copyTo != "" {
+			if err := writeAtomic(filepath.Join(copyTo, filepath.FromSlash(p)), b, mode); err != nil {
+				cmd.Wait()
+				return nil, nil, err
+			}
+		}
+	}
+	if err := cmd.Wait(); err != nil {
+		return nil, nil, fmt.Errorf("could not read %s from git: %w", ref, err)
+	}
+	sort.Strings(dirs)
+	return files, dirs, nil
+}
+
+func (m *reviewManager) Start() (*reviewSession, error) { return m.start("") }
+
+// StartFromRef takes the baseline from a commit instead of from the working
+// tree. Everything the branch has done since that commit, committed or not,
+// then shows up in the queue, so a review can begin after an agent has already
+// been working.
+func (m *reviewManager) StartFromRef(ref string) (*reviewSession, error) { return m.start(ref) }
+
+func (m *reviewManager) start(ref string) (*reviewSession, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.active != nil {
@@ -310,12 +391,19 @@ func (m *reviewManager) Start() (*reviewSession, error) {
 	if err := os.RemoveAll(staging); err != nil {
 		return nil, err
 	}
-	files, dirs, err := snapshotTree(m.root, filepath.Join(staging, "files"))
+	var files []reviewFile
+	var dirs []string
+	var err error
+	if ref != "" {
+		files, dirs, err = snapshotRef(m.root, ref, filepath.Join(staging, "files"))
+	} else {
+		files, dirs, err = snapshotTree(m.root, filepath.Join(staging, "files"))
+	}
 	if err != nil {
 		os.RemoveAll(staging)
 		return nil, err
 	}
-	s := &reviewSession{Version: reviewManifestVersion, ID: id, Root: m.root, StartedAt: time.Now().UTC(), Head: reviewHead(m.root), Files: files, Dirs: dirs, Reviews: map[string]reviewDecision{}}
+	s := &reviewSession{Version: reviewManifestVersion, ID: id, Root: m.root, StartedAt: time.Now().UTC(), Head: reviewHead(m.root), BaseRef: ref, Files: files, Dirs: dirs, Reviews: map[string]reviewDecision{}}
 	b, err := json.Marshal(s)
 	if err != nil {
 		os.RemoveAll(staging)

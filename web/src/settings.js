@@ -262,6 +262,14 @@ const BUILTIN_SCHEMA = [
     default: false
   },
   {
+    key: "review.autoStart",
+    title: "Start Reviews Automatically",
+    description: "Start a review session on its own when px1 opens a git worktree, with the branch's fork commit as the baseline. The main checkout is never started automatically.",
+    category: "Agent / AI",
+    type: "boolean",
+    default: true,
+  },
+  {
     key: "telemetry.enabled",
     title: "Telemetry",
     description: "Enable anonymous usage metrics to help improve px1.",

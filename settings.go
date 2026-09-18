@@ -29,6 +29,7 @@ type settings struct {
 	DiffEditorRenderSideBySide *bool    `json:"diffEditor.renderSideBySide,omitempty"`
 	MarkdownPreviewOpen        *bool    `json:"markdown.preview.open,omitempty"`
 	TelemetryEnabled           *bool    `json:"telemetry.enabled,omitempty"`
+	ReviewAutoStart            *bool    `json:"review.autoStart,omitempty"`
 }
 
 var settingsMu sync.Mutex
@@ -316,6 +317,14 @@ var settingsSchema = []settingSchemaItem{
 		Category:    "Agent / AI",
 		Type:        "boolean",
 		Default:     false,
+	},
+	{
+		Key:         "review.autoStart",
+		Title:       "Start Reviews Automatically",
+		Description: "Start a review session on its own when px1 opens a git worktree, with the branch's fork commit as the baseline. The main checkout is never started automatically.",
+		Category:    "Agent / AI",
+		Type:        "boolean",
+		Default:     true,
 	},
 	{
 		Key:         "telemetry.enabled",

@@ -4386,6 +4386,14 @@
       default: false
     },
     {
+      key: "review.autoStart",
+      title: "Start Reviews Automatically",
+      description: "Start a review session on its own when px1 opens a git worktree, with the branch's fork commit as the baseline. The main checkout is never started automatically.",
+      category: "Agent / AI",
+      type: "boolean",
+      default: true
+    },
+    {
       key: "telemetry.enabled",
       title: "Telemetry",
       description: "Enable anonymous usage metrics to help improve px1.",
@@ -6079,7 +6087,7 @@
 ` + j.output.slice(-1200) : checks.commands[name];
       return `<button class="review-check ${state}" data-review-check="${esc(name)}" title="${esc(detail)}" ${j?.running ? "disabled" : ""}><span>${esc(name)}</span><span>${label}</span></button>`;
     }).join("")}</div>` : '<button class="review-check-empty" data-review-setup-checks title="Add named commands under verification.commands in settings.json">Set up checks</button>';
-    queueEl.innerHTML = `<div class="review-summary"><div class="review-summary-text"><strong>Agent changes</strong><span>${reviewed} of ${count} reviewed</span></div><button class="review-close" data-review-close title="Close review session">Close</button><div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div></div>
+    queueEl.innerHTML = `<div class="review-summary"><div class="review-summary-text"><strong>Agent changes</strong><span>${reviewed} of ${count} reviewed${active.baseRef ? " · since this branch forked" : ""}</span></div><button class="review-close" data-review-close title="Close review session">Close</button><div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div></div>
     ${challengesMarkup()}
     ${ruleHitsMarkup()}
     ${pinsMarkup()}
@@ -6610,6 +6618,17 @@
   function current2() {
     return list.find((w) => w.current);
   }
+  function age(iso) {
+    const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    if (mins < 1)
+      return "just now";
+    if (mins < 60)
+      return `${mins}m ago`;
+    const hours = Math.round(mins / 60);
+    if (hours < 24)
+      return `${hours}h ago`;
+    return `${Math.round(hours / 24)}d ago`;
+  }
   function draw2() {
     const btn = nameEl();
     const menu2 = menuEl();
@@ -6621,7 +6640,7 @@
     btn.title = list.length > 1 ? here?.branch ? `${here.branch} · ${S2.meta?.root}
 Switch worktree` : "Switch worktree" : S2.meta?.root || "";
     menu2.innerHTML = list.map((w) => `
-    <button class="worktree-item${w.current ? " active" : ""}${w.missing ? " missing" : ""}" data-worktree="${w.path.replace(/"/g, "&quot;")}" ${w.missing ? "disabled" : ""}>
+    <button class="worktree-item${w.current ? " active" : ""}${w.missing ? " missing" : ""}" data-worktree="${w.path.replace(/"/g, "&quot;")}" title="${esc(w.path)}${w.addedAt ? " · added " + age(w.addedAt) : ""}" ${w.missing ? "disabled" : ""}>
       <span class="worktree-name">${w.name}</span>
       <span class="worktree-branch">${w.missing ? "missing" : w.branch || w.head?.slice(0, 7) || ""}</span>
     </button>`).join("");
