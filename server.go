@@ -122,6 +122,8 @@ func NewServer(ix *Index, lsp *lspManager) *Server {
 	s.mux.HandleFunc("/api/review/rule-hits", s.handleReviewRuleHits)
 	s.mux.HandleFunc("/api/review/rule-hits/dismiss", s.handleReviewRuleHitDismiss)
 	s.mux.HandleFunc("/api/review/rule-hits/send", s.handleReviewRuleHitsSend)
+	s.mux.HandleFunc("/api/worktrees", s.handleWorktrees)
+	s.mux.HandleFunc("/api/worktree/switch", s.handleWorktreeSwitch)
 	s.mux.HandleFunc("/api/settings", s.handleSettings)
 	s.lastReq.Store(time.Now().UnixNano())
 	go s.scavenge()
@@ -871,4 +873,67 @@ func (s *Server) handleSettings(w http.ResponseWriter, r *http.Request) {
 	default:
 		fail(w, 405, "method not allowed")
 	}
+}
+
+// handleWorktrees lists the repository's checkouts so the UI can offer a
+// switcher. Read-only, and empty outside a git repository.
+func (s *Server) handleWorktrees(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		fail(w, http.StatusMethodNotAllowed, "GET only")
+		return
+	}
+	writeJSON(w, map[string]any{"worktrees": worktrees(s.ix.Root()), "current": s.ix.Root()})
+}
+
+// handleWorktreeSwitch re-points px1 at another checkout of the same
+// repository: the index, language servers, checks, and the per-root review
+// session, decisions and rules. Only a path git itself lists is accepted, so
+// this never becomes a way to open an arbitrary directory.
+func (s *Server) handleWorktreeSwitch(w http.ResponseWriter, r *http.Request) {
+	if !localPost(w, r) {
+		return
+	}
+	var req struct {
+		Path string `json:"path"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		fail(w, http.StatusBadRequest, "invalid worktree")
+		return
+	}
+	want := resolvePathOrSelf(req.Path)
+	var target *worktree
+	for _, wt := range worktrees(s.ix.Root()) {
+		if resolvePathOrSelf(wt.Path) == want {
+			cp := wt
+			target = &cp
+			break
+		}
+	}
+	if target == nil {
+		fail(w, http.StatusBadRequest, "not a worktree of this repository")
+		return
+	}
+	if target.Missing {
+		fail(w, http.StatusConflict, "that worktree directory is gone")
+		return
+	}
+	if target.Current {
+		writeJSON(w, map[string]any{"root": s.ix.Root(), "switched": false})
+		return
+	}
+	if s.agent != nil {
+		if err := s.agent.SetRoot(target.Path); err != nil {
+			fail(w, http.StatusConflict, "an edit is still running in this worktree")
+			return
+		}
+	}
+	s.lsp.SetRoot(target.Path)
+	s.review.SetRoot(target.Path)
+	s.memory.SetRoot(target.Path)
+	s.rules.SetRoot(target.Path)
+	s.verify.SetRoot(target.Path)
+	s.ix.SetRoot(target.Path)
+	s.ix.Build()
+	uiStatus("ok", "worktree", target.Path, 0, os.Stdout)
+	writeJSON(w, map[string]any{"root": s.ix.Root(), "switched": true, "worktrees": worktrees(s.ix.Root())})
 }

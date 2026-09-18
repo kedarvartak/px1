@@ -72,6 +72,16 @@ func newDecisionMemory(root string) *decisionMemory {
 	return m
 }
 
+// SetRoot points the store at another checkout; decisions are kept per root.
+func (m *decisionMemory) SetRoot(root string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.root, m.store = root, nil
+	if state := reviewStateRoot(); state != "" {
+		m.path = filepath.Join(filepath.Dir(state), "decisions", (&reviewManager{root: root}).workspaceKey()+".json")
+	}
+}
+
 func (m *decisionMemory) loadLocked() *decisionStore {
 	if m.store != nil {
 		return m.store

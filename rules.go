@@ -81,6 +81,17 @@ func newRuleMemory(root string) *ruleMemory {
 	return m
 }
 
+// SetRoot points the store at another checkout; rules are kept per root, and
+// the team file is read from the new one.
+func (m *ruleMemory) SetRoot(root string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.root, m.store = root, nil
+	if state := reviewStateRoot(); state != "" {
+		m.path = filepath.Join(filepath.Dir(state), "rules", (&reviewManager{root: root}).workspaceKey()+".json")
+	}
+}
+
 func (m *ruleMemory) loadLocked() *ruleStore {
 	if m.store != nil {
 		return m.store

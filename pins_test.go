@@ -110,7 +110,10 @@ func TestExplainPromptCoversDiffsAndNewFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"Do not edit any files", "### Diff auth.go", "+func hash() { argon2() }", "### New file limit.go", "2: const attempts = 5"} {
+	if strings.Contains(prompt, `"alternatives"`) {
+		t.Fatal("explain prompt still asks for alternatives")
+	}
+	for _, want := range []string{"Do not edit any files", "why it was needed", "Do not describe how the code works", "### Diff auth.go", "+func hash() { argon2() }", "### New file limit.go", "2: const attempts = 5"} {
 		if !strings.Contains(prompt, want) {
 			t.Fatalf("prompt missing %q:\n%s", want, prompt)
 		}

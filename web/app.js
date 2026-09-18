@@ -2874,16 +2874,11 @@
     head.append(mark, text, ref);
     const body = document.createElement("div");
     body.className = "pin-body";
-    const lines = [];
-    if (ch.why)
-      lines.push(["why", ch.why]);
-    if (ch.alternatives?.length)
-      lines.push(["not", ch.alternatives.join(" · ")]);
-    for (const [k, v] of lines) {
-      const el = document.createElement("div");
-      el.className = "pin-line";
-      el.innerHTML = "<span>" + k + "</span>" + esc(v);
-      body.append(el);
+    if (ch.why) {
+      const why = document.createElement("p");
+      why.className = "pin-why";
+      why.textContent = ch.why;
+      body.append(why);
     }
     const acts = document.createElement("div");
     acts.className = "pin-acts";
@@ -2925,53 +2920,46 @@
     head.className = "pin-head";
     const mark = document.createElement("span");
     mark.className = "pin-mark";
-    mark.textContent = "◆";
     const text = document.createElement("span");
     text.className = "pin-decision";
-    text.textContent = pin.status === "switched" && pin.choice ? pin.decision + " → " + pin.choice : pin.decision;
+    text.textContent = pin.decision;
     const ref = document.createElement("span");
     ref.className = "pin-ref";
     ref.textContent = lineLabel(pin);
-    head.append(mark, text, ref);
-    const state = pin.stale ? "lines changed" : pin.status === "proposed" ? "" : pin.status;
+    head.append(mark, text);
+    const state = pin.stale ? "lines changed" : pin.status === "accepted" ? "understood" : "";
     if (state) {
       const tag = document.createElement("span");
       tag.className = "pin-tag";
       tag.textContent = state;
       head.append(tag);
     }
+    head.append(ref);
+    card.append(head);
+    if (pin.why) {
+      const why = document.createElement("p");
+      why.className = "pin-why";
+      why.textContent = pin.why;
+      card.append(why);
+    }
     const body = document.createElement("div");
     body.className = "pin-body";
     body.hidden = true;
-    if (pin.why) {
-      const why = document.createElement("div");
-      why.className = "pin-line";
-      why.innerHTML = "<span>why</span>" + esc(pin.why);
-      body.append(why);
-    }
-    if (pin.alternatives?.length) {
-      const not = document.createElement("div");
-      not.className = "pin-line";
-      not.innerHTML = "<span>not</span>" + pin.alternatives.map(esc).join(" · ");
-      body.append(not);
-    }
     const acts = document.createElement("div");
     acts.className = "pin-acts";
     if (pin.status !== "proposed")
       acts.append(pinButton("Reopen", "reopen", pin));
     else if (!pin.stale)
-      acts.append(pinButton("Accept", "accept", pin));
-    acts.append(pinButton("Ask", "ask", pin));
-    if (!pin.stale && pin.status !== "switched") {
-      for (const alt of pin.alternatives || [])
-        acts.append(pinButton("Switch → " + alt, "switch", pin, alt));
-    }
+      acts.append(pinButton("Got it", "accept", pin));
+    acts.append(pinButton("Ask why", "ask", pin));
     body.append(acts);
-    head.addEventListener("click", () => {
+    card.addEventListener("click", (e) => {
+      if (e.target.closest(".pin-body"))
+        return;
       body.hidden = !body.hidden;
       card.classList.toggle("open", !body.hidden);
     });
-    card.append(head, body);
+    card.append(body);
     return card;
   }
   function revealPin(id) {
@@ -6052,7 +6040,7 @@
     const open = pins.filter((p) => p.status === "proposed" && !p.stale).length;
     const label = explaining ? "Explaining…" : pins.length ? "Re-explain" : "Explain changes";
     const rows = pins.map((p) => `<button class="review-pin impact-${p.impact}${p.stale ? " stale" : ""} ${esc(p.status)}" data-review-pin="${esc(p.id)}" title="${esc(p.why || p.decision)}"><span class="review-pin-mark">◆</span><span class="review-pin-text">${esc(p.decision)}</span><span class="review-pin-ref">${esc(p.path.split("/").pop())}:${p.lineStart}</span></button>`).join("");
-    return `<div class="review-pins"><div class="review-pins-head"><strong>Decisions</strong><span>${pins.length ? open + " to confirm" : ""}</span><button class="review-explain" data-review-explain ${explaining || !S2.review?.queue?.total ? "disabled" : ""}>${label}</button></div>${rows ? `<div class="review-pin-list">${rows}</div>` : ""}</div>`;
+    return `<div class="review-pins"><div class="review-pins-head"><strong>Decisions</strong><span>${pins.length ? open + " unread" : ""}</span><button class="review-explain" data-review-explain ${explaining || !S2.review?.queue?.total ? "disabled" : ""}>${label}</button></div>${rows ? `<div class="review-pin-list">${rows}</div>` : ""}</div>`;
   }
   function itemMarkup(item) {
     const state = item.state || "unreviewed";
@@ -6403,8 +6391,7 @@
         return;
       }
       if (action === "ask") {
-        const alts = pin.alternatives?.length ? " over " + pin.alternatives.join(" / ") : "";
-        openComment({ path: pin.path, l1: pin.lineStart, l2: pin.lineEnd }, `Why ${pin.decision}${alts}?`);
+        openComment({ path: pin.path, l1: pin.lineStart, l2: pin.lineEnd }, `Why was this needed: ${pin.decision}?`);
         return;
       }
       if (action === "accept" || action === "reopen") {
@@ -6415,7 +6402,7 @@
         await refreshReviewQueue();
         revealPin(pin.id);
         if (action === "accept")
-          showToast("✓", j.remembered ? "Accepted and remembered for future reviews" : "Accepted (lines too short to remember)");
+          showToast("✓", j.remembered ? "Marked as understood and remembered" : "Marked as understood");
         return;
       }
       if (action === "switch") {
@@ -6606,6 +6593,82 @@
     }
   }
 
+  // web/src/worktree.js
+  var nameEl = () => $("#root-name");
+  var menuEl = () => $("#worktree-menu");
+  var list = [];
+  var open = false;
+  async function loadWorktrees() {
+    try {
+      const j = await api("/api/worktrees");
+      list = j.worktrees || [];
+    } catch {
+      list = [];
+    }
+    draw2();
+  }
+  function current2() {
+    return list.find((w) => w.current);
+  }
+  function draw2() {
+    const btn = nameEl();
+    const menu2 = menuEl();
+    if (!btn || !menu2)
+      return;
+    const here = current2();
+    btn.textContent = S2.meta?.name || here?.name || "-";
+    btn.classList.toggle("has-worktrees", list.length > 1);
+    btn.title = list.length > 1 ? here?.branch ? `${here.branch} · ${S2.meta?.root}
+Switch worktree` : "Switch worktree" : S2.meta?.root || "";
+    menu2.innerHTML = list.map((w) => `
+    <button class="worktree-item${w.current ? " active" : ""}${w.missing ? " missing" : ""}" data-worktree="${w.path.replace(/"/g, "&quot;")}" ${w.missing ? "disabled" : ""}>
+      <span class="worktree-name">${w.name}</span>
+      <span class="worktree-branch">${w.missing ? "missing" : w.branch || w.head?.slice(0, 7) || ""}</span>
+    </button>`).join("");
+  }
+  function setOpen(next) {
+    open = next && list.length > 1;
+    menuEl()?.toggleAttribute("hidden", !open);
+    nameEl()?.classList.toggle("open", open);
+  }
+  async function pick2(path) {
+    setOpen(false);
+    try {
+      const res = await apiPost("/api/worktree/switch", undefined, {
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path })
+      });
+      if (!res.switched)
+        return;
+      showToast("✓", "Switched worktree");
+      setTimeout(() => location.reload(), 250);
+    } catch (e) {
+      showToast("!", e.message);
+    }
+  }
+  function initWorktrees() {
+    nameEl()?.addEventListener("click", (e) => {
+      if (list.length < 2)
+        return;
+      e.stopPropagation();
+      setOpen(!open);
+    });
+    menuEl()?.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-worktree]");
+      if (btn)
+        pick2(btn.dataset.worktree);
+    });
+    document.addEventListener("click", (e) => {
+      if (open && !e.target.closest("#worktree-menu, #root-name"))
+        setOpen(false);
+    });
+    document.addEventListener("keydown", (e) => {
+      if (open && e.key === "Escape")
+        setOpen(false);
+    });
+    loadWorktrees();
+  }
+
   // web/src/main.js
   initRenderer();
   initTabs();
@@ -6654,6 +6717,7 @@
     document.title = S2.meta.name + " - px1";
     $("#root-name").textContent = S2.meta.name;
     $("#root-name").title = S2.meta.root;
+    initWorktrees();
     if (S2.meta.version) {
       const emptyVerEl = $("#empty-ver");
       if (emptyVerEl)

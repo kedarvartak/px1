@@ -139,6 +139,30 @@ func newReviewManager(root string) *reviewManager {
 	return m
 }
 
+// SetRoot points the manager at another checkout. Sessions are keyed by root,
+// so each worktree keeps its own baseline, comments and pins.
+func (m *reviewManager) SetRoot(root string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.root = root
+	m.active = nil
+	if m.state == "" {
+		return
+	}
+	b, err := os.ReadFile(m.activePath())
+	if err != nil {
+		return
+	}
+	var pointer struct {
+		ID string `json:"id"`
+	}
+	if json.Unmarshal(b, &pointer) == nil && pointer.ID != "" {
+		if s, err := m.load(pointer.ID); err == nil && s.Root == root && s.ClosedAt == nil {
+			m.active = s
+		}
+	}
+}
+
 func (m *reviewManager) workspaceKey() string {
 	s := sha256.Sum256([]byte(m.root))
 	return hex.EncodeToString(s[:])
@@ -206,51 +230,67 @@ func reviewHead(root string) string {
 // execOutput exists so review code has one small, testable seam around Git.
 var execOutput = func(name string, args ...string) ([]byte, error) { return exec.Command(name, args...).Output() }
 
+// snapshotTree records every reviewable file: the same set the index walks.
+// Gitignored paths (node_modules, build output, virtualenvs) are skipped, as
+// are symbolic links and special files, which an agent's source change never
+// needs and which would otherwise make a real repository unreviewable.
 func snapshotTree(root, copyTo string) ([]reviewFile, []string, error) {
 	var files []reviewFile
 	var dirs []string
-	err := filepath.WalkDir(root, func(abs string, d fs.DirEntry, err error) error {
+	var walk func(abs, rel string, ig *ignoreSet) error
+	walk = func(abs, rel string, ig *ignoreSet) error {
+		if rel != "" {
+			if extra := readGitignore(abs, rel); len(extra) > 0 {
+				ig = ig.child(extra)
+			}
+		}
+		ents, err := os.ReadDir(abs)
 		if err != nil {
 			return err
 		}
-		rel, err := filepath.Rel(root, abs)
-		if err != nil {
-			return err
-		}
-		if rel == "." {
-			return nil
-		}
-		if d.IsDir() && d.Name() == ".git" {
-			return filepath.SkipDir
-		}
-		if d.Type()&fs.ModeSymlink != 0 {
-			return errors.New("review sessions do not support symbolic links: " + filepath.ToSlash(rel))
-		}
-		if d.IsDir() {
-			dirs = append(dirs, filepath.ToSlash(rel))
-			return nil
-		}
-		if !d.Type().IsRegular() {
-			return errors.New("review sessions do not support special files: " + filepath.ToSlash(rel))
-		}
-		b, err := os.ReadFile(abs)
-		if err != nil {
-			return err
-		}
-		info, err := d.Info()
-		if err != nil {
-			return err
-		}
-		h := sha256.Sum256(b)
-		p := filepath.ToSlash(rel)
-		files = append(files, reviewFile{Path: p, Mode: info.Mode().Perm(), Size: int64(len(b)), Hash: hex.EncodeToString(h[:])})
-		if copyTo != "" {
-			if err := writeAtomic(filepath.Join(copyTo, filepath.FromSlash(p)), b, info.Mode().Perm()); err != nil {
+		for _, e := range ents {
+			name := e.Name()
+			p := name
+			if rel != "" {
+				p = rel + "/" + name
+			}
+			if e.Type()&fs.ModeSymlink != 0 {
+				continue
+			}
+			isDir := e.IsDir()
+			if vcsDirs[name] || ig.match(p, isDir) {
+				continue
+			}
+			childAbs := filepath.Join(abs, name)
+			if isDir {
+				dirs = append(dirs, p)
+				if err := walk(childAbs, p, ig); err != nil {
+					return err
+				}
+				continue
+			}
+			if !e.Type().IsRegular() {
+				continue
+			}
+			b, err := os.ReadFile(childAbs)
+			if err != nil {
 				return err
+			}
+			info, err := e.Info()
+			if err != nil {
+				return err
+			}
+			h := sha256.Sum256(b)
+			files = append(files, reviewFile{Path: p, Mode: info.Mode().Perm(), Size: int64(len(b)), Hash: hex.EncodeToString(h[:])})
+			if copyTo != "" {
+				if err := writeAtomic(filepath.Join(copyTo, filepath.FromSlash(p)), b, info.Mode().Perm()); err != nil {
+					return err
+				}
 			}
 		}
 		return nil
-	})
+	}
+	err := walk(root, "", newIgnoreSet(nil).child(readGitignore(root, "")))
 	return files, dirs, err
 }
 

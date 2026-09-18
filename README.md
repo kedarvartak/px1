@@ -48,9 +48,10 @@ make dist
 - **Remote-First, Zero SSH Hassle**: Spin up on any remote server, cloud instance, or runner in < 1 ms. Inspect remote code in your local browser over a single port (Tailscale, WireGuard, reverse proxy, or tunnel) without SSH key setups, port forwarding churn, or remote extension daemons.
 - **Rich Syntax Highlighting**: Native tokenization for ~280 languages via Chroma with windowed rendering.
 - **Git Awareness & Visual Diffs**: Status badges (`M`, `A`, `D`, `U`, `R`), dirty folder ancestry propagation, changed-files filter, and side-by-side / unified diffs vs `HEAD` (`Cmd/Ctrl+D`).
+- **Worktree Switcher**: Agents often work in a `git worktree add` directory, where the files they change are not in the folder px1 was started in. The workspace name in the sidebar header lists every checkout of the repository with its branch; picking one re-points px1 at it. Each checkout keeps its own review session, decisions and rules.
 - **Review Sessions**: Capture a recoverable task baseline outside the repository, detect files changed since review began, and restore the workspace to that baseline when needed.
 - **Human Review Cockpit**: Review only task-session changes, open task-baseline diffs, mark files reviewed, leave line-anchored feedback, ask the local agent to address current comments, make a narrow Patch Mode correction, undo it, or restore a normal hunk to the task baseline.
-- **Decision Pins**: Every non-obvious choice an agent made (library, data shape, security, limits) appears as a short pin on the lines it affects, ranked by impact. Expand a pin to see why and the options not taken, then **Accept**, **Ask**, or **Switch** to an alternative and let the agent rework the change.
+- **Decision Pins**: Each meaningful change an agent made appears as a short, plain-language note on the lines it affects, ranked by impact: one line for what changed and one or two for why it was needed. Notes explain, they never propose other ways to write the code; mark one **Got it** or **Ask why**.
 - **Decision Memory**: Accepting or switching a pin remembers that decision for the workspace. Lines behind a remembered decision carry a ◆ in the gutter with the decision, reason, and date on hover, and a later review flags any change that removes that code as **Reversed decisions**, with **Ask agent to keep it**, **Decision changed**, or **Still holds**.
 - **Review Memory**: Turn a review comment into a rule with **Comment + rule**: a pattern, a file glob, and the message. px1 prefills the pattern from the selected code or asks the harness to **Suggest** one, then checks the lines every later task adds. Hits appear under the offending line and in **Rule hits**, where **Send to agent** turns them into review comments and dispatches the fix. Teams share rules by committing `.px1/rules.json`, which px1 only reads.
 - **Revision-Linked Verification**: Run explicitly configured tests, lint, or typechecks from the review queue. Results become stale if reviewed files change after the run.
@@ -188,15 +189,15 @@ Start a review session, open **Review** in the sidebar, and run a configured che
 
 ### Decision pins
 
-Click **Explain changes** in the review queue and the selected harness reads the task-baseline diff and pins each decision it made to the exact lines, without editing files. A harness dispatched from your own terminal can also push pins while it works:
+Click **Explain changes** in the review queue and the selected harness reads the task-baseline diff and pins a plain-language note to the exact lines: what changed (under 10 words) and why it was needed in the first place (under 25 words). The prompt forbids describing how the code works, code names, and alternatives, and the harness never edits files. A harness dispatched from your own terminal can also push notes while it works:
 
 ```sh
 curl -s -X POST http://127.0.0.1:7777/api/review/pins \
   -H 'Origin: http://127.0.0.1:7777' \
-  -d '{"pins":[{"path":"auth/login.go","lineStart":18,"lineEnd":19,"decision":"JWT in httpOnly cookie","why":"stateless; API is already REST","alternatives":["server sessions","localStorage"],"impact":3}]}'
+  -d '{"pins":[{"path":"auth/login.go","lineStart":18,"lineEnd":19,"decision":"Login now keeps you signed in safely","why":"Sessions were lost on refresh, and tokens in the page could be stolen by injected scripts.","impact":3}]}'
 ```
 
-`impact` is 1 (low) to 3 (high). A pin whose lines change afterwards is marked **lines changed** and can no longer be switched.
+`impact` is 1 (low) to 3 (high). `decision` is cut to 90 characters and `why` to 180. A note whose lines change afterwards is marked **lines changed**.
 
 Accepted and switched pins are remembered in `~/.px1/decisions/` (or `$XDG_CONFIG_HOME/px1/decisions/`), one file per workspace, never inside the repository. **Decision changed** retires a decision; **Still holds** allows the change for the current review only.
 

@@ -260,14 +260,11 @@ function challengeCard(ch, at) {
   head.append(mark, text, ref);
   const body = document.createElement('div');
   body.className = 'pin-body';
-  const lines = [];
-  if (ch.why) lines.push(['why', ch.why]);
-  if (ch.alternatives?.length) lines.push(['not', ch.alternatives.join(' · ')]);
-  for (const [k, v] of lines) {
-    const el = document.createElement('div');
-    el.className = 'pin-line';
-    el.innerHTML = '<span>' + k + '</span>' + esc(v);
-    body.append(el);
+  if (ch.why) {
+    const why = document.createElement('p');
+    why.className = 'pin-why';
+    why.textContent = ch.why;
+    body.append(why);
   }
   const acts = document.createElement('div');
   acts.className = 'pin-acts';
@@ -305,6 +302,9 @@ function pinButton(label, action, pin, choice) {
   return b;
 }
 
+/* An explanation, not a proposal: what changed and why it was needed, in at
+   most two lines each. The only actions record that it was understood or ask
+   for more; nothing here offers a different way to write the code. */
 export function pinCard(pin) {
   const card = document.createElement('div');
   card.className = 'pin impact-' + pin.impact + ' pin-' + pin.status + (pin.stale ? ' pin-stale' : '');
@@ -313,47 +313,43 @@ export function pinCard(pin) {
   head.className = 'pin-head';
   const mark = document.createElement('span');
   mark.className = 'pin-mark';
-  mark.textContent = '◆';
   const text = document.createElement('span');
   text.className = 'pin-decision';
-  text.textContent = pin.status === 'switched' && pin.choice ? pin.decision + ' → ' + pin.choice : pin.decision;
+  text.textContent = pin.decision;
   const ref = document.createElement('span');
   ref.className = 'pin-ref';
   ref.textContent = lineLabel(pin);
-  head.append(mark, text, ref);
-  const state = pin.stale ? 'lines changed' : pin.status === 'proposed' ? '' : pin.status;
+  head.append(mark, text);
+  const state = pin.stale ? 'lines changed' : pin.status === 'accepted' ? 'understood' : '';
   if (state) {
     const tag = document.createElement('span');
     tag.className = 'pin-tag';
     tag.textContent = state;
     head.append(tag);
   }
+  head.append(ref);
+  card.append(head);
+  if (pin.why) {
+    const why = document.createElement('p');
+    why.className = 'pin-why';
+    why.textContent = pin.why;
+    card.append(why);
+  }
   const body = document.createElement('div');
   body.className = 'pin-body';
   body.hidden = true;
-  if (pin.why) {
-    const why = document.createElement('div');
-    why.className = 'pin-line';
-    why.innerHTML = '<span>why</span>' + esc(pin.why);
-    body.append(why);
-  }
-  if (pin.alternatives?.length) {
-    const not = document.createElement('div');
-    not.className = 'pin-line';
-    not.innerHTML = '<span>not</span>' + pin.alternatives.map(esc).join(' · ');
-    body.append(not);
-  }
   const acts = document.createElement('div');
   acts.className = 'pin-acts';
   if (pin.status !== 'proposed') acts.append(pinButton('Reopen', 'reopen', pin));
-  else if (!pin.stale) acts.append(pinButton('Accept', 'accept', pin));
-  acts.append(pinButton('Ask', 'ask', pin));
-  if (!pin.stale && pin.status !== 'switched') {
-    for (const alt of pin.alternatives || []) acts.append(pinButton('Switch → ' + alt, 'switch', pin, alt));
-  }
+  else if (!pin.stale) acts.append(pinButton('Got it', 'accept', pin));
+  acts.append(pinButton('Ask why', 'ask', pin));
   body.append(acts);
-  head.addEventListener('click', () => { body.hidden = !body.hidden; card.classList.toggle('open', !body.hidden); });
-  card.append(head, body);
+  card.addEventListener('click', e => {
+    if (e.target.closest('.pin-body')) return;
+    body.hidden = !body.hidden;
+    card.classList.toggle('open', !body.hidden);
+  });
+  card.append(body);
   return card;
 }
 

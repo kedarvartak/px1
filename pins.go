@@ -15,8 +15,8 @@ import (
 
 const (
 	pinMaxBatch       = 50
-	pinMaxDecision    = 200
-	pinMaxWhy         = 400
+	pinMaxDecision    = 90
+	pinMaxWhy         = 180
 	pinMaxAlternative = 120
 	pinMaxAlternates  = 4
 	pinPromptBytes    = 60 << 10
@@ -241,10 +241,11 @@ func (m *reviewManager) ExplainPrompt() (string, error) {
 		return "", errors.New("no reviewable changes to explain")
 	}
 	var b strings.Builder
-	b.WriteString("You are annotating a code change for a human reviewer. Do not edit any files.\n\n")
-	b.WriteString("List every non-obvious decision this change makes: design, library, data shape, security, error handling, limits. Skip trivial edits.\n\n")
+	b.WriteString("You are explaining a code change to someone who wants to understand it without reading the code. Do not edit any files.\n\n")
+	b.WriteString("Pick the meaningful changes and, for each, say in plain everyday words what changed and why it was needed in the first place: the problem, goal, or requirement behind it. ")
+	b.WriteString("Do not describe how the code works. No function, variable, or file names, no code syntax, no jargon, and no alternatives or suggestions. Skip trivial edits.\n\n")
 	b.WriteString("Reply with only a JSON array, no prose, where each element is:\n")
-	b.WriteString(`{"path":"<file>","lineStart":<n>,"lineEnd":<n>,"decision":"<what was chosen, under 12 words>","why":"<reason, under 15 words>","alternatives":["<option not taken, under 6 words>"],"impact":<1 low, 2 medium, 3 high>}`)
+	b.WriteString(`{"path":"<file>","lineStart":<n>,"lineEnd":<n>,"decision":"<what changed, one short plain sentence, under 10 words>","why":"<why it was needed, one or two short plain sentences, under 25 words>","impact":<1 low, 2 medium, 3 high>}`)
 	b.WriteString("\n\nLine numbers refer to the current file (the + side of each diff). Order by impact, highest first. At most 12 elements.\n\n")
 	b.WriteString(body.String())
 	if truncated {
@@ -343,6 +344,7 @@ func (s *Server) handleReviewPinsExplain(w http.ResponseWriter, r *http.Request)
 		} else {
 			valid := make([]pinInput, 0, len(pins))
 			for _, p := range pins {
+				p.Alternatives = nil
 				if _, clean, ok := s.safePath(p.Path); ok && clean != "" {
 					p.Path = clean
 					if _, err := s.review.AddPins([]pinInput{p}, "explain", false); err == nil {

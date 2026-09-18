@@ -21,6 +21,7 @@ import { initAgent, applyAgentMeta, loadAgentAsync } from './agent.js';
 import { initMetrics, initStatusFit, updateMetricsDisplay, updateStatus } from './status.js';
 import { initSettings } from './settings.js';
 import { initReviewQueue, refreshReviewQueue } from './review.js';
+import { initWorktrees } from './worktree.js';
 
 // Initialize all subsystems
 initRenderer();
@@ -76,6 +77,7 @@ initReviewQueue();
   document.title = S.meta.name + ' - px1';
   $('#root-name').textContent = S.meta.name;
   $('#root-name').title = S.meta.root;
+  initWorktrees();
   if (S.meta.version) {
     const emptyVerEl = $('#empty-ver');
     if (emptyVerEl) emptyVerEl.textContent = 'v' + S.meta.version;
