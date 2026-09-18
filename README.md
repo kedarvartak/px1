@@ -50,7 +50,7 @@ install -d ~/.local/bin && install px1 ~/.local/bin/
 
 ## Demos
 
-[CLI to review](output/demos/cli-to-review.mp4) shows the npm-installed command opening a workspace and moving from the terminal into review. A [WebM version](output/demos/cli-to-review.webm) is included for browsers that prefer it.
+[CLI to review with voiceover](output/demos/cli-to-review-vo.mp4) shows the npm-installed command opening a workspace and moving from the terminal into review. The original [silent MP4](output/demos/cli-to-review.mp4) and a [WebM version](output/demos/cli-to-review.webm) are also included.
 
 ## Use
 

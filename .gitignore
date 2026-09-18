@@ -24,3 +24,4 @@ build/
 # Logs
 *.log
 px0
+.env
