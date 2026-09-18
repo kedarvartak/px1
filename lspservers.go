@@ -450,6 +450,22 @@ func (m *lspManager) CloseDoc(abs, rel string) {
 	}
 }
 
+// SetRoot stops every server and points discovery at another checkout: a
+// language server is started inside one workspace root and cannot follow.
+func (m *lspManager) SetRoot(root string) {
+	m.Close()
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.root = root
+	m.byExt = map[string]*lspServerDef{}
+	m.clients = map[string]*lspClient{}
+	m.starting = map[string]chan struct{}{}
+	m.failed = map[string]string{}
+	m.available = nil
+	m.restarts = map[string]int{}
+	m.discovered = false
+}
+
 func (m *lspManager) Close() {
 	m.mu.Lock()
 	clients := make([]*lspClient, 0, len(m.clients))

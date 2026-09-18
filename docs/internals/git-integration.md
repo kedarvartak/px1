@@ -110,3 +110,13 @@ Unlike the main code view, the diff is **not** rendered through the virtualized 
 Every rendered row that exists in the working tree carries its line in `data-l`, on both halves of a split context row; a deleted row carries `data-at`, the working-tree line it sat before. `selbar.js` reads these so a selection anywhere in the diff can drive the selection bar, the right-click menu and Edit with Agent (see [Harness Editing & Agent Dispatch](agent-editing.md)).
 
 Both layouts share the same hunk-header, line-number, marker, and code-cell builders; only the row-shape (one column vs. two) differs, so a fix to how a line renders never needs to be made twice.
+
+## 6. Worktrees
+
+`git worktree list --porcelain` gives px1 every checkout of the repository (`worktrees` in [`git.go`](../../git.go)): path, branch, HEAD, which one is the main checkout, which one is being served, and whether the directory still exists. An agent told to work on a branch frequently runs in one of these, so the files it changed are not in the directory px1 was launched in; without the switcher the review queue simply looks empty.
+
+- **Listing.** `GET /api/worktrees` is read-only and returns an empty list outside a git repository, which hides the switcher in the UI.
+- **Switching.** `POST /api/worktree/switch` accepts only a path git itself lists, so it never becomes a way to open an arbitrary directory. It re-points each root-bound manager through its own `SetRoot` — index, language servers (stopped first: a server is started inside one root and cannot follow), checks, review sessions, decision memory and rules — then rebuilds the index. It refuses while an agent edit is in flight, since that harness is writing into the old checkout.
+- **Per-checkout state.** Review sessions, decisions and rules are keyed by workspace root, so each worktree keeps its own baseline, comments, pins and rule hits. Switching therefore never carries one branch's review into another.
+- **The gitfile.** In a linked worktree `.git` is a file pointing at the main repository, not a directory, so the index and the review snapshot skip `.git` by name rather than by type.
+- **Client.** [`web/src/worktree.js`](../../web/src/worktree.js) fills the header menu and reloads the page after a successful switch: open tabs, the tree and the review queue all belong to the previous checkout.

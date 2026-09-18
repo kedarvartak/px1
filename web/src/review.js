@@ -85,7 +85,7 @@ function pinsMarkup() {
   const open = pins.filter(p => p.status === 'proposed' && !p.stale).length;
   const label = explaining ? 'Explaining…' : pins.length ? 'Re-explain' : 'Explain changes';
   const rows = pins.map(p => `<button class="review-pin impact-${p.impact}${p.stale ? ' stale' : ''} ${esc(p.status)}" data-review-pin="${esc(p.id)}" title="${esc(p.why || p.decision)}"><span class="review-pin-mark">◆</span><span class="review-pin-text">${esc(p.decision)}</span><span class="review-pin-ref">${esc(p.path.split('/').pop())}:${p.lineStart}</span></button>`).join('');
-  return `<div class="review-pins"><div class="review-pins-head"><strong>Decisions</strong><span>${pins.length ? open + ' to confirm' : ''}</span><button class="review-explain" data-review-explain ${explaining || !(S.review?.queue?.total) ? 'disabled' : ''}>${label}</button></div>${rows ? `<div class="review-pin-list">${rows}</div>` : ''}</div>`;
+  return `<div class="review-pins"><div class="review-pins-head"><strong>Decisions</strong><span>${pins.length ? open + ' unread' : ''}</span><button class="review-explain" data-review-explain ${explaining || !(S.review?.queue?.total) ? 'disabled' : ''}>${label}</button></div>${rows ? `<div class="review-pin-list">${rows}</div>` : ''}</div>`;
 }
 
 function itemMarkup(item) {
@@ -411,8 +411,7 @@ async function onPin(action, pin, choice) {
       return;
     }
     if (action === 'ask') {
-      const alts = pin.alternatives?.length ? ' over ' + pin.alternatives.join(' / ') : '';
-      openComment({ path: pin.path, l1: pin.lineStart, l2: pin.lineEnd }, `Why ${pin.decision}${alts}?`);
+      openComment({ path: pin.path, l1: pin.lineStart, l2: pin.lineEnd }, `Why was this needed: ${pin.decision}?`);
       return;
     }
     if (action === 'accept' || action === 'reopen') {
@@ -422,7 +421,7 @@ async function onPin(action, pin, choice) {
       });
       await refreshReviewQueue();
       revealPin(pin.id);
-      if (action === 'accept') showToast('✓', j.remembered ? 'Accepted and remembered for future reviews' : 'Accepted (lines too short to remember)');
+      if (action === 'accept') showToast('✓', j.remembered ? 'Marked as understood and remembered' : 'Marked as understood');
       return;
     }
     if (action === 'switch') {

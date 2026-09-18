@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -224,4 +225,62 @@ func parseNewStart(hdr string) int {
 		return n
 	}
 	return 1
+}
+
+// worktree is one checkout of the repository: the main one plus every
+// `git worktree add` directory. An agent told to work on a branch often runs in
+// one of these, so px1 has to be able to look at them, not only the directory
+// it was started in.
+type worktree struct {
+	Path    string `json:"path"`
+	Name    string `json:"name"`
+	Branch  string `json:"branch,omitempty"`
+	Head    string `json:"head,omitempty"`
+	Main    bool   `json:"main"`
+	Current bool   `json:"current"`
+	Missing bool   `json:"missing,omitempty"`
+}
+
+// worktrees lists the checkouts of root's repository, main one first. The list
+// is empty outside a git repository, which is what hides the switcher.
+func worktrees(root string) []worktree {
+	if !gitAvailable(root) {
+		return nil
+	}
+	out, err := exec.Command("git", "-C", root, "worktree", "list", "--porcelain").Output()
+	if err != nil {
+		return nil
+	}
+	current := resolvePathOrSelf(root)
+	var list []worktree
+	var cur *worktree
+	for _, line := range strings.Split(string(out), "\n") {
+		switch {
+		case strings.HasPrefix(line, "worktree "):
+			p := strings.TrimPrefix(line, "worktree ")
+			list = append(list, worktree{Path: p, Name: filepath.Base(p), Main: len(list) == 0})
+			cur = &list[len(list)-1]
+			cur.Current = resolvePathOrSelf(p) == current
+			if fi, err := os.Stat(p); err != nil || !fi.IsDir() {
+				cur.Missing = true
+			}
+		case cur == nil:
+		case strings.HasPrefix(line, "HEAD "):
+			cur.Head = strings.TrimPrefix(line, "HEAD ")
+		case strings.HasPrefix(line, "branch "):
+			cur.Branch = strings.TrimPrefix(strings.TrimPrefix(line, "branch "), "refs/heads/")
+		case line == "detached":
+			cur.Branch = "detached"
+		}
+	}
+	return list
+}
+
+// resolvePathOrSelf follows symlinks so /tmp and /private/tmp style pairs
+// compare equal; an unresolvable path is compared as given.
+func resolvePathOrSelf(p string) string {
+	if r, err := filepath.EvalSymlinks(p); err == nil {
+		return r
+	}
+	return filepath.Clean(p)
 }

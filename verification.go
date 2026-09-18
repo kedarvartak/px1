@@ -28,6 +28,14 @@ type verificationManager struct {
 	jobs map[string]*verificationResult
 }
 
+// SetRoot points checks at another checkout and drops results from the old one.
+func (m *verificationManager) SetRoot(root string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.root = root
+	m.jobs = map[string]*verificationResult{}
+}
+
 func newVerificationManager(root string) *verificationManager {
 	return &verificationManager{root: root, jobs: map[string]*verificationResult{}}
 }

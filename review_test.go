@@ -353,3 +353,66 @@ func TestReviewBaselineDiffUsesTaskStartSnapshot(t *testing.T) {
 		t.Fatalf("unexpected baseline diff:\n%s", diff)
 	}
 }
+
+func TestReviewSessionSkipsIgnoredPathsAndSymlinks(t *testing.T) {
+	isolateSettings(t)
+	root := t.TempDir()
+	write := func(rel, body string) {
+		t.Helper()
+		p := filepath.Join(root, filepath.FromSlash(rel))
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write(".gitignore", "coverage/\n")
+	write("backend/app.js", "export const a = 1\n")
+	write("backend/node_modules/acorn/bin/acorn", "#!/usr/bin/env node\n")
+	write("backend/coverage/report.txt", "old\n")
+	if err := os.MkdirAll(filepath.Join(root, "backend", "node_modules", ".bin"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink("../acorn/bin/acorn", filepath.Join(root, "backend", "node_modules", ".bin", "acorn")); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+	if err := os.Symlink("app.js", filepath.Join(root, "backend", "link.js")); err != nil {
+		t.Fatal(err)
+	}
+
+	m := newReviewManager(root)
+	session, err := m.Start()
+	if err != nil {
+		t.Fatalf("start failed on a repo with node_modules symlinks: %v", err)
+	}
+	for _, f := range session.Files {
+		if strings.Contains(f.Path, "node_modules") || strings.Contains(f.Path, "coverage") || f.Path == "backend/link.js" {
+			t.Fatalf("snapshot included %s", f.Path)
+		}
+	}
+
+	write("backend/app.js", "export const a = 2\n")
+	write("backend/node_modules/acorn/bin/acorn", "changed\n")
+	write("backend/coverage/report.txt", "new\n")
+	q, err := m.Queue()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(q.Items) != 1 || q.Items[0].Path != "backend/app.js" {
+		t.Fatalf("queue = %#v", q.Items)
+	}
+
+	if _, err := m.Restore(); err != nil {
+		t.Fatal(err)
+	}
+	if b, _ := os.ReadFile(filepath.Join(root, "backend", "app.js")); string(b) != "export const a = 1\n" {
+		t.Fatalf("app.js not restored: %q", b)
+	}
+	if _, err := os.Lstat(filepath.Join(root, "backend", "node_modules", ".bin", "acorn")); err != nil {
+		t.Fatalf("restore removed an ignored symlink: %v", err)
+	}
+	if b, _ := os.ReadFile(filepath.Join(root, "backend", "coverage", "report.txt")); string(b) != "new\n" {
+		t.Fatalf("restore touched an ignored file: %q", b)
+	}
+}

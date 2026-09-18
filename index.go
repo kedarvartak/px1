@@ -31,6 +31,8 @@ type Node struct {
 
 // vcsDirs are version control internals. Unlike other ignored entries they are
 // not even listed: nobody reads them, and .git is present in nearly every repo.
+// In a linked worktree .git is a file pointing at the main repository, so the
+// check never tests for a directory.
 var vcsDirs = map[string]bool{".git": true, ".hg": true, ".svn": true}
 
 type Index struct {
@@ -48,7 +50,23 @@ func NewIndex(root string) *Index {
 	return &Index{root: root, children: map[string][]Node{}, readyCh: make(chan struct{})}
 }
 
-func (ix *Index) Root() string { return ix.root }
+func (ix *Index) Root() string {
+	ix.mu.RLock()
+	defer ix.mu.RUnlock()
+	return ix.root
+}
+
+// SetRoot points the index at another directory, dropping everything read from
+// the old one. Build must follow; until it does the index is empty, not stale.
+func (ix *Index) SetRoot(root string) {
+	ix.mu.Lock()
+	defer ix.mu.Unlock()
+	ix.root = root
+	ix.files = nil
+	ix.children = map[string][]Node{}
+	ix.builtAt = time.Time{}
+	ix.buildMS = 0
+}
 
 func (ix *Index) Ready() bool {
 	select {
@@ -127,7 +145,7 @@ func (ix *Index) underIgnoredLocked(dir string) bool {
 }
 
 func (ix *Index) listIgnored(dir string) ([]Node, bool) {
-	ents, err := os.ReadDir(filepath.Join(ix.root, filepath.FromSlash(dir)))
+	ents, err := os.ReadDir(filepath.Join(ix.Root(), filepath.FromSlash(dir)))
 	if err != nil {
 		return nil, false
 	}
@@ -158,8 +176,9 @@ func sortNodes(kids []Node) {
 // the frontend can display the file tree without waiting for the full repo scan.
 func (ix *Index) Build() {
 	start := time.Now()
+	rootPath := ix.Root()
 	root := newIgnoreSet(nil)
-	root = root.child(readGitignore(ix.root, ""))
+	root = root.child(readGitignore(rootPath, ""))
 
 	var (
 		mu       sync.Mutex
@@ -173,7 +192,7 @@ func (ix *Index) Build() {
 	// concurrently with the walk instead of serially after it — on large repos
 	// the ~80ms subprocess overlaps the tree scan rather than adding to it.
 	gsCh := make(chan map[string]string, 1)
-	go func() { gsCh <- gitStatus(ix.root) }()
+	go func() { gsCh <- gitStatus(rootPath) }()
 
 	var walk func(abs, rel string, ig *ignoreSet)
 	walk = func(abs, rel string, ig *ignoreSet) {
@@ -202,12 +221,15 @@ func (ix *Index) Build() {
 			if e.Type()&os.ModeSymlink != 0 {
 				continue
 			}
+			// Never listed: a directory in the main checkout, a gitfile in a
+			// linked worktree, and of no interest to a reader either way.
+			if vcsDirs[name] {
+				continue
+			}
 			if ig.match(childRel, isDir) {
 				// Listed so the tree can show it dimmed, but never walked or
 				// indexed, so search and quick open stay out of it.
-				if !(isDir && vcsDirs[name]) {
-					kids = append(kids, Node{Name: name, Path: childRel, Dir: isDir, Ignored: true})
-				}
+				kids = append(kids, Node{Name: name, Path: childRel, Dir: isDir, Ignored: true})
 				continue
 			}
 			if isDir {
@@ -258,7 +280,7 @@ func (ix *Index) Build() {
 	}
 
 	wg.Add(1)
-	walk(ix.root, "", root)
+	walk(rootPath, "", root)
 	wg.Wait()
 
 	sort.Slice(files, func(i, j int) bool { return files[i].Path < files[j].Path })

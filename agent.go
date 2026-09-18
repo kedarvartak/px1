@@ -574,6 +574,21 @@ func (m *agentManager) Detect() []agentHarness {
 	return out
 }
 
+// SetRoot points dispatch at another checkout. It refuses while an edit is in
+// flight: that harness is writing into the old one.
+func (m *agentManager) SetRoot(root string) error {
+	if m == nil {
+		return nil
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.anyRunningLocked() {
+		return errAgentBusy
+	}
+	m.root = root
+	return nil
+}
+
 func (m *agentManager) Name() string {
 	if m == nil {
 		return ""
