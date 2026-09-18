@@ -162,3 +162,19 @@ func TestChecksumForRejectsMissingAndMalformedEntries(t *testing.T) {
 		})
 	}
 }
+
+func TestIsNodeModulesPath(t *testing.T) {
+	for _, p := range []string{
+		"/home/u/project/node_modules/px1-cli-linux-x64/bin/px1",
+		`C:\src\app\node_modules\px1-cli-win32-x64\bin\px1.exe`,
+	} {
+		if !isNodeModulesPath(p) {
+			t.Errorf("%s: want npm install", p)
+		}
+	}
+	for _, p := range []string{"/usr/local/bin/px1", "/home/u/go/bin/px1", "/home/u/node_modulesx/px1"} {
+		if isNodeModulesPath(p) {
+			t.Errorf("%s: want ordinary install", p)
+		}
+	}
+}

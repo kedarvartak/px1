@@ -10,6 +10,9 @@ Before cutting a new release, ensure you have:
 - Go (version 1.24+).
 - Node.js (v18+ or v20+) or Bun for bundling frontend assets.
 - A clean working tree with all tests passing.
+- For npm publishing: an `NPM_TOKEN` repository secret (an npm automation token for
+  an account that owns `px1-cli` and the `px1-cli-*` platform packages). Without it
+  the release still publishes binaries; the npm step logs that it is skipping.
 
 ## 2. Pre-Release Verification
 
@@ -76,7 +79,37 @@ git push origin v0.2.0
 1. Enter the version tag (e.g. `v0.2.0`).
 1. Trigger the workflow.
 
-## 4. Post-Release Verification
+## 4. npm Packages
+
+The release workflow publishes px1 to npm as well, so `npx px1-cli` runs the
+version that was just tagged.
+
+The layout is the one esbuild uses: a wrapper package, `px1-cli`, that carries
+the `px1` command, plus one package per platform (`px1-cli-linux-x64`,
+`px1-cli-darwin-arm64`, …) holding nothing but the binary. Each platform package
+declares its own `os` and `cpu`, so npm installs only the matching one and skips
+the rest. Nothing is downloaded after install, which is what keeps px1 working
+behind a proxy, from an offline cache, and under `npm ci --ignore-scripts`.
+
+- `scripts/build-npm.js` lays the packages out in `dist-npm/` from the binaries
+  in `dist/`. `make npm` runs both steps.
+- The workflow publishes the platform packages first, then the wrapper: npm
+  rejects a version whose optional dependencies do not exist yet.
+- A version already on the registry is skipped rather than failing, so a release
+  can be re-run.
+- `--provenance` links each package to the workflow run, which is why the job
+  asks for `id-token: write`.
+
+To rehearse locally without publishing:
+
+```bash
+make npm
+cd dist-npm/px1-cli && npm pack            # inspect the tarball
+npm install -g ./dist-npm/px1-cli-linux-x64 ./dist-npm/px1-cli
+px1 --version
+```
+
+## 5. Post-Release Verification
 
 1. Verify GitHub Actions workflow completion on the Actions tab.
 1. Confirm artifacts on the [Releases](https://github.com/kedarvartak/px1/releases) page (cross-platform binaries and `checksums.txt`). The self-updater requires this file and verifies the selected binary against it before execution.
@@ -87,4 +120,8 @@ git push origin v0.2.0
 1. Verify self-update functionality:
   ```bash
   px1 --update
+  ```
+1. Verify the npm packages:
+  ```bash
+  npx px1-cli@latest --version
   ```
