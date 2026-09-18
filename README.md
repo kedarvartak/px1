@@ -1,14 +1,17 @@
 # px1
 
-```text
- ____  _  ___
-|  _ \| |/ / |
-| |_) | ' /| |
-|  __/| . \|_|
-|_|   |_|\_\(_)
+<div align="center">
 
-human control for coding agents
+```text
+██████╗ ██╗  ██╗ ██╗
+██╔══██╗╚██╗██╔╝███║
+██████╔╝ ╚███╔╝ ╚██║
+██╔═══╝  ██╔██╗  ██║
+██║     ██╔╝ ██╗ ██║
+╚═╝     ╚═╝  ╚═╝ ╚═╝
 ```
+
+</div>
 
 px1 is a fast, local control plane for reviewing coding-agent work. It opens any worktree in a browser and keeps the human in charge of what changes, why it changed, and whether it is ready.
 
@@ -33,7 +36,14 @@ Agents implement. px1 preserves human judgment.
 
 ## Install
 
-Building from source requires Go 1.25+ and Node for the bundled web assets. The resulting binary has no runtime dependencies.
+The quickest install is through npm (Node 16+):
+
+```bash
+npx px1-cli
+npm install -g px1-cli
+```
+
+The command is `px1`; the package downloads the platform binary and has no runtime dependencies beyond Node. For a source build, you need Go 1.25+ and Node for the bundled web assets:
 
 ```bash
 git clone https://github.com/kedarvartak/px1.git
@@ -41,6 +51,10 @@ cd px1
 make build
 install -d ~/.local/bin && install px1 ~/.local/bin/
 ```
+
+## Demos
+
+[CLI to review](output/demos/cli-to-review.mp4) shows the npm-installed command opening a workspace and moving from the terminal into review. A [WebM version](output/demos/cli-to-review.webm) is included for browsers that prefer it.
 
 ## Use
 
