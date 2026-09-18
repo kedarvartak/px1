@@ -13,10 +13,12 @@ on:
 
 permissions:
   contents: write
+  # npm provenance links each published package to this workflow run.
+  id-token: write
 
 jobs:
   build-and-release:
-    name: Build & Release px0
+    name: Build & Release px1
     runs-on: ubuntu-latest
 
     steps:
@@ -35,6 +37,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Bundle Web Assets
         run: |
@@ -58,35 +61,39 @@ jobs:
         env:
           VERSION: ${{ steps.get_version.outputs.version }}
           POSTHOG_KEY: ${{ secrets.POSTHOG_KEY }}
-        run: |
-          mkdir -p dist
-          LDFLAGS="-s -w"
-          if [ -n "$POSTHOG_KEY" ]; then
-            LDFLAGS="$LDFLAGS -X main.posthogKey=$POSTHOG_KEY"
-          fi
-          TARGETS="
-          linux/amd64 linux/arm64 linux/arm linux/386 linux/riscv64
-          darwin/amd64 darwin/arm64
-          windows/amd64 windows/arm64 windows/386
-          freebsd/amd64 freebsd/arm64 openbsd/amd64 openbsd/arm64 netbsd/amd64
-          "
-          for t in $TARGETS; do
-            os=${t%/*}
-            arch=${t#*/}
-            ext=""
-            [ "$os" = "windows" ] && ext=".exe"
-            name="px0-${VERSION}-${os}-${arch}${ext}"
-            printf "Building %-28s ... " "$name"
-            CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" \
-              go build -trimpath -ldflags="$LDFLAGS" -o "dist/$name" .
-            printf "done (%s)\n" "$(du -h "dist/$name" | cut -f1)"
-          done
+        run: ./build.sh
 
       - name: Generate Checksums
         run: |
           cd dist
-          sha256sum px0-* > checksums.txt
+          sha256sum px1-* > checksums.txt
           cat checksums.txt
+
+      - name: Build npm packages
+        run: node scripts/build-npm.js --version ${{ steps.get_version.outputs.version }}
+
+      # Platform packages first: the wrapper lists them as optional dependencies
+      # and npm rejects a version whose dependencies do not exist yet. A version
+      # already on the registry is skipped, so re-running a release is safe.
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          VERSION: ${{ steps.get_version.outputs.version }}
+        run: |
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "NPM_TOKEN is not set; skipping npm publish"
+            exit 0
+          fi
+          publish() {
+            name=$(node -p "require('./$1/package.json').name")
+            if npm view "$name@$VERSION" version >/dev/null 2>&1; then
+              echo "$name@$VERSION is already published; skipping"
+              return 0
+            fi
+            npm publish "$1" --access public --provenance
+          }
+          for dir in dist-npm/px1-cli-*; do publish "$dir"; done
+          publish dist-npm/px1-cli
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -97,5 +104,5 @@ jobs:
           prerelease: false
           generate_release_notes: true
           files: |
-            dist/px0-*
+            dist/px1-*
             dist/checksums.txt
