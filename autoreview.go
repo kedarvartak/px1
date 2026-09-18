@@ -10,10 +10,10 @@ import "os"
 // that moment would record the finished work as the starting state, leaving an
 // empty review queue.
 //
-// So px1 starts the session itself, and takes the baseline from the commit the
-// branch forked from rather than from the working tree. Everything the branch
-// has done since, committed or not, is then in the queue no matter when the
-// human arrives.
+// So px1 starts the session itself, and takes the baseline from the commit
+// checked out when the worktree was created rather than from the working tree.
+// Everything the agent has done since, committed or not, is then in the queue
+// no matter when the human arrives.
 //
 // Only linked worktrees are started this way. The main checkout is where people
 // keep unrelated work in progress, and calling that "agent changes" would be a
@@ -34,7 +34,7 @@ func (s *Server) autoStartReview() {
 	if wt == nil || wt.Main {
 		return
 	}
-	base := branchBase(root)
+	base := worktreeBase(root)
 	if base == "" {
 		return
 	}

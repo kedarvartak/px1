@@ -297,55 +297,25 @@ func worktrees(root string) []worktree {
 	return list
 }
 
-// branchBase is the commit this checkout's branch forked from: the point before
-// anything was done here. It is the honest baseline for reviewing a worktree an
-// agent has already been working in, where a snapshot taken now would record
-// that work as the starting state.
-func branchBase(root string) string {
+// worktreeBase is the commit checked out when this linked worktree was created.
+// Git keeps a separate HEAD reflog for each worktree, whose oldest entry is that
+// checkout. Unlike a merge-base with main, this excludes changes that were
+// already present on the branch (for example when the worktree starts from
+// staging) and includes only work done after the agent got this checkout.
+func worktreeBase(root string) string {
 	if !gitAvailable(root) {
 		return ""
 	}
-	head, err := exec.Command("git", "-C", root, "rev-parse", "HEAD").Output()
+	out, err := exec.Command("git", "-C", root, "reflog", "show", "--format=%H", "HEAD").Output()
 	if err != nil {
 		return ""
 	}
-	for _, ref := range defaultBranchRefs(root) {
-		out, err := exec.Command("git", "-C", root, "merge-base", "HEAD", ref).Output()
-		if err != nil {
-			continue
-		}
-		base := strings.TrimSpace(string(out))
-		// A branch that is level with the default one has no work of its own
-		// yet, so its own HEAD is the baseline.
-		if base != "" {
-			return base
-		}
+	lines := strings.Fields(string(out))
+	if len(lines) == 0 {
+		return ""
 	}
-	return strings.TrimSpace(string(head))
-}
-
-// defaultBranchRefs lists the refs a feature branch is likely to have forked
-// from, best guess first.
-func defaultBranchRefs(root string) []string {
-	var refs []string
-	if out, err := exec.Command("git", "-C", root, "symbolic-ref", "--short", "refs/remotes/origin/HEAD").Output(); err == nil {
-		if r := strings.TrimSpace(string(out)); r != "" {
-			refs = append(refs, r)
-		}
-	}
-	refs = append(refs, "origin/main", "origin/master", "main", "master")
-	seen := map[string]bool{}
-	out := refs[:0]
-	for _, r := range refs {
-		if seen[r] {
-			continue
-		}
-		seen[r] = true
-		if exec.Command("git", "-C", root, "rev-parse", "--verify", "--quiet", r+"^{commit}").Run() == nil {
-			out = append(out, r)
-		}
-	}
-	return out
+	// reflog lists newest first, so the last entry is the initial checkout.
+	return lines[len(lines)-1]
 }
 
 // resolvePathOrSelf follows symlinks so /tmp and /private/tmp style pairs

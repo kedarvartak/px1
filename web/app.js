@@ -4388,7 +4388,7 @@
     {
       key: "review.autoStart",
       title: "Start Reviews Automatically",
-      description: "Start a review session on its own when px1 opens a git worktree, with the branch's fork commit as the baseline. The main checkout is never started automatically.",
+      description: "Start a review session on its own when px1 opens a git worktree, with the commit checked out when that worktree was created as the baseline. The main checkout is never started automatically.",
       category: "Agent / AI",
       type: "boolean",
       default: true
@@ -6087,7 +6087,7 @@
 ` + j.output.slice(-1200) : checks.commands[name];
       return `<button class="review-check ${state}" data-review-check="${esc(name)}" title="${esc(detail)}" ${j?.running ? "disabled" : ""}><span>${esc(name)}</span><span>${label}</span></button>`;
     }).join("")}</div>` : '<button class="review-check-empty" data-review-setup-checks title="Add named commands under verification.commands in settings.json">Set up checks</button>';
-    queueEl.innerHTML = `<div class="review-summary"><div class="review-summary-text"><strong>Agent changes</strong><span>${reviewed} of ${count} reviewed${active.baseRef ? " · since this branch forked" : ""}</span></div><button class="review-close" data-review-close title="Close review session">Close</button><div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div></div>
+    queueEl.innerHTML = `<div class="review-summary"><div class="review-summary-text"><strong>Agent changes</strong><span>${reviewed} of ${count} reviewed${active.baseRef ? " · since worktree creation" : ""}</span></div><button class="review-close" data-review-close title="Close review session">Close</button><div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div></div>
     ${challengesMarkup()}
     ${ruleHitsMarkup()}
     ${pinsMarkup()}
