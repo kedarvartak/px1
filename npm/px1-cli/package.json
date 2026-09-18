@@ -1,0 +1,14 @@
+{
+  "name": "px1-cli",
+  "version": "0.0.0",
+  "description": "px1: a read-only code review workspace for agent-written changes. Installs the px1 command.",
+  "keywords": ["px1", "code-review", "ai", "agent", "diff", "cli"],
+  "homepage": "https://github.com/kedarvartak/px1#readme",
+  "bugs": "https://github.com/kedarvartak/px1/issues",
+  "repository": { "type": "git", "url": "git+https://github.com/kedarvartak/px1.git" },
+  "license": "MIT",
+  "bin": { "px1": "bin/px1.js" },
+  "files": ["bin", "lib", "README.md"],
+  "engines": { "node": ">=16" },
+  "optionalDependencies": {}
+}

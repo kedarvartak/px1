@@ -1,4 +1,4 @@
-.PHONY: all build web test dist publish clean help
+.PHONY: all build web test dist npm publish clean help
 
 VERSION ?= $(shell cat VERSION 2>/dev/null | tr -d ' \r\n')
 # Support 'make publish 0.2.0' where target argument is passed as next goal
@@ -29,6 +29,7 @@ help:
 	@echo "  make web               - bundle web assets (JS/CSS/themes)"
 	@echo "  make test              - run go test suite"
 	@echo "  make dist              - compile cross-platform binaries into dist/"
+	@echo "  make npm               - lay out the npm packages in dist-npm/ (needs dist/)"
 	@echo "  make publish <version> - bump VERSION, commit, tag, and build dist binaries"
 	@echo "  make clean             - remove build artifacts"
 
@@ -46,6 +47,9 @@ test: web
 
 dist: web
 	@./build.sh
+
+npm: dist
+	@node ./scripts/build-npm.js
 
 publish:
 	@if [ -z "$(CLEAN_VERSION)" ]; then \
@@ -69,4 +73,4 @@ publish:
 
 clean:
 	rm -f px1
-	rm -rf dist/
+	rm -rf dist/ dist-npm/

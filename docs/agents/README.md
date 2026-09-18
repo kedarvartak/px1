@@ -32,6 +32,7 @@ Whenever modifying, adding, or refactoring code in this repository, you must aud
 | CLI Flags / Configuration            | `main.go`                                                        | [`README.md`](../../README.md)                                                                                  |
 | Performance Metrics / Scripts        | `benchmark.sh`                                                   | [`BENCHMARKS.md`](../../BENCHMARKS.md)                                                                           |
 | Release Workflow                     | `Makefile`, `build.sh`, `scripts/build-web.js`                   | [`PUBLISHING.md`](../../PUBLISHING.md)                                                                           |
+| npm Packaging                        | `npm/px1-cli/`, `scripts/build-npm.js`, `.github/workflows/release.yml` | [`PUBLISHING.md`](../../PUBLISHING.md), [`README.md`](../../README.md)                                     |
 
 ## 3. Checklist for Agents Prior to Submitting Work
 

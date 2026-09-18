@@ -21,9 +21,28 @@ Start **Review** before asking your coding agent to work. When it finishes, px1 
 
 ## Installation
 
-### Quick Install (macOS, Linux, BSD)
+### npm (macOS, Linux, Windows)
 
-Releases will be published from this repository. Until then, build from source.
+Node 16+ is all you need; the binary itself carries no runtime.
+
+```bash
+npx px1-cli              # review the current directory, nothing installed
+npm install -g px1-cli   # then: px1 /path/to/repo
+```
+
+The command is `px1`. `px1-cli` pulls in one small package holding the binary
+for your platform (`px1-cli-darwin-arm64`, `px1-cli-linux-x64`, and so on), so
+nothing is downloaded after install and `npm ci --ignore-scripts` works.
+
+### Install script (macOS, Linux, BSD)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/kedarvartak/px1/master/install.sh | sh
+```
+
+Downloads the binary for your platform from the latest GitHub release and puts
+it on your `PATH`. Set `VERSION=0.1.6` to pin a version, or `INSTALL_DIR` to
+choose where it lands.
 
 ### Build from Source
 
@@ -40,6 +59,12 @@ To cross-compile binaries for all supported platforms:
 
 ```bash
 make dist
+```
+
+To lay out the npm packages from those binaries:
+
+```bash
+make npm
 ```
 
 ## Features

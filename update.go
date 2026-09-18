@@ -312,6 +312,13 @@ func runSelfUpdate(currentVer string) error {
 		return fmt.Errorf("could not resolve executable symlink: %w", err)
 	}
 
+	// Installed from npm: replacing the binary here would work until the next
+	// install put the old one back, so point at the command that actually
+	// upgrades it.
+	if isNodeModulesPath(execPath) {
+		return fmt.Errorf("px1 was installed from npm; update it with: npm install -g px1-cli@latest")
+	}
+
 	uiStatus("step", fmt.Sprintf("downloading %s...", expectedAsset), "", 0, os.Stdout)
 
 	// Download to temporary file in the same directory as the executable (for atomic rename)
@@ -414,4 +421,16 @@ func copyOrMove(src, dst string) error {
 	tmp.Close()
 
 	return os.Rename(tmpName, dst)
+}
+
+// isNodeModulesPath reports whether the binary lives inside a node_modules
+// directory, which is where the npm packages put it. Both separators are
+// honoured so the check does not depend on the host it runs on.
+func isNodeModulesPath(p string) bool {
+	for _, part := range strings.FieldsFunc(p, func(r rune) bool { return r == '/' || r == '\\' }) {
+		if part == "node_modules" {
+			return true
+		}
+	}
+	return false
 }

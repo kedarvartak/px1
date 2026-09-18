@@ -1,4 +1,6 @@
 dist/
+dist-npm/
+*.tgz
 bench-repos/
 px0
 *.test
