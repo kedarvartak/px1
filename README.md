@@ -1,15 +1,13 @@
-<div align="center">
 
-```text
+
+<div align="center"><pre>
 ██████╗ ██╗  ██╗ ██╗
 ██╔══██╗╚██╗██╔╝███║
 ██████╔╝ ╚███╔╝ ╚██║
 ██╔═══╝  ██╔██╗  ██║
 ██║     ██╔╝ ██╗ ██║
 ╚═╝     ╚═╝  ╚═╝ ╚═╝
-```
-
-</div>
+</pre></div>
 
 px1 is a fast, local control plane for reviewing coding-agent work. It opens any worktree in a browser and keeps the human in charge of what changes, why it changed, and whether it is ready.
 
