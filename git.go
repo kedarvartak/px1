@@ -4,9 +4,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 // gitDisabled turns off all git awareness (the -no-git flag). Like uiQuiet, a
@@ -239,6 +241,10 @@ type worktree struct {
 	Main    bool   `json:"main"`
 	Current bool   `json:"current"`
 	Missing bool   `json:"missing,omitempty"`
+	// AddedAt is when `git worktree add` created the checkout, taken from its
+	// .git entry. The newest is what an agent was most likely just told to work
+	// in, so the list leads with it.
+	AddedAt time.Time `json:"addedAt,omitempty"`
 }
 
 // worktrees lists the checkouts of root's repository, main one first. The list
@@ -264,6 +270,13 @@ func worktrees(root string) []worktree {
 			if fi, err := os.Stat(p); err != nil || !fi.IsDir() {
 				cur.Missing = true
 			}
+			// In a linked worktree .git is a file written when `git worktree
+			// add` created it. The main checkout's .git is the repository
+			// directory, whose time moves with every operation, so it is left
+			// unset and sorts last.
+			if fi, err := os.Lstat(filepath.Join(p, ".git")); err == nil && fi.Mode().IsRegular() {
+				cur.AddedAt = fi.ModTime()
+			}
 		case cur == nil:
 		case strings.HasPrefix(line, "HEAD "):
 			cur.Head = strings.TrimPrefix(line, "HEAD ")
@@ -273,7 +286,66 @@ func worktrees(root string) []worktree {
 			cur.Branch = "detached"
 		}
 	}
+	// Newest first, which is where the work being reviewed usually is; the main
+	// checkout has no added time and settles at the bottom.
+	sort.SliceStable(list, func(i, j int) bool {
+		if list[i].AddedAt.IsZero() != list[j].AddedAt.IsZero() {
+			return list[j].AddedAt.IsZero()
+		}
+		return list[i].AddedAt.After(list[j].AddedAt)
+	})
 	return list
+}
+
+// branchBase is the commit this checkout's branch forked from: the point before
+// anything was done here. It is the honest baseline for reviewing a worktree an
+// agent has already been working in, where a snapshot taken now would record
+// that work as the starting state.
+func branchBase(root string) string {
+	if !gitAvailable(root) {
+		return ""
+	}
+	head, err := exec.Command("git", "-C", root, "rev-parse", "HEAD").Output()
+	if err != nil {
+		return ""
+	}
+	for _, ref := range defaultBranchRefs(root) {
+		out, err := exec.Command("git", "-C", root, "merge-base", "HEAD", ref).Output()
+		if err != nil {
+			continue
+		}
+		base := strings.TrimSpace(string(out))
+		// A branch that is level with the default one has no work of its own
+		// yet, so its own HEAD is the baseline.
+		if base != "" {
+			return base
+		}
+	}
+	return strings.TrimSpace(string(head))
+}
+
+// defaultBranchRefs lists the refs a feature branch is likely to have forked
+// from, best guess first.
+func defaultBranchRefs(root string) []string {
+	var refs []string
+	if out, err := exec.Command("git", "-C", root, "symbolic-ref", "--short", "refs/remotes/origin/HEAD").Output(); err == nil {
+		if r := strings.TrimSpace(string(out)); r != "" {
+			refs = append(refs, r)
+		}
+	}
+	refs = append(refs, "origin/main", "origin/master", "main", "master")
+	seen := map[string]bool{}
+	out := refs[:0]
+	for _, r := range refs {
+		if seen[r] {
+			continue
+		}
+		seen[r] = true
+		if exec.Command("git", "-C", root, "rev-parse", "--verify", "--quiet", r+"^{commit}").Run() == nil {
+			out = append(out, r)
+		}
+	}
+	return out
 }
 
 // resolvePathOrSelf follows symlinks so /tmp and /private/tmp style pairs

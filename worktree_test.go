@@ -64,15 +64,19 @@ func TestWorktreesListsEveryCheckout(t *testing.T) {
 	if len(list) != 2 {
 		t.Fatalf("worktrees = %#v", list)
 	}
-	if !list[0].Main || !list[0].Current || list[0].Branch != "main" {
-		t.Fatalf("main worktree = %#v", list[0])
+	// Newest first: the worktree an agent was just given, not the main checkout.
+	if list[0].Main || list[0].Branch != "fix/bug" || list[0].Path != wt || list[0].Name != "feature" {
+		t.Fatalf("first worktree = %#v", list[0])
 	}
-	if list[1].Main || list[1].Current || list[1].Branch != "fix/bug" || list[1].Path != wt || list[1].Name != "feature" {
-		t.Fatalf("second worktree = %#v", list[1])
+	if list[0].AddedAt.IsZero() || list[0].AddedAt.Before(list[1].AddedAt) {
+		t.Fatalf("added times out of order: %v then %v", list[0].AddedAt, list[1].AddedAt)
+	}
+	if !list[1].Main || !list[1].Current || list[1].Branch != "main" {
+		t.Fatalf("main worktree = %#v", list[1])
 	}
 	// Seen from the other checkout, "current" moves with it.
 	from := worktrees(wt)
-	if from[0].Current || !from[1].Current {
+	if !from[0].Current || from[1].Current {
 		t.Fatalf("current flags from the worktree: %#v", from)
 	}
 	if got := worktrees(t.TempDir()); len(got) != 0 {
@@ -145,5 +149,106 @@ func TestWorktreeSwitchRepointsWorkspace(t *testing.T) {
 	}
 	if active, _ := s.review.Active(); active != nil {
 		t.Fatalf("session followed the switch: %#v", active)
+	}
+}
+
+// The case this feature exists for: the agent makes its own worktree and starts
+// editing before anyone opens px1. A baseline taken when the human arrives would
+// record the finished work as the starting state, so it is taken from the commit
+// the branch forked from instead.
+func TestReviewStartsFromBranchBaseAfterAgentWorked(t *testing.T) {
+	root, wt := worktreeRepo(t)
+	run := func(dir string, args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Dir = dir
+		cmd.Env = append(os.Environ(), "GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t@t", "GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@t")
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	// The agent works: one commit, plus an edit it has not committed yet.
+	if err := os.WriteFile(filepath.Join(wt, "main.go"), []byte("package main\n\nfunc fixed() {}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	run(wt, "add", "-A")
+	run(wt, "commit", "-qm", "fix the bug")
+	if err := os.WriteFile(filepath.Join(wt, "notes.md"), []byte("half done\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	base := branchBase(wt)
+	if base == "" {
+		t.Fatal("no branch base for the worktree")
+	}
+	m := newReviewManager(wt)
+	isolateSettings(t)
+	if _, err := m.StartFromRef(base); err != nil {
+		t.Fatalf("start from %s: %v", base, err)
+	}
+	q, err := m.Queue()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]string{}
+	for _, item := range q.Items {
+		got[item.Path] = item.State
+	}
+	// Committed work and uncommitted work both count as changes to review.
+	if _, ok := got["main.go"]; !ok {
+		t.Fatalf("committed agent work missing from the queue: %#v", q.Items)
+	}
+	if _, ok := got["notes.md"]; !ok {
+		t.Fatalf("uncommitted agent work missing from the queue: %#v", q.Items)
+	}
+	if active, _ := m.Active(); active == nil || active.BaseRef != base {
+		t.Fatalf("session does not record its baseline commit: %#v", active)
+	}
+
+	// The main checkout is left alone: people keep unrelated work there.
+	if wtMain := currentWorktree(root); wtMain == nil || !wtMain.Main {
+		t.Fatalf("main checkout not detected: %#v", wtMain)
+	}
+}
+
+func TestSwitchingToAWorktreeStartsItsReview(t *testing.T) {
+	root, wt := worktreeRepo(t)
+	// The agent has already edited the worktree before px1 is pointed at it.
+	if err := os.WriteFile(filepath.Join(wt, "main.go"), []byte("package main\n\nfunc fixed() {}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s := serverAt(t, root)
+
+	// The main checkout is never started automatically.
+	s.autoStartReview()
+	if active, _ := s.review.Active(); active != nil {
+		t.Fatalf("main checkout was auto-started: %#v", active)
+	}
+
+	body, _ := json.Marshal(map[string]string{"path": wt})
+	req := httptest.NewRequest(http.MethodPost, "/api/worktree/switch", bytes.NewReader(body))
+	req.Host = "127.0.0.1:7777"
+	req.Header.Set("Origin", "http://127.0.0.1:7777")
+	rec := httptest.NewRecorder()
+	s.ServeHTTP(rec, req)
+	if rec.Code != 200 {
+		t.Fatalf("switch = %d %s", rec.Code, rec.Body.String())
+	}
+
+	active, changed := s.review.Active()
+	if active == nil {
+		t.Fatal("switching to a worktree did not start its review")
+	}
+	if active.Root != wt || active.BaseRef == "" {
+		t.Fatalf("session = %#v", active)
+	}
+	found := false
+	for _, p := range changed {
+		if p == "main.go" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("work done before the switch is not in the queue: %v", changed)
 	}
 }

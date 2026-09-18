@@ -25,7 +25,9 @@ Agents implement. px1 preserves human judgment.
 
 ## Review loop
 
-1. Start **Review** before assigning the task.
+Agents usually make their own `git worktree` and start editing straight away. px1 handles that: the workspace name in the sidebar lists every checkout, newest first, and opening one starts its review automatically with the commit the branch forked from as the baseline. Everything the branch has done since, committed or not, is in the queue no matter how late you arrive. The main checkout is left alone, since that is where your own work in progress lives; turn the behaviour off with `review.autoStart` in settings.
+
+1. Start **Review** before assigning the task, or let px1 start it when you open the agent's worktree.
 2. Inspect each task-baseline diff with **Next change**.
 3. Leave feedback, ask the agent to revise, make a narrow patch, or revert a hunk.
 4. Run a configured check; approve only the revision it verified.

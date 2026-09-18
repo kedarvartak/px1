@@ -120,7 +120,7 @@ function drawReviewQueue() {
     const detail = j?.output ? checks.commands[name] + '\n\n' + j.output.slice(-1200) : checks.commands[name];
     return `<button class="review-check ${state}" data-review-check="${esc(name)}" title="${esc(detail)}" ${j?.running ? 'disabled' : ''}><span>${esc(name)}</span><span>${label}</span></button>`;
   }).join('')}</div>` : '<button class="review-check-empty" data-review-setup-checks title="Add named commands under verification.commands in settings.json">Set up checks</button>';
-  queueEl.innerHTML = `<div class="review-summary"><div class="review-summary-text"><strong>Agent changes</strong><span>${reviewed} of ${count} reviewed</span></div><button class="review-close" data-review-close title="Close review session">Close</button><div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div></div>
+  queueEl.innerHTML = `<div class="review-summary"><div class="review-summary-text"><strong>Agent changes</strong><span>${reviewed} of ${count} reviewed${active.baseRef ? ' · since this branch forked' : ''}</span></div><button class="review-close" data-review-close title="Close review session">Close</button><div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div></div>
     ${challengesMarkup()}
     ${ruleHitsMarkup()}
     ${pinsMarkup()}

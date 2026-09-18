@@ -109,6 +109,10 @@ func main() {
 		pxSrv.SetAgent(agent)
 	}
 
+	// A worktree an agent is already working in gets its review started here,
+	// before the first request, so the queue is populated when the page opens.
+	pxSrv.autoStartReview()
+
 	srv := &http.Server{Handler: pxSrv}
 
 	url := viewerURL(addr, initialFile, initialLine)
