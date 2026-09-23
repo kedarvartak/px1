@@ -59,7 +59,7 @@ function setOpen(next) {
   nameEl()?.classList.toggle('open', open);
 }
 
-async function pick(path) {
+export async function switchWorktree(path) {
   setOpen(false);
   try {
     const res = await apiPost('/api/worktree/switch', undefined, {
@@ -82,7 +82,7 @@ export function initWorktrees() {
   });
   menuEl()?.addEventListener('click', e => {
     const btn = e.target.closest('[data-worktree]');
-    if (btn) pick(btn.dataset.worktree);
+    if (btn) switchWorktree(btn.dataset.worktree);
   });
   document.addEventListener('click', e => {
     if (open && !e.target.closest('#worktree-menu, #root-name')) setOpen(false);
