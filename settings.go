@@ -321,7 +321,7 @@ var settingsSchema = []settingSchemaItem{
 	{
 		Key:         "review.autoStart",
 		Title:       "Start Reviews Automatically",
-		Description: "Start a review session on its own when px1 opens a git worktree, with the commit checked out when that worktree was created as the baseline. The main checkout is never started automatically.",
+		Description: "Start a review session when px1 opens a workspace. Main checkouts snapshot their current files; linked worktrees use the commit checked out when they were created so existing agent work stays reviewable.",
 		Category:    "Agent / AI",
 		Type:        "boolean",
 		Default:     true,

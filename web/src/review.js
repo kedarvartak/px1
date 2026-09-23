@@ -181,6 +181,44 @@ async function reloadReviewWorkspace() {
   await refreshReviewQueue();
 }
 
+// px1 is started before a normal harness session, not through a wrapper. Poll
+// the compact review fingerprint so ordinary external edits become reviewable
+// without asking the user to re-index or refresh the browser. The server owns
+// the comparison against the task baseline; this only decides when to reload.
+let watchedRevision = '';
+let refreshInFlight = false;
+
+export function watchReviewWorkspace() {
+  const tick = async () => {
+    if (refreshInFlight) return;
+    let refreshing = false;
+    try {
+      const j = await api('/api/review/revision');
+      if (!j.active) {
+        watchedRevision = '';
+        return;
+      }
+      if (!watchedRevision) {
+        watchedRevision = j.revision;
+        return;
+      }
+      if (j.revision === watchedRevision) return;
+      watchedRevision = j.revision;
+      refreshInFlight = refreshing = true;
+      await reloadReviewWorkspace();
+      const current = await api('/api/review/revision');
+      watchedRevision = current.active ? current.revision : '';
+      showToast('✓', 'External changes ready for review');
+    } catch {
+      // A transient reload or a stopped server should not disrupt review UI.
+    } finally {
+      if (refreshing) refreshInFlight = false;
+    }
+  };
+  tick();
+  setInterval(tick, 2000);
+}
+
 function openPatch(info) {
   const item = S.review?.queue?.items?.find(x => x.path === info?.path);
   if (!S.review?.active || !item?.currentHash) {
