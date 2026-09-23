@@ -156,6 +156,41 @@ func TestWorktreeSwitchRepointsWorkspace(t *testing.T) {
 // editing before anyone opens px1. A baseline taken when the human arrives would
 // record the finished work as the starting state, so it is taken from the commit
 // checked out when the worktree was created instead.
+func TestReviewInboxListsActiveWorktreeReviews(t *testing.T) {
+	isolateSettings(t)
+	root, wt := worktreeRepo(t)
+	if _, err := newReviewManager(root).Start(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := newReviewManager(wt).StartFromRef(worktreeBase(wt)); err != nil {
+		t.Fatal(err)
+	}
+	ix := NewIndex(root)
+	ix.Build()
+	s := NewServer(ix, newLSPManager(root, false))
+	rec := httptest.NewRecorder()
+	s.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/review/inbox", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("inbox = %d %s", rec.Code, rec.Body.String())
+	}
+	var body struct {
+		Items []reviewInboxItem `json:"items"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	if len(body.Items) != 2 {
+		t.Fatalf("inbox items = %#v", body.Items)
+	}
+	seen := map[string]bool{}
+	for _, item := range body.Items {
+		seen[item.Path] = true
+	}
+	if !seen[root] || !seen[wt] {
+		t.Fatalf("inbox paths = %#v", body.Items)
+	}
+}
+
 func TestReviewStartsFromWorktreeBaseAfterAgentWorked(t *testing.T) {
 	root, wt := worktreeRepo(t)
 	run := func(dir string, args ...string) {

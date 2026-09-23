@@ -989,6 +989,43 @@ func (s *Server) handleReviewRevision(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]any{"active": true, "revision": revision})
 }
 
+type reviewInboxItem struct {
+	Path    string      `json:"path"`
+	Name    string      `json:"name"`
+	Branch  string      `json:"branch,omitempty"`
+	Current bool        `json:"current"`
+	Queue   reviewQueue `json:"queue"`
+}
+
+// handleReviewInbox lists active review queues across this repository's
+// worktrees. It is read-only: switching remains the explicit local POST action.
+func (s *Server) handleReviewInbox(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		fail(w, http.StatusMethodNotAllowed, "GET only")
+		return
+	}
+	roots := worktrees(s.ix.Root())
+	if len(roots) == 0 {
+		roots = []worktree{{Path: s.ix.Root(), Name: filepath.Base(s.ix.Root()), Current: true}}
+	}
+	items := make([]reviewInboxItem, 0, len(roots))
+	for _, wt := range roots {
+		if wt.Missing {
+			continue
+		}
+		m := newReviewManager(wt.Path)
+		if !m.HasActive() {
+			continue
+		}
+		q, err := m.Queue()
+		if err != nil {
+			continue
+		}
+		items = append(items, reviewInboxItem{Path: wt.Path, Name: wt.Name, Branch: wt.Branch, Current: wt.Current, Queue: q})
+	}
+	writeJSON(w, map[string]any{"items": items})
+}
+
 func (s *Server) handleReviewDiff(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		fail(w, http.StatusMethodNotAllowed, "GET only")

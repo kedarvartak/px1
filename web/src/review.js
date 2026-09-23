@@ -6,6 +6,7 @@ import { openReviewDiff, setPinHandler, syncDiffView, revealPin, revealChallenge
 import { showToast } from './ui.js';
 import { openSettings } from './settings.js';
 import { hideSelectionBar, setReviewCommentHandler, setReviewPatchHandler } from './selbar.js';
+import { switchWorktree } from './worktree.js';
 
 const queueEl = $('#review-queue');
 const tree = $('#tree');
@@ -50,6 +51,7 @@ export async function refreshReviewQueue() {
     S.reviewChallenges = j.challenges || [];
   } catch { S.reviewChallenges = []; }
   try { S.reviewChecks = S.review?.active ? await api('/api/review/checks') : { commands: {}, jobs: [] }; } catch { S.reviewChecks = { commands: {}, jobs: [] }; }
+  try { S.reviewInbox = (await api('/api/review/inbox')).items || []; } catch { S.reviewInbox = []; }
   drawReviewQueue();
   const sig = JSON.stringify([S.reviewPins, S.reviewChallenges, S.reviewRuleHits]);
   if (sig !== pinSig) {
@@ -88,6 +90,20 @@ function pinsMarkup() {
   return `<div class="review-pins"><div class="review-pins-head"><strong>Decisions</strong><span>${pins.length ? open + ' unread' : ''}</span><button class="review-explain" data-review-explain ${explaining || !(S.review?.queue?.total) ? 'disabled' : ''}>${label}</button></div>${rows ? `<div class="review-pin-list">${rows}</div>` : ''}</div>`;
 }
 
+function inboxMarkup() {
+  const entries = S.reviewInbox || [];
+  if (entries.length < 2) return '';
+  const waiting = entries.reduce((n, e) => n + (e.queue?.remaining || 0), 0);
+  const rows = entries.map(e => {
+    const q = e.queue || {};
+    const label = q.remaining ? `${q.remaining} to review` : q.total ? 'reviewed' : 'no changes';
+    return `<button class="review-inbox-item${e.current ? ' current' : ''}" data-review-worktree="${esc(e.path)}" ${e.current ? 'disabled' : ''}>
+      <span class="review-state ${q.remaining ? 'unreviewed' : ''}"></span><span class="review-inbox-name">${esc(e.name)}</span><span class="review-inbox-branch">${esc(e.branch || '')}</span><span class="review-inbox-count">${esc(label)}</span>
+    </button>`;
+  }).join('');
+  return `<div class="review-inbox"><div class="review-inbox-head"><strong>Review inbox</strong><span>${waiting ? waiting + ' awaiting review' : 'all clear'}</span></div>${rows}</div>`;
+}
+
 function itemMarkup(item) {
   const state = item.state || 'unreviewed';
   const label = state === 'unreviewed' ? 'Needs review' : state;
@@ -120,7 +136,7 @@ function drawReviewQueue() {
     const detail = j?.output ? checks.commands[name] + '\n\n' + j.output.slice(-1200) : checks.commands[name];
     return `<button class="review-check ${state}" data-review-check="${esc(name)}" title="${esc(detail)}" ${j?.running ? 'disabled' : ''}><span>${esc(name)}</span><span>${label}</span></button>`;
   }).join('')}</div>` : '<button class="review-check-empty" data-review-setup-checks title="Add named commands under verification.commands in settings.json">Set up checks</button>';
-  queueEl.innerHTML = `<div class="review-summary"><div class="review-summary-text"><strong>Agent changes</strong><span>${reviewed} of ${count} reviewed${active.baseRef ? ' · since worktree creation' : ''}</span></div><button class="review-close" data-review-close title="Close review session">Close</button><div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div></div>
+  queueEl.innerHTML = `${inboxMarkup()}<div class="review-summary"><div class="review-summary-text"><strong>Agent changes</strong><span>${reviewed} of ${count} reviewed${active.baseRef ? ' · since worktree creation' : ''}</span></div><button class="review-close" data-review-close title="Close review session">Close</button><div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div></div>
     ${challengesMarkup()}
     ${ruleHitsMarkup()}
     ${pinsMarkup()}
@@ -503,6 +519,8 @@ export function initReviewQueue() {
   queueEl?.addEventListener('click', async e => {
     const startBtn = e.target.closest('[data-review-start]');
     if (startBtn) return start();
+    const worktree = e.target.closest('[data-review-worktree]');
+    if (worktree) return switchWorktree(worktree.dataset.reviewWorktree);
     if (e.target.closest('[data-review-close]')) return close();
     if (e.target.closest('[data-review-feedback]')) return sendFeedback();
     if (e.target.closest('[data-review-undo]')) return undoPatch();
