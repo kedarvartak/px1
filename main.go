@@ -109,8 +109,8 @@ func main() {
 		pxSrv.SetAgent(agent)
 	}
 
-	// A worktree an agent is already working in gets its review started here,
-	// before the first request, so the queue is populated when the page opens.
+	// Capture the task baseline before the first request so users can run any
+	// harness normally and see its later changes in the review queue.
 	pxSrv.autoStartReview()
 
 	srv := &http.Server{Handler: pxSrv}

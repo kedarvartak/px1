@@ -6151,6 +6151,39 @@
     await drawTree("", treeEl, 0);
     await refreshReviewQueue();
   }
+  var watchedRevision = "";
+  var refreshInFlight = false;
+  function watchReviewWorkspace() {
+    const tick2 = async () => {
+      if (refreshInFlight)
+        return;
+      let refreshing = false;
+      try {
+        const j = await api("/api/review/revision");
+        if (!j.active) {
+          watchedRevision = "";
+          return;
+        }
+        if (!watchedRevision) {
+          watchedRevision = j.revision;
+          return;
+        }
+        if (j.revision === watchedRevision)
+          return;
+        watchedRevision = j.revision;
+        refreshInFlight = refreshing = true;
+        await reloadReviewWorkspace();
+        const current2 = await api("/api/review/revision");
+        watchedRevision = current2.active ? current2.revision : "";
+        showToast("✓", "External changes ready for review");
+      } catch {} finally {
+        if (refreshing)
+          refreshInFlight = false;
+      }
+    };
+    tick2();
+    setInterval(tick2, 2000);
+  }
   function openPatch(info) {
     const item = S2.review?.queue?.items?.find((x) => x.path === info?.path);
     if (!S2.review?.active || !item?.currentHash) {
@@ -6745,6 +6778,7 @@ Switch worktree` : "Switch worktree" : S2.meta?.root || "";
     updateStatus();
     await drawTree("", treeEl, 0);
     await refreshReviewQueue();
+    watchReviewWorkspace();
     const params = new URLSearchParams(window.location.search);
     const initialPath = params.get("path");
     const initialLine = parseInt(params.get("line"), 10) || undefined;

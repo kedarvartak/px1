@@ -20,7 +20,7 @@ import { initDiff } from './diff.js';
 import { initAgent, applyAgentMeta, loadAgentAsync } from './agent.js';
 import { initMetrics, initStatusFit, updateMetricsDisplay, updateStatus } from './status.js';
 import { initSettings } from './settings.js';
-import { initReviewQueue, refreshReviewQueue } from './review.js';
+import { initReviewQueue, refreshReviewQueue, watchReviewWorkspace } from './review.js';
 import { initWorktrees } from './worktree.js';
 
 // Initialize all subsystems
@@ -85,6 +85,7 @@ initReviewQueue();
   updateStatus();
   await drawTree('', treeEl, 0);
   await refreshReviewQueue();
+  watchReviewWorkspace();
 
   const params = new URLSearchParams(window.location.search);
   const initialPath = params.get('path');

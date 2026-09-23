@@ -178,9 +178,9 @@ The frontend's `reloadWorkspace()` then reloads in dependency order: `/api/reind
 
 `reloadOpenTabs()` keeps each tab in the view it was in. A tab in source view stays in source even though the file now has a diff; the tab is marked `diffDismissed` so the gutter load does not flip it either. A tab in the diff view stays there, refetches `/api/diff` for the new document, and restores the diff view's scroll position (`diffScroll`). Scroll position, cursor line and Markdown preview scroll are preserved as before.
 
-### No File Watcher
+### External Harness Changes
 
-px1 dispatched the harness, so it knows when the work ended. Completion is detected by the process exiting, not by watching the filesystem. There is no `fsnotify` dependency, no polling of the tree, and the single-binary, zero-dependency footprint is unchanged.
+px1 also supports harnesses it did not dispatch. It automatically captures a review baseline when it starts, and the browser polls a compact review revision every two seconds. When that revision changes, it re-indexes and reloads the review queue and open tabs. This needs no harness wrapper, plugin command, `fsnotify` dependency, or tree polling in the Go process. The revision is calculated from the same ignored-file-aware snapshot used by review sessions, so committed and uncommitted external edits are both visible.
 
 ## 8. HTTP Surface
 

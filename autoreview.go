@@ -2,26 +2,19 @@ package main
 
 import "os"
 
-// Reviewing a worktree an agent is already working in.
+// Automatic review baselines mean px1 needs no harness-specific command or
+// plugin at task time: start px1, then use Claude, Codex, or any other tool as
+// usual. The baseline is captured before that tool writes its first file.
 //
-// The flow this serves: an agent is told to build something, it creates its own
-// `git worktree` and starts editing immediately. By the time a human opens px1
-// and switches to that checkout, the work is done — and a baseline captured at
-// that moment would record the finished work as the starting state, leaving an
-// empty review queue.
-//
-// So px1 starts the session itself, and takes the baseline from the commit
-// checked out when the worktree was created rather than from the working tree.
-// Everything the agent has done since, committed or not, is then in the queue
-// no matter when the human arrives.
-//
-// Only linked worktrees are started this way. The main checkout is where people
-// keep unrelated work in progress, and calling that "agent changes" would be a
-// lie; there, Start Review stays a deliberate act.
+// A linked worktree may already contain agent work before px1 opens it. Its
+// baseline therefore comes from the commit checked out when the worktree was
+// created. Every other workspace, including the main checkout, snapshots the
+// current working tree. That preserves pre-existing local work while queuing
+// only later writes.
 
-// autoStartReview starts a session for the current workspace when it is a
-// linked worktree with no session yet. Failures are quiet: a missing session is
-// an inconvenience, not a reason to refuse to serve the workspace.
+// autoStartReview starts a session for the current workspace when no session
+// exists. Failures are quiet: a missing session is an inconvenience, not a
+// reason to refuse to serve the workspace.
 func (s *Server) autoStartReview() {
 	if s.review == nil || !reviewAutoStartEnabled() {
 		return
@@ -31,24 +24,29 @@ func (s *Server) autoStartReview() {
 	}
 	root := s.ix.Root()
 	wt := currentWorktree(root)
-	if wt == nil || wt.Main {
-		return
+	base := ""
+	if wt != nil && !wt.Main {
+		base = worktreeBase(root)
 	}
-	base := worktreeBase(root)
-	if base == "" {
-		return
+	var err error
+	if base != "" {
+		_, err = s.review.StartFromRef(base)
+	} else {
+		_, err = s.review.Start()
 	}
-	session, err := s.review.StartFromRef(base)
 	if err != nil {
-		uiStatus("warn", "review", "could not start a review for this worktree: "+err.Error(), 0, os.Stdout)
+		uiStatus("warn", "review", "could not start a review: "+err.Error(), 0, os.Stdout)
 		return
 	}
-	where := wt.Branch
-	if where == "" {
-		where = wt.Name
+	if base != "" {
+		where := wt.Branch
+		if where == "" {
+			where = wt.Name
+		}
+		uiStatus("ok", "review", "started for "+where+", baseline "+shortRef(base), 0, os.Stdout)
+		return
 	}
-	_ = session
-	uiStatus("ok", "review", "started for "+where+", baseline "+shortRef(base), 0, os.Stdout)
+	uiStatus("ok", "review", "started, baseline captured", 0, os.Stdout)
 }
 
 // currentWorktree is the entry for the checkout being served, or nil outside a

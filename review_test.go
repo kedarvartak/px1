@@ -118,6 +118,25 @@ func TestReviewSessionHTTPUsesLocalPostGuard(t *testing.T) {
 	}
 }
 
+func TestReviewRevisionChangesAfterExternalWrite(t *testing.T) {
+	isolateSettings(t)
+	s, root := newTestServer(t)
+	if code, _ := reviewPost(t, s, "/api/review/session/start"); code != http.StatusOK {
+		t.Fatalf("start = %d", code)
+	}
+	code, before := get(t, s, "/api/review/revision")
+	if code != http.StatusOK || before["active"] != true || before["revision"] == "" {
+		t.Fatalf("initial revision = %d %#v", code, before)
+	}
+	if err := os.WriteFile(filepath.Join(root, "main.go"), []byte("package main\n\nfunc main() { println(\"changed\") }\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	code, after := get(t, s, "/api/review/revision")
+	if code != http.StatusOK || after["revision"] == before["revision"] {
+		t.Fatalf("changed revision = %d %#v (before %#v)", code, after, before)
+	}
+}
+
 func TestReviewQueueTracksReviewStateAndStaleness(t *testing.T) {
 	isolateSettings(t)
 	root := t.TempDir()

@@ -34,25 +34,25 @@ type reviewFile struct {
 }
 
 type reviewSession struct {
-	Version   int                       `json:"version"`
-	ID        string                    `json:"id"`
-	Root      string                    `json:"root"`
-	StartedAt time.Time                 `json:"startedAt"`
-	Head      string                    `json:"head,omitempty"`
+	Version   int       `json:"version"`
+	ID        string    `json:"id"`
+	Root      string    `json:"root"`
+	StartedAt time.Time `json:"startedAt"`
+	Head      string    `json:"head,omitempty"`
 	// BaseRef is set when the baseline was taken from a commit rather than from
 	// the working tree, which is how a worktree an agent already started in can
 	// still be reviewed in full.
-	BaseRef string `json:"baseRef,omitempty"`
-	Files     []reviewFile              `json:"files"`
-	Dirs      []string                  `json:"dirs"`
-	Reviews   map[string]reviewDecision `json:"reviews,omitempty"`
-	Comments  []reviewComment           `json:"comments,omitempty"`
-	Patches   []reviewPatch             `json:"patches,omitempty"`
-	Pins      []reviewPin               `json:"pins,omitempty"`
+	BaseRef  string                    `json:"baseRef,omitempty"`
+	Files    []reviewFile              `json:"files"`
+	Dirs     []string                  `json:"dirs"`
+	Reviews  map[string]reviewDecision `json:"reviews,omitempty"`
+	Comments []reviewComment           `json:"comments,omitempty"`
+	Patches  []reviewPatch             `json:"patches,omitempty"`
+	Pins     []reviewPin               `json:"pins,omitempty"`
 
-	DismissedDecisions []string `json:"dismissedDecisions,omitempty"`
-	DismissedRuleHits  []string `json:"dismissedRuleHits,omitempty"`
-	ClosedAt  *time.Time                `json:"closedAt,omitempty"`
+	DismissedDecisions []string   `json:"dismissedDecisions,omitempty"`
+	DismissedRuleHits  []string   `json:"dismissedRuleHits,omitempty"`
+	ClosedAt           *time.Time `json:"closedAt,omitempty"`
 }
 
 // reviewDecision is tied to the exact content a human saw. A later write to
@@ -436,6 +436,14 @@ func (m *reviewManager) Active() (*reviewSession, []string) {
 	}
 	cp := *m.active
 	return &cp, m.changedLocked(m.active)
+}
+
+// HasActive checks whether a session exists without scanning the workspace.
+// Polling callers use it before calculating a revision.
+func (m *reviewManager) HasActive() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.active != nil
 }
 
 func (m *reviewManager) changedLocked(s *reviewSession) []string {
@@ -959,6 +967,26 @@ func (s *Server) handleReviewSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, map[string]any{"active": active, "changed": changed, "queue": queue})
+}
+
+// handleReviewRevision returns a compact fingerprint of the active review
+// queue. Browser clients poll it to notice normal external harness edits
+// without requiring a wrapper, plugin, or filesystem watcher dependency.
+func (s *Server) handleReviewRevision(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		fail(w, http.StatusMethodNotAllowed, "GET only")
+		return
+	}
+	if !s.review.HasActive() {
+		writeJSON(w, map[string]any{"active": false, "revision": ""})
+		return
+	}
+	revision, err := s.review.Revision()
+	if err != nil {
+		fail(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, map[string]any{"active": true, "revision": revision})
 }
 
 func (s *Server) handleReviewDiff(w http.ResponseWriter, r *http.Request) {

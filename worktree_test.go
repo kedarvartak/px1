@@ -147,8 +147,8 @@ func TestWorktreeSwitchRepointsWorkspace(t *testing.T) {
 	if code, _ := post(root); code != 200 || s.ix.Root() != root {
 		t.Fatalf("switch back = %d root=%q", code, s.ix.Root())
 	}
-	if active, _ := s.review.Active(); active != nil {
-		t.Fatalf("session followed the switch: %#v", active)
+	if active, _ := s.review.Active(); active == nil || active.Root != root || active.BaseRef != "" {
+		t.Fatalf("main checkout review after switch = %#v", active)
 	}
 }
 
@@ -261,10 +261,11 @@ func TestSwitchingToAWorktreeStartsItsReview(t *testing.T) {
 	}
 	s := serverAt(t, root)
 
-	// The main checkout is never started automatically.
+	// Main checkouts now capture a baseline too, so any later harness edit can
+	// be reviewed without a separate px1 command.
 	s.autoStartReview()
-	if active, _ := s.review.Active(); active != nil {
-		t.Fatalf("main checkout was auto-started: %#v", active)
+	if active, _ := s.review.Active(); active == nil || active.Root != root {
+		t.Fatalf("main checkout review = %#v", active)
 	}
 
 	body, _ := json.Marshal(map[string]string{"path": wt})
