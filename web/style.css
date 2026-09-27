@@ -70,6 +70,17 @@ body.side-hidden #side, body.side-hidden #resizer { display: none; }
    session summary, pill buttons with a single filled primary. */
 .review-queue { display: flex; flex: 1; min-height: 0; flex-direction: column; overflow: auto; }
 .review-empty { margin: 4px 10px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--dim); font-size: 12.5px; line-height: 1.55; }
+.review-inbox { margin: 2px 10px 8px; padding: 6px 0; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
+.review-inbox-head { display: flex; align-items: baseline; gap: 6px; padding: 3px 12px 6px; }
+.review-inbox-head strong { font-size: 12.5px; font-weight: 500; }
+.review-inbox-head span { color: var(--faint); font-size: 11.5px; }
+.review-inbox-item { display: grid; grid-template-columns: 6px minmax(0, 1fr) auto; column-gap: 8px; align-items: center; width: 100%; min-height: 28px; padding: 3px 12px; text-align: left; }
+.review-inbox-item:hover:not(:disabled) { background: var(--bg3); }
+.review-inbox-item:disabled { cursor: default; }
+.review-inbox-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; }
+.review-inbox-branch { grid-column: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--faint); font: 10.5px var(--mono); }
+.review-inbox-count { grid-column: 3; grid-row: 1 / span 2; color: var(--faint); font-size: 11px; }
+.review-inbox-item.current .review-inbox-name { color: var(--dim); }
 .review-empty strong { display: block; color: var(--fg); font-size: 13px; font-weight: 600; }
 .review-empty p { margin: 6px 0 12px; }
 
@@ -82,6 +93,18 @@ body.side-hidden #side, body.side-hidden #resizer { display: none; }
 .review-summary .review-progress { flex-basis: 100%; height: 3px; margin: 10px 4px 0 0; border-radius: 3px; background: var(--bg3); overflow: hidden; }
 .review-progress { height: 3px; border-radius: 3px; background: var(--bg3); overflow: hidden; }
 .review-progress span { display: block; height: 100%; background: var(--fg); transition: width .16s ease; }
+
+.review-filters { margin: 0 10px; padding: 4px 0 6px; border-bottom: 1px solid var(--line); }
+.review-filter-search { display: block; }
+.review-filter-search input { width: 100%; height: 28px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--fg); background: var(--bg2); font: 12px var(--ui); outline: none; }
+.review-filter-search input:focus { border-color: var(--accent); }
+.review-filter-tabs { display: flex; gap: 4px; padding: 6px 0 0; overflow-x: auto; }
+.review-filter { display: inline-flex; align-items: center; gap: 5px; flex: none; height: 24px; padding: 0 7px; border-radius: 6px; color: var(--faint); font-size: 11px; white-space: nowrap; }
+.review-filter:hover { color: var(--fg); background: var(--bg3); }
+.review-filter.active { color: var(--fg); background: var(--bg4); }
+.review-filter span { color: var(--dim); font-size: 10px; }
+.review-filter.active span { color: var(--fg); }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 .review-pins, .review-rules { padding: 8px 0 4px; }
 .review-pins-head { display: flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 8px 0 14px; }

@@ -89,7 +89,7 @@ The server is implemented in [`server.go`](../../server.go) using Go's standard 
 
 ### Automatic external-change refresh
 
-px1 captures a review baseline during startup. The browser polls `GET /api/review/revision` every two seconds; when the compact fingerprint differs, it runs the normal re-index and in-place tab reload path. This makes ordinary harness writes visible without a wrapper command or a filesystem-watcher dependency in the server.
+px1 captures a review baseline during startup, including every linked worktree with its creation commit as the baseline. `GET /api/review/inbox` aggregates the active queues across those worktrees for the sidebar. The browser polls `GET /api/review/revision` every two seconds; when the compact fingerprint differs, it runs the normal re-index and in-place tab reload path. This makes ordinary harness writes visible without a wrapper command or a filesystem-watcher dependency in the server.
 
 ## 4. Memory Management & Proactive Scavenging
 

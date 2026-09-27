@@ -2,6 +2,8 @@
 
 This document provides a comprehensive technical breakdown of px1's bespoke virtualized code viewer, caret engine, and selection preservation system ([`web/src/renderer.js`](../../web/src/renderer.js), [`web/src/cursor.js`](../../web/src/cursor.js), and [`web/style.css`](../../web/style.css)).
 
+The review queue is a separate, bounded sidebar surface rather than part of the virtualized editor. Its diffs are rendered from the task snapshot in [`web/src/diff.js`](../../web/src/diff.js), so a file created after the review starts is rendered as a `/dev/null` to current-file diff and is not confused with a clean Git HEAD diff. Queue search and status filters reduce the rendered file rows before they are mounted, keeping large review sessions responsive.
+
 ## 1. Why a Bespoke Virtualized Viewer?
 
 General-purpose browser code editors (such as Monaco, CodeMirror 6, or Ace) are engineered for bidirectional text editing, undo/redo trees, multi-cursor keystrokes, and complex grammar parsing inside the browser. Consequently:

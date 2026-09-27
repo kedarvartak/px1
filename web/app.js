@@ -2735,7 +2735,7 @@
     if (!d.diffHunks || !d.diffHunks.length) {
       const p = document.createElement("div");
       p.className = "diff-empty";
-      p.textContent = "No changes against HEAD.";
+      p.textContent = d.diffSource === "review" ? "No changes in this review." : "No changes against HEAD.";
       diffContent.append(p);
       return;
     }
@@ -5955,6 +5955,93 @@
     });
   }
 
+  // web/src/worktree.js
+  var nameEl = () => $("#root-name");
+  var menuEl = () => $("#worktree-menu");
+  var list = [];
+  var open = false;
+  async function loadWorktrees() {
+    try {
+      const j = await api("/api/worktrees");
+      list = j.worktrees || [];
+    } catch {
+      list = [];
+    }
+    draw2();
+  }
+  function current2() {
+    return list.find((w) => w.current);
+  }
+  function age(iso) {
+    const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    if (mins < 1)
+      return "just now";
+    if (mins < 60)
+      return `${mins}m ago`;
+    const hours = Math.round(mins / 60);
+    if (hours < 24)
+      return `${hours}h ago`;
+    return `${Math.round(hours / 24)}d ago`;
+  }
+  function draw2() {
+    const btn = nameEl();
+    const menu2 = menuEl();
+    if (!btn || !menu2)
+      return;
+    const here = current2();
+    btn.textContent = S2.meta?.name || here?.name || "-";
+    btn.classList.toggle("has-worktrees", list.length > 1);
+    btn.title = list.length > 1 ? here?.branch ? `${here.branch} · ${S2.meta?.root}
+Switch worktree` : "Switch worktree" : S2.meta?.root || "";
+    menu2.innerHTML = list.map((w) => `
+    <button class="worktree-item${w.current ? " active" : ""}${w.missing ? " missing" : ""}" data-worktree="${w.path.replace(/"/g, "&quot;")}" title="${esc(w.path)}${w.addedAt ? " · added " + age(w.addedAt) : ""}" ${w.missing ? "disabled" : ""}>
+      <span class="worktree-name">${w.name}</span>
+      <span class="worktree-branch">${w.missing ? "missing" : w.branch || w.head?.slice(0, 7) || ""}</span>
+    </button>`).join("");
+  }
+  function setOpen(next) {
+    open = next && list.length > 1;
+    menuEl()?.toggleAttribute("hidden", !open);
+    nameEl()?.classList.toggle("open", open);
+  }
+  async function switchWorktree(path) {
+    setOpen(false);
+    try {
+      const res = await apiPost("/api/worktree/switch", undefined, {
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path })
+      });
+      if (!res.switched)
+        return;
+      showToast("✓", "Switched worktree");
+      setTimeout(() => location.reload(), 250);
+    } catch (e) {
+      showToast("!", e.message);
+    }
+  }
+  function initWorktrees() {
+    nameEl()?.addEventListener("click", (e) => {
+      if (list.length < 2)
+        return;
+      e.stopPropagation();
+      setOpen(!open);
+    });
+    menuEl()?.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-worktree]");
+      if (btn)
+        switchWorktree(btn.dataset.worktree);
+    });
+    document.addEventListener("click", (e) => {
+      if (open && !e.target.closest("#worktree-menu, #root-name"))
+        setOpen(false);
+    });
+    document.addEventListener("keydown", (e) => {
+      if (open && e.key === "Escape")
+        setOpen(false);
+    });
+    loadWorktrees();
+  }
+
   // web/src/review.js
   var queueEl = $("#review-queue");
   var tree = $("#tree");
@@ -5971,7 +6058,33 @@
   var pinSig = "";
   var ruleTarget = null;
   var ruleBox = $("#review-rulebox");
+  var reviewFilter = "all";
+  var reviewSearch = "";
   var pending = (item) => item.state === "unreviewed" || item.state === "stale" || item.state === "blocked";
+  var reviewFilterOptions = [
+    ["all", "All"],
+    ["pending", "Needs review"],
+    ["stale", "Stale"],
+    ["reviewed", "Reviewed"]
+  ];
+  function matchesReviewFilter(item) {
+    if (reviewFilter === "pending")
+      return pending(item);
+    if (reviewFilter === "all")
+      return true;
+    return item.state === reviewFilter;
+  }
+  function filteredReviewItems(items) {
+    const query = reviewSearch.trim().toLowerCase();
+    return items.filter((item) => matchesReviewFilter(item) && (!query || item.path.toLowerCase().includes(query)));
+  }
+  function filterCount(items, filter) {
+    if (filter === "all")
+      return items.length;
+    if (filter === "pending")
+      return items.filter(pending).length;
+    return items.filter((item) => item.state === filter).length;
+  }
   async function refreshReviewQueue() {
     try {
       S2.review = await api("/api/review/session");
@@ -6014,6 +6127,11 @@
     } catch {
       S2.reviewChecks = { commands: {}, jobs: [] };
     }
+    try {
+      S2.reviewInbox = (await api("/api/review/inbox")).items || [];
+    } catch {
+      S2.reviewInbox = [];
+    }
     drawReviewQueue();
     const sig = JSON.stringify([S2.reviewPins, S2.reviewChallenges, S2.reviewRuleHits]);
     if (sig !== pinSig) {
@@ -6037,18 +6155,32 @@
     return `<details class="review-rules"${rulesOpen ? " open" : ""}><summary>Rules <span>${rules.filter((r) => r.enabled).length} active</span></summary>${err}${rows}</details>`;
   }
   function challengesMarkup() {
-    const list = S2.reviewChallenges || [];
-    if (!list.length)
+    const list2 = S2.reviewChallenges || [];
+    if (!list2.length)
       return "";
-    const rows = list.map((c) => `<button class="review-pin review-challenge" data-review-challenge="${esc(c.id)}" data-path="${esc(c.path)}" title="${esc(c.why || c.decision)}"><span class="review-pin-mark">⟲</span><span class="review-pin-text">${esc(c.decision)}</span><span class="review-pin-ref">${esc(c.path.split("/").pop())}</span></button>`).join("");
-    return `<div class="review-pins review-challenges"><div class="review-pins-head"><strong>Reversed decisions</strong><span>${list.length} to resolve</span></div><div class="review-pin-list">${rows}</div></div>`;
+    const rows = list2.map((c) => `<button class="review-pin review-challenge" data-review-challenge="${esc(c.id)}" data-path="${esc(c.path)}" title="${esc(c.why || c.decision)}"><span class="review-pin-mark">⟲</span><span class="review-pin-text">${esc(c.decision)}</span><span class="review-pin-ref">${esc(c.path.split("/").pop())}</span></button>`).join("");
+    return `<div class="review-pins review-challenges"><div class="review-pins-head"><strong>Reversed decisions</strong><span>${list2.length} to resolve</span></div><div class="review-pin-list">${rows}</div></div>`;
   }
   function pinsMarkup() {
     const pins = S2.reviewPins || [];
-    const open = pins.filter((p) => p.status === "proposed" && !p.stale).length;
+    const open2 = pins.filter((p) => p.status === "proposed" && !p.stale).length;
     const label = explaining ? "Explaining…" : pins.length ? "Re-explain" : "Explain changes";
     const rows = pins.map((p) => `<button class="review-pin impact-${p.impact}${p.stale ? " stale" : ""} ${esc(p.status)}" data-review-pin="${esc(p.id)}" title="${esc(p.why || p.decision)}"><span class="review-pin-mark">◆</span><span class="review-pin-text">${esc(p.decision)}</span><span class="review-pin-ref">${esc(p.path.split("/").pop())}:${p.lineStart}</span></button>`).join("");
-    return `<div class="review-pins"><div class="review-pins-head"><strong>Decisions</strong><span>${pins.length ? open + " unread" : ""}</span><button class="review-explain" data-review-explain ${explaining || !S2.review?.queue?.total ? "disabled" : ""}>${label}</button></div>${rows ? `<div class="review-pin-list">${rows}</div>` : ""}</div>`;
+    return `<div class="review-pins"><div class="review-pins-head"><strong>Decisions</strong><span>${pins.length ? open2 + " unread" : ""}</span><button class="review-explain" data-review-explain ${explaining || !S2.review?.queue?.total ? "disabled" : ""}>${label}</button></div>${rows ? `<div class="review-pin-list">${rows}</div>` : ""}</div>`;
+  }
+  function inboxMarkup() {
+    const entries = S2.reviewInbox || [];
+    if (entries.length < 2)
+      return "";
+    const waiting = entries.reduce((n, e) => n + (e.queue?.remaining || 0), 0);
+    const rows = entries.map((e) => {
+      const q = e.queue || {};
+      const label = q.remaining ? `${q.remaining} to review` : q.total ? "reviewed" : "no changes";
+      return `<button class="review-inbox-item${e.current ? " current" : ""}" data-review-worktree="${esc(e.path)}" ${e.current ? "disabled" : ""}>
+      <span class="review-state ${q.remaining ? "unreviewed" : ""}"></span><span class="review-inbox-name">${esc(e.name)}</span><span class="review-inbox-branch">${esc(e.branch || "")}</span><span class="review-inbox-count">${esc(label)}</span>
+    </button>`;
+    }).join("");
+    return `<div class="review-inbox"><div class="review-inbox-head"><strong>Review inbox</strong><span>${waiting ? waiting + " awaiting review" : "all clear"}</span></div>${rows}</div>`;
   }
   function itemMarkup(item) {
     const state = item.state || "unreviewed";
@@ -6056,6 +6188,13 @@
     return `<div class="review-item" data-review-path="${esc(item.path)}">
     <button class="review-open" title="Open ${esc(item.path)}"><span class="review-state ${esc(state)}"></span><span class="review-path">${esc(item.path)}</span><span class="review-label">${esc(label)}</span></button>
     <button class="review-mark" data-review-mark="${esc(item.path)}" title="Mark reviewed" ${state === "reviewed" ? "disabled" : ""}>✓</button>
+  </div>`;
+  }
+  function reviewFiltersMarkup(items) {
+    const buttons = reviewFilterOptions.map(([id, label]) => `<button class="review-filter${reviewFilter === id ? " active" : ""}" data-review-filter="${id}" aria-pressed="${reviewFilter === id}">${label}<span>${filterCount(items, id)}</span></button>`).join("");
+    return `<div class="review-filters">
+    <label class="review-filter-search"><span class="sr-only">Search changed files</span><input data-review-search type="search" value="${esc(reviewSearch)}" placeholder="Search changed files" autocomplete="off" spellcheck="false"></label>
+    <div class="review-filter-tabs" role="group" aria-label="Review file status filter">${buttons}</div>
   </div>`;
   }
   function drawReviewQueue() {
@@ -6068,9 +6207,10 @@
       return;
     }
     const items = q?.items || [];
+    const visibleItems = filteredReviewItems(items);
     const count = q?.total || items.length;
     const reviewed = q?.reviewed || 0;
-    const next = items.find(pending);
+    const next = visibleItems.find(pending);
     const comments = (S2.reviewComments || []).filter((c) => c.status === "open" && !c.stale);
     const checks = S2.reviewChecks || { commands: {}, jobs: [] };
     const names = Object.keys(checks.commands || {}).sort();
@@ -6087,16 +6227,21 @@
 ` + j.output.slice(-1200) : checks.commands[name];
       return `<button class="review-check ${state}" data-review-check="${esc(name)}" title="${esc(detail)}" ${j?.running ? "disabled" : ""}><span>${esc(name)}</span><span>${label}</span></button>`;
     }).join("")}</div>` : '<button class="review-check-empty" data-review-setup-checks title="Add named commands under verification.commands in settings.json">Set up checks</button>';
-    queueEl.innerHTML = `<div class="review-summary"><div class="review-summary-text"><strong>Agent changes</strong><span>${reviewed} of ${count} reviewed${active.baseRef ? " · since worktree creation" : ""}</span></div><button class="review-close" data-review-close title="Close review session">Close</button><div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div></div>
+    const emptyHint = items.length ? "No changed files match this filter." : "No files have changed since this review began.";
+    const nextLabel = next ? "Next change →" : visibleItems.length ? "All visible changes reviewed" : "No matching changes";
+    queueEl.innerHTML = `${inboxMarkup()}<div class="review-summary"><div class="review-summary-text"><strong>Agent changes</strong><span>${reviewed} of ${count} reviewed${active.baseRef ? " · since worktree creation" : ""}</span></div><button class="review-close" data-review-close title="Close review session">Close</button><div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div></div>
     ${challengesMarkup()}
     ${ruleHitsMarkup()}
     ${pinsMarkup()}
-    <div class="review-list">${items.length ? items.map(itemMarkup).join("") : '<div class="hint">No files have changed since this review began.</div>'}</div>
     ${rulesMarkup()}
-    <div class="review-foot">${checkMarkup}${comments.length ? `<button class="review-feedback" data-review-feedback>Ask agent to address ${comments.length} comment${comments.length === 1 ? "" : "s"}</button>` : ""}${S2.lastReviewPatch ? '<button class="review-undo" data-review-undo>Undo last patch</button>' : ""}<button class="review-next" data-review-next ${next ? "" : "disabled"}>${next ? "Next change →" : "All changes reviewed"}</button></div>`;
+    ${reviewFiltersMarkup(items)}
+    <div class="review-list">${visibleItems.length ? visibleItems.map(itemMarkup).join("") : `<div class="hint">${emptyHint}</div>`}</div>
+    <div class="review-foot">${checkMarkup}${comments.length ? `<button class="review-feedback" data-review-feedback>Ask agent to address ${comments.length} comment${comments.length === 1 ? "" : "s"}</button>` : ""}${S2.lastReviewPatch ? '<button class="review-undo" data-review-undo>Undo last patch</button>' : ""}<button class="review-next" data-review-next ${next ? "" : "disabled"}>${nextLabel}</button></div>`;
   }
   async function start2() {
     try {
+      reviewFilter = "all";
+      reviewSearch = "";
       await apiPost("/api/review/session/start");
       await refreshReviewQueue();
       showToast("✓", "Review baseline captured");
@@ -6116,7 +6261,7 @@
     }
   }
   async function openNext() {
-    const item = S2.review?.queue?.items?.find(pending);
+    const item = filteredReviewItems(S2.review?.queue?.items || []).find(pending);
     if (!item)
       return;
     await openFile(item.path);
@@ -6173,8 +6318,8 @@
         watchedRevision = j.revision;
         refreshInFlight = refreshing = true;
         await reloadReviewWorkspace();
-        const current2 = await api("/api/review/revision");
-        watchedRevision = current2.active ? current2.revision : "";
+        const current3 = await api("/api/review/revision");
+        watchedRevision = current3.active ? current3.revision : "";
         showToast("✓", "External changes ready for review");
       } catch {} finally {
         if (refreshing)
@@ -6487,10 +6632,32 @@
       if (e.target.matches(".review-rules"))
         rulesOpen = e.target.open;
     }, true);
+    queueEl?.addEventListener("input", (e) => {
+      const input = e.target.closest("[data-review-search]");
+      if (!input)
+        return;
+      const caret = input.selectionStart;
+      reviewSearch = input.value;
+      drawReviewQueue();
+      const nextInput = queueEl.querySelector("[data-review-search]");
+      if (nextInput) {
+        nextInput.focus();
+        nextInput.setSelectionRange(caret, caret);
+      }
+    });
     queueEl?.addEventListener("click", async (e) => {
       const startBtn = e.target.closest("[data-review-start]");
       if (startBtn)
         return start2();
+      const worktree = e.target.closest("[data-review-worktree]");
+      if (worktree)
+        return switchWorktree(worktree.dataset.reviewWorktree);
+      const filter = e.target.closest("[data-review-filter]");
+      if (filter) {
+        reviewFilter = filter.dataset.reviewFilter;
+        drawReviewQueue();
+        return;
+      }
       if (e.target.closest("[data-review-close]"))
         return close();
       if (e.target.closest("[data-review-feedback]"))
@@ -6632,93 +6799,6 @@
       showToast("!", e.message);
       return false;
     }
-  }
-
-  // web/src/worktree.js
-  var nameEl = () => $("#root-name");
-  var menuEl = () => $("#worktree-menu");
-  var list = [];
-  var open = false;
-  async function loadWorktrees() {
-    try {
-      const j = await api("/api/worktrees");
-      list = j.worktrees || [];
-    } catch {
-      list = [];
-    }
-    draw2();
-  }
-  function current2() {
-    return list.find((w) => w.current);
-  }
-  function age(iso) {
-    const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-    if (mins < 1)
-      return "just now";
-    if (mins < 60)
-      return `${mins}m ago`;
-    const hours = Math.round(mins / 60);
-    if (hours < 24)
-      return `${hours}h ago`;
-    return `${Math.round(hours / 24)}d ago`;
-  }
-  function draw2() {
-    const btn = nameEl();
-    const menu2 = menuEl();
-    if (!btn || !menu2)
-      return;
-    const here = current2();
-    btn.textContent = S2.meta?.name || here?.name || "-";
-    btn.classList.toggle("has-worktrees", list.length > 1);
-    btn.title = list.length > 1 ? here?.branch ? `${here.branch} · ${S2.meta?.root}
-Switch worktree` : "Switch worktree" : S2.meta?.root || "";
-    menu2.innerHTML = list.map((w) => `
-    <button class="worktree-item${w.current ? " active" : ""}${w.missing ? " missing" : ""}" data-worktree="${w.path.replace(/"/g, "&quot;")}" title="${esc(w.path)}${w.addedAt ? " · added " + age(w.addedAt) : ""}" ${w.missing ? "disabled" : ""}>
-      <span class="worktree-name">${w.name}</span>
-      <span class="worktree-branch">${w.missing ? "missing" : w.branch || w.head?.slice(0, 7) || ""}</span>
-    </button>`).join("");
-  }
-  function setOpen(next) {
-    open = next && list.length > 1;
-    menuEl()?.toggleAttribute("hidden", !open);
-    nameEl()?.classList.toggle("open", open);
-  }
-  async function pick2(path) {
-    setOpen(false);
-    try {
-      const res = await apiPost("/api/worktree/switch", undefined, {
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path })
-      });
-      if (!res.switched)
-        return;
-      showToast("✓", "Switched worktree");
-      setTimeout(() => location.reload(), 250);
-    } catch (e) {
-      showToast("!", e.message);
-    }
-  }
-  function initWorktrees() {
-    nameEl()?.addEventListener("click", (e) => {
-      if (list.length < 2)
-        return;
-      e.stopPropagation();
-      setOpen(!open);
-    });
-    menuEl()?.addEventListener("click", (e) => {
-      const btn = e.target.closest("[data-worktree]");
-      if (btn)
-        pick2(btn.dataset.worktree);
-    });
-    document.addEventListener("click", (e) => {
-      if (open && !e.target.closest("#worktree-menu, #root-name"))
-        setOpen(false);
-    });
-    document.addEventListener("keydown", (e) => {
-      if (open && e.key === "Escape")
-        setOpen(false);
-    });
-    loadWorktrees();
   }
 
   // web/src/main.js

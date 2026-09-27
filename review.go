@@ -580,17 +580,32 @@ func (m *reviewManager) BaselineDiff(path string) (string, error) {
 	}
 	baseline := filepath.Join(m.sessionDir(m.active.ID), "files", filepath.FromSlash(path))
 	m.mu.Unlock()
-	if _, err := os.Stat(baseline); err != nil {
-		if os.IsNotExist(err) {
-			return "", errors.New("file was not present at review start")
-		}
-		return "", err
-	}
 	current := filepath.Join(m.root, filepath.FromSlash(path))
-	if _, err := os.Stat(current); err != nil {
-		return "", err
+	baseExists := true
+	if _, err := os.Stat(baseline); err != nil {
+		if !os.IsNotExist(err) {
+			return "", err
+		}
+		baseExists = false
 	}
-	cmd := exec.Command("git", "diff", "--no-index", "--no-color", "--", baseline, current)
+	currentExists := true
+	if _, err := os.Stat(current); err != nil {
+		if !os.IsNotExist(err) {
+			return "", err
+		}
+		currentExists = false
+	}
+	if !baseExists && !currentExists {
+		return "", errors.New("file was not available at either review state")
+	}
+	left, right := baseline, current
+	if !baseExists {
+		left = os.DevNull
+	}
+	if !currentExists {
+		right = os.DevNull
+	}
+	cmd := exec.Command("git", "diff", "--no-index", "--no-color", "--", left, right)
 	out, err := cmd.Output()
 	if err != nil {
 		if exit, ok := err.(*exec.ExitError); !ok || exit.ExitCode() != 1 {
@@ -987,6 +1002,43 @@ func (s *Server) handleReviewRevision(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, map[string]any{"active": true, "revision": revision})
+}
+
+type reviewInboxItem struct {
+	Path    string      `json:"path"`
+	Name    string      `json:"name"`
+	Branch  string      `json:"branch,omitempty"`
+	Current bool        `json:"current"`
+	Queue   reviewQueue `json:"queue"`
+}
+
+// handleReviewInbox lists active review queues across this repository's
+// worktrees. It is read-only: switching remains the explicit local POST action.
+func (s *Server) handleReviewInbox(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		fail(w, http.StatusMethodNotAllowed, "GET only")
+		return
+	}
+	roots := worktrees(s.ix.Root())
+	if len(roots) == 0 {
+		roots = []worktree{{Path: s.ix.Root(), Name: filepath.Base(s.ix.Root()), Current: true}}
+	}
+	items := make([]reviewInboxItem, 0, len(roots))
+	for _, wt := range roots {
+		if wt.Missing {
+			continue
+		}
+		m := newReviewManager(wt.Path)
+		if !m.HasActive() {
+			continue
+		}
+		q, err := m.Queue()
+		if err != nil {
+			continue
+		}
+		items = append(items, reviewInboxItem{Path: wt.Path, Name: wt.Name, Branch: wt.Branch, Current: wt.Current, Queue: q})
+	}
+	writeJSON(w, map[string]any{"items": items})
 }
 
 func (s *Server) handleReviewDiff(w http.ResponseWriter, r *http.Request) {

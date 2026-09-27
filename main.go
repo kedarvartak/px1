@@ -112,6 +112,7 @@ func main() {
 	// Capture the task baseline before the first request so users can run any
 	// harness normally and see its later changes in the review queue.
 	pxSrv.autoStartReview()
+	pxSrv.autoStartWorktreeReviews()
 
 	srv := &http.Server{Handler: pxSrv}
 

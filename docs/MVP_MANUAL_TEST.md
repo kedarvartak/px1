@@ -7,6 +7,7 @@ Run this checklist on Go 1.25+ before tagging the P1 MVP. Use a disposable Git w
 1. Start px1, open **Review**, and start a review session. Confirm it reports no changes.
 1. Modify two files outside px1 (or through the agent). Confirm only those files appear in the queue and **Next change** opens the task-baseline diff.
 1. Mark one file reviewed, modify it again, refresh the queue, and confirm its state becomes **stale** rather than remaining reviewed.
+1. Use the review search field and status filters to narrow the queue; confirm **Next change** follows the visible pending result.
 1. Select changed code and add a comment. Confirm it persists after closing and reopening the review pane.
 1. Add two current comments, choose **Ask agent**, and confirm the agent receives both file/line anchors; inspect the refreshed queue afterward.
 

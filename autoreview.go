@@ -15,6 +15,29 @@ import "os"
 // autoStartReview starts a session for the current workspace when no session
 // exists. Failures are quiet: a missing session is an inconvenience, not a
 // reason to refuse to serve the workspace.
+// autoStartWorktreeReviews registers review baselines for every linked
+// checkout in this repository. This is what lets the inbox surface an agent's
+// worktree before the user switches into it.
+func (s *Server) autoStartWorktreeReviews() {
+	if !reviewAutoStartEnabled() {
+		return
+	}
+	for _, wt := range worktrees(s.ix.Root()) {
+		if wt.Main || wt.Missing {
+			continue
+		}
+		m := newReviewManager(wt.Path)
+		if m.HasActive() {
+			continue
+		}
+		if base := worktreeBase(wt.Path); base != "" {
+			if _, err := m.StartFromRef(base); err != nil {
+				uiStatus("warn", "review", "could not start "+wt.Name+": "+err.Error(), 0, os.Stdout)
+			}
+		}
+	}
+}
+
 func (s *Server) autoStartReview() {
 	if s.review == nil || !reviewAutoStartEnabled() {
 		return
