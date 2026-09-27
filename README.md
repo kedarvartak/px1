@@ -92,6 +92,7 @@ make dist
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidance and [docs/internals](docs/internals/README.md) for architecture details.
+See the [roadmap](ROADMAP.md) for the planned GitHub-connected review flows.
 
 ## License
 
