@@ -2735,7 +2735,7 @@
     if (!d.diffHunks || !d.diffHunks.length) {
       const p = document.createElement("div");
       p.className = "diff-empty";
-      p.textContent = "No changes against HEAD.";
+      p.textContent = d.diffSource === "review" ? "No changes in this review." : "No changes against HEAD.";
       diffContent.append(p);
       return;
     }
