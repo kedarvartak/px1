@@ -151,6 +151,11 @@ body.side-hidden #side, body.side-hidden #resizer { display: none; }
 .review-feedback:hover:not(:disabled), .review-undo:hover { color: var(--fg); background: var(--bg3); }
 .review-next:disabled, .review-feedback:disabled { cursor: default; opacity: .45; }
 .review-checks { display: grid; gap: 4px; }
+.review-checks-head { display: flex; align-items: center; justify-content: space-between; min-height: 26px; }
+.review-checks-head strong { color: var(--faint); font-size: 12px; font-weight: 400; }
+.review-checks-head button { height: 24px; padding: 0 8px; border-radius: 6px; color: var(--faint); font-size: 11.5px; }
+.review-checks-head button:hover:not(:disabled) { color: var(--fg); background: var(--bg3); }
+.review-checks-head button:disabled { cursor: default; opacity: .5; }
 .review-check { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; height: 30px; border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; color: var(--fg); font-size: 12.5px; text-align: left; }
 .review-check:hover { background: var(--bg3); }
 .review-check span:last-child { color: var(--faint); font-size: 12px; }

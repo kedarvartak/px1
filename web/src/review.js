@@ -25,6 +25,7 @@ let ruleTarget = null;
 const ruleBox = $('#review-rulebox');
 let reviewFilter = 'all';
 let reviewSearch = '';
+let runningAllChecks = false;
 
 const pending = item => item.state === 'unreviewed' || item.state === 'stale' || item.state === 'blocked';
 
@@ -165,7 +166,8 @@ function drawReviewQueue() {
   const names = Object.keys(checks.commands || {}).sort();
   const latest = new Map();
   for (const job of checks.jobs || []) if (!latest.has(job.name)) latest.set(job.name, job);
-  const checkMarkup = names.length ? `<div class="review-checks">${names.map(name => {
+  const anyCheckRunning = (checks.jobs || []).some(job => job.running);
+  const checkMarkup = names.length ? `<div class="review-checks"><div class="review-checks-head"><strong>Verification</strong><button data-review-check-all ${runningAllChecks || anyCheckRunning ? 'disabled' : ''}>${runningAllChecks ? 'Running…' : 'Run all'}</button></div>${names.map(name => {
     const j = latest.get(name); const state = j?.running ? 'running' : j?.stale ? 'stale' : j?.exitCode ? 'failed' : j ? 'passed' : 'idle';
     const label = j?.running ? 'Running…' : j?.stale ? 'Stale' : j?.exitCode ? 'Failed' : j ? 'Passed' : 'Run';
     const detail = j?.output ? checks.commands[name] + '\n\n' + j.output.slice(-1200) : checks.commands[name];
@@ -318,7 +320,7 @@ async function undoPatch() {
   } catch (e) { showToast('!', e.message); }
 }
 
-async function runCheck(name) {
+async function runCheck(name, quiet = false) {
   try {
     const j = await apiPost('/api/review/check/run', { name });
     await refreshReviewQueue();
@@ -327,11 +329,33 @@ async function runCheck(name) {
       await refreshReviewQueue();
       const job = (S.reviewChecks.jobs || []).find(x => x.id === j.job.id);
       if (!job?.running) {
-        showToast(job?.exitCode ? '!' : '✓', job?.exitCode ? name + ' failed' : name + ' passed');
-        return;
+        if (!quiet) showToast(job?.exitCode ? '!' : '✓', job?.exitCode ? name + ' failed' : name + ' passed');
+        return !job?.exitCode;
       }
     }
-  } catch (e) { showToast('!', e.message); }
+  } catch (e) {
+    if (!quiet) showToast('!', e.message);
+    return false;
+  }
+}
+
+async function runAllChecks() {
+  if (runningAllChecks) return;
+  const checks = S.reviewChecks || { commands: {}, jobs: [] };
+  const running = new Set((checks.jobs || []).filter(job => job.running).map(job => job.name));
+  const names = Object.keys(checks.commands || {}).sort().filter(name => !running.has(name));
+  if (!names.length) return;
+  runningAllChecks = true;
+  drawReviewQueue();
+  const failed = [];
+  try {
+    for (const name of names) if (!await runCheck(name, true)) failed.push(name);
+    await refreshReviewQueue();
+    showToast(failed.length ? '!' : '✓', failed.length ? `${failed.length} check${failed.length === 1 ? '' : 's'} failed` : 'All checks passed');
+  } finally {
+    runningAllChecks = false;
+    drawReviewQueue();
+  }
 }
 
 async function explain() {
@@ -583,6 +607,7 @@ export function initReviewQueue() {
     if (e.target.closest('[data-review-feedback]')) return sendFeedback();
     if (e.target.closest('[data-review-undo]')) return undoPatch();
     if (e.target.closest('[data-review-setup-checks]')) return openSettings('json');
+    if (e.target.closest('[data-review-check-all]')) return runAllChecks();
     if (e.target.closest('[data-review-explain]')) return explain();
     if (e.target.closest('[data-review-rulehits-send]')) return sendRuleHits();
     const hitBtn = e.target.closest('[data-review-rulehit]');

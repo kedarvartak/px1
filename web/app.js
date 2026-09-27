@@ -6060,6 +6060,7 @@ Switch worktree` : "Switch worktree" : S2.meta?.root || "";
   var ruleBox = $("#review-rulebox");
   var reviewFilter = "all";
   var reviewSearch = "";
+  var runningAllChecks = false;
   var pending = (item) => item.state === "unreviewed" || item.state === "stale" || item.state === "blocked";
   var reviewFilterOptions = [
     ["all", "All"],
@@ -6218,7 +6219,8 @@ Switch worktree` : "Switch worktree" : S2.meta?.root || "";
     for (const job2 of checks.jobs || [])
       if (!latest.has(job2.name))
         latest.set(job2.name, job2);
-    const checkMarkup = names.length ? `<div class="review-checks">${names.map((name) => {
+    const anyCheckRunning = (checks.jobs || []).some((job2) => job2.running);
+    const checkMarkup = names.length ? `<div class="review-checks"><div class="review-checks-head"><strong>Verification</strong><button data-review-check-all ${runningAllChecks || anyCheckRunning ? "disabled" : ""}>${runningAllChecks ? "Running…" : "Run all"}</button></div>${names.map((name) => {
       const j = latest.get(name);
       const state = j?.running ? "running" : j?.stale ? "stale" : j?.exitCode ? "failed" : j ? "passed" : "idle";
       const label = j?.running ? "Running…" : j?.stale ? "Stale" : j?.exitCode ? "Failed" : j ? "Passed" : "Run";
@@ -6375,7 +6377,7 @@ Switch worktree` : "Switch worktree" : S2.meta?.root || "";
       showToast("!", e.message);
     }
   }
-  async function runCheck(name) {
+  async function runCheck(name, quiet = false) {
     try {
       const j = await apiPost("/api/review/check/run", { name });
       await refreshReviewQueue();
@@ -6384,12 +6386,37 @@ Switch worktree` : "Switch worktree" : S2.meta?.root || "";
         await refreshReviewQueue();
         const job2 = (S2.reviewChecks.jobs || []).find((x) => x.id === j.job.id);
         if (!job2?.running) {
-          showToast(job2?.exitCode ? "!" : "✓", job2?.exitCode ? name + " failed" : name + " passed");
-          return;
+          if (!quiet)
+            showToast(job2?.exitCode ? "!" : "✓", job2?.exitCode ? name + " failed" : name + " passed");
+          return !job2?.exitCode;
         }
       }
     } catch (e) {
-      showToast("!", e.message);
+      if (!quiet)
+        showToast("!", e.message);
+      return false;
+    }
+  }
+  async function runAllChecks() {
+    if (runningAllChecks)
+      return;
+    const checks = S2.reviewChecks || { commands: {}, jobs: [] };
+    const running = new Set((checks.jobs || []).filter((job2) => job2.running).map((job2) => job2.name));
+    const names = Object.keys(checks.commands || {}).sort().filter((name) => !running.has(name));
+    if (!names.length)
+      return;
+    runningAllChecks = true;
+    drawReviewQueue();
+    const failed = [];
+    try {
+      for (const name of names)
+        if (!await runCheck(name, true))
+          failed.push(name);
+      await refreshReviewQueue();
+      showToast(failed.length ? "!" : "✓", failed.length ? `${failed.length} check${failed.length === 1 ? "" : "s"} failed` : "All checks passed");
+    } finally {
+      runningAllChecks = false;
+      drawReviewQueue();
     }
   }
   async function explain2() {
@@ -6666,6 +6693,8 @@ Switch worktree` : "Switch worktree" : S2.meta?.root || "";
         return undoPatch();
       if (e.target.closest("[data-review-setup-checks]"))
         return openSettings("json");
+      if (e.target.closest("[data-review-check-all]"))
+        return runAllChecks();
       if (e.target.closest("[data-review-explain]"))
         return explain2();
       if (e.target.closest("[data-review-rulehits-send]"))

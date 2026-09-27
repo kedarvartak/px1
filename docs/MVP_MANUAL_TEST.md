@@ -20,6 +20,7 @@ Run this checklist on Go 1.25+ before tagging the P1 MVP. Use a disposable Git w
 ## Verification and safety
 
 1. Configure a passing and a failing `verification.commands` entry in Settings JSON. Confirm each result is shown in Review; hover for recent output.
+1. Use **Run all** in Review and confirm every idle check runs, already-running checks are not duplicated, and the aggregate result is shown.
 1. Change a reviewed file after a check passes. Confirm the result becomes **Stale**.
 1. Open px1 through a hostname/reverse proxy and confirm mutation routes (patch, agent, checks) are refused; localhost/IP use remains subject to the local-post guard.
 1. Run `go test ./...`, `node ./scripts/build-web.js`, and `git diff --check` with Go 1.25+. Record exact versions and results in the release notes.
