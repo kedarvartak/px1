@@ -3,6 +3,7 @@ import { $, $$, esc, S, api, apiPost } from './state.js';
 import { applyEditorTypography, toggleWordWrap, toggleLineNumbers } from './renderer.js';
 import { setTheme, listThemes } from './theme.js';
 import { setLayoutPref } from './diff.js';
+import { showToast } from './ui.js';
 
 export let settingsModalEl = null;
 const BUILTIN_SCHEMA = [
@@ -270,6 +271,14 @@ const BUILTIN_SCHEMA = [
     default: true,
   },
   {
+    key: "verification.commands",
+    title: "Verification Commands",
+    description: "Named shell commands available from the review queue.",
+    category: "Verification",
+    type: "commands",
+    default: {}
+  },
+  {
     key: "telemetry.enabled",
     title: "Telemetry",
     description: "Enable anonymous usage metrics to help improve px1.",
@@ -515,6 +524,36 @@ function isSettingModified(key, val, defVal) {
   return String(val) !== String(defVal);
 }
 
+function verificationCommands() {
+  const value = settingsData.settings?.['verification.commands']
+    ?? settingsData.defaults?.['verification.commands'];
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value).map(([name, command]) => [String(name), String(command ?? '')]));
+}
+
+function verificationCommandsControl(commands) {
+  const rows = Object.entries(commands).sort(([a], [b]) => a.localeCompare(b)).map(([name, command]) => `
+    <div class="settings-command-row" data-command-row data-command-old="${esc(name)}">
+      <input class="settings-input settings-command-name" data-command-name type="text" value="${esc(name)}" aria-label="Command name" placeholder="Name">
+      <input class="settings-input settings-command-value" data-command-value type="text" value="${esc(command)}" aria-label="Shell command" placeholder="Shell command">
+      <button class="settings-btn-secondary" data-command-save type="button">Save</button>
+      <button class="settings-reset-btn settings-command-delete" data-command-delete type="button">Delete</button>
+    </div>`).join('');
+  return `<div class="settings-commands">
+    <div class="settings-command-help">Each command runs from the workspace root when you use Review verification.</div>
+    ${rows || '<div class="settings-command-empty">No commands configured yet.</div>'}
+    <div class="settings-command-row settings-command-new" data-command-new>
+      <input class="settings-input settings-command-name" data-command-name type="text" aria-label="New command name" placeholder="New name">
+      <input class="settings-input settings-command-value" data-command-value type="text" aria-label="New shell command" placeholder="Shell command, e.g. go test ./...">
+      <button class="settings-btn-primary" data-command-add type="button">Add</button>
+      <span></span>
+    </div>
+    <div class="settings-command-actions">
+      <button class="settings-reset-btn" data-command-reset type="button" ${Object.keys(commands).length ? '' : 'disabled'}>Clear all</button>
+    </div>
+  </div>`;
+}
+
 function renderSettingsList() {
   const container = $('#settings-list');
   if (!container) return;
@@ -552,7 +591,22 @@ function renderSettingsList() {
     const itemDef = item.default !== undefined ? item.default : item.Default;
     const def = defaults[key] !== undefined ? defaults[key] : itemDef;
     const val = currentSettings[key] !== undefined ? currentSettings[key] : def;
-    const modified = isSettingModified(key, currentSettings[key], def);
+    const commands = type === 'commands' ? verificationCommands() : null;
+    const modified = type === 'commands'
+      ? Object.keys(commands).length > 0
+      : isSettingModified(key, currentSettings[key], def);
+
+    if (type === 'commands') {
+      return `
+        <div class="settings-card settings-command-card${modified ? ' is-modified' : ''}" data-setting="${esc(key)}">
+          <div class="settings-card-left">
+            <div class="settings-card-title">${esc(title)}</div>
+            ${desc ? `<div class="settings-card-desc">${esc(desc)}</div>` : ''}
+            <div class="settings-card-key">${esc(key)}</div>
+          </div>
+          <div class="settings-card-right settings-command-card-right">${verificationCommandsControl(commands)}</div>
+        </div>`;
+    }
 
     let control = '';
     if (type === 'boolean') {
@@ -620,6 +674,49 @@ async function handleSettingChange(key, value) {
   } catch (err) {
     console.error(`Failed to save setting ${key}:`, err);
   }
+}
+
+async function persistVerificationCommands(commands) {
+  try {
+    const res = await apiPost('/api/settings', undefined, {
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 'verification.commands': commands })
+    });
+    if (res.settings) {
+      settingsData.settings = res.settings;
+      S.settings = res.settings;
+    }
+    if (res.raw) settingsData.raw = res.raw;
+    renderSettingsList();
+    showToast('✓', 'Verification commands saved');
+    return true;
+  } catch (err) {
+    showToast('!', 'Could not save verification commands: ' + err.message, 4500);
+    return false;
+  }
+}
+
+async function saveVerificationCommand(oldName, name, command) {
+  const nextName = name.trim();
+  const nextCommand = command.trim();
+  if (!nextName || !nextCommand) {
+    showToast('!', 'Enter both a command name and shell command');
+    return;
+  }
+  const commands = verificationCommands();
+  if (oldName !== nextName && Object.prototype.hasOwnProperty.call(commands, nextName)) {
+    showToast('!', 'A verification command with that name already exists');
+    return;
+  }
+  if (oldName && oldName !== nextName) delete commands[oldName];
+  commands[nextName] = nextCommand;
+  await persistVerificationCommands(commands);
+}
+
+async function deleteVerificationCommand(name) {
+  const commands = verificationCommands();
+  delete commands[name];
+  await persistVerificationCommands(commands);
 }
 
 async function handleResetSetting(key) {
@@ -746,6 +843,37 @@ function initSettingsDOM() {
     });
 
     listEl.addEventListener('click', e => {
+      const saveCommand = e.target.closest('[data-command-save]');
+      if (saveCommand) {
+        const row = saveCommand.closest('[data-command-row]');
+        if (row) {
+          const name = row.querySelector('[data-command-name]')?.value || '';
+          const command = row.querySelector('[data-command-value]')?.value || '';
+          saveVerificationCommand(row.dataset.commandOld || '', name, command);
+        }
+        return;
+      }
+      const addCommand = e.target.closest('[data-command-add]');
+      if (addCommand) {
+        const row = addCommand.closest('[data-command-new]');
+        if (row) {
+          const name = row.querySelector('[data-command-name]')?.value || '';
+          const command = row.querySelector('[data-command-value]')?.value || '';
+          saveVerificationCommand('', name, command);
+        }
+        return;
+      }
+      const deleteCommand = e.target.closest('[data-command-delete]');
+      if (deleteCommand) {
+        const row = deleteCommand.closest('[data-command-row]');
+        if (row?.dataset.commandOld) deleteVerificationCommand(row.dataset.commandOld);
+        return;
+      }
+      const resetCommands = e.target.closest('[data-command-reset]');
+      if (resetCommands) {
+        persistVerificationCommands({});
+        return;
+      }
       const pill = e.target.closest('.settings-pill-tag');
       if (pill) {
         const key = pill.dataset.setKey;
