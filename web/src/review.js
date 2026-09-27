@@ -23,8 +23,34 @@ let rulesOpen = false;
 let pinSig = '';
 let ruleTarget = null;
 const ruleBox = $('#review-rulebox');
+let reviewFilter = 'all';
+let reviewSearch = '';
 
 const pending = item => item.state === 'unreviewed' || item.state === 'stale' || item.state === 'blocked';
+
+const reviewFilterOptions = [
+  ['all', 'All'],
+  ['pending', 'Needs review'],
+  ['stale', 'Stale'],
+  ['reviewed', 'Reviewed'],
+];
+
+function matchesReviewFilter(item) {
+  if (reviewFilter === 'pending') return pending(item);
+  if (reviewFilter === 'all') return true;
+  return item.state === reviewFilter;
+}
+
+function filteredReviewItems(items) {
+  const query = reviewSearch.trim().toLowerCase();
+  return items.filter(item => matchesReviewFilter(item) && (!query || item.path.toLowerCase().includes(query)));
+}
+
+function filterCount(items, filter) {
+  if (filter === 'all') return items.length;
+  if (filter === 'pending') return items.filter(pending).length;
+  return items.filter(item => item.state === filter).length;
+}
 
 export async function refreshReviewQueue() {
   try {
@@ -113,6 +139,14 @@ function itemMarkup(item) {
   </div>`;
 }
 
+function reviewFiltersMarkup(items) {
+  const buttons = reviewFilterOptions.map(([id, label]) => `<button class="review-filter${reviewFilter === id ? ' active' : ''}" data-review-filter="${id}" aria-pressed="${reviewFilter === id}">${label}<span>${filterCount(items, id)}</span></button>`).join('');
+  return `<div class="review-filters">
+    <label class="review-filter-search"><span class="sr-only">Search changed files</span><input data-review-search type="search" value="${esc(reviewSearch)}" placeholder="Search changed files" autocomplete="off" spellcheck="false"></label>
+    <div class="review-filter-tabs" role="group" aria-label="Review file status filter">${buttons}</div>
+  </div>`;
+}
+
 function drawReviewQueue() {
   if (!queueEl) return;
   const active = S.review?.active;
@@ -122,9 +156,10 @@ function drawReviewQueue() {
     return;
   }
   const items = q?.items || [];
+  const visibleItems = filteredReviewItems(items);
   const count = q?.total || items.length;
   const reviewed = q?.reviewed || 0;
-  const next = items.find(pending);
+  const next = visibleItems.find(pending);
   const comments = (S.reviewComments || []).filter(c => c.status === 'open' && !c.stale);
   const checks = S.reviewChecks || { commands: {}, jobs: [] };
   const names = Object.keys(checks.commands || {}).sort();
@@ -136,17 +171,22 @@ function drawReviewQueue() {
     const detail = j?.output ? checks.commands[name] + '\n\n' + j.output.slice(-1200) : checks.commands[name];
     return `<button class="review-check ${state}" data-review-check="${esc(name)}" title="${esc(detail)}" ${j?.running ? 'disabled' : ''}><span>${esc(name)}</span><span>${label}</span></button>`;
   }).join('')}</div>` : '<button class="review-check-empty" data-review-setup-checks title="Add named commands under verification.commands in settings.json">Set up checks</button>';
+  const emptyHint = items.length ? 'No changed files match this filter.' : 'No files have changed since this review began.';
+  const nextLabel = next ? 'Next change →' : visibleItems.length ? 'All visible changes reviewed' : 'No matching changes';
   queueEl.innerHTML = `${inboxMarkup()}<div class="review-summary"><div class="review-summary-text"><strong>Agent changes</strong><span>${reviewed} of ${count} reviewed${active.baseRef ? ' · since worktree creation' : ''}</span></div><button class="review-close" data-review-close title="Close review session">Close</button><div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div></div>
     ${challengesMarkup()}
     ${ruleHitsMarkup()}
     ${pinsMarkup()}
-    <div class="review-list">${items.length ? items.map(itemMarkup).join('') : '<div class="hint">No files have changed since this review began.</div>'}</div>
     ${rulesMarkup()}
-    <div class="review-foot">${checkMarkup}${comments.length ? `<button class="review-feedback" data-review-feedback>Ask agent to address ${comments.length} comment${comments.length === 1 ? '' : 's'}</button>` : ''}${S.lastReviewPatch ? '<button class="review-undo" data-review-undo>Undo last patch</button>' : ''}<button class="review-next" data-review-next ${next ? '' : 'disabled'}>${next ? 'Next change →' : 'All changes reviewed'}</button></div>`;
+    ${reviewFiltersMarkup(items)}
+    <div class="review-list">${visibleItems.length ? visibleItems.map(itemMarkup).join('') : `<div class="hint">${emptyHint}</div>`}</div>
+    <div class="review-foot">${checkMarkup}${comments.length ? `<button class="review-feedback" data-review-feedback>Ask agent to address ${comments.length} comment${comments.length === 1 ? '' : 's'}</button>` : ''}${S.lastReviewPatch ? '<button class="review-undo" data-review-undo>Undo last patch</button>' : ''}<button class="review-next" data-review-next ${next ? '' : 'disabled'}>${nextLabel}</button></div>`;
 }
 
 async function start() {
   try {
+    reviewFilter = 'all';
+    reviewSearch = '';
     await apiPost('/api/review/session/start');
     await refreshReviewQueue();
     showToast('✓', 'Review baseline captured');
@@ -163,7 +203,7 @@ async function mark(path) {
 }
 
 async function openNext() {
-  const item = S.review?.queue?.items?.find(pending);
+  const item = filteredReviewItems(S.review?.queue?.items || []).find(pending);
   if (!item) return;
   await openFile(item.path);
   await openReviewDiff(item.path);
@@ -516,11 +556,29 @@ export function initReviewQueue() {
   queueEl?.addEventListener('toggle', e => {
     if (e.target.matches('.review-rules')) rulesOpen = e.target.open;
   }, true);
+  queueEl?.addEventListener('input', e => {
+    const input = e.target.closest('[data-review-search]');
+    if (!input) return;
+    const caret = input.selectionStart;
+    reviewSearch = input.value;
+    drawReviewQueue();
+    const nextInput = queueEl.querySelector('[data-review-search]');
+    if (nextInput) {
+      nextInput.focus();
+      nextInput.setSelectionRange(caret, caret);
+    }
+  });
   queueEl?.addEventListener('click', async e => {
     const startBtn = e.target.closest('[data-review-start]');
     if (startBtn) return start();
     const worktree = e.target.closest('[data-review-worktree]');
     if (worktree) return switchWorktree(worktree.dataset.reviewWorktree);
+    const filter = e.target.closest('[data-review-filter]');
+    if (filter) {
+      reviewFilter = filter.dataset.reviewFilter;
+      drawReviewQueue();
+      return;
+    }
     if (e.target.closest('[data-review-close]')) return close();
     if (e.target.closest('[data-review-feedback]')) return sendFeedback();
     if (e.target.closest('[data-review-undo]')) return undoPatch();
