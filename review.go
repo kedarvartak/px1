@@ -580,17 +580,32 @@ func (m *reviewManager) BaselineDiff(path string) (string, error) {
 	}
 	baseline := filepath.Join(m.sessionDir(m.active.ID), "files", filepath.FromSlash(path))
 	m.mu.Unlock()
-	if _, err := os.Stat(baseline); err != nil {
-		if os.IsNotExist(err) {
-			return "", errors.New("file was not present at review start")
-		}
-		return "", err
-	}
 	current := filepath.Join(m.root, filepath.FromSlash(path))
-	if _, err := os.Stat(current); err != nil {
-		return "", err
+	baseExists := true
+	if _, err := os.Stat(baseline); err != nil {
+		if !os.IsNotExist(err) {
+			return "", err
+		}
+		baseExists = false
 	}
-	cmd := exec.Command("git", "diff", "--no-index", "--no-color", "--", baseline, current)
+	currentExists := true
+	if _, err := os.Stat(current); err != nil {
+		if !os.IsNotExist(err) {
+			return "", err
+		}
+		currentExists = false
+	}
+	if !baseExists && !currentExists {
+		return "", errors.New("file was not available at either review state")
+	}
+	left, right := baseline, current
+	if !baseExists {
+		left = os.DevNull
+	}
+	if !currentExists {
+		right = os.DevNull
+	}
+	cmd := exec.Command("git", "diff", "--no-index", "--no-color", "--", left, right)
 	out, err := cmd.Output()
 	if err != nil {
 		if exit, ok := err.(*exec.ExitError); !ok || exit.ExitCode() != 1 {
