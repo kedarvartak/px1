@@ -38,7 +38,6 @@ func main() {
 		noColor      = flag.Bool("no-color", false, "disable colour output")
 		quiet        = flag.Bool("quiet", false, "suppress narration")
 		verbose      = flag.Bool("verbose", false, "log requests, searches, symbols, and agent prompts to terminal")
-		noTelemetry  = flag.Bool("no-telemetry", false, "disable anonymous usage telemetry")
 		agentCmd     = flag.String("agent", "", "pin the coding harness used for edits (claude, gemini, cursor-agent, agy, opencode, codex, aider, goose, or a command template containing {prompt}); detected and chosen in the UI when omitted")
 		noAgent      = flag.Bool("no-agent", false, "do not offer editing through a coding harness")
 	)
@@ -96,9 +95,6 @@ func main() {
 
 	ix := NewIndex(root)
 	lsp := newLSPManager(root, !*noLSP)
-	tel := NewTelemetryService(*noTelemetry)
-	defer tel.Close("normal")
-
 	pxSrv := NewServer(ix, lsp)
 	var agent *agentManager
 	if !*noAgent {
@@ -151,12 +147,6 @@ func main() {
 			}
 		}
 
-		tel.Track("session_started", map[string]any{
-			"files_bucket": filesBucket(n),
-			"index_ms":     ms,
-			"has_git":      gitAvailable(root),
-			"has_lsp":      len(lsp.Available()) > 0,
-		})
 	}()
 
 	// Check for updates asynchronously once a day without delaying startup (<1ms).
@@ -186,11 +176,8 @@ func main() {
 	agent.Close()
 
 	if interrupted {
-		tel.Close("interrupted")
 		os.Exit(130)
 	}
-
-	tel.Close("normal")
 	if err != nil && err != http.ErrServerClosed {
 		fatal(err)
 	}

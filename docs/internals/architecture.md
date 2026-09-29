@@ -9,7 +9,7 @@ px1 is engineered as an ultra-fast, zero-overhead code exploration console. Its 
 1. Edits Are Delegated: px1 navigates, searches, and inspects code, and does not author changes itself. There are no save buttons and no endpoint accepts file content. Changes are made by a coding harness px1 dispatches on request, one per non-overlapping line range so several can run at once (see [Harness Editing & Agent Dispatch](agent-editing.md)).
 1. Single Static Binary Footprint: All frontend assets (HTML, CSS, JavaScript, icons, themes) are embedded directly into the Go binary at compile time via `go:embed`. px1 requires no Node.js, Python, or Ruby runtime, no external database, and no CGO dependencies.
 1. Sub-Millisecond Responsiveness: The HTTP listener binds, serves the web UI, and opens the default browser in under 1 millisecond. Heavy operations (full directory indexing, git status checks, language server binary discovery) run asynchronously off the critical path.
-1. Stateless in the Workspace: px1 never writes configuration directories, temporary caches, or metadata files (e.g., `.px1/` or `.cache/`) into a workspace. Indexes and caches live in volatile memory. Outside the workspace it keeps remembered settings, review baselines, and update/telemetry state under `~/.px1/` (or `$XDG_CONFIG_HOME/px1/`).
+1. Stateless in the Workspace: px1 never writes runtime configuration directories, temporary caches, or metadata files into a workspace. Indexes and caches live in volatile memory. Outside the workspace it keeps user settings, review baselines, and update state under `~/.px1/` (or `$XDG_CONFIG_HOME/px1/`); repository-owned team policy is the deliberate exception at `.px1/rules.json`.
 1. Strict Memory Reclamation: Long-lived background processes should not hold idle RAM. When the user finishes a burst of queries, unused pages are proactively returned to the operating system.
 
 ## 2. Startup Pipeline (<1 ms Critical Path)
@@ -60,7 +60,6 @@ The server is implemented in [`server.go`](../../server.go) using Go's standard 
 | `/static/*`           | `GET`  | Serves bundled JavaScript, CSS, and static assets                       | Asset MIME type                            |
 | `/static/themes.css`  | `GET`  | Concatenates all `web/themes/*.css` files in alphanumeric order         | `text/css; charset=utf-8`                  |
 | `/api/meta`           | `GET`  | Workspace metadata (root path, file count, index duration, git status)  | JSON (`{root, name, files, build_ms, git}`)|
-| `/api/metrics`        | `GET`  | Runtime memory and GC stats (`Alloc`, `Sys`, `NumGC`, etc.)             | JSON                                       |
 | `/api/tree`           | `GET`  | Directory contents for the sidebar file explorer (`?dir=path`)          | JSON array of `Node` objects               |
 | `/api/file`           | `GET`  | Windowed, highlighted source file lines (`?path=...&start=0&count=500`) | JSON (`{lines, total, refine, markdown}`)  |
 | `/api/raw`            | `GET`  | Raw, unhighlighted file content for whole-file copies and preview assets| `text/plain` or binary                     |
