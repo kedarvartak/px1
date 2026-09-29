@@ -2,7 +2,7 @@
 
 This document provides a comprehensive technical breakdown of px1's bespoke virtualized code viewer, caret engine, and selection preservation system ([`web/src/renderer.js`](../../web/src/renderer.js), [`web/src/cursor.js`](../../web/src/cursor.js), and [`web/style.css`](../../web/style.css)).
 
-The review queue is a separate, bounded sidebar surface rather than part of the virtualized editor. Its diffs are rendered from the task snapshot in [`web/src/diff.js`](../../web/src/diff.js), so a file created after the review starts is rendered as a `/dev/null` to current-file diff and is not confused with a clean Git HEAD diff. Queue search and status filters reduce the rendered file rows before they are mounted, keeping large review sessions responsive. Verification controls stay in the sidebar and run configured checks without adding work to the editor surface. Named verification commands are edited in the Settings UI and remain user-local configuration.
+The review queue is a separate, bounded sidebar surface rather than part of the virtualized editor. Its diffs are rendered from the task snapshot in [`web/src/diff.js`](../../web/src/diff.js), so a file created after the review starts is rendered as a `/dev/null` to current-file diff and is not confused with a clean Git HEAD diff. Queue search and status filters reduce the rendered file rows before they are mounted, keeping large review sessions responsive. CI verification results stay in the sidebar and are read-only: px1 displays the `.px1/verification.json` report only when its GitHub Actions source and commit SHA match the active review.
 
 ## 1. Why a Bespoke Virtualized Viewer?
 

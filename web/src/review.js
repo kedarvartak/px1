@@ -24,7 +24,6 @@ let ruleTarget = null;
 const ruleBox = $('#review-rulebox');
 let reviewFilter = 'all';
 let reviewSearch = '';
-let runningAllChecks = false;
 
 const pending = item => item.state === 'unreviewed' || item.state === 'stale' || item.state === 'blocked';
 
@@ -72,7 +71,7 @@ export async function refreshReviewQueue() {
     S.reviewRuleHits = j.hits || [];
   } catch { S.reviewRuleHits = []; }
   try { S.reviewRules = (await api('/api/rules')) || { rules: [] }; } catch { S.reviewRules = { rules: [] }; }
-  try { S.reviewChecks = S.review?.active ? await api('/api/review/checks') : { commands: {}, jobs: [] }; } catch { S.reviewChecks = { commands: {}, jobs: [] }; }
+  try { S.reviewChecks = S.review?.active ? await api('/api/review/checks') : { available: false, checks: [] }; } catch { S.reviewChecks = { available: false, checks: [] }; }
   drawReviewQueue();
   const sig = JSON.stringify([S.reviewPins, S.reviewRuleHits]);
   if (sig !== pinSig) {
@@ -135,17 +134,21 @@ function drawReviewQueue() {
   const reviewed = q?.reviewed || 0;
   const next = visibleItems.find(pending);
   const comments = (S.reviewComments || []).filter(c => c.status === 'open' && !c.stale);
-  const checks = S.reviewChecks || { commands: {}, jobs: [] };
-  const names = Object.keys(checks.commands || {}).sort();
-  const latest = new Map();
-  for (const job of checks.jobs || []) if (!latest.has(job.name)) latest.set(job.name, job);
-  const anyCheckRunning = (checks.jobs || []).some(job => job.running);
-  const checkMarkup = names.length ? `<div class="review-checks"><div class="review-checks-head"><strong>Verification</strong><button data-review-check-all ${runningAllChecks || anyCheckRunning ? 'disabled' : ''}>${runningAllChecks ? 'Running…' : 'Run all'}</button></div>${names.map(name => {
-    const j = latest.get(name); const state = j?.running ? 'running' : j?.stale ? 'stale' : j?.exitCode ? 'failed' : j ? 'passed' : 'idle';
-    const label = j?.running ? 'Running…' : j?.stale ? 'Stale' : j?.exitCode ? 'Failed' : j ? 'Passed' : 'Run';
-    const detail = j?.output ? checks.commands[name] + '\n\n' + j.output.slice(-1200) : checks.commands[name];
-    return `<button class="review-check ${state}" data-review-check="${esc(name)}" title="${esc(detail)}" ${j?.running ? 'disabled' : ''}><span>${esc(name)}</span><span>${label}</span></button>`;
-  }).join('')}</div>` : '<button class="review-check-empty" data-review-setup-checks title="Add named commands under verification.commands in settings.json">Set up checks</button>';
+  const checks = S.reviewChecks || { available: false, checks: [] };
+  const results = checks.checks || [];
+  const source = checks.source === 'github-actions' ? 'GitHub Actions' : checks.source || 'CI';
+  const sourceLink = checks.url ? `<a class="review-ci-link" href="${esc(checks.url)}" target="_blank" rel="noreferrer">Open run</a>` : '';
+  const checkMarkup = results.length ? `<div class="review-checks"><div class="review-checks-head"><strong>CI verification</strong><span>${esc(source)} ${sourceLink}</span></div>${results.map(check => {
+    const status = ['queued', 'running', 'passed', 'failed', 'cancelled'].includes(check.status) ? check.status : 'unknown';
+    const label = status === 'passed' ? 'Passed' : status === 'failed' ? 'Failed' : status[0].toUpperCase() + status.slice(1);
+    const target = check.url || checks.url;
+    const detail = check.summary || `Status: ${label}`;
+    return target
+      ? `<a class="review-check ${status}" href="${esc(target)}" target="_blank" rel="noreferrer" title="${esc(detail)}"><span>${esc(check.name)}</span><span>${label}</span></a>`
+      : `<div class="review-check ${status}" title="${esc(detail)}"><span>${esc(check.name)}</span><span>${label}</span></div>`;
+  }).join('')}</div>` : checks.error
+    ? `<div class="review-check-empty">${esc(checks.error)}</div>`
+    : '<div class="review-check-empty">CI results appear here after GitHub Actions publishes .px1/verification.json.</div>';
   const emptyHint = items.length ? 'No changed files match this filter.' : 'No files have changed since this review began.';
   const nextLabel = next ? 'Next change →' : visibleItems.length ? 'All visible changes reviewed' : 'No matching changes';
   queueEl.innerHTML = `<div class="review-summary"><div class="review-summary-text"><strong>Agent changes</strong><span>${reviewed} of ${count} reviewed${active.baseRef ? ' · since worktree creation' : ''}</span></div><button class="review-close" data-review-close title="Close review session">Close</button><div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div></div>
@@ -290,44 +293,6 @@ async function undoPatch() {
     await reloadReviewWorkspace();
     showToast('✓', 'Patch undone');
   } catch (e) { showToast('!', e.message); }
-}
-
-async function runCheck(name, quiet = false) {
-  try {
-    const j = await apiPost('/api/review/check/run', { name });
-    await refreshReviewQueue();
-    while (true) {
-      await new Promise(resolve => setTimeout(resolve, 700));
-      await refreshReviewQueue();
-      const job = (S.reviewChecks.jobs || []).find(x => x.id === j.job.id);
-      if (!job?.running) {
-        if (!quiet) showToast(job?.exitCode ? '!' : '✓', job?.exitCode ? name + ' failed' : name + ' passed');
-        return !job?.exitCode;
-      }
-    }
-  } catch (e) {
-    if (!quiet) showToast('!', e.message);
-    return false;
-  }
-}
-
-async function runAllChecks() {
-  if (runningAllChecks) return;
-  const checks = S.reviewChecks || { commands: {}, jobs: [] };
-  const running = new Set((checks.jobs || []).filter(job => job.running).map(job => job.name));
-  const names = Object.keys(checks.commands || {}).sort().filter(name => !running.has(name));
-  if (!names.length) return;
-  runningAllChecks = true;
-  drawReviewQueue();
-  const failed = [];
-  try {
-    for (const name of names) if (!await runCheck(name, true)) failed.push(name);
-    await refreshReviewQueue();
-    showToast(failed.length ? '!' : '✓', failed.length ? `${failed.length} check${failed.length === 1 ? '' : 's'} failed` : 'All checks passed');
-  } finally {
-    runningAllChecks = false;
-    drawReviewQueue();
-  }
 }
 
 async function explain() {
@@ -556,8 +521,6 @@ export function initReviewQueue() {
     if (e.target.closest('[data-review-close]')) return close();
     if (e.target.closest('[data-review-feedback]')) return sendFeedback();
     if (e.target.closest('[data-review-undo]')) return undoPatch();
-    if (e.target.closest('[data-review-setup-checks]')) return openSettings('json');
-    if (e.target.closest('[data-review-check-all]')) return runAllChecks();
     if (e.target.closest('[data-review-explain]')) return explain();
     if (e.target.closest('[data-review-rulehits-send]')) return sendRuleHits();
     const hitBtn = e.target.closest('[data-review-rulehit]');
@@ -581,8 +544,6 @@ export function initReviewQueue() {
     }
     const pinBtn = e.target.closest('[data-review-pin]');
     if (pinBtn) return openPin(pinBtn.dataset.reviewPin);
-    const check = e.target.closest('[data-review-check]');
-    if (check) return runCheck(check.dataset.reviewCheck);
     if (e.target.closest('[data-review-next]')) return openNext();
     const markBtn = e.target.closest('[data-review-mark]');
     if (markBtn) return mark(markBtn.dataset.reviewMark);

@@ -13,9 +13,8 @@ import (
 // never in the working tree.
 
 type settings struct {
-	Agent                string            `json:"agent,omitempty"`
-	Models               map[string]string `json:"models,omitempty"`
-	VerificationCommands map[string]string `json:"verification.commands,omitempty"`
+	Agent  string            `json:"agent,omitempty"`
+	Models map[string]string `json:"models,omitempty"`
 
 	EditorFontSize             *float64 `json:"editor.fontSize,omitempty"`
 	EditorFontFamily           *string  `json:"editor.fontFamily,omitempty"`
@@ -51,7 +50,7 @@ type settingSchemaItem struct {
 	Title       string   `json:"title"`
 	Description string   `json:"description"`
 	Category    string   `json:"category"`
-	Type        string   `json:"type"` // "string", "number", "boolean", "select", "commands"
+	Type        string   `json:"type"` // "string", "number", "boolean", "select"
 	Default     any      `json:"default"`
 	Options     []string `json:"options,omitempty"`
 	Min         *float64 `json:"min,omitempty"`
@@ -325,24 +324,11 @@ var settingsSchema = []settingSchemaItem{
 		Type:        "boolean",
 		Default:     true,
 	},
-	{
-		Key:         "verification.commands",
-		Title:       "Verification Commands",
-		Description: "Named shell commands available from the review queue.",
-		Category:    "Verification",
-		Type:        "commands",
-		Default:     map[string]string{},
-	},
 }
 
 func defaultSettingsMap() map[string]any {
 	res := make(map[string]any, len(settingsSchema)+2)
 	for _, item := range settingsSchema {
-		if item.Key == "verification.commands" {
-			// Return a fresh map so callers cannot mutate the schema's default.
-			res[item.Key] = map[string]string{}
-			continue
-		}
 		res[item.Key] = item.Default
 	}
 	res["agent"] = ""

@@ -55,7 +55,7 @@ requirement to break existing local users in one release.
 - [x] **Replace personal decision memory with explicit team rules.** Keep human
    comments and finding acknowledgement; make learned rules proposals rather
    than a second hidden policy store.
-- [ ] **Move verification execution to CI.** px1 should display trusted GitHub
+- [x] **Move verification execution to CI.** px1 should display trusted GitHub
    Action results instead of running arbitrary shell commands in the review
    service.
 - [ ] **Simplify local-only session machinery.** Treat the GitHub commit SHA and
@@ -67,6 +67,10 @@ The first reduction was merged in PR #47. The second reduction began in PR #48
 by removing the local cross-worktree Review inbox and its automatic aggregation.
 The third reduction is implemented in this PR: personal decision memory and its
 reversal challenges are removed in favor of explicit team rules.
+
+The fourth reduction is implemented in this PR: local shell verification is
+removed in favor of a small `.px1/verification.json` contract for
+revision-matched GitHub Actions results.
 
 ### Delivery stages
 
@@ -95,4 +99,4 @@ must not block this milestone.
 - Worktree switching with per-checkout review state.
 - Review comments, patches, hunk reverts, pin acknowledgement, rules, and stale
   result detection.
-- Named verification commands with a Settings editor and one-click Run all.
+- Read-only, revision-pinned CI verification results in the review queue.

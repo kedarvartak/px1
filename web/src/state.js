@@ -82,7 +82,7 @@ export const S = {
   reviewRuleHits: [],
   reviewRules: { rules: [] },
   reviewExplain: {},
-  reviewChecks: { commands: {}, jobs: [] },
+  reviewChecks: { available: false, checks: [] },
 };
 
 export const doc_ = () => (S.active >= 0 ? S.tabs[S.active] : null);
