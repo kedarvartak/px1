@@ -113,7 +113,6 @@ body.side-hidden #side, body.side-hidden #resizer { display: none; }
 .review-pin:hover { background: var(--bg3); }
 .review-pin-mark { flex: none; width: 6px; height: 6px; border-radius: 50%; font-size: 0; background: var(--bg4); }
 .review-pin.proposed:not(.stale) .review-pin-mark, .review-rulehit .review-pin-mark { background: var(--accent); }
-.review-challenge .review-pin-mark { background: var(--gd); }
 .review-pin-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg); line-height: 1.4; }
 .review-pin-ref { grid-column: 2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--faint); font: 11px/1.4 var(--mono); }
 .review-pin.accepted .review-pin-text, .review-pin.switched .review-pin-text, .review-pin.stale .review-pin-text { color: var(--faint); }
@@ -184,7 +183,6 @@ body.side-hidden #side, body.side-hidden #resizer { display: none; }
 button.pin-head:hover { background: var(--bg3); }
 .pin-mark { flex: none; width: 6px; height: 6px; border-radius: 50%; font-size: 0; background: var(--bg4); }
 .pin.pin-proposed:not(.pin-stale) .pin-mark, .pin.pin-rule .pin-mark { background: var(--accent); }
-.pin.pin-challenge .pin-mark { background: var(--gd); }
 .pin-decision { flex: 1; min-width: 0; font-weight: 500; }
 .pin.pin-accepted .pin-decision, .pin.pin-switched .pin-decision, .pin.pin-stale .pin-decision { color: var(--dim); }
 .pin-ref { flex: none; color: var(--faint); font: 11px var(--mono); }
@@ -200,18 +198,18 @@ button.pin-head:hover { background: var(--bg3); }
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
 }
 .pin-body .pin-why { margin: 0 0 10px 16px; }
-.pin:not(.pin-challenge):not(.pin-rule) > .pin-body { padding: 0 14px 12px 30px; border-top: 0; }
-.pin:not(.pin-challenge):not(.pin-rule) > .pin-body .pin-acts { margin-top: 0; }
+.pin:not(.pin-rule) > .pin-body { padding: 0 14px 12px 30px; border-top: 0; }
+.pin:not(.pin-rule) > .pin-body .pin-acts { margin-top: 0; }
 /* The whole card is one surface: it lifts its border on hover instead of tinting only the title row. */
 .pin { transition: border-color .12s; }
 .pin:not(.pin-rule):hover { border-color: var(--bg4); }
 button.pin-head:hover { background: transparent; }
-.pin:not(.pin-challenge):not(.pin-rule) { cursor: pointer; }
-.pin:not(.pin-challenge):not(.pin-rule) > .pin-body { cursor: default; }
+.pin:not(.pin-rule) { cursor: pointer; }
+.pin:not(.pin-rule) > .pin-body { cursor: default; }
 .pin-act { height: 26px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--fg); font-size: 12px; }
 .pin-act:hover { background: var(--bg3); }
-.pin-act-accept, .pin-act-challenge-ask { border-color: var(--fg); background: var(--fg); color: var(--bg); font-weight: 500; }
-.pin-act-accept:hover, .pin-act-challenge-ask:hover { background: var(--fg); opacity: .9; }
+.pin-act-accept { border-color: var(--fg); background: var(--fg); color: var(--bg); font-weight: 500; }
+.pin-act-accept:hover { background: var(--fg); opacity: .9; }
 .pin.pin-rule .pin-body { padding-top: 8px; }
 .pin.pin-rule .pin-acts { margin-top: 0; }
 .pin-loose { padding: 6px 0; border-bottom: 1px solid var(--line); }
@@ -1119,8 +1117,6 @@ body.hide-git-gutter .g-git, body.hide-git-gutter [class*="git-"] { display: non
 .settings-error-banner { padding: 8px 20px; color: var(--gd); font-size: 12.5px; border-bottom: 1px solid var(--line); }
 .settings-error-banner.success { color: var(--dim); }
 #settings-raw-editor { flex: 1; margin: 0; padding: 16px 20px; font: 13px/1.6 var(--mono); color: var(--fg); background: var(--bg); border: 0; outline: none; resize: none; tab-size: 2; }
-.g.gut-dec { cursor: help; }
-.g.gut-dec::after { content: "◆"; position: absolute; right: 3px; top: 50%; transform: translateY(-50%); color: var(--accent); font-size: 7px; line-height: 1; }
 .review-pins-head strong, .review-pins-head .review-explain, .review-close { flex: none; white-space: nowrap; }
 .review-pins-head span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .review-primary, .review-next, .review-feedback, .review-undo { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

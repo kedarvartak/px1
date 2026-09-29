@@ -146,16 +146,6 @@ function rowLines(row) {
   return els.map(el => +el.dataset.l);
 }
 
-function rowOld(row) {
-  const els = row.matches('[data-o]') ? [row] : [...row.querySelectorAll('[data-o]')];
-  return els.map(el => +el.dataset.o);
-}
-
-function rowCurrent(row) {
-  const els = row.matches('[data-l],[data-at]') ? [row] : [...row.querySelectorAll('[data-l],[data-at]')];
-  return els.map(el => +(el.dataset.l || el.dataset.at));
-}
-
 function placePins(d, tables) {
   const pins = (S.reviewPins || []).filter(p => p.path === d.path);
   const loose = [];
@@ -169,24 +159,6 @@ function placePins(d, tables) {
     }
     if (target) target.after(ruleHitCard(hit));
     else loose.push(ruleHitCard(hit));
-  }
-  for (const ch of (S.reviewChallenges || []).filter(c => c.path === d.path)) {
-    let target = null;
-    const current = [];
-    for (const table of tables) {
-      for (const row of table.children) {
-        if (rowOld(row).some(l => l >= ch.baselineFrom && l <= ch.baselineTo)) {
-          target = row;
-          current.push(...rowCurrent(row));
-        }
-      }
-      if (target) break;
-    }
-    const lines = current.filter(n => n > 0);
-    const at = lines.length ? { l1: Math.min(...lines), l2: Math.max(...lines) } : { l1: 1, l2: 1 };
-    const card = challengeCard(ch, at);
-    if (target) target.after(card);
-    else loose.push(card);
   }
   for (const pin of pins) {
     let target = null;
@@ -236,51 +208,6 @@ function ruleHitCard(hit) {
 
 export function revealRuleHit(key, line) {
   const card = diffContent.querySelector(`[data-rule-hit="${CSS.escape(key + '@' + line)}"]`);
-  if (!card) return false;
-  card.scrollIntoView({ block: 'center' });
-  return true;
-}
-
-function challengeCard(ch, at) {
-  const card = document.createElement('div');
-  card.className = 'pin pin-challenge';
-  card.dataset.challengeId = ch.id;
-  const head = document.createElement('button');
-  head.className = 'pin-head';
-  const mark = document.createElement('span');
-  mark.className = 'pin-mark';
-  mark.textContent = '⟲';
-  const text = document.createElement('span');
-  text.className = 'pin-decision';
-  text.textContent = 'Reverses a past decision: ' + ch.decision;
-  const ref = document.createElement('span');
-  ref.className = 'pin-ref';
-  ref.textContent = new Date(ch.recordedAt).toLocaleDateString();
-  head.append(mark, text, ref);
-  const body = document.createElement('div');
-  body.className = 'pin-body';
-  if (ch.why) {
-    const why = document.createElement('p');
-    why.className = 'pin-why';
-    why.textContent = ch.why;
-    body.append(why);
-  }
-  const acts = document.createElement('div');
-  acts.className = 'pin-acts';
-  acts.append(
-    pinButton('Ask agent to keep it', 'challenge-ask', { ...ch, at }),
-    pinButton('Decision changed', 'challenge-supersede', ch),
-    pinButton('Still holds', 'challenge-dismiss', ch),
-  );
-  body.append(acts);
-  head.addEventListener('click', () => { body.hidden = !body.hidden; card.classList.toggle('open', !body.hidden); });
-  card.classList.add('open');
-  card.append(head, body);
-  return card;
-}
-
-export function revealChallenge(id) {
-  const card = diffContent.querySelector(`[data-challenge-id="${CSS.escape(id)}"]`);
   if (!card) return false;
   card.scrollIntoView({ block: 'center' });
   return true;

@@ -399,16 +399,7 @@ func (s *Server) handleReviewPinStatus(w http.ResponseWriter, r *http.Request) {
 			fail(w, http.StatusConflict, err.Error())
 			return
 		}
-		remembered := false
-		if pin.Status == "accepted" {
-			abs, _, ok := s.resolvePath(pin.Path)
-			if snippet, err := readLineRange(abs, pin.LineStart, pin.LineEnd); ok && err == nil {
-				remembered = s.rememberPin(pin, snippet) == nil
-			}
-		} else {
-			_ = s.memory.ForgetPin(pin.ID)
-		}
-		writeJSON(w, map[string]any{"pin": pin, "remembered": remembered})
+		writeJSON(w, map[string]any{"pin": pin, "acknowledged": pin.Status == "accepted"})
 		return
 	}
 	if !s.agentOrFail(w) {
@@ -445,9 +436,6 @@ func (s *Server) handleReviewPinStatus(w http.ResponseWriter, r *http.Request) {
 		latest, err := s.review.Pin(req.ID)
 		if err != nil || latest.Status != "switched" {
 			return
-		}
-		if snippet, err := readLineRange(abs, latest.LineStart, latest.LineEnd); err == nil {
-			_ = s.rememberPin(latest.reviewPin, snippet)
 		}
 	})
 	if err != nil {

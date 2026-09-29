@@ -61,16 +61,6 @@ export function render() {
   raf = requestAnimationFrame(() => { raf = 0; paint(); });
 }
 
-function decisionTitleText(recs) {
-  return recs.map(r => {
-    const lines = ['◆ ' + r.decision];
-    if (r.why) lines.push('why: ' + r.why);
-    if (r.alternatives && r.alternatives.length) lines.push('not: ' + r.alternatives.join(' · '));
-    lines.push((r.status === 'switched' ? 'switched ' : 'decided ') + new Date(r.recordedAt).toLocaleDateString());
-    return lines.join('\n');
-  }).join('\n\n');
-}
-
 export function paint() {
   const d = doc_();
   if (!d) { const c = $('#caret'); if (c) c.hidden = true; return; }
@@ -87,19 +77,13 @@ export function paint() {
     const body = d.lines[i];
     let rc = 'row', gc = 'g';
     if (n === d.cur) rc += ' cur';
-    let gt = '';
-    const recs = d.decisions && d.decisions.get(n);
-    if (recs) {
-      gc += ' gut-dec';
-      gt = ' title="' + esc(decisionTitleText(recs)) + '"';
-    }
     if (gut) {
       const m = gut.marks.get(n);
       if (m) gc += m === 'add' ? ' gut-add' : ' gut-mod';
       if (gut.dels.has(n)) rc += ' gut-del';
     }
     html += '<div class="' + rc + '" data-l="' + n + '">' +
-      '<div class="' + gc + '"' + gt + '>' + n + '</div><div class="c">' + (body === undefined ? '' : body) + '</div></div>';
+      '<div class="' + gc + '">' + n + '</div><div class="c">' + (body === undefined ? '' : body) + '</div></div>';
   }
   const sel = saveSelection();
   rowsEl.style.transform = 'translateY(' + (first * LH) + 'px)';

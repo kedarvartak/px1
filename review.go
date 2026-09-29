@@ -50,7 +50,6 @@ type reviewSession struct {
 	Patches  []reviewPatch             `json:"patches,omitempty"`
 	Pins     []reviewPin               `json:"pins,omitempty"`
 
-	DismissedDecisions []string   `json:"dismissedDecisions,omitempty"`
 	DismissedRuleHits  []string   `json:"dismissedRuleHits,omitempty"`
 	ClosedAt           *time.Time `json:"closedAt,omitempty"`
 }
