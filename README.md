@@ -29,7 +29,7 @@ Start px1 before the harness, then use Claude, Codex, Gemini, or any other tool 
 
 1. Start px1 before assigning the task; the review baseline starts automatically.
 2. Search or filter the review queue by filename and state, then inspect each task-baseline diff with **Next change**.
-3. Leave feedback, ask the agent to revise, make a narrow patch, or revert a hunk.
+3. Leave feedback, ask the configured provider to revise, or revert a hunk.
 4. Run a configured check; approve only the revision it verified.
 
 ## Install
@@ -75,7 +75,7 @@ Anyone able to reach px1 by IP can dispatch configured agent edits as you. Keep 
 
 - File, symbol, and workspace search; Git-aware tree and diffs; Markdown preview
 - Optional local LSP navigation and hover, with a regex-outline fallback
-- Coding-agent handoff for Claude Code, Codex, Gemini CLI, Cursor Agent, OpenCode, Aider, Goose, and custom commands
+- Optional review-provider handoff for Claude Code, Codex, Gemini CLI, Cursor Agent, OpenCode, Aider, Goose, and custom commands
 - Configurable verification commands from Settings, themes, and other user-local preferences
 - Local-first operation: one binary, no account, no code upload
 

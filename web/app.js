@@ -72,14 +72,12 @@
     lineNumbers: true,
     mdPreview: true,
     settings: null,
-    agentTargets: [],
     review: null,
     reviewComments: [],
     reviewPins: [],
     reviewRuleHits: [],
     reviewRules: { rules: [] },
     reviewExplain: {},
-    lastReviewPatch: null,
     reviewChecks: { commands: {}, jobs: [] }
   };
   var doc_ = () => S2.active >= 0 ? S2.tabs[S2.active] : null;
@@ -232,15 +230,12 @@
     ensureChunks(d, first, last);
     let html = "";
     const gut = d.gutter || null;
-    const agentRanges = (S2.agentTargets || []).filter((t) => t.path === d.path);
     for (let i = first;i < last; i++) {
       const n = i + 1;
       const body = d.lines[i];
       let rc = "row", gc = "g";
       if (n === d.cur)
         rc += " cur";
-      if (agentRanges.some((r) => n >= r.l1 && n <= r.l2))
-        rc += " agent-sel";
       let gt = "";
       const recs = d.decisions && d.decisions.get(n);
       if (recs) {
@@ -2750,7 +2745,6 @@
     diffContent.append(frag);
     if (d.diffSource === "review")
       placePins(d, tables);
-    syncDiffAgentTargets();
   }
   function rowLines(row) {
     const els = row.matches("[data-l]") ? [row] : [...row.querySelectorAll("[data-l]")];
@@ -2970,19 +2964,6 @@
     card.classList.add("open");
     card.scrollIntoView({ block: "center" });
     return true;
-  }
-  function syncDiffAgentTargets() {
-    if (!diffview || diffview.hidden)
-      return;
-    const d = doc_();
-    if (!d)
-      return;
-    const ranges = (S2.agentTargets || []).filter((t) => t.path === d.path);
-    for (const el of diffview.querySelectorAll("[data-l]")) {
-      const l = +el.dataset.l;
-      const inAgent = ranges.some((r) => l >= r.l1 && l <= r.l2);
-      el.classList.toggle("agent-sel", inAgent);
-    }
   }
   function hunkHeader(d, hunk) {
     const el = document.createElement("div");
@@ -3300,11 +3281,7 @@
   var status = $("#status");
   var statsEl = $("#sel-stats");
   var diffviewEl = $("#diffview");
-  var SEL_KEYS = { KeyC: "copy-ref", KeyA: "copy-agent", KeyU: "usages", KeyE: "agent-edit" };
-  var agentHandler = null;
-  function setAgentHandler(fn) {
-    agentHandler = fn;
-  }
+  var SEL_KEYS = { KeyC: "copy-ref", KeyA: "copy-agent", KeyU: "usages" };
   var reviewCommentHandler = null;
   function setReviewCommentHandler(fn) {
     reviewCommentHandler = fn;
@@ -3472,10 +3449,6 @@
       const snippet = "@" + path + " " + lineStr + "\n```" + ext + `
 ` + text + "\n```";
       copyToClipboard(snippet, "Copied");
-    } else if (act === "agent-edit") {
-      if (!agentHandler)
-        return false;
-      agentHandler(current);
     } else if (act === "review-comment") {
       if (!reviewCommentHandler)
         return false;
@@ -3501,7 +3474,6 @@
     { sel: "copy-agent", label: "Copy with Context", keys: "Alt+A" },
     { sel: "review-comment", label: "Add Review Comment", keys: "" },
     { sel: "review-patch", label: "Patch Selection", keys: "" },
-    { sel: "agent-edit", label: "Edit Inline", keys: "Alt+E" },
     { sel: "usages", label: "Find Usages", keys: "Alt+U" }
   ];
   function openSelMenu(x, y) {
@@ -5492,485 +5464,6 @@
     });
   }
 
-  // web/src/agent.js
-  var box = $("#agentbox");
-  var tpl = $("#agentbox-tpl");
-  var sessions = new Map;
-  var agentSeq = 0;
-  var installed = () => (S2.meta?.agents || []).filter((h) => h.installed);
-  var chosen = () => S2.meta && S2.meta.agent || "";
-  var chosenModel = () => S2.meta && S2.meta.agentModel || "";
-  var targetRef = ({ path, l1, l2 }) => path + ":" + (l1 === l2 ? l1 : l1 + "-" + l2);
-  var rangesOverlap = (a, b) => a.path === b.path && a.l1 <= b.l2 && b.l1 <= a.l2;
-  function applyAgentMeta() {
-    for (const session of sessions.values()) {
-      updateSessionMeta(session);
-    }
-  }
-  function updateSessionMeta(session) {
-    if (!session.harnessSelect || !session.modelSelect)
-      return;
-    const ready = (S2.meta?.agents || []).filter((h) => h.installed);
-    const currentHarness = chosen();
-    const currentModel = chosenModel();
-    session.harnessSelect.innerHTML = "";
-    if (!ready.length) {
-      const opt = document.createElement("option");
-      opt.value = "";
-      opt.textContent = "no harness";
-      session.harnessSelect.appendChild(opt);
-      session.harnessSelect.disabled = true;
-      session.modelSelect.innerHTML = "";
-      session.modelSelect.hidden = true;
-      return;
-    }
-    for (const h of ready) {
-      const opt = document.createElement("option");
-      opt.value = h.name;
-      opt.textContent = h.name;
-      if (h.name === currentHarness)
-        opt.selected = true;
-      session.harnessSelect.appendChild(opt);
-    }
-    const isBusy = session.el.classList.contains("busy");
-    session.harnessSelect.disabled = isBusy || !!(S2.meta && S2.meta.agentPinned);
-    session.harnessSelect.title = S2.meta && S2.meta.agentPinned ? "Fixed for this run by -agent" : "Change the coding harness";
-    const activeH = ready.find((h) => h.name === (session.harnessSelect.value || currentHarness)) || ready[0];
-    session.modelSelect.innerHTML = "";
-    const models = activeH?.models || [];
-    if (models.length > 0) {
-      for (const m of models) {
-        const opt = document.createElement("option");
-        opt.value = m;
-        opt.textContent = m;
-        if (m === currentModel)
-          opt.selected = true;
-        session.modelSelect.appendChild(opt);
-      }
-      session.modelSelect.hidden = false;
-      session.modelSelect.disabled = isBusy;
-      session.modelSelect.title = "Model for " + activeH.name;
-    } else {
-      session.modelSelect.hidden = true;
-    }
-  }
-  async function loadAgentAsync() {
-    try {
-      const j = await api("/api/agent/harnesses");
-      S2.meta.agents = j.harnesses || [];
-      S2.meta.agent = j.selected || S2.meta.agent || "";
-      S2.meta.agentModel = j.model || S2.meta.agentModel || "";
-      S2.meta.agentPinned = !!j.pinned;
-      applyAgentMeta();
-    } catch {}
-  }
-  function anyInFlight() {
-    for (const s of sessions.values())
-      if (s.timer)
-        return true;
-    return false;
-  }
-  function syncBoxVisibility() {
-    box.hidden = sessions.size === 0;
-  }
-  function openAgentEdit(info) {
-    if (!info)
-      return;
-    for (const s of sessions.values()) {
-      if (rangesOverlap(s.target, info)) {
-        showToast("!", "Overlaps the edit already open on " + targetRef(s.target));
-        return;
-      }
-    }
-    const session = createSession(info);
-    sessions.set(session.id, session);
-    syncAgentTargets();
-    applyAgentMeta();
-    syncBoxVisibility();
-    if (chosen() && installed().some((h) => h.name === chosen())) {
-      showCompose(session);
-    } else {
-      showPicker(session);
-    }
-  }
-  function syncAgentTargets() {
-    S2.agentTargets = [...sessions.values()].map((s) => ({
-      id: s.id,
-      path: s.target.path,
-      l1: s.target.l1,
-      l2: s.target.l2
-    }));
-    render();
-    syncDiffAgentTargets();
-  }
-  function createSession(info) {
-    const el = tpl.content.firstElementChild.cloneNode(true);
-    box.prepend(el);
-    const session = {
-      id: ++agentSeq,
-      target: info,
-      timer: null,
-      jobId: null,
-      harness: "",
-      el,
-      refEl: el.querySelector(".agent-ref"),
-      metaEl: el.querySelector(".agent-meta"),
-      harnessSelect: el.querySelector(".agent-harness-select"),
-      modelSelect: el.querySelector(".agent-model-select"),
-      closeBtn: el.querySelector(".agent-close"),
-      pickEl: el.querySelector(".agent-pick"),
-      composeEl: el.querySelector(".agent-compose"),
-      input: el.querySelector(".agent-input"),
-      sendBtn: el.querySelector(".agent-send"),
-      cancelBtn: el.querySelector(".agent-cancel"),
-      hintEl: el.querySelector(".agent-hint"),
-      errEl: el.querySelector(".agent-err")
-    };
-    wireSession(session);
-    refreshRef(session);
-    setBusy(session, false);
-    resetHint(session);
-    clearErr(session);
-    session.input.value = "";
-    session.input.focus();
-    return session;
-  }
-  function wireSession(session) {
-    session.sendBtn.addEventListener("click", () => submit(session));
-    session.cancelBtn?.addEventListener("click", () => cancelSession(session));
-    session.closeBtn.addEventListener("click", () => closeAgentEdit(session));
-    if (session.harnessSelect) {
-      session.harnessSelect.addEventListener("change", async () => {
-        const hName = session.harnessSelect.value;
-        if (!hName)
-          return;
-        await select(hName, (msg) => showErr(session, msg));
-        session.input.focus();
-      });
-    }
-    if (session.modelSelect) {
-      session.modelSelect.addEventListener("change", async () => {
-        const hName = session.harnessSelect?.value || chosen();
-        const mName = session.modelSelect.value;
-        await select(hName, mName, (msg) => showErr(session, msg));
-        session.input.focus();
-      });
-    }
-    session.el.addEventListener("keydown", (e) => {
-      e.stopPropagation();
-      if (e.key === "Escape") {
-        e.preventDefault();
-        if (session.timer || session.jobId) {
-          cancelSession(session);
-        } else {
-          closeAgentEdit(session);
-        }
-      } else if (e.key === "Enter" && !e.shiftKey && !session.composeEl.hidden && !session.timer) {
-        e.preventDefault();
-        submit(session);
-      }
-    });
-  }
-  async function cancelSession(session) {
-    if (!session.timer && !session.jobId)
-      return;
-    if (session.timer) {
-      clearTimeout(session.timer);
-      session.timer = null;
-    }
-    const jobId = session.jobId;
-    session.jobId = null;
-    setBusy(session, false);
-    resetHint(session);
-    refreshStatusNote();
-    showToast("!", "Cancelled edit on " + targetRef(session.target));
-    if (jobId) {
-      try {
-        await apiPost("/api/agent/cancel", { id: jobId });
-      } catch {}
-    }
-    session.input.focus();
-  }
-  function closeAgentEdit(session) {
-    if (session.timer || session.jobId) {
-      cancelSession(session);
-    }
-    sessions.delete(session.id);
-    session.el.remove();
-    syncBoxVisibility();
-    syncAgentTargets();
-  }
-  function refreshRef(session) {
-    const ref = targetRef(session.target);
-    session.refEl.textContent = ref;
-    session.refEl.title = ref;
-  }
-  function clearErr(session) {
-    const errEl = session.errEl;
-    if (!errEl)
-      return;
-    errEl.textContent = "";
-    errEl.hidden = true;
-  }
-  function showErr(session, msg, streams = []) {
-    const errEl = session.errEl;
-    if (!errEl)
-      return;
-    errEl.textContent = "";
-    const head = document.createElement("div");
-    head.className = "agent-err-msg";
-    head.textContent = msg;
-    errEl.appendChild(head);
-    for (const [label, text] of streams) {
-      if (!text)
-        continue;
-      const name = document.createElement("div");
-      name.className = "agent-err-label";
-      name.textContent = label;
-      const pre = document.createElement("pre");
-      pre.className = "agent-err-out";
-      pre.textContent = text;
-      errEl.append(name, pre);
-    }
-    errEl.hidden = false;
-  }
-  function resetHint(session) {
-    if (!session.hintEl)
-      return;
-    session.hintEl.textContent = "Enter to send, Esc to cancel";
-  }
-  function setBusy(session, busy, msg) {
-    session.el.classList.toggle("busy", busy);
-    session.input.disabled = busy;
-    if (session.sendBtn)
-      session.sendBtn.hidden = busy;
-    if (session.cancelBtn)
-      session.cancelBtn.hidden = !busy;
-    session.closeBtn.disabled = false;
-    if (session.harnessSelect)
-      session.harnessSelect.disabled = busy || !!(S2.meta && S2.meta.agentPinned);
-    if (session.modelSelect)
-      session.modelSelect.disabled = busy;
-    if (session.hintEl && msg)
-      session.hintEl.textContent = msg;
-  }
-  function showCompose(session) {
-    session.pickEl.hidden = true;
-    if (session.metaEl)
-      session.metaEl.hidden = false;
-    session.composeEl.hidden = false;
-    session.input.focus();
-  }
-  async function showPicker(session) {
-    session.composeEl.hidden = true;
-    if (session.metaEl)
-      session.metaEl.hidden = true;
-    session.pickEl.hidden = false;
-    session.pickEl.innerHTML = '<div class="hint">Looking for coding harnesses…</div>';
-    let list = S2.meta?.agents || [];
-    let settingsPath = "";
-    try {
-      const j = await api("/api/agent/harnesses");
-      list = j.harnesses || [];
-      settingsPath = j.settings || "";
-      S2.meta.agents = list;
-      S2.meta.agent = j.selected || "";
-      S2.meta.agentModel = j.model || "";
-      S2.meta.agentPinned = !!j.pinned;
-    } catch (e) {
-      session.pickEl.innerHTML = '<div class="hint">Could not look for harnesses: ' + esc(e.message) + "</div>";
-      return;
-    }
-    const ready = list.filter((h) => h.installed);
-    if (!ready.length) {
-      showToast("!", "Could not find any coding harness like Claude Code, OpenCode, Codex, Antigravity, Aider, etc. Install one and restart px1.", 6000);
-      session.pickEl.innerHTML = '<div class="hint" style="line-height: 1.5; padding: 4px 2px;">' + "Could not find any coding harness like <b>Claude Code</b>, <b>OpenCode</b>, <b>Codex</b>, <b>Antigravity</b> (<code>agy</code>), <b>Aider</b>, <b>Goose</b>, <b>Gemini CLI</b>, or <b>Cursor Agent</b>.<br><br>" + "Please install a coding harness, make sure it is on your <code>PATH</code>, and restart px1 after that.</div>";
-      return;
-    }
-    session.pickEl.innerHTML = '<div class="hint">This harness will edit files in this workspace.</div>' + optionsHtml(ready, settingsPath);
-    session.pickEl.querySelectorAll("[data-pick]").forEach((b) => {
-      b.addEventListener("click", () => pick(session, b.dataset.pick));
-    });
-    session.pickEl.querySelectorAll(".agent-model-select").forEach((sel) => {
-      sel.addEventListener("change", async (e) => {
-        e.stopPropagation();
-        await select(sel.dataset.harness, sel.value, (msg) => showErr(session, msg));
-        showPicker(session);
-      });
-    });
-  }
-  function optionsHtml(ready, settingsPath) {
-    let html = "";
-    for (const h of ready) {
-      const isSelected = h.name === chosen();
-      html += '<div class="agent-opt-wrap">' + '<button class="agent-opt' + (isSelected ? " on" : "") + '" data-pick="' + esc(h.name) + '">' + '<span class="agent-opt-name">' + esc(h.name) + "</span>" + '<code class="agent-opt-cmd">' + esc(h.cmd) + "</code></button>";
-      if (isSelected && h.models && h.models.length > 0) {
-        html += '<div class="agent-model-row">' + '<span class="agent-model-label">Model:</span>' + '<select class="agent-model-select" data-harness="' + esc(h.name) + '">';
-        for (const m of h.models) {
-          const sel = m === (h.model || chosenModel()) ? " selected" : "";
-          html += '<option value="' + esc(m) + '"' + sel + ">" + esc(m) + "</option>";
-        }
-        html += "</select></div>";
-      }
-      html += "</div>";
-    }
-    if (settingsPath)
-      html += '<div class="agent-note">Remembered in ' + esc(settingsPath) + "</div>";
-    return html;
-  }
-  async function pick(session, name) {
-    if (await select(name, (msg) => showErr(session, msg)))
-      showCompose(session);
-  }
-  async function select(name, model, onError) {
-    if (typeof model === "function") {
-      onError = model;
-      model = "";
-    }
-    try {
-      const params = { name };
-      if (model)
-        params.model = model;
-      const j = await apiPost("/api/agent/select", params);
-      S2.meta.agent = j.selected || "";
-      S2.meta.agentModel = j.model || "";
-      S2.meta.agents = j.harnesses || S2.meta.agents;
-      S2.meta.agentPinned = !!j.pinned;
-    } catch (e) {
-      if (onError)
-        onError(e.message);
-      return false;
-    }
-    applyAgentMeta();
-    return true;
-  }
-  async function submit(session) {
-    if (session.timer)
-      return;
-    clearErr(session);
-    const instruction = session.input.value.trim();
-    if (!instruction || !session.target)
-      return;
-    const params = { path: session.target.path, l1: session.target.l1, l2: session.target.l2, instruction };
-    let job2;
-    try {
-      job2 = await apiPost("/api/agent/edit", params);
-    } catch (e) {
-      showErr(session, e.message);
-      return;
-    }
-    session.jobId = job2.id;
-    session.harness = job2.harness;
-    hideSelectionBar();
-    const initialNote = "Editing with " + (chosenModel() ? chosen() + " (" + chosenModel() + ")" : chosen()) + "...";
-    setBusy(session, true, initialNote);
-    refreshStatusNote();
-    session.timer = setTimeout(() => tick(session), 400);
-  }
-  async function tick(session) {
-    if (!session.jobId)
-      return;
-    let j;
-    try {
-      j = await api("/api/agent/job?id=" + session.jobId);
-    } catch (e) {
-      if (!session.jobId)
-        return;
-      session.timer = null;
-      if (e.body && "running" in e.body) {
-        await finish(session, e.body);
-        refreshStatusNote();
-        return;
-      }
-      setBusy(session, false);
-      resetHint(session);
-      refreshStatusNote();
-      showErr(session, e.message);
-      return;
-    }
-    if (!session.jobId)
-      return;
-    if (j.running) {
-      session.harness = j.harness;
-      session.elapsed = Math.round((j.ms || 0) / 1000) + "s";
-      setBusy(session, true, "Editing with " + j.harness + "... " + session.elapsed);
-      refreshStatusNote();
-      session.timer = setTimeout(() => tick(session), 600);
-      return;
-    }
-    session.timer = null;
-    await finish(session, j);
-    refreshStatusNote();
-  }
-  function refreshStatusNote() {
-    const busy = [...sessions.values()].filter((s) => s.timer);
-    if (!busy.length) {
-      setStatusNote("");
-    } else if (busy.length === 1) {
-      const s = busy[0];
-      setStatusNote("Editing with " + (s.harness || chosen()) + "... " + (s.elapsed || ""));
-    } else {
-      setStatusNote(busy.length + " edits running...");
-    }
-  }
-  async function finish(session, j) {
-    const editTarget = session.target;
-    if (j.error) {
-      setBusy(session, false);
-      resetHint(session);
-      showErr(session, (j.harness || "agent") + ": " + j.error, [
-        ["stderr", (j.stderr || "").trim()],
-        ["stdout", (j.stdout || j.log || "").trim()]
-      ]);
-      if (j.changed?.length)
-        reloadWorkspace(null);
-      return;
-    }
-    sessions.delete(session.id);
-    session.el.remove();
-    syncBoxVisibility();
-    syncAgentTargets();
-    const changed = j.changed || [];
-    if (!changed.length && j.tracked !== false) {
-      showToast("✓", "Finished with no file changes");
-      return;
-    }
-    if (!await reloadWorkspace(editTarget, "Edited"))
-      return;
-    showToast("✓", !changed.length ? "Reloaded the workspace" : changed.length === 1 ? "Updated " + changed[0] : "Updated " + changed.length + " files");
-  }
-  var reloadChain = Promise.resolve();
-  function reloadWorkspace(focus, what = "Changed") {
-    const run = async () => {
-      try {
-        await api("/api/reindex");
-        await reloadOpenTabs();
-        if (focus?.path) {
-          await openFile(focus.path, { line: focus.l1, push: false });
-        }
-        await drawTree("", treeEl, 0);
-      } catch (e) {
-        showToast("!", what + ", but the reload failed: " + e.message);
-        return false;
-      }
-      return true;
-    };
-    const result = reloadChain.then(run, run);
-    reloadChain = result.then(() => {}, () => {});
-    return result;
-  }
-  function initAgent() {
-    if (!box || !tpl)
-      return;
-    setAgentHandler(openAgentEdit);
-    addEventListener("beforeunload", (e) => {
-      if (!anyInFlight())
-        return;
-      e.preventDefault();
-      e.returnValue = "";
-    });
-  }
-
   // web/src/review.js
   var queueEl = $("#review-queue");
   var tree = $("#tree");
@@ -6211,7 +5704,7 @@
   var watchedRevision = "";
   var refreshInFlight = false;
   function watchReviewWorkspace() {
-    const tick2 = async () => {
+    const tick = async () => {
       if (refreshInFlight)
         return;
       let refreshing = false;
@@ -6238,8 +5731,8 @@
           refreshInFlight = false;
       }
     };
-    tick2();
-    setInterval(tick2, 2000);
+    tick();
+    setInterval(tick, 2000);
   }
   function openPatch(info) {
     const item = S2.review?.queue?.items?.find((x) => x.path === info?.path);
@@ -6841,7 +6334,6 @@ Switch worktree` : "Switch worktree" : S2.meta?.root || "";
   initShortcuts();
   initMarkdown();
   initDiff();
-  initAgent();
   initStatusFit();
   initSettings();
   initReviewQueue();
@@ -6865,7 +6357,6 @@ Switch worktree` : "Switch worktree" : S2.meta?.root || "";
       if (b)
         b.hidden = false;
     }
-    applyAgentMeta();
     document.title = S2.meta.name + " - px1";
     $("#root-name").textContent = S2.meta.name;
     $("#root-name").title = S2.meta.root;
@@ -6915,6 +6406,5 @@ Switch worktree` : "Switch worktree" : S2.meta?.root || "";
         }
       }, 150);
     }
-    loadAgentAsync();
   })();
 })();

@@ -139,7 +139,6 @@ function renderDiff(d) {
   }
   diffContent.append(frag);
   if (d.diffSource === 'review') placePins(d, tables);
-  syncDiffAgentTargets();
 }
 
 function rowLines(row) {
@@ -360,18 +359,6 @@ export function revealPin(id) {
   card.classList.add('open');
   card.scrollIntoView({ block: 'center' });
   return true;
-}
-
-export function syncDiffAgentTargets() {
-  if (!diffview || diffview.hidden) return;
-  const d = doc_();
-  if (!d) return;
-  const ranges = (S.agentTargets || []).filter(t => t.path === d.path);
-  for (const el of diffview.querySelectorAll('[data-l]')) {
-    const l = +el.dataset.l;
-    const inAgent = ranges.some(r => l >= r.l1 && l <= r.l2);
-    el.classList.toggle('agent-sel', inAgent);
-  }
 }
 
 function hunkHeader(d, hunk) {

@@ -17,7 +17,6 @@ import { initShortcuts } from './shortcuts.js';
 import { initTheme } from './theme.js';
 import { initMarkdown } from './markdown.js';
 import { initDiff } from './diff.js';
-import { initAgent, applyAgentMeta, loadAgentAsync } from './agent.js';
 import { initStatusFit, updateStatus } from './status.js';
 import { initSettings } from './settings.js';
 import { initReviewQueue, refreshReviewQueue, watchReviewWorkspace } from './review.js';
@@ -40,7 +39,6 @@ initPalette();
 initShortcuts();
 initMarkdown();
 initDiff();
-initAgent();
 initStatusFit();
 initSettings();
 initReviewQueue();
@@ -71,7 +69,6 @@ initReviewQueue();
   measure();
   S.meta = await api('/api/meta');
   if (S.meta.git) { const b = $('#btn-changed'); if (b) b.hidden = false; }
-  applyAgentMeta();
   document.title = S.meta.name + ' - px1';
   $('#root-name').textContent = S.meta.name;
   $('#root-name').title = S.meta.root;
@@ -122,6 +119,4 @@ initReviewQueue();
     }, 150);
   }
 
-  // Load harnesses and models asynchronously after the browser is loaded.
-  loadAgentAsync();
 })();
