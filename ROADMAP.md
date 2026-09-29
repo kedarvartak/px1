@@ -39,28 +39,30 @@ Before adding the GitHub review workflow, reduce the application to the parts
 that directly support team-policy review. These are product-scope cuts, not a
 requirement to break existing local users in one release.
 
-1. **Remove telemetry and in-app process metrics.** They do not help a
+- [x] **Remove telemetry and in-app process metrics.** They do not help a
    reviewer understand a change and add flags, state, network behavior, API
    endpoints, UI, and release configuration.
-2. **Shrink the primary UI to review surfaces.** De-emphasize themes, broad
+- [ ] **Shrink the primary UI to review surfaces.** De-emphasize themes, broad
    settings, Markdown preview, generic navigation, and IDE-like status panels.
-3. **Separate or remove agent-editing orchestration.** Keep an optional
+   The first slice removes the local cross-worktree Review inbox and its
+   automatic aggregation.
+- [ ] **Separate or remove agent-editing orchestration.** Keep an optional
    explanation-provider interface, but do not make harness detection,
    selection, inline editing, cancellation, and agent prompts part of the
    review artifact path.
-4. **Replace personal decision memory with explicit team rules.** Keep human
+- [ ] **Replace personal decision memory with explicit team rules.** Keep human
    comments and finding acknowledgement; make learned rules proposals rather
    than a second hidden policy store.
-5. **Move verification execution to CI.** px1 should display trusted GitHub
+- [ ] **Move verification execution to CI.** px1 should display trusted GitHub
    Action results instead of running arbitrary shell commands in the review
    service.
-6. **Simplify local-only session machinery.** Treat the GitHub commit SHA and
+- [ ] **Simplify local-only session machinery.** Treat the GitHub commit SHA and
    base SHA as the normal review identity; keep worktree and automatic-baseline
    behavior only for an optional local mode.
 
 Each reduction should leave the policy-review path clearer and easier to test.
-The first reduction is implemented in the PR for removing telemetry and
-process metrics.
+The first reduction was merged in PR #47. This PR begins the second reduction
+by removing the local cross-worktree Review inbox and its automatic aggregation.
 
 ### Delivery stages
 
@@ -86,7 +88,7 @@ must not block this milestone.
 
 - Task-baseline review diffs, including files added or deleted after review
   starts.
-- Cross-worktree review inbox with search and status filters.
+- Worktree switching with per-checkout review state.
 - Review comments, patches, hunk reverts, decision memory, rules, and stale
   result detection.
 - Named verification commands with a Settings editor and one-click Run all.
