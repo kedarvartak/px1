@@ -49,7 +49,9 @@ requirement to break existing local users in one release.
 - [ ] **Separate or remove agent-editing orchestration.** Keep an optional
    explanation-provider interface, but do not make harness detection,
    selection, inline editing, cancellation, and agent prompts part of the
-   review artifact path.
+   review artifact path. The first slice removes the inline edit composer,
+   harness picker, and agent-range decorations from the review UI; configured
+   provider calls for explanations and comment follow-up remain available.
 - [ ] **Replace personal decision memory with explicit team rules.** Keep human
    comments and finding acknowledgement; make learned rules proposals rather
    than a second hidden policy store.
@@ -61,7 +63,7 @@ requirement to break existing local users in one release.
    behavior only for an optional local mode.
 
 Each reduction should leave the policy-review path clearer and easier to test.
-The first reduction was merged in PR #47. This PR begins the second reduction
+The first reduction was merged in PR #47. The second reduction began in PR #48
 by removing the local cross-worktree Review inbox and its automatic aggregation.
 
 ### Delivery stages

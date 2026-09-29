@@ -82,13 +82,11 @@ export function paint() {
 
   let html = '';
   const gut = d.gutter || null;
-  const agentRanges = (S.agentTargets || []).filter(t => t.path === d.path);
   for (let i = first; i < last; i++) {
     const n = i + 1;
     const body = d.lines[i];
     let rc = 'row', gc = 'g';
     if (n === d.cur) rc += ' cur';
-    if (agentRanges.some(r => n >= r.l1 && n <= r.l2)) rc += ' agent-sel';
     let gt = '';
     const recs = d.decisions && d.decisions.get(n);
     if (recs) {

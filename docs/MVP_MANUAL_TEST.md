@@ -13,8 +13,7 @@ Run this checklist on Go 1.25+ before tagging the P1 MVP. Use a disposable Git w
 
 ## Human interventions
 
-1. Select a changed range, use **Patch**, apply a small correction, and confirm the source reloads read-only.
-1. Use **Undo last patch** and confirm the exact pre-patch bytes return.
+1. Select a changed range, add a review comment, and confirm the comment appears on the review diff.
 1. From a task-baseline diff, use **Revert hunk** on a normal replacement hunk. Confirm the hunk matches the task-start snapshot and that a subsequent external edit causes a stale-write rejection.
 
 ## Verification and safety
