@@ -100,7 +100,6 @@ func NewServer(ix *Index, lsp *lspManager) *Server {
 	s.mux.HandleFunc("/api/review/session/close", s.handleReviewClose)
 	s.mux.HandleFunc("/api/review/diff", s.handleReviewDiff)
 	s.mux.HandleFunc("/api/review/checks", s.handleReviewChecks)
-	s.mux.HandleFunc("/api/review/check/run", s.handleReviewCheckRun)
 	s.mux.HandleFunc("/api/review/mark", s.handleReviewMark)
 	s.mux.HandleFunc("/api/review/comments", s.handleReviewComments)
 	s.mux.HandleFunc("/api/review/comments/agent", s.handleReviewCommentsAgent)

@@ -18,7 +18,7 @@ Most tools help an agent write code. px1 makes its output reviewable over time.
 - **Task baselines, not just Git diffs.** Start a review before work begins; px1 queues the exact changes made for that task and can restore them to the baseline. Review diffs include files added or deleted after the task starts, even when Git has no HEAD diff for them.
 - **Plain-language explanations.** Decision pins explain important changes in context and can be acknowledged within the active review.
 - **Team rules.** Turn review feedback into explicit `.px1/rules.json` policy. px1 checks later agent changes against versioned rules, so hard-won feedback does not disappear in chat history.
-- **Evidence tied to the revision.** Run your configured tests, lint, or typechecks from the review queue, individually or all at once. Results go stale when the reviewed files change.
+- **Evidence tied to the revision.** Display trusted CI test, lint, and typecheck results for the reviewed commit. Results are rejected when they belong to a different revision.
 - **Fast enough to stay open.** A single static Go binary gives instant navigation, virtualized large-file viewing, Git diffs, and remote inspection without an IDE, cloud account, or background indexer.
 
 Agents implement. px1 preserves human judgment.
@@ -76,7 +76,7 @@ Anyone able to reach px1 by IP can dispatch configured agent edits as you. Keep 
 - File, symbol, and workspace search; Git-aware tree and diffs; Markdown preview
 - Optional local LSP navigation and hover, with a regex-outline fallback
 - Optional review-provider handoff for Claude Code, Codex, Gemini CLI, Cursor Agent, OpenCode, Aider, Goose, and custom commands
-- Configurable verification commands from Settings, themes, and other user-local preferences
+- Revision-pinned CI verification results, themes, and other user-local preferences
 - Local-first operation: one binary, no account, no code upload
 
 ## Performance

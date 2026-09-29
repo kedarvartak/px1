@@ -34,9 +34,6 @@ func TestSettingsDefaults(t *testing.T) {
 	if m["lsp.enabled"] != true {
 		t.Errorf("expected lsp.enabled true, got %v", m["lsp.enabled"])
 	}
-	if _, ok := m["verification.commands"]; !ok {
-		t.Errorf("expected verification.commands in settings defaults")
-	}
 	if m["agent.timeoutSeconds"] != 120.0 && m["agent.timeoutSeconds"] != 120 {
 		t.Errorf("expected agent.timeoutSeconds 120, got %v", m["agent.timeoutSeconds"])
 	}
@@ -119,9 +116,6 @@ func TestSettingsAPIEndpoints(t *testing.T) {
 	payload := map[string]any{
 		"editor.tabSize":              2,
 		"diffEditor.renderSideBySide": false,
-		"verification.commands": map[string]string{
-			"unit": "go test ./...",
-		},
 	}
 	b, _ := json.Marshal(payload)
 	postReq := httptest.NewRequest(http.MethodPost, "/api/settings", bytes.NewReader(b))
@@ -142,11 +136,6 @@ func TestSettingsAPIEndpoints(t *testing.T) {
 	if m["diffEditor.renderSideBySide"] != false {
 		t.Errorf("expected diffEditor.renderSideBySide false, got %v", m["diffEditor.renderSideBySide"])
 	}
-	commands, ok := m["verification.commands"].(map[string]any)
-	if !ok || commands["unit"] != "go test ./..." {
-		t.Errorf("expected verification command to persist, got %v", m["verification.commands"])
-	}
-
 	// 4. POST /api/settings with raw JSON
 	rawPayload := map[string]any{
 		"raw": "{\n  \"editor.fontSize\": 15,\n  \"workbench.colorTheme\": \"vesper\"\n}\n",

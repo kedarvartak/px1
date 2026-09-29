@@ -1,6 +1,6 @@
 # px1 P1 MVP manual test checklist
 
-Run this checklist on Go 1.25+ before tagging the P1 MVP. Use a disposable Git worktree with a configured local coding harness and at least one verification command.
+Run this checklist on Go 1.25+ before tagging the P1 MVP. Use a disposable Git worktree with a configured local coding harness and a GitHub Actions verification fixture.
 
 ## Review flow
 
@@ -18,8 +18,7 @@ Run this checklist on Go 1.25+ before tagging the P1 MVP. Use a disposable Git w
 
 ## Verification and safety
 
-1. Open Settings → Verification, add a passing and a failing verification command, and confirm both entries persist after reopening Settings. Confirm each result is shown in Review; hover for recent output.
-1. Use **Run all** in Review and confirm every idle check runs, already-running checks are not duplicated, and the aggregate result is shown.
-1. Change a reviewed file after a check passes. Confirm the result becomes **Stale**.
-1. Open px1 through a hostname/reverse proxy and confirm mutation routes (patch, agent, checks) are refused; localhost/IP use remains subject to the local-post guard.
+1. Start a review and place a `.px1/verification.json` report in the workspace with `source: "github-actions"`, the active commit SHA, one passing check, and one failing check. Confirm both results appear in Review and link clicks open HTTPS CI URLs.
+1. Change the report revision to another SHA and confirm the results are rejected as belonging to a different revision. Remove the report and confirm Review remains usable with an empty CI state.
+1. Open px1 through a hostname/reverse proxy and confirm mutation routes (patch and agent) are refused; localhost/IP use remains subject to the local-post guard.
 1. Run `go test ./...`, `node ./scripts/build-web.js`, and `git diff --check` with Go 1.25+. Record exact versions and results in the release notes.

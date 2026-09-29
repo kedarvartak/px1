@@ -1063,15 +1063,6 @@ body.hide-git-gutter .g-git, body.hide-git-gutter [class*="git-"] { display: non
 .settings-card-desc { margin-top: 2px; font-size: 12.5px; line-height: 1.45; color: var(--dim); }
 .settings-card-key { margin-top: 4px; font: 11px var(--mono); color: var(--faint); }
 .settings-card-right { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
-.settings-command-card { align-items: flex-start; }
-.settings-command-card-right { flex: 1; min-width: 0; align-items: stretch; }
-.settings-commands { width: 100%; display: grid; gap: 8px; }
-.settings-command-help, .settings-command-empty { font-size: 12px; line-height: 1.45; color: var(--dim); }
-.settings-command-row { display: grid; grid-template-columns: minmax(120px, .35fr) minmax(220px, 1fr) auto auto; gap: 6px; align-items: center; }
-.settings-command-row .settings-input { width: auto; min-width: 0; }
-.settings-command-row button { white-space: nowrap; }
-.settings-command-actions { display: flex; justify-content: flex-end; }
-.settings-command-actions button:disabled { opacity: .45; cursor: default; }
 .settings-reset-btn { height: 24px; padding: 0 8px; border-radius: 999px; font-size: 12px; color: var(--faint); }
 .settings-reset-btn:hover { color: var(--fg); background: var(--bg3); }
 
@@ -1099,12 +1090,6 @@ body.hide-git-gutter .g-git, body.hide-git-gutter [class*="git-"] { display: non
 .settings-switch input:checked + .settings-slider { background: var(--fg); }
 .settings-switch input:checked + .settings-slider:before { transform: translateX(14px); background: var(--bg); }
 .settings-switch input:focus-visible + .settings-slider { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-@media (max-width: 720px) {
-  .settings-command-row { grid-template-columns: 1fr; }
-  .settings-command-row button { justify-self: start; }
-  .settings-command-row span { display: none; }
-}
 
 .settings-json-body { display: flex; flex-direction: column; flex: 1; min-height: 0; background: var(--bg); }
 .settings-json-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px 10px 20px; border-bottom: 1px solid var(--line); background: var(--bg2); font-size: 12.5px; color: var(--faint); }

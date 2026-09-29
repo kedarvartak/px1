@@ -78,7 +78,7 @@
     reviewRuleHits: [],
     reviewRules: { rules: [] },
     reviewExplain: {},
-    reviewChecks: { commands: {}, jobs: [] }
+    reviewChecks: { available: false, checks: [] }
   };
   var doc_ = () => S2.active >= 0 ? S2.tabs[S2.active] : null;
 
@@ -4155,14 +4155,6 @@
       category: "Agent / AI",
       type: "boolean",
       default: true
-    },
-    {
-      key: "verification.commands",
-      title: "Verification Commands",
-      description: "Named shell commands available from the review queue.",
-      category: "Verification",
-      type: "commands",
-      default: {}
     }
   ];
   var settingsData = {
@@ -4402,34 +4394,6 @@
     }
     return String(val) !== String(defVal);
   }
-  function verificationCommands() {
-    const value = settingsData.settings?.["verification.commands"] ?? settingsData.defaults?.["verification.commands"];
-    if (!value || typeof value !== "object" || Array.isArray(value))
-      return {};
-    return Object.fromEntries(Object.entries(value).map(([name, command]) => [String(name), String(command ?? "")]));
-  }
-  function verificationCommandsControl(commands) {
-    const rows = Object.entries(commands).sort(([a], [b]) => a.localeCompare(b)).map(([name, command]) => `
-    <div class="settings-command-row" data-command-row data-command-old="${esc(name)}">
-      <input class="settings-input settings-command-name" data-command-name type="text" value="${esc(name)}" aria-label="Command name" placeholder="Name">
-      <input class="settings-input settings-command-value" data-command-value type="text" value="${esc(command)}" aria-label="Shell command" placeholder="Shell command">
-      <button class="settings-btn-secondary" data-command-save type="button">Save</button>
-      <button class="settings-reset-btn settings-command-delete" data-command-delete type="button">Delete</button>
-    </div>`).join("");
-    return `<div class="settings-commands">
-    <div class="settings-command-help">Each command runs from the workspace root when you use Review verification.</div>
-    ${rows || '<div class="settings-command-empty">No commands configured yet.</div>'}
-    <div class="settings-command-row settings-command-new" data-command-new>
-      <input class="settings-input settings-command-name" data-command-name type="text" aria-label="New command name" placeholder="New name">
-      <input class="settings-input settings-command-value" data-command-value type="text" aria-label="New shell command" placeholder="Shell command, e.g. go test ./...">
-      <button class="settings-btn-primary" data-command-add type="button">Add</button>
-      <span></span>
-    </div>
-    <div class="settings-command-actions">
-      <button class="settings-reset-btn" data-command-reset type="button" ${Object.keys(commands).length ? "" : "disabled"}>Clear all</button>
-    </div>
-  </div>`;
-  }
   function renderSettingsList() {
     const container = $("#settings-list");
     if (!container)
@@ -4464,19 +4428,7 @@
       const itemDef = item.default !== undefined ? item.default : item.Default;
       const def = defaults[key] !== undefined ? defaults[key] : itemDef;
       const val = currentSettings[key] !== undefined ? currentSettings[key] : def;
-      const commands = type === "commands" ? verificationCommands() : null;
-      const modified = type === "commands" ? Object.keys(commands).length > 0 : isSettingModified(key, currentSettings[key], def);
-      if (type === "commands") {
-        return `
-        <div class="settings-card settings-command-card${modified ? " is-modified" : ""}" data-setting="${esc(key)}">
-          <div class="settings-card-left">
-            <div class="settings-card-title">${esc(title)}</div>
-            ${desc ? `<div class="settings-card-desc">${esc(desc)}</div>` : ""}
-            <div class="settings-card-key">${esc(key)}</div>
-          </div>
-          <div class="settings-card-right settings-command-card-right">${verificationCommandsControl(commands)}</div>
-        </div>`;
-      }
+      const modified = isSettingModified(key, currentSettings[key], def);
       let control = "";
       if (type === "boolean") {
         const checked = val === true || val === "true" ? "checked" : "";
@@ -4536,48 +4488,6 @@
     } catch (err) {
       console.error(`Failed to save setting ${key}:`, err);
     }
-  }
-  async function persistVerificationCommands(commands) {
-    try {
-      const res = await apiPost("/api/settings", undefined, {
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ "verification.commands": commands })
-      });
-      if (res.settings) {
-        settingsData.settings = res.settings;
-        S2.settings = res.settings;
-      }
-      if (res.raw)
-        settingsData.raw = res.raw;
-      renderSettingsList();
-      showToast("✓", "Verification commands saved");
-      return true;
-    } catch (err) {
-      showToast("!", "Could not save verification commands: " + err.message, 4500);
-      return false;
-    }
-  }
-  async function saveVerificationCommand(oldName, name, command) {
-    const nextName = name.trim();
-    const nextCommand = command.trim();
-    if (!nextName || !nextCommand) {
-      showToast("!", "Enter both a command name and shell command");
-      return;
-    }
-    const commands = verificationCommands();
-    if (oldName !== nextName && Object.prototype.hasOwnProperty.call(commands, nextName)) {
-      showToast("!", "A verification command with that name already exists");
-      return;
-    }
-    if (oldName && oldName !== nextName)
-      delete commands[oldName];
-    commands[nextName] = nextCommand;
-    await persistVerificationCommands(commands);
-  }
-  async function deleteVerificationCommand(name) {
-    const commands = verificationCommands();
-    delete commands[name];
-    await persistVerificationCommands(commands);
   }
   async function handleResetSetting(key) {
     const def = settingsData.defaults ? settingsData.defaults[key] : undefined;
@@ -4693,38 +4603,6 @@
         handleSettingChange(key, value);
       });
       listEl2.addEventListener("click", (e) => {
-        const saveCommand = e.target.closest("[data-command-save]");
-        if (saveCommand) {
-          const row = saveCommand.closest("[data-command-row]");
-          if (row) {
-            const name = row.querySelector("[data-command-name]")?.value || "";
-            const command = row.querySelector("[data-command-value]")?.value || "";
-            saveVerificationCommand(row.dataset.commandOld || "", name, command);
-          }
-          return;
-        }
-        const addCommand = e.target.closest("[data-command-add]");
-        if (addCommand) {
-          const row = addCommand.closest("[data-command-new]");
-          if (row) {
-            const name = row.querySelector("[data-command-name]")?.value || "";
-            const command = row.querySelector("[data-command-value]")?.value || "";
-            saveVerificationCommand("", name, command);
-          }
-          return;
-        }
-        const deleteCommand = e.target.closest("[data-command-delete]");
-        if (deleteCommand) {
-          const row = deleteCommand.closest("[data-command-row]");
-          if (row?.dataset.commandOld)
-            deleteVerificationCommand(row.dataset.commandOld);
-          return;
-        }
-        const resetCommands = e.target.closest("[data-command-reset]");
-        if (resetCommands) {
-          persistVerificationCommands({});
-          return;
-        }
         const pill = e.target.closest(".settings-pill-tag");
         if (pill) {
           const key = pill.dataset.setKey;
@@ -5371,7 +5249,6 @@
   var ruleBox = $("#review-rulebox");
   var reviewFilter = "all";
   var reviewSearch = "";
-  var runningAllChecks = false;
   var pending = (item) => item.state === "unreviewed" || item.state === "stale" || item.state === "blocked";
   var reviewFilterOptions = [
     ["all", "All"],
@@ -5429,9 +5306,9 @@
       S2.reviewRules = { rules: [] };
     }
     try {
-      S2.reviewChecks = S2.review?.active ? await api("/api/review/checks") : { commands: {}, jobs: [] };
+      S2.reviewChecks = S2.review?.active ? await api("/api/review/checks") : { available: false, checks: [] };
     } catch {
-      S2.reviewChecks = { commands: {}, jobs: [] };
+      S2.reviewChecks = { available: false, checks: [] };
     }
     drawReviewQueue();
     const sig = JSON.stringify([S2.reviewPins, S2.reviewRuleHits]);
@@ -5492,22 +5369,17 @@
     const reviewed = q?.reviewed || 0;
     const next = visibleItems.find(pending);
     const comments = (S2.reviewComments || []).filter((c) => c.status === "open" && !c.stale);
-    const checks = S2.reviewChecks || { commands: {}, jobs: [] };
-    const names = Object.keys(checks.commands || {}).sort();
-    const latest = new Map;
-    for (const job2 of checks.jobs || [])
-      if (!latest.has(job2.name))
-        latest.set(job2.name, job2);
-    const anyCheckRunning = (checks.jobs || []).some((job2) => job2.running);
-    const checkMarkup = names.length ? `<div class="review-checks"><div class="review-checks-head"><strong>Verification</strong><button data-review-check-all ${runningAllChecks || anyCheckRunning ? "disabled" : ""}>${runningAllChecks ? "Running…" : "Run all"}</button></div>${names.map((name) => {
-      const j = latest.get(name);
-      const state = j?.running ? "running" : j?.stale ? "stale" : j?.exitCode ? "failed" : j ? "passed" : "idle";
-      const label = j?.running ? "Running…" : j?.stale ? "Stale" : j?.exitCode ? "Failed" : j ? "Passed" : "Run";
-      const detail = j?.output ? checks.commands[name] + `
-
-` + j.output.slice(-1200) : checks.commands[name];
-      return `<button class="review-check ${state}" data-review-check="${esc(name)}" title="${esc(detail)}" ${j?.running ? "disabled" : ""}><span>${esc(name)}</span><span>${label}</span></button>`;
-    }).join("")}</div>` : '<button class="review-check-empty" data-review-setup-checks title="Add named commands under verification.commands in settings.json">Set up checks</button>';
+    const checks = S2.reviewChecks || { available: false, checks: [] };
+    const results = checks.checks || [];
+    const source = checks.source === "github-actions" ? "GitHub Actions" : checks.source || "CI";
+    const sourceLink = checks.url ? `<a class="review-ci-link" href="${esc(checks.url)}" target="_blank" rel="noreferrer">Open run</a>` : "";
+    const checkMarkup = results.length ? `<div class="review-checks"><div class="review-checks-head"><strong>CI verification</strong><span>${esc(source)} ${sourceLink}</span></div>${results.map((check) => {
+      const status2 = ["queued", "running", "passed", "failed", "cancelled"].includes(check.status) ? check.status : "unknown";
+      const label = status2 === "passed" ? "Passed" : status2 === "failed" ? "Failed" : status2[0].toUpperCase() + status2.slice(1);
+      const target2 = check.url || checks.url;
+      const detail = check.summary || `Status: ${label}`;
+      return target2 ? `<a class="review-check ${status2}" href="${esc(target2)}" target="_blank" rel="noreferrer" title="${esc(detail)}"><span>${esc(check.name)}</span><span>${label}</span></a>` : `<div class="review-check ${status2}" title="${esc(detail)}"><span>${esc(check.name)}</span><span>${label}</span></div>`;
+    }).join("")}</div>` : checks.error ? `<div class="review-check-empty">${esc(checks.error)}</div>` : '<div class="review-check-empty">CI results appear here after GitHub Actions publishes .px1/verification.json.</div>';
     const emptyHint = items.length ? "No changed files match this filter." : "No files have changed since this review began.";
     const nextLabel = next ? "Next change →" : visibleItems.length ? "All visible changes reviewed" : "No matching changes";
     queueEl.innerHTML = `<div class="review-summary"><div class="review-summary-text"><strong>Agent changes</strong><span>${reviewed} of ${count} reviewed${active.baseRef ? " · since worktree creation" : ""}</span></div><button class="review-close" data-review-close title="Close review session">Close</button><div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div></div>
@@ -5653,48 +5525,6 @@
       showToast("✓", "Patch undone");
     } catch (e) {
       showToast("!", e.message);
-    }
-  }
-  async function runCheck(name, quiet = false) {
-    try {
-      const j = await apiPost("/api/review/check/run", { name });
-      await refreshReviewQueue();
-      while (true) {
-        await new Promise((resolve) => setTimeout(resolve, 700));
-        await refreshReviewQueue();
-        const job2 = (S2.reviewChecks.jobs || []).find((x) => x.id === j.job.id);
-        if (!job2?.running) {
-          if (!quiet)
-            showToast(job2?.exitCode ? "!" : "✓", job2?.exitCode ? name + " failed" : name + " passed");
-          return !job2?.exitCode;
-        }
-      }
-    } catch (e) {
-      if (!quiet)
-        showToast("!", e.message);
-      return false;
-    }
-  }
-  async function runAllChecks() {
-    if (runningAllChecks)
-      return;
-    const checks = S2.reviewChecks || { commands: {}, jobs: [] };
-    const running = new Set((checks.jobs || []).filter((job2) => job2.running).map((job2) => job2.name));
-    const names = Object.keys(checks.commands || {}).sort().filter((name) => !running.has(name));
-    if (!names.length)
-      return;
-    runningAllChecks = true;
-    drawReviewQueue();
-    const failed = [];
-    try {
-      for (const name of names)
-        if (!await runCheck(name, true))
-          failed.push(name);
-      await refreshReviewQueue();
-      showToast(failed.length ? "!" : "✓", failed.length ? `${failed.length} check${failed.length === 1 ? "" : "s"} failed` : "All checks passed");
-    } finally {
-      runningAllChecks = false;
-      drawReviewQueue();
     }
   }
   async function explain2() {
@@ -5947,10 +5777,6 @@
         return sendFeedback();
       if (e.target.closest("[data-review-undo]"))
         return undoPatch();
-      if (e.target.closest("[data-review-setup-checks]"))
-        return openSettings("json");
-      if (e.target.closest("[data-review-check-all]"))
-        return runAllChecks();
       if (e.target.closest("[data-review-explain]"))
         return explain2();
       if (e.target.closest("[data-review-rulehits-send]"))
@@ -5979,9 +5805,6 @@
       const pinBtn = e.target.closest("[data-review-pin]");
       if (pinBtn)
         return openPin(pinBtn.dataset.reviewPin);
-      const check = e.target.closest("[data-review-check]");
-      if (check)
-        return runCheck(check.dataset.reviewCheck);
       if (e.target.closest("[data-review-next]"))
         return openNext();
       const markBtn = e.target.closest("[data-review-mark]");
