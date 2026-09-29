@@ -87,6 +87,9 @@ func TestWorktreesListsEveryCheckout(t *testing.T) {
 func TestWorktreeSwitchRepointsWorkspace(t *testing.T) {
 	root, wt := worktreeRepo(t)
 	s := serverAt(t, root)
+	if err := updateSettingsMap(map[string]any{"review.autoStart": true}); err != nil {
+		t.Fatal(err)
+	}
 
 	post := func(path string) (int, map[string]any) {
 		t.Helper()
@@ -256,9 +259,12 @@ func TestSwitchingToAWorktreeStartsItsReview(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := serverAt(t, root)
+	if err := updateSettingsMap(map[string]any{"review.autoStart": true}); err != nil {
+		t.Fatal(err)
+	}
 
-	// Main checkouts now capture a baseline too, so any later harness edit can
-	// be reviewed without a separate px1 command.
+	// Local automatic review is opt-in, so this test enables that mode before
+	// checking the worktree handoff behavior.
 	s.autoStartReview()
 	if active, _ := s.review.Active(); active == nil || active.Root != root {
 		t.Fatalf("main checkout review = %#v", active)

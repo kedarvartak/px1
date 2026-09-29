@@ -264,11 +264,11 @@ const BUILTIN_SCHEMA = [
   },
   {
     key: "review.autoStart",
-    title: "Start Reviews Automatically",
-    description: "Start a review session on its own when px1 opens a git worktree, with the commit checked out when that worktree was created as the baseline. The main checkout is never started automatically.",
+    title: "Enable Local Automatic Reviews",
+    description: "Opt into automatic local baselines when px1 opens a workspace or switches worktrees. GitHub-linked reviews should provide their head and base commits explicitly.",
     category: "Agent / AI",
     type: "boolean",
-    default: true,
+    default: false,
   },
 ];
 
