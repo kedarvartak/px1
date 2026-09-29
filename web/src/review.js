@@ -2,7 +2,7 @@ import { $, esc, S, api, apiPost } from './state.js';
 import { openFile } from './tabs.js';
 import { reloadOpenTabs } from './tabs.js';
 import { drawTree, treeEl } from './tree.js';
-import { openReviewDiff, setPinHandler, syncDiffView, revealPin, revealChallenge, revealRuleHit } from './diff.js';
+import { openReviewDiff, setPinHandler, syncDiffView, revealPin, revealRuleHit } from './diff.js';
 import { showToast } from './ui.js';
 import { openSettings } from './settings.js';
 import { hideSelectionBar, setReviewCommentHandler, setReviewPatchHandler } from './selbar.js';
@@ -72,13 +72,9 @@ export async function refreshReviewQueue() {
     S.reviewRuleHits = j.hits || [];
   } catch { S.reviewRuleHits = []; }
   try { S.reviewRules = (await api('/api/rules')) || { rules: [] }; } catch { S.reviewRules = { rules: [] }; }
-  try {
-    const j = S.review?.active ? await api('/api/review/challenges') : { challenges: [] };
-    S.reviewChallenges = j.challenges || [];
-  } catch { S.reviewChallenges = []; }
   try { S.reviewChecks = S.review?.active ? await api('/api/review/checks') : { commands: {}, jobs: [] }; } catch { S.reviewChecks = { commands: {}, jobs: [] }; }
   drawReviewQueue();
-  const sig = JSON.stringify([S.reviewPins, S.reviewChallenges, S.reviewRuleHits]);
+  const sig = JSON.stringify([S.reviewPins, S.reviewRuleHits]);
   if (sig !== pinSig) {
     pinSig = sig;
     syncDiffView();
@@ -98,13 +94,6 @@ function rulesMarkup() {
   if (!rules.length && !err) return '';
   const rows = rules.map(r => `<div class="review-rule${r.enabled ? '' : ' off'}"><span class="review-rule-text" title="${esc(r.pattern + (r.glob ? '  in ' + r.glob : ''))}">${esc(r.message)}</span><span class="review-rule-meta">${r.source === 'team' ? 'team' : r.hits + ' hit' + (r.hits === 1 ? '' : 's')}</span>${r.source === 'team' ? '' : `<button data-rule-toggle="${esc(r.id)}" data-enabled="${r.enabled ? '1' : ''}" title="${r.enabled ? 'Disable' : 'Enable'}">${r.enabled ? 'On' : 'Off'}</button><button data-rule-copy="${esc(r.id)}" title="Copy as a team rule for ${esc(S.reviewRules.teamFile || '.px1/rules.json')}">Copy</button><button data-rule-delete="${esc(r.id)}" title="Delete rule">×</button>`}</div>`).join('');
   return `<details class="review-rules"${rulesOpen ? ' open' : ''}><summary>Rules <span>${rules.filter(r => r.enabled).length} active</span></summary>${err}${rows}</details>`;
-}
-
-function challengesMarkup() {
-  const list = S.reviewChallenges || [];
-  if (!list.length) return '';
-  const rows = list.map(c => `<button class="review-pin review-challenge" data-review-challenge="${esc(c.id)}" data-path="${esc(c.path)}" title="${esc(c.why || c.decision)}"><span class="review-pin-mark">⟲</span><span class="review-pin-text">${esc(c.decision)}</span><span class="review-pin-ref">${esc(c.path.split('/').pop())}</span></button>`).join('');
-  return `<div class="review-pins review-challenges"><div class="review-pins-head"><strong>Reversed decisions</strong><span>${list.length} to resolve</span></div><div class="review-pin-list">${rows}</div></div>`;
 }
 
 function pinsMarkup() {
@@ -160,7 +149,6 @@ function drawReviewQueue() {
   const emptyHint = items.length ? 'No changed files match this filter.' : 'No files have changed since this review began.';
   const nextLabel = next ? 'Next change →' : visibleItems.length ? 'All visible changes reviewed' : 'No matching changes';
   queueEl.innerHTML = `<div class="review-summary"><div class="review-summary-text"><strong>Agent changes</strong><span>${reviewed} of ${count} reviewed${active.baseRef ? ' · since worktree creation' : ''}</span></div><button class="review-close" data-review-close title="Close review session">Close</button><div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div></div>
-    ${challengesMarkup()}
     ${ruleHitsMarkup()}
     ${pinsMarkup()}
     ${rulesMarkup()}
@@ -365,12 +353,6 @@ async function openPin(id) {
   revealPin(id);
 }
 
-async function openChallenge(id, path) {
-  await openFile(path);
-  await openReviewDiff(path);
-  revealChallenge(id);
-}
-
 function suggestPattern(code) {
   const text = code || '';
   const call = /([A-Za-z_$][\w$.]*)\s*\(/.exec(text);
@@ -498,20 +480,6 @@ async function onPin(action, pin, choice) {
       showToast('✓', 'Rule disabled');
       return;
     }
-    if (action === 'challenge-ask') {
-      const why = pin.why ? ` (${pin.why})` : '';
-      openComment({ path: pin.path, l1: pin.at.l1, l2: pin.at.l2 }, `This change reverses an earlier decision: ${pin.decision}${why}. Restore it unless the requirement changed.`);
-      return;
-    }
-    if (action === 'challenge-supersede' || action === 'challenge-dismiss') {
-      await apiPost('/api/decisions/resolve', undefined, {
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: pin.id, action: action === 'challenge-supersede' ? 'supersede' : 'dismiss' }),
-      });
-      await refreshReviewQueue();
-      showToast('✓', action === 'challenge-supersede' ? 'Decision retired' : 'Decision kept; change allowed');
-      return;
-    }
     if (action === 'ask') {
       openComment({ path: pin.path, l1: pin.lineStart, l2: pin.lineEnd }, `Why was this needed: ${pin.decision}?`);
       return;
@@ -523,7 +491,7 @@ async function onPin(action, pin, choice) {
       });
       await refreshReviewQueue();
       revealPin(pin.id);
-      if (action === 'accept') showToast('✓', j.remembered ? 'Marked as understood and remembered' : 'Marked as understood');
+      if (action === 'accept') showToast('✓', j.acknowledged ? 'Marked as understood for this review' : 'Marked as understood');
       return;
     }
     if (action === 'switch') {
@@ -611,8 +579,6 @@ export function initReviewQueue() {
       }
       return;
     }
-    const chBtn = e.target.closest('[data-review-challenge]');
-    if (chBtn) return openChallenge(chBtn.dataset.reviewChallenge, chBtn.dataset.path);
     const pinBtn = e.target.closest('[data-review-pin]');
     if (pinBtn) return openPin(pinBtn.dataset.reviewPin);
     const check = e.target.closest('[data-review-check]');

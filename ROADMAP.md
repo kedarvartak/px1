@@ -52,7 +52,7 @@ requirement to break existing local users in one release.
    review artifact path. The first slice removes the inline edit composer,
    harness picker, and agent-range decorations from the review UI; configured
    provider calls for explanations and comment follow-up remain available.
-- [ ] **Replace personal decision memory with explicit team rules.** Keep human
+- [x] **Replace personal decision memory with explicit team rules.** Keep human
    comments and finding acknowledgement; make learned rules proposals rather
    than a second hidden policy store.
 - [ ] **Move verification execution to CI.** px1 should display trusted GitHub
@@ -65,6 +65,8 @@ requirement to break existing local users in one release.
 Each reduction should leave the policy-review path clearer and easier to test.
 The first reduction was merged in PR #47. The second reduction began in PR #48
 by removing the local cross-worktree Review inbox and its automatic aggregation.
+The third reduction is implemented in this PR: personal decision memory and its
+reversal challenges are removed in favor of explicit team rules.
 
 ### Delivery stages
 
@@ -91,6 +93,6 @@ must not block this milestone.
 - Task-baseline review diffs, including files added or deleted after review
   starts.
 - Worktree switching with per-checkout review state.
-- Review comments, patches, hunk reverts, decision memory, rules, and stale
+- Review comments, patches, hunk reverts, pin acknowledgement, rules, and stale
   result detection.
 - Named verification commands with a Settings editor and one-click Run all.

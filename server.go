@@ -43,7 +43,6 @@ type Server struct {
 	lsp    *lspManager
 	agent  *agentManager // nil unless main wires editing for this session
 	review *reviewManager
-	memory *decisionMemory
 	rules  *ruleMemory
 	verify *verificationManager
 	mux    *http.ServeMux
@@ -62,7 +61,7 @@ func NewServer(ix *Index, lsp *lspManager) *Server {
 	if lsp == nil {
 		lsp = newLSPManager(ix.Root(), false)
 	}
-	s := &Server{ix: ix, lsp: lsp, mux: http.NewServeMux(), review: newReviewManager(ix.Root()), memory: newDecisionMemory(ix.Root()), rules: newRuleMemory(ix.Root()), ruleSuggest: map[int64]map[string]any{}, verify: newVerificationManager(ix.Root())}
+	s := &Server{ix: ix, lsp: lsp, mux: http.NewServeMux(), review: newReviewManager(ix.Root()), rules: newRuleMemory(ix.Root()), ruleSuggest: map[int64]map[string]any{}, verify: newVerificationManager(ix.Root())}
 	sub, _ := fs.Sub(assets, "web")
 	s.mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(sub))))
 	s.mux.HandleFunc("/static/themes.css", s.handleThemes)
@@ -113,9 +112,6 @@ func NewServer(ix *Index, lsp *lspManager) *Server {
 	s.mux.HandleFunc("/api/review/pins", s.handleReviewPins)
 	s.mux.HandleFunc("/api/review/pins/explain", s.handleReviewPinsExplain)
 	s.mux.HandleFunc("/api/review/pin/status", s.handleReviewPinStatus)
-	s.mux.HandleFunc("/api/review/challenges", s.handleReviewChallenges)
-	s.mux.HandleFunc("/api/decisions", s.handleDecisions)
-	s.mux.HandleFunc("/api/decisions/resolve", s.handleDecisionResolve)
 	s.mux.HandleFunc("/api/rules", s.handleRules)
 	s.mux.HandleFunc("/api/rules/update", s.handleRuleUpdate)
 	s.mux.HandleFunc("/api/rules/suggest", s.handleRuleSuggest)
@@ -924,7 +920,6 @@ func (s *Server) handleWorktreeSwitch(w http.ResponseWriter, r *http.Request) {
 	}
 	s.lsp.SetRoot(target.Path)
 	s.review.SetRoot(target.Path)
-	s.memory.SetRoot(target.Path)
 	s.rules.SetRoot(target.Path)
 	s.verify.SetRoot(target.Path)
 	s.ix.SetRoot(target.Path)

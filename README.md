@@ -16,8 +16,8 @@ px1 is a fast, local control plane for reviewing coding-agent work. It opens any
 Most tools help an agent write code. px1 makes its output reviewable over time.
 
 - **Task baselines, not just Git diffs.** Start a review before work begins; px1 queues the exact changes made for that task and can restore them to the baseline. Review diffs include files added or deleted after the task starts, even when Git has no HEAD diff for them.
-- **Decision memory.** Plain-language decision pins explain important changes in context. Accepted decisions persist per workspace and later changes that reverse them are flagged for review.
-- **Review memory.** Turn a review comment into a reusable rule. px1 checks later agent changes against it, so hard-won feedback does not disappear in chat history.
+- **Plain-language explanations.** Decision pins explain important changes in context and can be acknowledged within the active review.
+- **Team rules.** Turn review feedback into explicit `.px1/rules.json` policy. px1 checks later agent changes against versioned rules, so hard-won feedback does not disappear in chat history.
 - **Evidence tied to the revision.** Run your configured tests, lint, or typechecks from the review queue, individually or all at once. Results go stale when the reviewed files change.
 - **Fast enough to stay open.** A single static Go binary gives instant navigation, virtualized large-file viewing, Git diffs, and remote inspection without an IDE, cloud account, or background indexer.
 

@@ -201,20 +201,6 @@
       paint();
     });
   }
-  function decisionTitleText(recs) {
-    return recs.map((r) => {
-      const lines = ["◆ " + r.decision];
-      if (r.why)
-        lines.push("why: " + r.why);
-      if (r.alternatives && r.alternatives.length)
-        lines.push("not: " + r.alternatives.join(" · "));
-      lines.push((r.status === "switched" ? "switched " : "decided ") + new Date(r.recordedAt).toLocaleDateString());
-      return lines.join(`
-`);
-    }).join(`
-
-`);
-  }
   function paint() {
     const d = doc_();
     if (!d) {
@@ -236,12 +222,6 @@
       let rc = "row", gc = "g";
       if (n === d.cur)
         rc += " cur";
-      let gt = "";
-      const recs = d.decisions && d.decisions.get(n);
-      if (recs) {
-        gc += " gut-dec";
-        gt = ' title="' + esc(decisionTitleText(recs)) + '"';
-      }
       if (gut) {
         const m = gut.marks.get(n);
         if (m)
@@ -249,7 +229,7 @@
         if (gut.dels.has(n))
           rc += " gut-del";
       }
-      html += '<div class="' + rc + '" data-l="' + n + '">' + '<div class="' + gc + '"' + gt + ">" + n + '</div><div class="c">' + (body === undefined ? "" : body) + "</div></div>";
+      html += '<div class="' + rc + '" data-l="' + n + '">' + '<div class="' + gc + '">' + n + '</div><div class="c">' + (body === undefined ? "" : body) + "</div></div>";
     }
     const sel = saveSelection();
     rowsEl.style.transform = "translateY(" + first * LH + "px)";
@@ -2750,14 +2730,6 @@
     const els = row.matches("[data-l]") ? [row] : [...row.querySelectorAll("[data-l]")];
     return els.map((el) => +el.dataset.l);
   }
-  function rowOld(row) {
-    const els = row.matches("[data-o]") ? [row] : [...row.querySelectorAll("[data-o]")];
-    return els.map((el) => +el.dataset.o);
-  }
-  function rowCurrent(row) {
-    const els = row.matches("[data-l],[data-at]") ? [row] : [...row.querySelectorAll("[data-l],[data-at]")];
-    return els.map((el) => +(el.dataset.l || el.dataset.at));
-  }
   function placePins(d, tables) {
     const pins = (S2.reviewPins || []).filter((p) => p.path === d.path);
     const loose = [];
@@ -2775,27 +2747,6 @@
         target2.after(ruleHitCard(hit));
       else
         loose.push(ruleHitCard(hit));
-    }
-    for (const ch of (S2.reviewChallenges || []).filter((c) => c.path === d.path)) {
-      let target2 = null;
-      const current = [];
-      for (const table of tables) {
-        for (const row of table.children) {
-          if (rowOld(row).some((l) => l >= ch.baselineFrom && l <= ch.baselineTo)) {
-            target2 = row;
-            current.push(...rowCurrent(row));
-          }
-        }
-        if (target2)
-          break;
-      }
-      const lines = current.filter((n) => n > 0);
-      const at = lines.length ? { l1: Math.min(...lines), l2: Math.max(...lines) } : { l1: 1, l2: 1 };
-      const card = challengeCard(ch, at);
-      if (target2)
-        target2.after(card);
-      else
-        loose.push(card);
     }
     for (const pin of pins) {
       let target2 = null;
@@ -2845,49 +2796,6 @@
   }
   function revealRuleHit(key, line) {
     const card = diffContent.querySelector(`[data-rule-hit="${CSS.escape(key + "@" + line)}"]`);
-    if (!card)
-      return false;
-    card.scrollIntoView({ block: "center" });
-    return true;
-  }
-  function challengeCard(ch, at) {
-    const card = document.createElement("div");
-    card.className = "pin pin-challenge";
-    card.dataset.challengeId = ch.id;
-    const head = document.createElement("button");
-    head.className = "pin-head";
-    const mark = document.createElement("span");
-    mark.className = "pin-mark";
-    mark.textContent = "⟲";
-    const text = document.createElement("span");
-    text.className = "pin-decision";
-    text.textContent = "Reverses a past decision: " + ch.decision;
-    const ref = document.createElement("span");
-    ref.className = "pin-ref";
-    ref.textContent = new Date(ch.recordedAt).toLocaleDateString();
-    head.append(mark, text, ref);
-    const body = document.createElement("div");
-    body.className = "pin-body";
-    if (ch.why) {
-      const why = document.createElement("p");
-      why.className = "pin-why";
-      why.textContent = ch.why;
-      body.append(why);
-    }
-    const acts = document.createElement("div");
-    acts.className = "pin-acts";
-    acts.append(pinButton("Ask agent to keep it", "challenge-ask", { ...ch, at }), pinButton("Decision changed", "challenge-supersede", ch), pinButton("Still holds", "challenge-dismiss", ch));
-    body.append(acts);
-    head.addEventListener("click", () => {
-      body.hidden = !body.hidden;
-      card.classList.toggle("open", !body.hidden);
-    });
-    card.classList.add("open");
-    card.append(head, body);
-    return card;
-  }
-  function revealChallenge(id) {
-    const card = diffContent.querySelector(`[data-challenge-id="${CSS.escape(id)}"]`);
     if (!card)
       return false;
     card.scrollIntoView({ block: "center" });
@@ -3606,7 +3514,6 @@
       if (j.refine)
         refineChunk(d2, start2 / CHUNK);
       loadGutter(d2);
-      loadDecisions(d2);
     }
     const prev = doc_();
     if (prev && prev !== S2.tabs[idx])
@@ -3641,23 +3548,6 @@
       loadOutline();
     if (push)
       pushHistory(path, line || d.cur, col);
-  }
-  function loadDecisions(d) {
-    api("/api/decisions", { path: d.path }).then((j) => {
-      const byLine = new Map;
-      for (const rec of j.decisions || []) {
-        if (!rec.located)
-          continue;
-        for (let n = rec.currentFrom;n <= rec.currentTo; n++) {
-          if (!byLine.has(n))
-            byLine.set(n, []);
-          byLine.get(n).push(rec);
-        }
-      }
-      d.decisions = byLine;
-      if (doc_() === d)
-        render();
-    }).catch(() => {});
   }
   function loadGutter(d) {
     if (!S2.meta?.git)
@@ -3755,7 +3645,6 @@
       if (j.refine)
         refineChunk(d2, tgt.start / CHUNK);
       loadGutter(d2);
-      loadDecisions(d2);
     }
     const d = doc_();
     if (d) {
@@ -5540,18 +5429,12 @@
       S2.reviewRules = { rules: [] };
     }
     try {
-      const j = S2.review?.active ? await api("/api/review/challenges") : { challenges: [] };
-      S2.reviewChallenges = j.challenges || [];
-    } catch {
-      S2.reviewChallenges = [];
-    }
-    try {
       S2.reviewChecks = S2.review?.active ? await api("/api/review/checks") : { commands: {}, jobs: [] };
     } catch {
       S2.reviewChecks = { commands: {}, jobs: [] };
     }
     drawReviewQueue();
-    const sig = JSON.stringify([S2.reviewPins, S2.reviewChallenges, S2.reviewRuleHits]);
+    const sig = JSON.stringify([S2.reviewPins, S2.reviewRuleHits]);
     if (sig !== pinSig) {
       pinSig = sig;
       syncDiffView();
@@ -5571,13 +5454,6 @@
       return "";
     const rows = rules.map((r) => `<div class="review-rule${r.enabled ? "" : " off"}"><span class="review-rule-text" title="${esc(r.pattern + (r.glob ? "  in " + r.glob : ""))}">${esc(r.message)}</span><span class="review-rule-meta">${r.source === "team" ? "team" : r.hits + " hit" + (r.hits === 1 ? "" : "s")}</span>${r.source === "team" ? "" : `<button data-rule-toggle="${esc(r.id)}" data-enabled="${r.enabled ? "1" : ""}" title="${r.enabled ? "Disable" : "Enable"}">${r.enabled ? "On" : "Off"}</button><button data-rule-copy="${esc(r.id)}" title="Copy as a team rule for ${esc(S2.reviewRules.teamFile || ".px1/rules.json")}">Copy</button><button data-rule-delete="${esc(r.id)}" title="Delete rule">×</button>`}</div>`).join("");
     return `<details class="review-rules"${rulesOpen ? " open" : ""}><summary>Rules <span>${rules.filter((r) => r.enabled).length} active</span></summary>${err}${rows}</details>`;
-  }
-  function challengesMarkup() {
-    const list = S2.reviewChallenges || [];
-    if (!list.length)
-      return "";
-    const rows = list.map((c) => `<button class="review-pin review-challenge" data-review-challenge="${esc(c.id)}" data-path="${esc(c.path)}" title="${esc(c.why || c.decision)}"><span class="review-pin-mark">⟲</span><span class="review-pin-text">${esc(c.decision)}</span><span class="review-pin-ref">${esc(c.path.split("/").pop())}</span></button>`).join("");
-    return `<div class="review-pins review-challenges"><div class="review-pins-head"><strong>Reversed decisions</strong><span>${list.length} to resolve</span></div><div class="review-pin-list">${rows}</div></div>`;
   }
   function pinsMarkup() {
     const pins = S2.reviewPins || [];
@@ -5635,7 +5511,6 @@
     const emptyHint = items.length ? "No changed files match this filter." : "No files have changed since this review began.";
     const nextLabel = next ? "Next change →" : visibleItems.length ? "All visible changes reviewed" : "No matching changes";
     queueEl.innerHTML = `<div class="review-summary"><div class="review-summary-text"><strong>Agent changes</strong><span>${reviewed} of ${count} reviewed${active.baseRef ? " · since worktree creation" : ""}</span></div><button class="review-close" data-review-close title="Close review session">Close</button><div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div></div>
-    ${challengesMarkup()}
     ${ruleHitsMarkup()}
     ${pinsMarkup()}
     ${rulesMarkup()}
@@ -5848,11 +5723,6 @@
     await openReviewDiff(pin.path);
     revealPin(id);
   }
-  async function openChallenge(id, path) {
-    await openFile(path);
-    await openReviewDiff(path);
-    revealChallenge(id);
-  }
   function suggestPattern(code) {
     const text = code || "";
     const call = /([A-Za-z_$][\w$.]*)\s*\(/.exec(text);
@@ -5992,20 +5862,6 @@
         showToast("✓", "Rule disabled");
         return;
       }
-      if (action === "challenge-ask") {
-        const why = pin.why ? ` (${pin.why})` : "";
-        openComment({ path: pin.path, l1: pin.at.l1, l2: pin.at.l2 }, `This change reverses an earlier decision: ${pin.decision}${why}. Restore it unless the requirement changed.`);
-        return;
-      }
-      if (action === "challenge-supersede" || action === "challenge-dismiss") {
-        await apiPost("/api/decisions/resolve", undefined, {
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: pin.id, action: action === "challenge-supersede" ? "supersede" : "dismiss" })
-        });
-        await refreshReviewQueue();
-        showToast("✓", action === "challenge-supersede" ? "Decision retired" : "Decision kept; change allowed");
-        return;
-      }
       if (action === "ask") {
         openComment({ path: pin.path, l1: pin.lineStart, l2: pin.lineEnd }, `Why was this needed: ${pin.decision}?`);
         return;
@@ -6018,7 +5874,7 @@
         await refreshReviewQueue();
         revealPin(pin.id);
         if (action === "accept")
-          showToast("✓", j.remembered ? "Marked as understood and remembered" : "Marked as understood");
+          showToast("✓", j.acknowledged ? "Marked as understood for this review" : "Marked as understood");
         return;
       }
       if (action === "switch") {
@@ -6120,9 +5976,6 @@
         }
         return;
       }
-      const chBtn = e.target.closest("[data-review-challenge]");
-      if (chBtn)
-        return openChallenge(chBtn.dataset.reviewChallenge, chBtn.dataset.path);
       const pinBtn = e.target.closest("[data-review-pin]");
       if (pinBtn)
         return openPin(pinBtn.dataset.reviewPin);
