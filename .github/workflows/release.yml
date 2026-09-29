@@ -60,7 +60,6 @@ jobs:
       - name: Build Cross-Platform Binaries
         env:
           VERSION: ${{ steps.get_version.outputs.version }}
-          POSTHOG_KEY: ${{ secrets.POSTHOG_KEY }}
         run: ./build.sh
 
       - name: Generate Checksums

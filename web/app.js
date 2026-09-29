@@ -3281,104 +3281,6 @@
     if (state === "failed")
       el.title = "The language server did not start. Click for details.";
   }
-  var metricsMenuEl = $("#metrics-menu");
-  var lastMetrics = null;
-  function renderMetricsMenu(m) {
-    if (!metricsMenuEl || !m)
-      return;
-    metricsMenuEl.innerHTML = `
-    <div class="metrics-title">
-      <span>Process Metrics</span>
-      <span class="toast-chip">px1</span>
-    </div>
-    <div class="metrics-grid">
-      <div class="metrics-row">
-        <span class="metrics-label">Resident RAM (RSS)</span>
-        <span class="metrics-val">${fmtBytes(m.rssBytes)}</span>
-      </div>
-      <div class="metrics-row">
-        <span class="metrics-label">CPU Usage</span>
-        <span class="metrics-val">${m.cpuUsage.toFixed(1)}%</span>
-      </div>
-      <div class="metrics-row">
-        <span class="metrics-label">Active Goroutines</span>
-        <span class="metrics-val">${m.goroutines || 0}</span>
-      </div>
-    </div>
-  `;
-  }
-  function closeMetricsMenu() {
-    if (metricsMenuEl)
-      metricsMenuEl.hidden = true;
-  }
-  function placeMetricsMenu() {
-    const contEl = $("#st-metrics");
-    if (!contEl || !metricsMenuEl)
-      return;
-    const r = contEl.getBoundingClientRect();
-    metricsMenuEl.style.bottom = innerHeight - r.top + 6 + "px";
-    metricsMenuEl.style.right = Math.max(8, innerWidth - r.right) + "px";
-    metricsMenuEl.style.left = "auto";
-  }
-  function toggleMetricsMenu() {
-    if (!metricsMenuEl)
-      return;
-    if (!metricsMenuEl.hidden) {
-      closeMetricsMenu();
-      return;
-    }
-    if (lastMetrics)
-      renderMetricsMenu(lastMetrics);
-    metricsMenuEl.hidden = false;
-    placeMetricsMenu();
-    refreshMetrics();
-  }
-  function updateMetricsDisplay(m) {
-    if (!m)
-      return;
-    lastMetrics = m;
-    const cpuEl = $("#st-cpu");
-    const ramEl = $("#st-ram");
-    if (cpuEl)
-      cpuEl.textContent = `${m.cpuUsage.toFixed(1)}%`;
-    if (ramEl)
-      ramEl.textContent = fmtBytes(m.rssBytes);
-    if (metricsMenuEl && !metricsMenuEl.hidden) {
-      renderMetricsMenu(m);
-      placeMetricsMenu();
-    }
-  }
-  async function refreshMetrics() {
-    try {
-      const m = await api("/api/metrics");
-      updateMetricsDisplay(m);
-    } catch {}
-  }
-  function initMetrics() {
-    const contEl = $("#st-metrics");
-    if (contEl) {
-      contEl.addEventListener("click", (e) => {
-        e.stopPropagation();
-        toggleMetricsMenu();
-      });
-      contEl.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          toggleMetricsMenu();
-        }
-      });
-    }
-    addEventListener("click", (e) => {
-      if (!e.target.closest("#metrics-menu, #st-metrics"))
-        closeMetricsMenu();
-    });
-    addEventListener("keydown", (e) => {
-      if (e.key === "Escape")
-        closeMetricsMenu();
-    });
-    refreshMetrics();
-    setInterval(refreshMetrics, 2500);
-  }
   var FIT_STEPS = 6;
   var statusEl = $("#status");
   function fitStatus() {
@@ -3918,7 +3820,7 @@
         closedTabs.push({ path: closed.path, cur: closed.cur, scrollTop });
         if (closedTabs.length > MAX_CLOSED)
           closedTabs.shift();
-        api("/api/close", { path: closed.path }).then(() => refreshMetrics()).catch(() => {});
+        api("/api/close", { path: closed.path }).catch(() => {});
       }
       closed.lines = null;
       closed.chunks?.clear?.();
@@ -4400,14 +4302,6 @@
       category: "Verification",
       type: "commands",
       default: {}
-    },
-    {
-      key: "telemetry.enabled",
-      title: "Telemetry",
-      description: "Enable anonymous usage metrics to help improve px1.",
-      category: "Security & Privacy",
-      type: "boolean",
-      default: true
     }
   ];
   var settingsData = {
@@ -6970,7 +6864,6 @@ Switch worktree` : "Switch worktree" : S2.meta?.root || "";
   initMarkdown();
   initDiff();
   initAgent();
-  initMetrics();
   initStatusFit();
   initSettings();
   initReviewQueue();
@@ -6989,8 +6882,6 @@ Switch worktree` : "Switch worktree" : S2.meta?.root || "";
     applyKeyLabels();
     measure();
     S2.meta = await api("/api/meta");
-    if (S2.meta.metrics)
-      updateMetricsDisplay(S2.meta.metrics);
     if (S2.meta.git) {
       const b = $("#btn-changed");
       if (b)

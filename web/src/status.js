@@ -1,4 +1,4 @@
-import { $, S, doc_, api, withKeys } from './state.js';
+import { $, S, doc_, withKeys } from './state.js';
 import { previewing } from './markdown.js';
 import { layoutPref } from './diff.js';
 
@@ -95,103 +95,6 @@ export function drawLspStatus() {
   if (state === 'failed') el.title = 'The language server did not start. Click for details.';
 }
 
-const metricsMenuEl = $('#metrics-menu');
-let lastMetrics = null;
-
-function renderMetricsMenu(m) {
-  if (!metricsMenuEl || !m) return;
-  metricsMenuEl.innerHTML = `
-    <div class="metrics-title">
-      <span>Process Metrics</span>
-      <span class="toast-chip">px1</span>
-    </div>
-    <div class="metrics-grid">
-      <div class="metrics-row">
-        <span class="metrics-label">Resident RAM (RSS)</span>
-        <span class="metrics-val">${fmtBytes(m.rssBytes)}</span>
-      </div>
-      <div class="metrics-row">
-        <span class="metrics-label">CPU Usage</span>
-        <span class="metrics-val">${m.cpuUsage.toFixed(1)}%</span>
-      </div>
-      <div class="metrics-row">
-        <span class="metrics-label">Active Goroutines</span>
-        <span class="metrics-val">${m.goroutines || 0}</span>
-      </div>
-    </div>
-  `;
-}
-
-export function closeMetricsMenu() {
-  if (metricsMenuEl) metricsMenuEl.hidden = true;
-}
-
-function placeMetricsMenu() {
-  const contEl = $('#st-metrics');
-  if (!contEl || !metricsMenuEl) return;
-  const r = contEl.getBoundingClientRect();
-  metricsMenuEl.style.bottom = (innerHeight - r.top + 6) + 'px';
-  metricsMenuEl.style.right = Math.max(8, innerWidth - r.right) + 'px';
-  metricsMenuEl.style.left = 'auto';
-}
-
-export function toggleMetricsMenu() {
-  if (!metricsMenuEl) return;
-  if (!metricsMenuEl.hidden) {
-    closeMetricsMenu();
-    return;
-  }
-  if (lastMetrics) renderMetricsMenu(lastMetrics);
-  metricsMenuEl.hidden = false;
-  placeMetricsMenu();
-  refreshMetrics();
-}
-
-export function updateMetricsDisplay(m) {
-  if (!m) return;
-  lastMetrics = m;
-  const cpuEl = $('#st-cpu');
-  const ramEl = $('#st-ram');
-  if (cpuEl) cpuEl.textContent = `${m.cpuUsage.toFixed(1)}%`;
-  if (ramEl) ramEl.textContent = fmtBytes(m.rssBytes);
-  if (metricsMenuEl && !metricsMenuEl.hidden) {
-    renderMetricsMenu(m);
-    placeMetricsMenu();
-  }
-}
-
-export async function refreshMetrics() {
-  try {
-    const m = await api('/api/metrics');
-    updateMetricsDisplay(m);
-  } catch {}
-}
-
-export function initMetrics() {
-  const contEl = $('#st-metrics');
-  if (contEl) {
-    contEl.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleMetricsMenu();
-    });
-    contEl.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        toggleMetricsMenu();
-      }
-    });
-  }
-  addEventListener('click', (e) => {
-    if (!e.target.closest('#metrics-menu, #st-metrics')) closeMetricsMenu();
-  });
-  addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeMetricsMenu();
-  });
-
-  refreshMetrics();
-  setInterval(refreshMetrics, 2500);
-}
-
 /* The status bar stays on one line. When its contents outgrow the width, it
    sheds detail in steps (see the fit-N rules in style.css), least useful first,
    stopping at the first step that fits. */
@@ -207,7 +110,7 @@ export function fitStatus() {
 
 export function initStatusFit() {
   // Width changes come from the window and the sidebar resizers; content changes
-  // from metrics, LSP state and the selection bar. Class changes are not observed,
+  // from LSP state and the selection bar. Class changes are not observed,
   // so fitStatus() toggling them cannot re-trigger itself.
   new ResizeObserver(fitStatus).observe(statusEl);
   new MutationObserver(fitStatus).observe(statusEl, { childList: true, subtree: true, characterData: true });

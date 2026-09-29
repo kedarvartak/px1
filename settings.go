@@ -28,7 +28,6 @@ type settings struct {
 	WorkbenchColorTheme        *string  `json:"workbench.colorTheme,omitempty"`
 	DiffEditorRenderSideBySide *bool    `json:"diffEditor.renderSideBySide,omitempty"`
 	MarkdownPreviewOpen        *bool    `json:"markdown.preview.open,omitempty"`
-	TelemetryEnabled           *bool    `json:"telemetry.enabled,omitempty"`
 	ReviewAutoStart            *bool    `json:"review.autoStart,omitempty"`
 }
 
@@ -333,14 +332,6 @@ var settingsSchema = []settingSchemaItem{
 		Category:    "Verification",
 		Type:        "commands",
 		Default:     map[string]string{},
-	},
-	{
-		Key:         "telemetry.enabled",
-		Title:       "Telemetry",
-		Description: "Enable anonymous usage metrics to help improve px1.",
-		Category:    "Security & Privacy",
-		Type:        "boolean",
-		Default:     true,
 	},
 }
 

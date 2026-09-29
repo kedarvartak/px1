@@ -278,14 +278,6 @@ const BUILTIN_SCHEMA = [
     type: "commands",
     default: {}
   },
-  {
-    key: "telemetry.enabled",
-    title: "Telemetry",
-    description: "Enable anonymous usage metrics to help improve px1.",
-    category: "Security & Privacy",
-    type: "boolean",
-    default: true
-  }
 ];
 
 let settingsData = {

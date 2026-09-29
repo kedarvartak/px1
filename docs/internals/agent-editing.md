@@ -99,7 +99,7 @@ $XDG_CONFIG_HOME/px1/settings.json     # when XDG_CONFIG_HOME is set
 }
 ```
 
-This follows `stateFilePath` in [`update.go`](../../update.go) and sits beside the anonymous ID written by [`telemetry.go`](../../telemetry.go). px1 never writes its own state into a working tree: there is no `.px1/` directory in the repository.
+This follows `stateFilePath` in [`update.go`](../../update.go). px1 never writes runtime state into a working tree; repository-owned policy at `.px1/rules.json` is intentionally versioned with the code.
 
 A corrupt or stale settings file is never an error. If the saved harness has since been uninstalled it simply resolves to nothing selected, and the picker appears again.
 

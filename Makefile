@@ -15,17 +15,13 @@ endif
 # Clean leading 'v' from version string if present
 CLEAN_VERSION := $(patsubst v%,%,$(TARGET_VERSION))
 
-POSTHOG_KEY ?= $(PX1_POSTHOG_KEY)
 LDFLAGS := -s -w
-ifneq ($(strip $(POSTHOG_KEY)),)
-  LDFLAGS += -X main.posthogKey=$(strip $(POSTHOG_KEY))
-endif
 
 all: build
 
 help:
 	@echo "px1 make targets:"
-	@echo "  make build             - build px1 binary for current platform (optional: POSTHOG_KEY=phc_...)"
+	@echo "  make build             - build px1 binary for current platform"
 	@echo "  make web               - bundle web assets (JS/CSS/themes)"
 	@echo "  make test              - run go test suite"
 	@echo "  make dist              - compile cross-platform binaries into dist/"

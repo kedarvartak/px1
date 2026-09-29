@@ -2,7 +2,7 @@
 import { $, esc, S, doc_, api, LH, CHUNK, withKeys } from './state.js';
 import { vp, sizer, rowsEl, editor } from './ui.js';
 import { render, layout, refineChunk } from './renderer.js';
-import { updateStatus, setStatusNote, refreshMetrics } from './status.js';
+import { updateStatus, setStatusNote } from './status.js';
 import { pushHistory } from './history.js';
 import { warmLSP } from './lsp.js';
 import { loadOutline } from './outline.js';
@@ -239,7 +239,6 @@ export function closeTab(i) {
       closedTabs.push({ path: closed.path, cur: closed.cur, scrollTop });
       if (closedTabs.length > MAX_CLOSED) closedTabs.shift();
       api('/api/close', { path: closed.path })
-        .then(() => refreshMetrics())
         .catch(() => {});
     }
     // Release large arrays to assist garbage collection
