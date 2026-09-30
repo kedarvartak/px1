@@ -11,7 +11,6 @@ import { revealDir } from './tree.js';
 import { clearLink } from './hover.js';
 import { clearFind } from './find.js';
 import { clearSelectAll } from './selbar.js';
-import { syncPreview, previewing, previewLine } from './markdown.js';
 import { syncDiffView, layoutPref, diffScrollTop } from './diff.js';
 
 // Recently closed files, newest last, for Alt+Shift+T.
@@ -39,7 +38,7 @@ export async function openFile(path, opts = {}) {
       path, name: path.split('/').pop(), lang: j.lang, total: j.total, maxCols: j.maxCols,
       size: j.size, lines: new Array(j.total), chunks: new Set([start / CHUNK]),
       pending: new Set(), refining: new Set(), scrollTop: 0, cur: line || 1,
-      outline: null, gen: 0, markdown: !!j.markdown, gutter: null,
+      outline: null, gen: 0, gutter: null,
       diffMode: hasDiff ? (layoutPref() || 'split') : null,
       diffAvailable: hasDiff,
       diffDismissed: false,
@@ -59,7 +58,6 @@ export async function openFile(path, opts = {}) {
 
   $('#empty').hidden = true;
   hideImage();
-  syncPreview();
   syncDiffView();
   if (!S.at || S.at.path !== d.path) S.at = null;
   S.lsp.state = (d.lsp && d.lsp.state) || 'off';
@@ -89,7 +87,6 @@ function loadGutter(d) {
       d.diffMode = layoutPref() || 'split';
       if (doc_() === d) {
         syncDiffView();
-        syncPreview();
       }
     }
     if (doc_() === d) updateStatus();
@@ -103,18 +100,12 @@ function loadGutter(d) {
 }
 
 // Quietly re-fetches all open tabs on workspace reindex without tab-switching thrash.
-// Preserves live scroll position, cursor column/line (clamped), diff settings, and markdown scroll.
+// Preserves live scroll position, cursor column/line (clamped), and diff settings.
 export async function reloadOpenTabs() {
   if (S.tabs.length === 0) return;
 
   const activeDoc = doc_();
-  if (activeDoc) {
-    activeDoc.scrollTop = vp.scrollTop;
-    if (previewing(activeDoc)) {
-      const mv = $('#mdview');
-      if (mv) activeDoc.mdScroll = mv.scrollTop;
-    }
-  }
+  if (activeDoc) activeDoc.scrollTop = vp.scrollTop;
 
   const targets = S.tabs.map(t => ({
     oldDoc: t,
@@ -168,8 +159,6 @@ export async function reloadOpenTabs() {
       col: keep.col || 0,
       outline: null,
       gen: 0,
-      markdown: !!j.markdown,
-      mdScroll: keep.mdScroll || 0,
       gutter: null,
       diffMode,
       diffAvailable: hasDiff,
@@ -193,7 +182,6 @@ export async function reloadOpenTabs() {
     S.lsp.server = (d.lsp && d.lsp.server) || '';
     S.lsp.missing = (d.lsp && d.lsp.missing) || '';
     warmLSP(d);
-    syncPreview();
     syncDiffView();
     layout();
     vp.scrollTop = d.scrollTop;
@@ -207,7 +195,6 @@ export async function reloadOpenTabs() {
 }
 
 export function centerLine(n) {
-  if (previewing()) { previewLine(n); return; }
   const y = (n - 1) * LH - Math.max(0, vp.clientHeight / 2 - LH * 2);
   vp.scrollTop = Math.max(0, y);
 }
@@ -233,7 +220,6 @@ export function closeTab(i) {
   }
   if (S.tabs.length === 0) {
     S.active = -1;
-    syncPreview();
     syncDiffView();
     rowsEl.innerHTML = ''; sizer.style.height = '0px';
     $('#empty').hidden = false; drawCrumbs();
@@ -242,7 +228,6 @@ export function closeTab(i) {
   }
   S.active = Math.min(i, S.tabs.length - 1);
   const d = doc_();
-  syncPreview();
   syncDiffView();
   drawTabs(); drawCrumbs(); layout();
   vp.scrollTop = d.scrollTop; render(); updateStatus();
@@ -275,7 +260,6 @@ export function switchTab(i) {
   const prev = doc_();
   if (prev) prev.scrollTop = vp.scrollTop;
   S.active = i;
-  syncPreview();
   syncDiffView();
   clearFind();
   clearSelectAll();

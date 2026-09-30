@@ -25,7 +25,6 @@ type settings struct {
 	EditorRenderWhitespace     *string  `json:"editor.renderWhitespace,omitempty"`
 	EditorMinimapEnabled       *bool    `json:"editor.minimap.enabled,omitempty"`
 	DiffEditorRenderSideBySide *bool    `json:"diffEditor.renderSideBySide,omitempty"`
-	MarkdownPreviewOpen        *bool    `json:"markdown.preview.open,omitempty"`
 	ReviewAutoStart            *bool    `json:"review.autoStart,omitempty"`
 }
 
@@ -138,14 +137,6 @@ var settingsSchema = []settingSchemaItem{
 		Key:         "diffEditor.renderSideBySide",
 		Title:       "Diff Side By Side",
 		Description: "Controls whether the diff editor shows changes in split (side-by-side) or unified mode.",
-		Category:    "Workbench",
-		Type:        "boolean",
-		Default:     true,
-	},
-	{
-		Key:         "markdown.preview.open",
-		Title:       "Markdown Preview",
-		Description: "Controls whether Markdown files open in rendered preview by default.",
 		Category:    "Workbench",
 		Type:        "boolean",
 		Default:     true,

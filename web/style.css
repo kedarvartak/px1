@@ -401,7 +401,7 @@ body.right-hidden #right-side, body.right-hidden #right-resizer { display: none;
 
 /* ---------- main ---------- */
 #main { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; }
-/* View-mode switches (Markdown Preview/Source, git Diff), pinned to the right
+/* View-mode switches (git Diff), pinned to the right
    of the tab bar. The bar pads its end so the last tab can scroll clear of them. */
 #view-switches { position: absolute; top: 7px; right: 10px; z-index: 7; display: flex; gap: 6px; }
 .view-switch {
@@ -464,9 +464,7 @@ body.right-hidden #right-side, body.right-hidden #right-resizer { display: none;
 }
 .diff-menu-item.active .diff-item-badge { background: var(--accent); color: var(--on-accent); }
 
-body.md-tab #tabs { padding-right: 140px; }
 body.diff-tab #tabs { padding-right: 150px; }
-body.md-tab.diff-tab #tabs { padding-right: 290px; }
 
 #tabs { display: flex; align-items: center; gap: 2px; height: 40px; padding: 0 6px; background: var(--bg2); box-shadow: inset 0 -1px 0 var(--line); overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
 #tabs::-webkit-scrollbar { display: none; }
@@ -657,22 +655,21 @@ body.word-wrap .c { white-space: pre-wrap; word-break: break-word; overflow-wrap
 }
 
 
-/* token colours: the code view, and fenced code in the Markdown preview */
-.c .k, .md-code .k{color:var(--k)} .c .kt, .md-code .kt{color:var(--kt)}
-.c .nf, .md-code .nf{color:var(--nf)} .c .nc, .md-code .nc{color:var(--nc)}
-.c .nb, .md-code .nb{color:var(--nb)} .c .nv, .md-code .nv{color:var(--nv)}
-.c .no, .md-code .no{color:var(--no)} .c .na, .md-code .na{color:var(--na)}
-.c .nt, .md-code .nt{color:var(--nt)} .c .nd, .md-code .nd{color:var(--nd)}
-.c .np, .md-code .np{color:var(--np)} .c .s, .md-code .s{color:var(--s)}
-.c .m, .md-code .m{color:var(--m)} .c .o, .md-code .o{color:var(--o)} .c .p, .md-code .p{color:var(--p)}
-.c .c, .md-code .c{color:var(--c);font-style:italic} .c .cp, .md-code .cp{color:var(--cp)}
-.c .gi, .md-code .gi{color:var(--gi);background:var(--gi-bg)} .c .gd, .md-code .gd{color:var(--gd);background:var(--gd-bg)}
-.c .gh, .md-code .gh{color:var(--accent-fg);font-weight:600} .c .ge, .md-code .ge{font-style:italic} .c .gs, .md-code .gs{font-weight:600}
-.c .err, .md-code .err{color:var(--err);text-decoration:underline wavy}
+.c .k{color:var(--k)} .c .kt{color:var(--kt)}
+.c .nf{color:var(--nf)} .c .nc{color:var(--nc)}
+.c .nb{color:var(--nb)} .c .nv{color:var(--nv)}
+.c .no{color:var(--no)} .c .na{color:var(--na)}
+.c .nt{color:var(--nt)} .c .nd{color:var(--nd)}
+.c .np{color:var(--np)} .c .s{color:var(--s)}
+.c .m{color:var(--m)} .c .o{color:var(--o)} .c .p{color:var(--p)}
+.c .c{color:var(--c);font-style:italic} .c .cp{color:var(--cp)}
+.c .gi{color:var(--gi);background:var(--gi-bg)} .c .gd{color:var(--gd);background:var(--gd-bg)}
+.c .gh{color:var(--accent-fg);font-weight:600} .c .ge{font-style:italic} .c .gs{font-weight:600}
+.c .err{color:var(--err);text-decoration:underline wavy}
 
 /* ---------- diff view (Mod+D): split (default) or unified render of a
-   modified file's git diff against HEAD, in its own overlay like the
-   Markdown preview -- not virtualized, since a single file's diff is small. */
+   modified file's git diff against HEAD, in its own overlay -- not
+   virtualized, since a single file's diff is small. */
 #diffview { position: absolute; inset: 0; overflow: auto; background: var(--bg); }
 #diffcontent { font: var(--fs)/var(--lh) var(--mono); padding-bottom: 40vh; }
 .diff-empty { padding: 24px 16px; color: var(--faint); font: 12px/1.4 var(--ui); }
@@ -699,82 +696,6 @@ body.word-wrap .c { white-space: pre-wrap; word-break: break-word; overflow-wrap
 .diff-row-pair { display: flex; }
 .diff-side { flex: 1 1 50%; min-width: 0; }
 .diff-side-left { border-right: 1px solid var(--line); }
-
-/* ---------- markdown preview ---------- */
-#mdview { position: absolute; inset: 0; overflow: auto; background: var(--bg); }
-.md {
-  max-width: 860px; margin: 0 auto; padding: 40px clamp(20px, 6%, 56px) 40vh;
-  font: 15px/1.7 var(--ui); color: var(--fg); overflow-wrap: break-word;
-}
-.md > :first-child { margin-top: 0; }
-.md p, .md ul, .md ol, .md dl, .md table, .md details, .md blockquote, .md .md-pre { margin: 0 0 16px; }
-.md h1, .md h2, .md h3, .md h4, .md h5, .md h6 { margin: 32px 0 16px; font-weight: 600; line-height: 1.3; }
-.md h1 { font-size: 2em; letter-spacing: -.01em; }
-.md h2 { font-size: 1.5em; }
-.md h1, .md h2 { padding-bottom: .3em; border-bottom: 1px solid var(--line); }
-.md h3 { font-size: 1.25em; }
-.md h4 { font-size: 1.05em; }
-.md h5 { font-size: .95em; }
-.md h6 { font-size: .9em; color: var(--dim); }
-.md a { color: var(--accent-fg); text-decoration: none; }
-.md a:hover { text-decoration: underline; text-underline-offset: 3px; }
-.md strong, .md b { font-weight: 600; }
-.md hr { height: 1px; margin: 28px 0; border: 0; background: var(--line); }
-.md ul, .md ol { padding-left: 2em; }
-.md li + li, .md li > ul, .md li > ol { margin-top: 4px; }
-.md li > ul, .md li > ol, .md li > p { margin-bottom: 0; }
-.md li:has(> input[type="checkbox"]), .md li:has(> p > input[type="checkbox"]) { list-style: none; }
-.md input[type="checkbox"] { margin: 0 .5em 0 -1.4em; vertical-align: -1px; accent-color: var(--accent); }
-.md blockquote { padding: 0 1em; color: var(--dim); border-left: 3px solid var(--line); }
-.md blockquote > :last-child { margin-bottom: 0; }
-.md code, .md samp, .md tt { font-family: var(--mono); font-size: .86em; }
-.md :not(pre) > code { padding: .15em .4em; border-radius: 4px; background: var(--bg3); }
-.md kbd { font-size: .78em; }
-.md .md-pre { position: relative; }
-.md pre {
-  margin: 0; padding: 14px 16px; overflow: auto; tab-size: 4; -moz-tab-size: 4;
-  font: 13px/1.6 var(--mono); font-feature-settings: "calt" 1, "zero" 1;
-  background: var(--bg2); border: 1px solid var(--line); border-radius: 8px;
-}
-.md pre code { font: inherit; white-space: pre; }
-.md pre i { font-style: normal; }
-/* The fence's language sits in the corner and gives way to the copy button on hover. */
-.md-pre[data-lang]::before {
-  content: attr(data-lang); position: absolute; top: 8px; right: 12px; pointer-events: none;
-  font: 10.5px/1 var(--mono); letter-spacing: .04em; color: var(--faint); transition: opacity .12s;
-}
-.md-pre:hover::before { opacity: 0; }
-.md-copy {
-  position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; border-radius: 5px;
-  display: grid; place-items: center; color: var(--dim);
-  background: var(--bg3); border: 1px solid var(--line); opacity: 0; transition: opacity .12s;
-}
-.md-pre:hover .md-copy, .md-copy:focus-visible { opacity: 1; }
-.md-copy:hover { color: var(--fg); border-color: var(--accent); }
-.md-copy svg { display: block; }
-.md table { display: block; width: max-content; max-width: 100%; overflow: auto; border-collapse: collapse; font-size: .94em; }
-.md th, .md td { padding: 6px 13px; border: 1px solid var(--line); }
-.md th { font-weight: 600; background: var(--bg2); }
-.md img { max-width: 100%; vertical-align: middle; }
-.md [align="center"] { text-align: center; }
-.md [align="right"] { text-align: right; }
-.md img[align="right"] { float: right; margin-left: 16px; }
-.md img[align="left"] { float: left; margin-right: 16px; }
-.md summary { cursor: pointer; }
-.md details[open] > summary { margin-bottom: 8px; }
-.md dt { font-weight: 600; }
-.md dd { margin: 0 0 8px 1.5em; }
-.md mark { background: var(--mark); color: inherit; border-radius: 2px; }
-.md mark.md-hit.on, .md mark.md-hit.on * { background: var(--mark-active); color: var(--on-mark-active); }
-.md .footnotes { margin-top: 40px; font-size: .88em; color: var(--dim); }
-/* GitHub alerts: > [!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION] */
-.md-alert { --alert: var(--accent); }
-.md-alert-tip { --alert: var(--gi); }
-.md-alert-important { --alert: var(--nc); }
-.md-alert-warning { --alert: var(--mark-active); }
-.md-alert-caution { --alert: var(--err); }
-.md blockquote.md-alert { padding: 8px 16px; color: var(--fg); border-left-color: var(--alert); }
-.md .md-alert-title { margin: 0 0 4px; font-weight: 600; color: var(--alert); }
 
 #imgview { position: absolute; inset: 0; display: grid; place-items: center; overflow: auto; padding: 32px; }
 #imgview img { max-width: 100%; image-rendering: pixelated; box-shadow: var(--shadow); background: repeating-conic-gradient(var(--bg3) 0 25%, transparent 0 50%) 0 0/16px 16px; }
@@ -978,7 +899,7 @@ kbd {
 #minimap-hits i { position: absolute; right: 2px; width: 8px; height: 2px; background: var(--mark-active); border-radius: 1px; opacity: .85; }
 
 body.hide-lines .g { display: none !important; }
-.c, .diff-code, .md pre code { tab-size: var(--tab-size, 4); }
+.c, .diff-code { tab-size: var(--tab-size, 4); }
 
 /* Caret styles */
 body.cursor-block #caret { width: var(--cw, 8.5px) !important; opacity: 0.65; }

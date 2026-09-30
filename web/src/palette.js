@@ -11,7 +11,6 @@ import { revealFile } from './tree.js';
 import { showRightInspector, hideRightInspector } from './inspector.js';
 import { showCalls, openLspSetup } from './calls.js';
 import { showHelp } from './shortcuts.js';
-import { togglePreview } from './markdown.js';
 import { openSettings } from './settings.js';
 
 export const overlay = $('#overlay');
@@ -38,7 +37,6 @@ export const COMMANDS = [
   { name: 'Show File Symbols (Right Panel)', run: () => showRightInspector('symbols') },
   { name: 'Reveal Active File in Explorer', run: () => { const d = doc_(); if (d) { showPanel('files'); revealFile(d.path); } } },
   { name: withKeys('Toggle Word Wrap ({Alt+Z})'), run: () => toggleWordWrap() },
-  { name: withKeys('Toggle Markdown Preview ({Alt+M})'), run: () => togglePreview() },
   { name: withKeys('Toggle Sidebar ({Mod+B})'), run: () => document.body.classList.toggle('side-hidden') },
   { name: 'Re-index Workspace', run: () => $('#btn-reindex').click() },
   { name: 'Close Tab', run: () => { if (S.active >= 0) closeTab(S.active); } },

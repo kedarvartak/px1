@@ -41,11 +41,6 @@
     <div id="tabs"></div>
     <!-- View-mode switches, pinned to the right of the tab bar -->
     <div id="view-switches">
-      <!-- Markdown tabs only: switch between the rendered file and its source -->
-      <div id="md-switch" class="view-switch" role="group" aria-label="Markdown view" hidden>
-        <button data-md="preview" title="Rendered Markdown ({Alt+M})">Preview</button>
-        <button data-md="source" title="Markdown source ({Alt+M})">Source</button>
-      </div>
       <!-- Modified files in a git repo only: view the file's diff against HEAD -->
       <div id="diff-switch" class="view-switch diff-dropdown" role="group" aria-label="Diff view" hidden>
         <button id="diff-source" data-diff-opt="source" title="Show the file ({Mod+D})">Source</button>
@@ -83,8 +78,6 @@
       <div id="viewport">
         <div id="sizer"><div id="rows"></div><div id="caret" hidden></div></div>
       </div>
-      <!-- Markdown preview: covers the code view for a Markdown tab (Alt+M toggles) -->
-      <div id="mdview" hidden><article id="md" class="md"></article></div>
       <!-- Diff view: covers the code view while a diff layout is active (Mod+D toggles) -->
       <div id="diffview" hidden><div id="diffcontent"></div></div>
       <div id="minimap-hits"></div>
@@ -165,7 +158,6 @@
         <button class="footer-btn" data-action="search" title="Search in Files ({Mod+Shift+F})"><span class="footer-btn-label">Search</span><kbd class="footer-kbd" data-keys="Mod+Shift+F"></kbd></button>
         <button class="footer-btn" data-action="find" title="Find in File ({Mod+F})"><span class="footer-btn-label">Find in File</span><kbd class="footer-kbd" data-keys="Mod+F"></kbd></button>
         <button class="footer-btn" data-action="goto" title="Go to Line ({Mod+G})"><span class="footer-btn-label">Go to</span><kbd class="footer-kbd" data-keys="Mod+G"></kbd></button>
-        <button class="footer-btn" data-action="md-preview" title="Toggle Markdown Preview ({Alt+M})" hidden><span class="footer-btn-label">Preview</span><kbd class="footer-kbd" data-keys="Alt+M"></kbd></button>
         <button class="footer-btn" data-action="wrap" title="Toggle Word Wrap ({Alt+Z})"><span class="footer-btn-label">Wrap</span><kbd class="footer-kbd" data-keys="Alt+Z"></kbd></button>
         <button class="footer-btn" data-action="help" title="Keyboard Shortcuts ({?})"><span class="footer-btn-label">Help</span><kbd class="footer-kbd" data-keys="?"></kbd></button>
       </div>

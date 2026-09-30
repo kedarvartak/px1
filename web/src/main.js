@@ -14,7 +14,6 @@ import { initCalls } from './calls.js';
 import { initFind } from './find.js';
 import { initPalette } from './palette.js';
 import { initShortcuts } from './shortcuts.js';
-import { initMarkdown } from './markdown.js';
 import { initDiff } from './diff.js';
 import { initStatusFit, updateStatus } from './status.js';
 import { initSettings } from './settings.js';
@@ -36,7 +35,6 @@ initCalls();
 initFind();
 initPalette();
 initShortcuts();
-initMarkdown();
 initDiff();
 initStatusFit();
 initSettings();
@@ -53,10 +51,6 @@ initReviewQueue();
     // Line numbers are always ON
     S.lineNumbers = true;
     document.body.classList.remove('hide-lines');
-
-    // Restore Markdown preview (default ON)
-    const mdPref = localStorage.getItem('px1.mdPreview');
-    S.mdPreview = mdPref !== null ? mdPref === 'true' : true;
 
     updateEditorOptionControls();
   } catch {}

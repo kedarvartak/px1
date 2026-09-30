@@ -73,7 +73,7 @@ Anyone able to reach px1 by IP can invoke configured review-provider actions as 
 
 ## What is included
 
-- File, symbol, and workspace search; Git-aware tree and diffs; Markdown preview
+- File, symbol, and workspace search; Git-aware tree and source diffs
 - Optional local LSP navigation and hover, with a regex-outline fallback
 - Optional review-provider handoff for Claude Code, Codex, Gemini CLI, Cursor Agent, OpenCode, Aider, Goose, and custom commands
 - Revision-pinned CI verification results and focused review preferences

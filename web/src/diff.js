@@ -1,11 +1,10 @@
 // web/src/diff.js
 // Git diff view for the active tab: renders the file's unified diff against
-// HEAD in a dedicated overlay (like the Markdown preview), in either a
+// HEAD in a dedicated overlay, in either a
 // side-by-side split layout (default) or a single-column unified layout.
 // Unlike the code viewport this is not virtualized -- a file's own diff is
 // bounded in size, so a plain DOM render is simple and fast enough.
 import { $, S, doc_, esc, api, apiPost } from './state.js';
-import { syncPreview } from './markdown.js';
 import { setStatusNote, updateStatus } from './status.js';
 
 export const diffview = $('#diffview');
@@ -73,7 +72,6 @@ export async function setDiffMode(mode) {
     d.diffDismissed = false;
     setLayoutPref(mode);
   }
-  syncPreview(); // markdown preview and diff view are mutually exclusive
   syncDiffView();
   updateStatus();
 }
@@ -89,7 +87,6 @@ export async function openReviewDiff(path) {
   d.diffHunks = undefined;
   d.diffMode = layoutPref() || 'split';
   d.diffDismissed = false;
-  syncPreview();
   syncDiffView();
   await drawDiff(d);
   updateStatus();
