@@ -29,7 +29,7 @@ Start a review from the Review panel before assigning the harness, then use Clau
 
 1. Start px1, open **Review**, and capture the baseline before assigning the task.
 2. Search or filter the review queue by filename and state, then inspect each task-baseline diff with **Next change**.
-3. Leave feedback, ask the configured provider to revise, or revert a hunk.
+3. Leave feedback, ask the configured provider to address it, or revert a hunk.
 4. Inspect the imported CI verification result; approve only the revision it verified.
 
 ## Install
@@ -69,7 +69,7 @@ For a remote machine, bind to a private network and access it over Tailscale, Wi
 px1 -host 0.0.0.0 -port 7777 ~/work/repo
 ```
 
-Anyone able to reach px1 by IP can dispatch configured agent edits as you. Keep remote instances on a private network; agent editing is intentionally refused through hostnames such as reverse proxies and tunnel domains.
+Anyone able to reach px1 by IP can invoke configured review-provider actions as you. Keep remote instances on a private network; provider execution is intentionally refused through hostnames such as reverse proxies and tunnel domains.
 
 ## What is included
 

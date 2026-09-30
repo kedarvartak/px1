@@ -38,8 +38,8 @@ func main() {
 		noColor      = flag.Bool("no-color", false, "disable colour output")
 		quiet        = flag.Bool("quiet", false, "suppress narration")
 		verbose      = flag.Bool("verbose", false, "log requests, searches, symbols, and agent prompts to terminal")
-		agentCmd     = flag.String("agent", "", "pin the coding harness used for edits (claude, gemini, cursor-agent, agy, opencode, codex, aider, goose, or a command template containing {prompt}); detected and chosen in the UI when omitted")
-		noAgent      = flag.Bool("no-agent", false, "do not offer editing through a coding harness")
+		agentCmd     = flag.String("agent", "", "pin the local review provider (claude, gemini, cursor-agent, agy, opencode, codex, aider, goose, or a command template containing {prompt})")
+		noAgent      = flag.Bool("no-agent", false, "disable local review-provider actions")
 	)
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "px1 %s - a code navigator\n\nusage: px1 [flags] [file or directory]\n\nflags:\n", version)

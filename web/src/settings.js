@@ -224,30 +224,11 @@ const BUILTIN_SCHEMA = [
   },
   {
     key: "agent.harness",
-    title: "Coding Harness",
-    description: "Coding agent harness invoked for code edits (e.g. claude, gemini, cursor-agent, agy, opencode, codex, aider, goose).",
+    title: "Review Provider",
+    description: "Local provider used for explicit review explanations and comment follow-up (e.g. claude, gemini, cursor-agent, agy, opencode, codex, aider, goose).",
     category: "Agent / AI",
     type: "string",
     default: ""
-  },
-  {
-    key: "agent.timeoutSeconds",
-    title: "Agent Timeout (Seconds)",
-    description: "Controls the maximum execution time in seconds for agent edits before canceling.",
-    category: "Agent / AI",
-    type: "number",
-    default: 120.0,
-    min: 10.0,
-    max: 600.0,
-    step: 10.0
-  },
-  {
-    key: "agent.autoAcceptEdits",
-    title: "Auto Accept Agent Edits",
-    description: "Controls whether agent-generated code diffs are accepted without manual confirmation.",
-    category: "Agent / AI",
-    type: "boolean",
-    default: false
   },
   {
     key: "review.autoStart",

@@ -6,7 +6,7 @@ This document describes the high-level architecture, startup pipeline, HTTP serv
 
 px1 is engineered as an ultra-fast, zero-overhead code exploration console. Its architecture is guided by five foundational tenets:
 
-1. Edits Are Delegated: px1 navigates, searches, and inspects code, and does not author changes itself. There are no save buttons and no endpoint accepts file content. Optional provider actions are explicitly requested from review surfaces, while ordinary harness work remains external to px1 (see [Harness Editing & Agent Dispatch](agent-editing.md)).
+1. Edits Are Delegated: px1 navigates, searches, and inspects code, and does not author changes itself. There are no save buttons and no endpoint accepts file content. Optional provider actions are explicitly requested from review surfaces, while ordinary harness work remains external to px1 (see [Review Provider Dispatch](agent-editing.md)).
 1. Single Static Binary Footprint: All frontend assets (HTML, CSS, JavaScript, and icons) are embedded directly into the Go binary at compile time via `go:embed`. px1 requires no Node.js, Python, or Ruby runtime, no external database, and no CGO dependencies.
 1. Sub-Millisecond Responsiveness: The HTTP listener binds, serves the web UI, and opens the default browser in under 1 millisecond. Heavy operations (full directory indexing, git status checks, language server binary discovery) run asynchronously off the critical path.
 1. Stateless in the Workspace: px1 never writes runtime configuration directories, temporary caches, or metadata files into a workspace. Indexes and caches live in volatile memory. Outside the workspace it keeps user settings, review baselines, and update state under `~/.px1/` (or `$XDG_CONFIG_HOME/px1/`); repository-owned team policy is the deliberate exception at `.px1/rules.json`.
@@ -79,11 +79,7 @@ The server is implemented in [`server.go`](../../server.go) using Go's standard 
 | `/api/lsp/setup`      | `GET`  | Reports install status and commands for current file language           | JSON (`{installed, recipes, ...}`)         |
 | `/api/lsp/install`    | `POST` | Executes user-level installer in background                             | JSON (`{ok: true}`)                        |
 | `/api/lsp/start`      | `POST` | Rescans and starts language server after installation                   | JSON (`{ok: true}`)                        |
-| `/api/agent/harnesses`| `GET`  | Detected coding harnesses and the current choice                        | JSON (`{harnesses, selected, pinned, settings}`) |
-| `/api/agent/select`   | `POST` | Choose and remember a harness (`?name=...`)                             | JSON (`{harnesses, selected, pinned, settings}`) |
-| `/api/agent/edit`     | `POST` | Dispatch an instruction to the harness (`?path=...&l1=...&l2=...&instruction=...`) | JSON job snapshot               |
-| `/api/agent/job`      | `GET`  | Snapshot of job `?id=...`, or the most recently started when omitted: output, changed files | JSON job snapshot          |
-| `/api/agent/cancel`   | `POST` | Stop every running harness                                              | JSON (`{cancelled}`)                       |
+| `/api/agent/job`      | `GET`  | Snapshot of an explicit review-provider job `?id=...`, or the most recently started when omitted | JSON job snapshot |
 
 ### Automatic external-change refresh
 
@@ -156,12 +152,12 @@ When navigating code via LSP Go-to-Definition, targets often reside outside the 
 
 ### Origin Verification for Installers
 
-The `/api/lsp/install` and `/api/lsp/start` endpoints execute shell commands (e.g., `go install ...` or `npm install -g ...`), and the `/api/agent/*` mutations run a coding harness. To guard against cross-origin attacks (such as a malicious website triggering command execution via JavaScript fetch while px1 is running in the background):
+The `/api/lsp/install` and `/api/lsp/start` endpoints execute shell commands (e.g., `go install ...` or `npm install -g ...`), and explicit review actions can run a configured coding harness. To guard against cross-origin attacks (such as a malicious website triggering command execution via JavaScript fetch while px1 is running in the background):
 
 1. The request method must be `POST`.
 1. The request `Origin` header must match the request `Host` header.
 1. The `Host` header is validated to ensure it is strictly an IP address (`127.0.0.1`, `[::1]`) or `localhost`. This prevents DNS-rebinding attacks.
-1. The executed command is never supplied by the client; it is looked up exclusively from the hard-coded internal `lspRegistry`, or, for agent edits, from the harness the user picked (only the instruction text comes from the client).
+1. The executed command is never supplied by the client; it is looked up exclusively from the hard-coded internal `lspRegistry`, or from the configured review provider (only the review prompt comes from the review action).
 
 ### Self-Update Integrity
 
