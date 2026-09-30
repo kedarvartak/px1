@@ -44,8 +44,8 @@ requirement to break existing local users in one release.
    endpoints, UI, and release configuration.
 - [ ] **Shrink the primary UI to review surfaces.** De-emphasize themes, broad
    settings, Markdown preview, generic navigation, and IDE-like status panels.
-   The first slice removes the local cross-worktree Review inbox and its
-   automatic aggregation.
+   The first slices remove the local cross-worktree Review inbox and its
+   automatic aggregation, then replace theme switching with one fixed palette.
 - [ ] **Separate or remove agent-editing orchestration.** Keep an optional
    explanation-provider interface, but do not make harness detection,
    selection, inline editing, cancellation, and agent prompts part of the

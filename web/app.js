@@ -3807,85 +3807,6 @@
     }
   }
 
-  // web/src/theme.js
-  var KEY = "px1.theme";
-  var DEFAULT_THEME = "github-dark";
-  var THEME_SELECTOR = /^(?::root|html)?\[data-theme=["']?([\w-]+)["']?\]$/;
-  var themes = null;
-  function listThemes() {
-    if (themes)
-      return themes;
-    const found = new Map;
-    const walk = (rules) => {
-      for (const r of rules) {
-        if (r.styleSheet) {
-          try {
-            walk(r.styleSheet.cssRules);
-          } catch {}
-          continue;
-        }
-        if (!r.selectorText) {
-          if (r.cssRules)
-            walk(r.cssRules);
-          continue;
-        }
-        for (const part of r.selectorText.split(",")) {
-          const m = part.trim().match(THEME_SELECTOR);
-          if (!m)
-            continue;
-          const t = found.get(m[1]) || { id: m[1], name: m[1], scheme: "" };
-          const name = r.style.getPropertyValue("--theme-name").trim().replace(/^["']|["']$/g, "");
-          const scheme = r.style.getPropertyValue("color-scheme").trim();
-          if (name)
-            t.name = name;
-          if (scheme)
-            t.scheme = scheme;
-          found.set(m[1], t);
-        }
-      }
-    };
-    for (const sheet of document.styleSheets) {
-      try {
-        walk(sheet.cssRules);
-      } catch {}
-    }
-    themes = [...found.values()].sort((a, b) => a.name.localeCompare(b.name));
-    return themes;
-  }
-  var currentTheme = () => document.documentElement.dataset.theme;
-  function setTheme(id, persist = true) {
-    if (!listThemes().some((t) => t.id === id))
-      return false;
-    document.documentElement.dataset.theme = id;
-    if (persist) {
-      try {
-        localStorage.setItem(KEY, id);
-      } catch {}
-    }
-    return true;
-  }
-  function cycleTheme() {
-    const all = listThemes();
-    if (!all.length)
-      return;
-    const next = all[(all.findIndex((t) => t.id === currentTheme()) + 1) % all.length];
-    setTheme(next.id);
-    showToast("Theme", next.name);
-  }
-  function initTheme() {
-    let saved = null;
-    try {
-      saved = localStorage.getItem(KEY);
-    } catch {}
-    if (saved && setTheme(saved, false))
-      return;
-    if (setTheme(DEFAULT_THEME, false))
-      return;
-    const all = listThemes();
-    if (all.length && !all.some((t) => t.id === currentTheme()))
-      setTheme(all[0].id, false);
-  }
-
   // web/src/settings.js
   var settingsModalEl = null;
   var BUILTIN_SCHEMA = [
@@ -4013,22 +3934,6 @@
       category: "Text Editor",
       type: "boolean",
       default: true
-    },
-    {
-      key: "workbench.colorTheme",
-      title: "Color Theme",
-      description: "Specifies the color theme used in the workbench.",
-      category: "Workbench",
-      type: "select",
-      default: "github-dark",
-      options: [
-        "github-dark",
-        "graphite",
-        "midnight",
-        "vesper",
-        "poimandres",
-        "kanagawa-dragon"
-      ]
     },
     {
       key: "diffEditor.renderSideBySide",
@@ -4171,7 +4076,6 @@
   var settingsFilterQuery = "";
   var COMMONLY_USED_KEYS = new Set([
     "editor.fontSize",
-    "workbench.colorTheme",
     "editor.wordWrap",
     "editor.lineNumbers",
     "editor.tabSize",
@@ -4261,11 +4165,6 @@
         const minimap = $("#minimap-hits");
         if (minimap)
           minimap.style.display = val === false || val === "false" ? "none" : "";
-        break;
-      }
-      case "workbench.colorTheme": {
-        if (val)
-          setTheme(val, true);
         break;
       }
       case "diffEditor.renderSideBySide": {
@@ -4687,7 +4586,6 @@
   }
   var inField = (el) => el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA");
   function initShortcuts() {
-    $("#btn-theme")?.addEventListener("click", cycleTheme);
     $("#btn-settings")?.addEventListener("click", () => openSettings("ui"));
     $("#btn-help")?.addEventListener("click", showHelp);
     $("#st-ver")?.addEventListener("click", showHelp);
@@ -5038,8 +4936,6 @@
     { name: withKeys("Toggle Word Wrap ({Alt+Z})"), run: () => toggleWordWrap() },
     { name: withKeys("Toggle Markdown Preview ({Alt+M})"), run: () => togglePreview() },
     { name: withKeys("Toggle Sidebar ({Mod+B})"), run: () => document.body.classList.toggle("side-hidden") },
-    { name: "Select Theme…", run: () => openPalette("theme") },
-    { name: "Next Theme", run: cycleTheme },
     { name: "Re-index Workspace", run: () => $("#btn-reindex").click() },
     { name: "Close Tab", run: () => {
       if (S2.active >= 0)
@@ -5056,11 +4952,10 @@
     file: { tag: "File", hint: "Type to fuzzy-match any file. Prefix : for a line, @ for a symbol, > for a command." },
     symbol: { tag: "Symbol", hint: "Symbols in the active file." },
     line: { tag: "Line", hint: "Enter a line number." },
-    command: { tag: "Command", hint: "" },
-    theme: { tag: "Theme", hint: "Arrows preview a theme. Enter keeps it, Esc restores the previous one." }
+    command: { tag: "Command", hint: "" }
   };
   function openPalette(mode, seed) {
-    pal = { mode, items: [], sel: 0, restoreTheme: mode === "theme" ? currentTheme() : null };
+    pal = { mode, items: [], sel: 0 };
     overlay.hidden = false;
     palInput.value = seed !== undefined ? seed : { symbol: "@", line: ":", command: ">" }[mode] || "";
     $("#pal-mode").textContent = PAL_MODES[mode].tag;
@@ -5071,16 +4966,14 @@
   }
   function closePalette() {
     overlay.hidden = true;
-    if (pal && pal.restoreTheme)
-      setTheme(pal.restoreTheme, false);
     pal = null;
   }
   var refreshPalette = debounce(async () => {
     if (!pal)
       return;
     let raw = palInput.value;
-    let mode = pal.mode === "theme" ? "theme" : "file";
-    if (mode === "theme") {} else if (raw.startsWith(">")) {
+    let mode = "file";
+    if (raw.startsWith(">")) {
       mode = "command";
       raw = raw.slice(1);
     } else if (raw.startsWith("@")) {
@@ -5112,9 +5005,6 @@
       }
       const lq = q.toLowerCase();
       pal.items = (d && d.outline || []).filter((s) => !lq || s.name.toLowerCase().includes(lq)).slice(0, 400).map((s) => ({ kind: "sym", n: s.line, label: s.name, sub: s.kind, right: String(s.line) }));
-    } else if (mode === "theme") {
-      const lq = q.toLowerCase();
-      pal.items = listThemes().filter((t) => (t.name + " " + t.id).toLowerCase().includes(lq)).map((t) => ({ kind: "theme", id: t.id, label: t.name, sub: t.scheme, right: t.id === pal.restoreTheme ? "current" : "" }));
     } else {
       let j;
       try {
@@ -5133,7 +5023,7 @@
         };
       });
     }
-    pal.sel = mode === "theme" ? Math.max(0, pal.items.findIndex((it) => it.id === currentTheme())) : 0;
+    pal.sel = 0;
     drawPalette();
   }, 40);
   function fuzzyHTML(text, pos) {
@@ -5166,8 +5056,6 @@
     const s = palList.children[pal.sel];
     if (s)
       s.scrollIntoView({ block: "nearest" });
-    if (pal.mode === "theme")
-      setTheme(pal.items[pal.sel].id, false);
   }
   function movePalette(delta) {
     if (!pal || !pal.items.length)
@@ -5179,8 +5067,6 @@
     if (!pal || !pal.items.length)
       return;
     const it = pal.items[pal.sel];
-    if (it.kind === "theme")
-      pal.restoreTheme = null;
     closePalette();
     if (it.kind === "file")
       openFile(it.path);
@@ -5195,8 +5081,6 @@
       pushHistory(d.path, it.n);
     } else if (it.kind === "cmd")
       it.cmd.run();
-    else if (it.kind === "theme")
-      setTheme(it.id);
   }
   function initPalette() {
     palInput.addEventListener("input", refreshPalette);
@@ -6015,7 +5899,6 @@ Switch worktree` : "Switch worktree" : S2.meta?.root || "";
   initReviewQueue();
   (async function boot() {
     try {
-      initTheme();
       const wrapPref = localStorage.getItem("px1.wrap");
       S2.wrap = wrapPref !== null ? wrapPref === "true" : true;
       document.body.classList.toggle("word-wrap", S2.wrap);

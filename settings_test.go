@@ -16,9 +16,6 @@ func TestSettingsDefaults(t *testing.T) {
 	if m["editor.fontSize"] != 13.5 {
 		t.Errorf("expected editor.fontSize 13.5, got %v", m["editor.fontSize"])
 	}
-	if m["workbench.colorTheme"] != "github-dark" {
-		t.Errorf("expected workbench.colorTheme github-dark, got %v", m["workbench.colorTheme"])
-	}
 	if m["editor.wordWrap"] != "on" {
 		t.Errorf("expected editor.wordWrap on, got %v", m["editor.wordWrap"])
 	}
@@ -47,9 +44,8 @@ func TestSettingsPreserveNonAgentValues(t *testing.T) {
 
 	// Step 1: Update editor settings
 	err := updateSettingsMap(map[string]any{
-		"editor.fontSize":      16.0,
-		"workbench.colorTheme": "midnight",
-		"custom.property":      "hello",
+		"editor.fontSize": 16.0,
+		"custom.property": "hello",
 	})
 	if err != nil {
 		t.Fatalf("updateSettingsMap failed: %v", err)
@@ -70,9 +66,6 @@ func TestSettingsPreserveNonAgentValues(t *testing.T) {
 	m := readMergedSettingsMap()
 	if m["editor.fontSize"] != 16.0 {
 		t.Errorf("editor.fontSize was overwritten: got %v, want 16", m["editor.fontSize"])
-	}
-	if m["workbench.colorTheme"] != "midnight" {
-		t.Errorf("workbench.colorTheme was overwritten: got %v, want midnight", m["workbench.colorTheme"])
 	}
 	if m["custom.property"] != "hello" {
 		t.Errorf("custom.property was lost: got %v, want hello", m["custom.property"])
@@ -141,7 +134,7 @@ func TestSettingsAPIEndpoints(t *testing.T) {
 	}
 	// 4. POST /api/settings with raw JSON
 	rawPayload := map[string]any{
-		"raw": "{\n  \"editor.fontSize\": 15,\n  \"workbench.colorTheme\": \"vesper\"\n}\n",
+		"raw": "{\n  \"editor.fontSize\": 15\n}\n",
 	}
 	rb, _ := json.Marshal(rawPayload)
 	rawReq := httptest.NewRequest(http.MethodPost, "/api/settings", bytes.NewReader(rb))
@@ -157,8 +150,5 @@ func TestSettingsAPIEndpoints(t *testing.T) {
 	m2 := readMergedSettingsMap()
 	if m2["editor.fontSize"] != float64(15) && m2["editor.fontSize"] != 15 {
 		t.Errorf("expected editor.fontSize 15 from raw, got %v", m2["editor.fontSize"])
-	}
-	if m2["workbench.colorTheme"] != "vesper" {
-		t.Errorf("expected workbench.colorTheme vesper from raw, got %v", m2["workbench.colorTheme"])
 	}
 }

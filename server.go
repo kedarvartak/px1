@@ -64,7 +64,6 @@ func NewServer(ix *Index, lsp *lspManager) *Server {
 	s := &Server{ix: ix, lsp: lsp, mux: http.NewServeMux(), review: newReviewManager(ix.Root()), rules: newRuleMemory(ix.Root()), ruleSuggest: map[int64]map[string]any{}, verify: newVerificationManager(ix.Root())}
 	sub, _ := fs.Sub(assets, "web")
 	s.mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(sub))))
-	s.mux.HandleFunc("/static/themes.css", s.handleThemes)
 	s.mux.HandleFunc("/", s.handleIndex)
 	s.mux.HandleFunc("/api/meta", s.handleMeta)
 	s.mux.HandleFunc("/api/tree", s.handleTree)
@@ -248,29 +247,6 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write(b)
-}
-
-// handleThemes joins web/themes/*.css into one stylesheet in file name order, so
-// adding a theme means adding a file: there is no list to keep in sync.
-func (s *Server) handleThemes(w http.ResponseWriter, r *http.Request) {
-	names, err := fs.Glob(assets, "web/themes/*.css")
-	if err != nil {
-		fail(w, 500, err.Error())
-		return
-	}
-	var css strings.Builder
-	for _, name := range names {
-		b, err := fs.ReadFile(assets, name)
-		if err != nil {
-			fail(w, 500, err.Error())
-			return
-		}
-		css.WriteString("/* " + strings.TrimPrefix(name, "web/") + " */\n")
-		css.Write(b)
-		css.WriteString("\n")
-	}
-	w.Header().Set("Content-Type", "text/css; charset=utf-8")
-	io.WriteString(w, css.String())
 }
 
 func (s *Server) handleMeta(w http.ResponseWriter, r *http.Request) {
