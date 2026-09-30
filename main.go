@@ -105,8 +105,7 @@ func main() {
 		pxSrv.SetAgent(agent)
 	}
 
-	// Capture the task baseline before the first request so users can run any
-	// harness normally and see its later changes in the review queue.
+	// Honor the optional local automatic-review mode before the first request.
 	pxSrv.autoStartReview()
 
 	srv := &http.Server{Handler: pxSrv}

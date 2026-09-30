@@ -318,11 +318,11 @@ var settingsSchema = []settingSchemaItem{
 	},
 	{
 		Key:         "review.autoStart",
-		Title:       "Start Reviews Automatically",
-		Description: "Start a review session when px1 opens a workspace. Main checkouts snapshot their current files; linked worktrees use the commit checked out when they were created so existing agent work stays reviewable.",
+		Title:       "Enable Local Automatic Reviews",
+		Description: "Opt into automatic local baselines when px1 opens a workspace or switches worktrees. GitHub-linked reviews should provide their head and base commits explicitly.",
 		Category:    "Agent / AI",
 		Type:        "boolean",
-		Default:     true,
+		Default:     false,
 	},
 }
 

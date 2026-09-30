@@ -34,6 +34,9 @@ func TestSettingsDefaults(t *testing.T) {
 	if m["lsp.enabled"] != true {
 		t.Errorf("expected lsp.enabled true, got %v", m["lsp.enabled"])
 	}
+	if reviewAutoStartEnabled() {
+		t.Errorf("expected local automatic reviews to be opt-in")
+	}
 	if m["agent.timeoutSeconds"] != 120.0 && m["agent.timeoutSeconds"] != 120 {
 		t.Errorf("expected agent.timeoutSeconds 120, got %v", m["agent.timeoutSeconds"])
 	}

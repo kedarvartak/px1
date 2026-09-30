@@ -60,7 +60,8 @@ requirement to break existing local users in one release.
    service.
 - [ ] **Simplify local-only session machinery.** Treat the GitHub commit SHA and
    base SHA as the normal review identity; keep worktree and automatic-baseline
-   behavior only for an optional local mode.
+   behavior only for an optional local mode. First slice: local automatic
+   baselines are now opt-in; the Review panel remains the explicit local path.
 
 Each reduction should leave the policy-review path clearer and easier to test.
 The first reduction was merged in PR #47. The second reduction began in PR #48

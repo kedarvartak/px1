@@ -2,9 +2,9 @@ package main
 
 import "os"
 
-// Automatic review baselines mean px1 needs no harness-specific command or
-// plugin at task time: start px1, then use Claude, Codex, or any other tool as
-// usual. The baseline is captured before that tool writes its first file.
+// Optional local automatic baselines mean px1 can capture the workspace before
+// a harness writes its first file, without requiring a harness-specific
+// command or plugin. The default path is an explicit Review-panel start.
 //
 // A linked worktree may already contain agent work before px1 opens it. Its
 // baseline therefore comes from the commit checked out when the worktree was
@@ -68,10 +68,11 @@ func shortRef(ref string) string {
 	return ref
 }
 
-// reviewAutoStartEnabled reads the user setting; the default is on.
+// reviewAutoStartEnabled reads the user setting; the default is off so local
+// automatic-baseline behavior remains an explicit opt-in.
 func reviewAutoStartEnabled() bool {
 	if v := readSettings().ReviewAutoStart; v != nil {
 		return *v
 	}
-	return true
+	return false
 }

@@ -25,12 +25,12 @@ Agents implement. px1 preserves human judgment.
 
 ## Review loop
 
-Start px1 before the harness, then use Claude, Codex, Gemini, or any other tool normally. px1 captures a review baseline automatically and notices external edits in the browser, so no wrapper, plugin command, or manual re-index is required. Existing local work is part of that baseline; only later changes enter the queue. For an agent worktree opened after work has started, px1 instead uses the commit checked out when that worktree was created, so committed and uncommitted agent work remains reviewable. Review diffs are based on the task snapshot rather than HEAD, including newly created files. Turn automatic baselines off with `review.autoStart` in settings.
+Start a review from the Review panel before assigning the harness, then use Claude, Codex, Gemini, or any other tool normally. px1 notices external edits in the browser, so no wrapper, plugin command, or manual re-index is required. Existing local work is part of the baseline; only later changes enter the queue. For an agent worktree opened after work has started, enable `review.autoStart` to opt into the local worktree baseline behavior. Review diffs are based on the task snapshot rather than HEAD, including newly created files.
 
-1. Start px1 before assigning the task; the review baseline starts automatically.
+1. Start px1, open **Review**, and capture the baseline before assigning the task.
 2. Search or filter the review queue by filename and state, then inspect each task-baseline diff with **Next change**.
 3. Leave feedback, ask the configured provider to revise, or revert a hunk.
-4. Run a configured check; approve only the revision it verified.
+4. Inspect the imported CI verification result; approve only the revision it verified.
 
 ## Install
 
