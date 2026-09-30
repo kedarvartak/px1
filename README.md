@@ -76,7 +76,7 @@ Anyone able to reach px1 by IP can dispatch configured agent edits as you. Keep 
 - File, symbol, and workspace search; Git-aware tree and diffs; Markdown preview
 - Optional local LSP navigation and hover, with a regex-outline fallback
 - Optional review-provider handoff for Claude Code, Codex, Gemini CLI, Cursor Agent, OpenCode, Aider, Goose, and custom commands
-- Revision-pinned CI verification results, themes, and other user-local preferences
+- Revision-pinned CI verification results and focused review preferences
 - Local-first operation: one binary, no account, no code upload
 
 ## Performance

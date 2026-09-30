@@ -24,7 +24,6 @@ type settings struct {
 	EditorLineNumbers          *string  `json:"editor.lineNumbers,omitempty"`
 	EditorRenderWhitespace     *string  `json:"editor.renderWhitespace,omitempty"`
 	EditorMinimapEnabled       *bool    `json:"editor.minimap.enabled,omitempty"`
-	WorkbenchColorTheme        *string  `json:"workbench.colorTheme,omitempty"`
 	DiffEditorRenderSideBySide *bool    `json:"diffEditor.renderSideBySide,omitempty"`
 	MarkdownPreviewOpen        *bool    `json:"markdown.preview.open,omitempty"`
 	ReviewAutoStart            *bool    `json:"review.autoStart,omitempty"`
@@ -134,18 +133,6 @@ var settingsSchema = []settingSchemaItem{
 		Category:    "Text Editor",
 		Type:        "boolean",
 		Default:     true,
-	},
-	{
-		Key:         "workbench.colorTheme",
-		Title:       "Color Theme",
-		Description: "Specifies the color theme used in the workbench.",
-		Category:    "Workbench",
-		Type:        "select",
-		Default:     "github-dark",
-		Options: []string{
-			"github-dark", "graphite", "midnight",
-			"vesper", "poimandres", "kanagawa-dragon",
-		},
 	},
 	{
 		Key:         "diffEditor.renderSideBySide",

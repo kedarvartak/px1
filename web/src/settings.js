@@ -1,7 +1,6 @@
 // web/src/settings.js
 import { $, $$, esc, S, api, apiPost } from './state.js';
 import { applyEditorTypography, toggleWordWrap, toggleLineNumbers } from './renderer.js';
-import { setTheme, listThemes } from './theme.js';
 import { setLayoutPref } from './diff.js';
 import { showToast } from './ui.js';
 
@@ -131,18 +130,6 @@ const BUILTIN_SCHEMA = [
     category: "Text Editor",
     type: "boolean",
     default: true
-  },
-  {
-    key: "workbench.colorTheme",
-    title: "Color Theme",
-    description: "Specifies the color theme used in the workbench.",
-    category: "Workbench",
-    type: "select",
-    default: "github-dark",
-    options: [
-      "github-dark", "graphite", "midnight",
-      "vesper", "poimandres", "kanagawa-dragon"
-    ]
   },
   {
     key: "diffEditor.renderSideBySide",
@@ -285,7 +272,6 @@ let settingsFilterQuery = '';
 
 const COMMONLY_USED_KEYS = new Set([
   'editor.fontSize',
-  'workbench.colorTheme',
   'editor.wordWrap',
   'editor.lineNumbers',
   'editor.tabSize',
@@ -370,10 +356,6 @@ export function applySettingLive(key, val) {
     case 'editor.minimap.enabled': {
       const minimap = $('#minimap-hits');
       if (minimap) minimap.style.display = (val === false || val === 'false') ? 'none' : '';
-      break;
-    }
-    case 'workbench.colorTheme': {
-      if (val) setTheme(val, true);
       break;
     }
     case 'diffEditor.renderSideBySide': {

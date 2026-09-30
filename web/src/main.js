@@ -14,7 +14,6 @@ import { initCalls } from './calls.js';
 import { initFind } from './find.js';
 import { initPalette } from './palette.js';
 import { initShortcuts } from './shortcuts.js';
-import { initTheme } from './theme.js';
 import { initMarkdown } from './markdown.js';
 import { initDiff } from './diff.js';
 import { initStatusFit, updateStatus } from './status.js';
@@ -46,8 +45,6 @@ initReviewQueue();
 // Bootstrap application lifecycle
 (async function boot() {
   try {
-    initTheme();
-
     // Restore word wrap (default ON)
     const wrapPref = localStorage.getItem('px1.wrap');
     S.wrap = wrapPref !== null ? wrapPref === 'true' : true;

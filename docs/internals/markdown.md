@@ -99,7 +99,7 @@ goldmark's default id generator drops every non-ASCII character and turns `_` in
 <pre class="md-code" data-line="8" data-lang="go"><code><i class=k>func</i> <i class=nf>main</i>...</code></pre>
 ```
 
-`highlightFence` looks up the fence's language with `lexers.Get` and calls `highlightLines`, the function the code view uses in [`highlight.go`](../../highlight.go). `Doc.tokenise` is now a thin wrapper around it. Both views therefore share lexers, the `classFor` token mapping, and the panic recovery that falls back to plain text. A theme colours both through the same CSS rules (`.c .k, .md-code .k`).
+`highlightFence` looks up the fence's language with `lexers.Get` and calls `highlightLines`, the function the code view uses in [`highlight.go`](../../highlight.go). `Doc.tokenise` is now a thin wrapper around it. Both views therefore share lexers, the `classFor` token mapping, and the panic recovery that falls back to plain text. Both views use the same fixed CSS token palette through the shared rules (`.c .k, .md-code .k`).
 
 Two cases stay plain and HTML-escaped:
 
@@ -176,7 +176,7 @@ These cases come from the browser checks run against the implementation:
 - GitHub alerts. A blockquote whose first paragraph opens with `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]` or `[!CAUTION]` loses the marker, gains a `.md-alert-title` paragraph, and gets `.md-alert .md-alert-<kind>`.
 - Code block wrappers. Each `<pre>` moves into `.md-pre`, which carries `data-lang` for a corner label and a copy button. The button holds an SVG icon rather than a text label, because find in the preview walks text nodes and would otherwise match the word "Copy".
 
-Styles live under `/* ---------- markdown preview ---------- */` in [`web/style.css`](../../web/style.css). They read only existing theme tokens, so all themes work without changes. Alerts set a local `--alert` property from existing tokens: Note `--accent`, Tip `--gi`, Important `--nc`, Warning `--mark-active`, Caution `--err`. [`styling-and-themes.md`](styling-and-themes.md) lists every token the preview uses.
+Styles live under `/* ---------- markdown preview ---------- */` in [`web/style.css`](../../web/style.css). They read the existing shared tokens. Alerts set a local `--alert` property from existing tokens: Note `--accent`, Tip `--gi`, Important `--nc`, Warning `--mark-active`, Caution `--err`. [`styling-and-themes.md`](styling-and-themes.md) documents the fixed palette and token contract.
 
 ## 6. Keeping the Reader's Place
 
