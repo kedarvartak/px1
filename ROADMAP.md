@@ -49,9 +49,10 @@ requirement to break existing local users in one release.
 - [ ] **Separate or remove agent-editing orchestration.** Keep an optional
    explanation-provider interface, but do not make harness detection,
    selection, inline editing, cancellation, and agent prompts part of the
-   review artifact path. The first slice removes the inline edit composer,
-   harness picker, and agent-range decorations from the review UI; configured
-   provider calls for explanations and comment follow-up remain available.
+   review artifact path. The first slice removes the stale inline-edit
+   shortcut and legacy harness discovery, selection, direct-edit, and
+   cancellation endpoints; configured provider calls for explanations and
+   comment follow-up remain available.
 - [x] **Replace personal decision memory with explicit team rules.** Keep human
    comments and finding acknowledgement; make learned rules proposals rather
    than a second hidden policy store.

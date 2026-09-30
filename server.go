@@ -87,11 +87,7 @@ func NewServer(ix *Index, lsp *lspManager) *Server {
 	s.mux.HandleFunc("/api/lsp/setup", s.handleLSPSetup)
 	s.mux.HandleFunc("/api/lsp/install", s.handleLSPInstall)
 	s.mux.HandleFunc("/api/lsp/start", s.handleLSPStart)
-	s.mux.HandleFunc("/api/agent/harnesses", s.handleAgentHarnesses)
-	s.mux.HandleFunc("/api/agent/select", s.handleAgentSelect)
-	s.mux.HandleFunc("/api/agent/edit", s.handleAgentEdit)
 	s.mux.HandleFunc("/api/agent/job", s.handleAgentJob)
-	s.mux.HandleFunc("/api/agent/cancel", s.handleAgentCancel)
 	s.mux.HandleFunc("/api/review/session", s.handleReviewSession)
 	s.mux.HandleFunc("/api/review/revision", s.handleReviewRevision)
 	s.mux.HandleFunc("/api/review/session/start", s.handleReviewStart)
@@ -222,18 +218,9 @@ func fail(w http.ResponseWriter, code int, msg string) {
 	json.NewEncoder(w).Encode(map[string]string{"error": msg})
 }
 
-// SetAgent makes editing through a coding harness available. Unavailable
-// unless main wires it; available still means nothing runs until a harness is
-// picked, in the UI or with -agent.
+// SetAgent makes optional review-provider actions available. The provider is
+// configured with -agent or persisted settings; review actions start jobs.
 func (s *Server) SetAgent(a *agentManager) { s.agent = a }
-
-// agentHarnesses is the picker's list, empty when editing is unavailable.
-func (s *Server) agentHarnesses() []agentHarness {
-	if s.agent == nil {
-		return []agentHarness{}
-	}
-	return s.agent.Detect()
-}
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {

@@ -42,23 +42,23 @@ harness outside px1.
 
 ## HTTP surface
 
-The provider endpoints are local-only mutation routes guarded by `localPost`:
+The review UI exposes only the read-only job snapshot needed while an explicit
+provider action is running:
 
 | Endpoint | Method | Purpose |
 | --- | --- | --- |
-| `/api/agent/harnesses` | GET | Diagnostic list of known installed harnesses. |
-| `/api/agent/select` | POST | Update the configured provider for explicit clients. |
-| `/api/agent/edit` | POST | Legacy explicit dispatch API; not called by the review UI. |
 | `/api/agent/job` | GET | Read a running or completed provider job. |
-| `/api/agent/cancel` | POST | Legacy explicit cancellation API; not called by the review UI. |
 
-The browser uses only the job snapshot endpoint for review actions. Keeping the
-legacy routes temporarily allows scripts and local integrations to migrate
-without making them part of the review artifact path.
+Provider selection is configuration-only (`-agent` or the persisted settings
+file), and provider jobs can only be started by the review actions that create
+them. The former harness discovery, selection, direct-edit, and cancellation
+routes are intentionally gone; they made an editor-like agent control plane
+part of px1's review artifact API.
 
 ## Security
 
 Harness execution is arbitrary local code execution as the user running px1.
-Mutation routes require POST, a matching origin, and a localhost/IP host. This
-is a browser-origin guard, not authentication; remote instances still belong
-on a trusted network.
+Review actions remain local-only and use the same matching-origin and
+localhost/IP host guard as other command-executing endpoints. This is a
+browser-origin guard, not authentication; remote instances still belong on a
+trusted network.

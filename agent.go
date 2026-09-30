@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -1083,85 +1082,14 @@ func reviewFeedbackInstruction(comments []reviewCommentView) string {
 
 func (s *Server) agentOrFail(w http.ResponseWriter) bool {
 	if s.agent == nil {
-		fail(w, http.StatusNotFound, "editing is not available in this session")
+		fail(w, http.StatusNotFound, "review-provider actions are not available in this session")
 		return false
 	}
 	return true
 }
 
-// handleAgentHarnesses backs the picker. It re-scans on every call so a harness
-// installed since startup appears without a restart.
-func (s *Server) handleAgentHarnesses(w http.ResponseWriter, r *http.Request) {
-	if !s.agentOrFail(w) {
-		return
-	}
-	writeJSON(w, map[string]any{
-		"harnesses": s.agent.Detect(),
-		"selected":  s.agent.Name(),
-		"model":     s.agent.Model(),
-		"pinned":    s.agent.Pinned(),
-		"settings":  settingsPath(),
-	})
-}
-
-func (s *Server) handleAgentSelect(w http.ResponseWriter, r *http.Request) {
-	if !localPost(w, r) {
-		return
-	}
-	if !s.agentOrFail(w) {
-		return
-	}
-	name := r.URL.Query().Get("name")
-	model := r.URL.Query().Get("model")
-	if err := s.agent.Select(name, model); err != nil {
-		code := 400
-		if errors.Is(err, errAgentBusy) {
-			code = http.StatusConflict
-		}
-		fail(w, code, err.Error())
-		return
-	}
-	writeJSON(w, map[string]any{
-		"harnesses": s.agent.Detect(),
-		"selected":  s.agent.Name(),
-		"model":     s.agent.Model(),
-		"pinned":    s.agent.Pinned(),
-		"settings":  settingsPath(),
-	})
-}
-
-func (s *Server) handleAgentEdit(w http.ResponseWriter, r *http.Request) {
-	if !localPost(w, r) {
-		return
-	}
-	if !s.agentOrFail(w) {
-		return
-	}
-	q := r.URL.Query()
-	abs, rel, ok := s.resolvePath(q.Get("path"))
-	if !ok {
-		fail(w, 400, "bad path")
-		return
-	}
-	l1, _ := strconv.Atoi(q.Get("l1"))
-	l2, _ := strconv.Atoi(q.Get("l2"))
-
-	job, err := s.agent.Start(abs, rel, l1, l2, q.Get("instruction"), q.Get("force") == "1")
-	if err != nil {
-		code := 400
-		if errors.Is(err, errAgentBusy) || errors.Is(err, errAgentDirty) {
-			code = http.StatusConflict
-		}
-		fail(w, code, err.Error())
-		return
-	}
-	writeJSON(w, job)
-}
-
-// handleAgentJob is polled while an edit runs, once per in-flight compose box.
-// px1 dispatched the harness, so it knows when the work ended without
-// watching the filesystem for it. id=0 (or missing) means the most recently
-// started job.
+// handleAgentJob is polled while an explicit review-provider action runs.
+// id=0 (or missing) means the most recently started job.
 func (s *Server) handleAgentJob(w http.ResponseWriter, r *http.Request) {
 	if !s.agentOrFail(w) {
 		return
@@ -1173,25 +1101,6 @@ func (s *Server) handleAgentJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, j)
-}
-
-func (s *Server) handleAgentCancel(w http.ResponseWriter, r *http.Request) {
-	if !localPost(w, r) {
-		return
-	}
-	if !s.agentOrFail(w) {
-		return
-	}
-	id, _ := strconv.ParseInt(r.URL.Query().Get("id"), 10, 64)
-	if id == 0 {
-		var body struct {
-			ID int64 `json:"id"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err == nil && body.ID != 0 {
-			id = body.ID
-		}
-	}
-	writeJSON(w, map[string]any{"cancelled": s.agent.CancelJob(id)})
 }
 
 func shellQuote(s string) string {
