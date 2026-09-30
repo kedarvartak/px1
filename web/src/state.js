@@ -74,7 +74,6 @@ export const S = {
   chW: 7.8,
   wrap: true,        // word wrap (default ON)
   lineNumbers: true, // line numbers gutter (default ON)
-  mdPreview: true,   // Markdown tabs open rendered (default ON)
   settings: null,    // loaded from /api/settings
   review: null,      // active review-session reply, refreshed by review queue
   reviewComments: [],

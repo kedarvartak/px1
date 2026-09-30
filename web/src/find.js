@@ -4,7 +4,6 @@ import { vp } from './ui.js';
 import { render, paint } from './renderer.js';
 import { centerLine } from './tabs.js';
 import { updateStatus } from './status.js';
-import { mdview, previewing, findInPreview, showPreviewHit, clearPreviewMarks, previewHitOffsets, scrollPreviewTo } from './markdown.js';
 
 export const findbar = $('#findbar');
 export const findInput = $('#find-input');
@@ -15,7 +14,7 @@ function editorSelection() {
   const sel = window.getSelection();
   if (!sel || sel.isCollapsed || !sel.rangeCount) return '';
   const at = sel.getRangeAt(0).commonAncestorContainer;
-  if (!vp.contains(at) && !mdview.contains(at)) return '';
+  if (!vp.contains(at)) return '';
   const line = sel.toString().split(/\r?\n/).find(l => l.trim());
   return line ? line.trim() : '';
 }
@@ -37,22 +36,12 @@ export function clearFind() {
   S.find = null;
   $('#find-count').textContent = '0';
   $('#minimap-hits').innerHTML = '';
-  clearPreviewMarks();
   paint();
 }
 
 export const runFind = debounce(async () => {
   const d = doc_(); if (!d) return;
   const q = findInput.value;
-  // The Markdown preview is searched as rendered text, in the page itself.
-  if (previewing(d)) {
-    const n = findInPreview(q);
-    S.find = q ? { q, ci: false, hits: new Array(n).fill(null), byLine: new Set(), active: n ? 0 : -1, preview: true } : null;
-    $('#find-count').textContent = !q ? '0' : n ? '1 / ' + n : 'no results';
-    $('#minimap-hits').innerHTML = previewHitOffsets().map(p => '<i style="top:' + p + '%"></i>').join('');
-    if (n) jumpToHit(0);
-    return;
-  }
   if (!q) { S.find = null; $('#find-count').textContent = '0'; $('#minimap-hits').innerHTML = ''; paint(); return; }
   let j;
   try { j = await api('/api/search', { q, glob: d.path }); } catch { return; }
@@ -84,11 +73,6 @@ export function jumpToHit(i) {
   const d = doc_(); if (!d || !S.find || !S.find.hits.length) return;
   const n = S.find.hits.length;
   S.find.active = ((i % n) + n) % n;
-  if (S.find.preview) {
-    $('#find-count').textContent = (S.find.active + 1) + ' / ' + n;
-    showPreviewHit(S.find.active);
-    return;
-  }
   const h = S.find.hits[S.find.active];
   d.cur = h.line;
   const y = (h.line - 1) * LH;
@@ -109,7 +93,6 @@ export function initFind() {
   $('#minimap-hits').addEventListener('click', e => {
     const r = $('#minimap-hits').getBoundingClientRect();
     const d = doc_(); if (!d) return;
-    if (previewing(d)) { scrollPreviewTo((e.clientY - r.top) / r.height); return; }
     centerLine(Math.round((e.clientY - r.top) / r.height * d.total));
     render();
   });

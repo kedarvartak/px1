@@ -13,7 +13,7 @@ consistent without carrying a theme system through the application.
 ## Token contract
 
 The palette supplies the tokens used by the editor, diff viewer, review queue,
-Markdown preview, and overlays.
+and overlays.
 
 | Group | Tokens |
 | --- | --- |

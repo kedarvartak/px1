@@ -156,14 +156,6 @@ const BUILTIN_SCHEMA = [
     default: true
   },
   {
-    key: "markdown.preview.open",
-    title: "Markdown Preview",
-    description: "Controls whether Markdown files open in rendered preview by default.",
-    category: "Workbench",
-    type: "boolean",
-    default: true
-  },
-  {
     key: "explorer.compactFolders",
     title: "Compact Folders",
     description: "Controls whether the file tree renders single-child directory chains compactly.",
@@ -342,11 +334,6 @@ export function applySettingLive(key, val) {
     case 'diffEditor.renderSideBySide': {
       const split = val === true || val === 'true';
       setLayoutPref(split ? 'split' : 'unified');
-      break;
-    }
-    case 'markdown.preview.open': {
-      S.mdPreview = val === true || val === 'true';
-      try { localStorage.setItem('px1.mdPreview', S.mdPreview ? 'true' : 'false'); } catch {}
       break;
     }
   }
