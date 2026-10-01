@@ -210,6 +210,52 @@ func TestReviewStartsFromWorktreeBaseAfterAgentWorked(t *testing.T) {
 	}
 }
 
+func TestReviewStartsFromExplicitCommitsWithoutInferringHead(t *testing.T) {
+	_, wt := worktreeRepo(t)
+	run := func(dir string, args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Dir = dir
+		cmd.Env = append(os.Environ(), "GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t@t", "GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@t")
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+
+	base := worktreeBase(wt)
+	if base == "" {
+		t.Fatal("no base commit for the worktree")
+	}
+	if err := os.WriteFile(filepath.Join(wt, "head.go"), []byte("package main\n\nfunc head() {}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	run(wt, "add", "head.go")
+	run(wt, "commit", "-qm", "head work")
+	currentHead := reviewHead(wt)
+	if currentHead == "" || currentHead == base {
+		t.Fatalf("test repository did not advance: base=%s head=%s", base, currentHead)
+	}
+
+	m := newReviewManager(wt)
+	if _, err := m.StartFromCommits(base, base); err != nil {
+		t.Fatalf("start from explicit commits: %v", err)
+	}
+	active, _ := m.Active()
+	if active == nil || active.BaseRef != base || active.Head != base {
+		t.Fatalf("explicit identity was inferred or changed: %#v", active)
+	}
+	if active.Head == currentHead {
+		t.Fatalf("explicit head was replaced with workspace HEAD %s", currentHead)
+	}
+	q, err := m.Queue()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(q.Items) == 0 {
+		t.Fatal("explicit base should show committed work after that base")
+	}
+}
+
 func TestWorktreeBaseExcludesChangesAlreadyOnItsStartingBranch(t *testing.T) {
 	root, _ := worktreeRepo(t)
 	run := func(dir string, args ...string) {

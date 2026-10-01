@@ -60,10 +60,11 @@ requirement to break existing local users in one release.
 - [x] **Move verification execution to CI.** px1 should display trusted GitHub
    Action results instead of running arbitrary shell commands in the review
    service.
-- [ ] **Simplify local-only session machinery.** Treat the GitHub commit SHA and
+- [x] **Simplify local-only session machinery.** Treat the GitHub commit SHA and
    base SHA as the normal review identity; keep worktree and automatic-baseline
    behavior only for an optional local mode. First slice: local automatic
-   baselines are now opt-in; the Review panel remains the explicit local path.
+   baselines are now opt-in; issue #57 makes explicit base/head sessions
+   authoritative while the Review panel remains the explicit local path.
 
 Each reduction should leave the policy-review path clearer and easier to test.
 The first reduction was merged in PR #47. The UI reduction continued through
@@ -72,6 +73,8 @@ and Markdown preview. The provider boundary was separated from the review UI
 in PR #49 and #54, then made configuration-only in issue #56. Team rules and
 revision-pinned CI results landed in PRs #50 and #51; local automatic reviews
 became opt-in in PR #52.
+The local-session identity cleanup in issue #57 keeps automatic worktree
+compatibility isolated from explicit commit-pinned sessions.
 
 ### Delivery stages
 
