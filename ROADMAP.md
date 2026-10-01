@@ -42,10 +42,11 @@ requirement to break existing local users in one release.
 - [x] **Remove telemetry and in-app process metrics.** They do not help a
    reviewer understand a change and add flags, state, network behavior, API
    endpoints, UI, and release configuration.
-- [ ] **Shrink the primary UI to review surfaces.** De-emphasize themes, broad
-   settings, Markdown preview, generic navigation, and IDE-like status panels.
-   The first slices remove the local cross-worktree Review inbox and its
-   automatic aggregation, then replace theme switching with one fixed palette.
+- [x] **Shrink the primary UI to review surfaces.** The primary surface now
+   centers on changed files, diffs, review findings, and explicit actions. The
+   old activity rail, Markdown preview, typed settings catalog, theme switching,
+   and IDE-like status chrome are gone; local file search, the palette, and the
+   worktree switcher remain because they support navigation during review.
 - [x] **Separate or remove agent-editing orchestration.** Keep an optional
    explanation-provider interface, but do not make harness detection,
    selection, inline editing, cancellation, and agent prompts part of the
@@ -74,7 +75,9 @@ in PR #49 and #54, then made configuration-only in issue #56. Team rules and
 revision-pinned CI results landed in PRs #50 and #51; local automatic reviews
 became opt-in in PR #52.
 The local-session identity cleanup in issue #57 keeps automatic worktree
-compatibility isolated from explicit commit-pinned sessions.
+compatibility isolated from explicit commit-pinned sessions. PRs #63 and #64
+completed the raw-settings and status-chrome reductions; the remaining cleanup
+queue removes dead implementation residue around those smaller surfaces.
 
 ### Delivery stages
 
