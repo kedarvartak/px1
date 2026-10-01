@@ -763,8 +763,6 @@ func (s *Server) handleSettings(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		writeJSON(w, map[string]any{
 			"settings": readMergedSettingsMap(),
-			"defaults": defaultSettingsMap(),
-			"schema":   settingsSchema,
 			"raw":      readRawSettingsJSON(),
 			"path":     settingsPath(),
 		})

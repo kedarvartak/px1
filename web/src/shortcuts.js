@@ -55,7 +55,7 @@ export function showHelp() {
 export const inField = el => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
 
 export function initShortcuts() {
-  $('#btn-settings')?.addEventListener('click', () => openSettings('ui'));
+  $('#btn-settings')?.addEventListener('click', () => openSettings());
   $('#btn-help')?.addEventListener('click', showHelp);
   $('#st-ver')?.addEventListener('click', showHelp);
   $('#helpsheet').addEventListener('click', () => { $('#helpsheet').hidden = true; });
@@ -72,7 +72,7 @@ export function initShortcuts() {
     else if (act === 'goto') openPalette('line');
     else if (act === 'wrap') toggleWordWrap();
     else if (act === 'palette') openPalette('command');
-    else if (act === 'settings') openSettings('ui');
+    else if (act === 'settings') openSettings();
     else if (act === 'help') showHelp();
   });
 
@@ -94,7 +94,7 @@ export function initShortcuts() {
 
     if (mod && (e.key === ',' || e.key === '<')) {
       e.preventDefault();
-      openSettings('ui');
+      openSettings();
       return;
     }
 

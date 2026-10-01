@@ -19,8 +19,7 @@ export const palList = $('#pal-list');
 export let pal = null;
 
 export const COMMANDS = [
-  { name: withKeys('Preferences: Open Settings (UI) ({Mod+,})'), run: () => openSettings('ui') },
-  { name: 'Preferences: Open Settings (JSON)', run: () => openSettings('json') },
+  { name: withKeys('Open Settings JSON ({Mod+,})'), run: () => openSettings() },
   { name: 'Go to File…', run: () => openPalette('file') },
   { name: 'Go to Symbol in File…', run: () => openPalette('symbol') },
   { name: 'Go to Line…', run: () => openPalette('line') },

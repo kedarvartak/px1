@@ -13,23 +13,8 @@ import (
 func TestSettingsDefaults(t *testing.T) {
 	isolateSettings(t)
 	m := readMergedSettingsMap()
-	if m["editor.fontSize"] != 13.5 {
-		t.Errorf("expected editor.fontSize 13.5, got %v", m["editor.fontSize"])
-	}
-	if m["editor.wordWrap"] != "on" {
-		t.Errorf("expected editor.wordWrap on, got %v", m["editor.wordWrap"])
-	}
-	if m["editor.cursorStyle"] != "line" {
-		t.Errorf("expected editor.cursorStyle line, got %v", m["editor.cursorStyle"])
-	}
-	if m["explorer.compactFolders"] != true {
-		t.Errorf("expected explorer.compactFolders true, got %v", m["explorer.compactFolders"])
-	}
-	if m["search.smartCase"] != true {
-		t.Errorf("expected search.smartCase true, got %v", m["search.smartCase"])
-	}
-	if m["lsp.enabled"] != true {
-		t.Errorf("expected lsp.enabled true, got %v", m["lsp.enabled"])
+	if len(m) != 0 {
+		t.Errorf("fresh settings should be empty, got %v", m)
 	}
 	if reviewAutoStartEnabled() {
 		t.Errorf("expected local automatic reviews to be opt-in")
@@ -101,8 +86,8 @@ func TestSettingsAPIEndpoints(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &getResp); err != nil {
 		t.Fatalf("invalid GET json response: %v", err)
 	}
-	if _, ok := getResp["schema"]; !ok {
-		t.Errorf("missing schema in GET /api/settings response")
+	if _, ok := getResp["raw"]; !ok {
+		t.Errorf("missing raw settings in GET /api/settings response")
 	}
 
 	// 2. POST /api/settings with key/value updates
