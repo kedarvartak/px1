@@ -1,276 +1,32 @@
 // web/src/settings.js
-import { $, $$, esc, S, api, apiPost } from './state.js';
+import { $, S, api, apiPost } from './state.js';
 import { applyEditorTypography, toggleWordWrap, toggleLineNumbers } from './renderer.js';
 import { setLayoutPref } from './diff.js';
-import { showToast } from './ui.js';
 
+// Settings are intentionally a raw JSON escape hatch. The review surface does
+// not need a second catalog of IDE preferences, but existing keys still apply
+// when a user chooses to keep them in ~/.px1/settings.json.
 export let settingsModalEl = null;
-const BUILTIN_SCHEMA = [
-  {
-    key: "editor.fontSize",
-    title: "Font Size",
-    description: "Controls the font size in pixels for the code viewer.",
-    category: "Text Editor",
-    type: "number",
-    default: 13.5,
-    min: 9.0,
-    max: 32.0,
-    step: 0.5
-  },
-  {
-    key: "editor.fontFamily",
-    title: "Font Family",
-    description: "Controls the font family used in the code viewer.",
-    category: "Text Editor",
-    type: "string",
-    default: '"JetBrains Mono", "Fira Code", "Cascadia Code", "SF Mono", Menlo, Consolas, ui-monospace, monospace'
-  },
-  {
-    key: "editor.lineHeight",
-    title: "Line Height",
-    description: "Controls the line height in pixels for the code viewer.",
-    category: "Text Editor",
-    type: "number",
-    default: 21.0,
-    min: 14.0,
-    max: 48.0,
-    step: 1.0
-  },
-  {
-    key: "editor.tabSize",
-    title: "Tab Size",
-    description: "The number of spaces a tab is equal to.",
-    category: "Text Editor",
-    type: "select",
-    default: 4,
-    options: ["2", "4", "8"]
-  },
-  {
-    key: "editor.wordWrap",
-    title: "Word Wrap",
-    description: "Controls whether lines should wrap around or scroll horizontally.",
-    category: "Text Editor",
-    type: "select",
-    default: "on",
-    options: ["on", "off"]
-  },
-  {
-    key: "editor.lineNumbers",
-    title: "Line Numbers",
-    description: "Controls the display of line numbers in the gutter.",
-    category: "Text Editor",
-    type: "select",
-    default: "on",
-    options: ["on", "off"]
-  },
-  {
-    key: "editor.cursorStyle",
-    title: "Cursor Style",
-    description: "Controls the cursor style in the code viewer.",
-    category: "Text Editor",
-    type: "select",
-    default: "line",
-    options: ["line", "block", "underline"]
-  },
-  {
-    key: "editor.cursorBlinking",
-    title: "Cursor Blinking",
-    description: "Controls the cursor animation style.",
-    category: "Text Editor",
-    type: "select",
-    default: "smooth",
-    options: ["blink", "smooth", "solid"]
-  },
-  {
-    key: "editor.renderLineHighlight",
-    title: "Render Line Highlight",
-    description: "Controls how the editor should render the current line highlight.",
-    category: "Text Editor",
-    type: "select",
-    default: "line",
-    options: ["line", "none"]
-  },
-  {
-    key: "editor.occurrencesHighlight",
-    title: "Occurrences Highlight",
-    description: "Controls whether the editor should highlight occurrences of the selected word.",
-    category: "Text Editor",
-    type: "boolean",
-    default: true
-  },
-  {
-    key: "editor.scrollBeyondLastLine",
-    title: "Scroll Beyond Last Line",
-    description: "Controls whether the editor will scroll beyond the last line of the file.",
-    category: "Text Editor",
-    type: "boolean",
-    default: true
-  },
-  {
-    key: "editor.bracketPairColorization",
-    title: "Bracket Pair Colorization",
-    description: "Controls whether bracket pair colorization and matching is enabled.",
-    category: "Text Editor",
-    type: "boolean",
-    default: true
-  },
-  {
-    key: "editor.renderWhitespace",
-    title: "Render Whitespace",
-    description: "Controls how whitespace characters are rendered in the viewer.",
-    category: "Text Editor",
-    type: "select",
-    default: "selection",
-    options: ["none", "boundary", "selection", "all"]
-  },
-  {
-    key: "editor.minimap.enabled",
-    title: "Minimap Hits",
-    description: "Controls whether search hit indicators are shown in the scroll minimap gutter.",
-    category: "Text Editor",
-    type: "boolean",
-    default: true
-  },
-  {
-    key: "diffEditor.renderSideBySide",
-    title: "Diff Side By Side",
-    description: "Controls whether the diff editor shows changes in split (side-by-side) or unified mode.",
-    category: "Workbench",
-    type: "boolean",
-    default: true
-  },
-  {
-    key: "diffEditor.ignoreTrimWhitespace",
-    title: "Diff: Ignore Trim Whitespace",
-    description: "Controls whether the diff viewer ignores changes in leading or trailing whitespace.",
-    category: "Git & Diff",
-    type: "boolean",
-    default: true
-  },
-  {
-    key: "git.gutterIndicators",
-    title: "Git Gutter Indicators",
-    description: "Controls whether changed line indicators are shown in the editor gutter.",
-    category: "Git & Diff",
-    type: "boolean",
-    default: true
-  },
-  {
-    key: "explorer.compactFolders",
-    title: "Compact Folders",
-    description: "Controls whether the file tree renders single-child directory chains compactly.",
-    category: "Files & Explorer",
-    type: "boolean",
-    default: true
-  },
-  {
-    key: "explorer.autoReveal",
-    title: "Auto Reveal Active File",
-    description: "Controls whether the file explorer automatically scrolls to and reveals active tabs.",
-    category: "Files & Explorer",
-    type: "boolean",
-    default: true
-  },
-  {
-    key: "files.exclude",
-    title: "Files Exclude Patterns",
-    description: "Configure glob patterns for excluding files and folders from search and trees.",
-    category: "Files & Explorer",
-    type: "string",
-    default: "**/.git, **/node_modules, **/target, **/.DS_Store"
-  },
-  {
-    key: "search.smartCase",
-    title: "Smart Case Search",
-    description: "Searches case-insensitively when query is lowercase, and case-sensitively when uppercase characters exist.",
-    category: "Search",
-    type: "boolean",
-    default: true
-  },
-  {
-    key: "search.maxResults",
-    title: "Max Search Results",
-    description: "Controls the maximum number of results returned in workspace-wide searches.",
-    category: "Search",
-    type: "number",
-    default: 1000.0,
-    min: 50.0,
-    max: 10000.0,
-    step: 50.0
-  },
-  {
-    key: "lsp.enabled",
-    title: "Language Server Protocol (LSP)",
-    description: "Master switch for language server integrations (definitions, references, diagnostics).",
-    category: "LSP & Intelligence",
-    type: "boolean",
-    default: true
-  },
-  {
-    key: "lsp.hover.enabled",
-    title: "Hover Documentation",
-    description: "Controls whether hovercards with documentation and type signatures appear on hover.",
-    category: "LSP & Intelligence",
-    type: "boolean",
-    default: true
-  },
-  {
-    key: "agent.harness",
-    title: "Review Provider",
-    description: "Local provider used for explicit review explanations and comment follow-up (e.g. claude, gemini, cursor-agent, agy, opencode, codex, aider, goose).",
-    category: "Agent / AI",
-    type: "string",
-    default: ""
-  },
-  {
-    key: "review.autoStart",
-    title: "Enable Local Automatic Reviews",
-    description: "Opt into automatic local baselines when px1 opens a workspace or switches worktrees. GitHub-linked reviews should provide their head and base commits explicitly.",
-    category: "Agent / AI",
-    type: "boolean",
-    default: false,
-  },
-];
-
 let settingsData = {
   settings: {},
-  defaults: Object.fromEntries(BUILTIN_SCHEMA.map(s => [s.key, s.default])),
-  schema: BUILTIN_SCHEMA,
   raw: '{\n}\n',
   path: '~/.px1/settings.json'
 };
-let activeSettingsCategory = 'Commonly Used';
-let settingsViewMode = 'ui'; // 'ui' | 'json'
-let settingsFilterQuery = '';
-
-const COMMONLY_USED_KEYS = new Set([
-  'editor.fontSize',
-  'editor.wordWrap',
-  'editor.lineNumbers',
-  'editor.tabSize',
-  'diffEditor.renderSideBySide',
-  'editor.cursorStyle',
-  'explorer.autoReveal',
-  'search.smartCase',
-  'lsp.hover.enabled',
-  'agent.harness',
-]);
 
 export async function loadSettings() {
   try {
     const data = await api('/api/settings');
-    if (data && data.schema && data.schema.length > 0) {
-      settingsData = data;
-    } else if (data) {
-      settingsData.settings = data.settings || {};
-      settingsData.raw = data.raw || settingsData.raw;
-      settingsData.path = data.path || settingsData.path;
-      if (data.defaults) settingsData.defaults = { ...settingsData.defaults, ...data.defaults };
+    if (data) {
+      settingsData = {
+        ...settingsData,
+        ...data,
+        settings: data.settings || {}
+      };
     }
     S.settings = settingsData.settings || {};
     return settingsData;
   } catch (err) {
-    console.warn('Using built-in settings schema (offline/fallback):', err);
+    console.warn('Using local settings fallback:', err);
     return settingsData;
   }
 }
@@ -291,88 +47,52 @@ export function applySettingLive(key, val) {
       applyEditorTypography(fs, ff, lh, ts);
       break;
     }
-    case 'editor.wordWrap': {
-      const on = val === 'on' || val === true;
-      toggleWordWrap(on);
+    case 'editor.wordWrap':
+      toggleWordWrap(val === 'on' || val === true);
       break;
-    }
-    case 'editor.lineNumbers': {
-      const on = val === 'on' || val === true;
-      toggleLineNumbers(on);
+    case 'editor.lineNumbers':
+      toggleLineNumbers(val === 'on' || val === true);
       break;
-    }
-    case 'editor.cursorStyle': {
+    case 'editor.cursorStyle':
       document.body.classList.remove('cursor-block', 'cursor-underline');
       if (val === 'block') document.body.classList.add('cursor-block');
       else if (val === 'underline') document.body.classList.add('cursor-underline');
       break;
-    }
-    case 'editor.cursorBlinking': {
+    case 'editor.cursorBlinking':
       document.body.classList.remove('cursor-blink-smooth', 'cursor-blink-solid', 'cursor-blink-blink');
-      if (val === 'solid') document.body.classList.add('cursor-blink-solid');
-      else if (val === 'blink') document.body.classList.add('cursor-blink-blink');
-      else document.body.classList.add('cursor-blink-smooth');
+      document.body.classList.add('cursor-blink-' + (val === 'solid' || val === 'blink' ? val : 'smooth'));
       break;
-    }
-    case 'editor.renderLineHighlight': {
+    case 'editor.renderLineHighlight':
       document.body.classList.toggle('no-line-highlight', val === 'none');
       break;
-    }
-    case 'editor.scrollBeyondLastLine': {
+    case 'editor.scrollBeyondLastLine':
       document.body.classList.toggle('no-scroll-beyond', val === false || val === 'false');
       break;
-    }
-    case 'git.gutterIndicators': {
+    case 'git.gutterIndicators':
       document.body.classList.toggle('hide-git-gutter', val === false || val === 'false');
       break;
-    }
     case 'editor.minimap.enabled': {
       const minimap = $('#minimap-hits');
-      if (minimap) minimap.style.display = (val === false || val === 'false') ? 'none' : '';
+      if (minimap) minimap.style.display = val === false || val === 'false' ? 'none' : '';
       break;
     }
-    case 'diffEditor.renderSideBySide': {
-      const split = val === true || val === 'true';
-      setLayoutPref(split ? 'split' : 'unified');
+    case 'diffEditor.renderSideBySide':
+      setLayoutPref(val === true || val === 'true' ? 'split' : 'unified');
       break;
-    }
   }
 }
 
 export function applyAllSettingsLive() {
-  if (!S.settings) return;
-  for (const [k, v] of Object.entries(S.settings)) {
-    applySettingLive(k, v);
+  for (const [key, value] of Object.entries(S.settings || {})) {
+    applySettingLive(key, value);
   }
 }
 
-export function openSettings(mode = 'ui') {
+export function openSettings() {
   if (!settingsModalEl) initSettingsDOM();
-  settingsViewMode = mode === 'json' ? 'json' : 'ui';
   settingsModalEl.hidden = false;
-
-  // Immediately render with current schema & settings
-  updateSettingsHeader();
-  if (settingsViewMode === 'json') {
-    showSettingsJSONView();
-  } else {
-    showSettingsUIView();
-  }
-
-  // Refresh with latest settings from server
-  loadSettings().then(() => {
-    updateSettingsHeader();
-    if (settingsViewMode === 'json') {
-      showSettingsJSONView();
-    } else {
-      showSettingsUIView();
-    }
-  });
-
-  const searchInput = $('#settings-search');
-  if (searchInput && settingsViewMode === 'ui') {
-    setTimeout(() => searchInput.focus(), 50);
-  }
+  showSettingsJSONView();
+  loadSettings().then(showSettingsJSONView);
 }
 
 export function closeSettings() {
@@ -389,31 +109,10 @@ function updateSettingsHeader() {
     pathEl.textContent = settingsData.path;
     pathEl.title = 'Click to copy path: ' + settingsData.path;
   }
-  const btnUI = $('#settings-mode-ui');
-  const btnJSON = $('#settings-mode-json');
-  if (btnUI && btnJSON) {
-    btnUI.classList.toggle('active', settingsViewMode === 'ui');
-    btnJSON.classList.toggle('active', settingsViewMode === 'json');
-  }
-}
-
-function showSettingsUIView() {
-  settingsViewMode = 'ui';
-  updateSettingsHeader();
-  $('#settings-ui-container').hidden = false;
-  $('#settings-json-container').hidden = true;
-  $('#settings-search-bar').hidden = false;
-  renderSettingsNav();
-  renderSettingsList();
 }
 
 function showSettingsJSONView() {
-  settingsViewMode = 'json';
   updateSettingsHeader();
-  $('#settings-ui-container').hidden = true;
-  $('#settings-json-container').hidden = false;
-  $('#settings-search-bar').hidden = true;
-
   const rawEditor = $('#settings-raw-editor');
   if (rawEditor) {
     rawEditor.value = settingsData.raw || '{\n}\n';
@@ -421,155 +120,6 @@ function showSettingsJSONView() {
   }
   const errEl = $('#settings-raw-error');
   if (errEl) errEl.hidden = true;
-}
-
-function getSettingCategories() {
-  const cats = ['Commonly Used'];
-  const seen = new Set(cats);
-  for (const item of (settingsData.schema || [])) {
-    const cat = item.category || item.Category;
-    if (cat && !seen.has(cat)) {
-      cats.push(cat);
-      seen.add(cat);
-    }
-  }
-  return cats;
-}
-
-function renderSettingsNav() {
-  const nav = $('#settings-nav');
-  if (!nav) return;
-  const cats = getSettingCategories();
-  nav.innerHTML = cats.map(cat => {
-    const active = cat === activeSettingsCategory ? ' active' : '';
-    return `<button class="settings-nav-item${active}" data-cat="${esc(cat)}">${esc(cat)}</button>`;
-  }).join('');
-}
-
-function isSettingModified(key, val, defVal) {
-  if (val === undefined || val === null) return false;
-  if (defVal === undefined || defVal === null) return val !== '';
-  if (typeof defVal === 'number') {
-    return parseFloat(val) !== parseFloat(defVal);
-  }
-  if (typeof defVal === 'boolean') {
-    return Boolean(val) !== Boolean(defVal);
-  }
-  return String(val) !== String(defVal);
-}
-
-function renderSettingsList() {
-  const container = $('#settings-list');
-  if (!container) return;
-
-  const q = settingsFilterQuery.trim().toLowerCase();
-  const schema = settingsData.schema || [];
-  const currentSettings = settingsData.settings || {};
-  const defaults = settingsData.defaults || {};
-
-  let items = schema;
-  if (q) {
-    items = schema.filter(s => {
-      const title = (s.title || s.Title || '').toLowerCase();
-      const key = (s.key || s.Key || '').toLowerCase();
-      const desc = (s.description || s.Description || '').toLowerCase();
-      const cat = (s.category || s.Category || '').toLowerCase();
-      return title.includes(q) || key.includes(q) || desc.includes(q) || cat.includes(q);
-    });
-  } else if (activeSettingsCategory === 'Commonly Used') {
-    items = schema.filter(s => COMMONLY_USED_KEYS.has(s.key || s.Key));
-  } else {
-    items = schema.filter(s => (s.category || s.Category) === activeSettingsCategory);
-  }
-
-  if (items.length === 0) {
-    container.innerHTML = `<div class="settings-empty">No settings match "${esc(q)}".</div>`;
-    return;
-  }
-
-  const row = item => {
-    const key = item.key || item.Key;
-    const title = item.title || item.Title || key;
-    const desc = item.description || item.Description || '';
-    const type = item.type || item.Type || 'string';
-    const itemDef = item.default !== undefined ? item.default : item.Default;
-    const def = defaults[key] !== undefined ? defaults[key] : itemDef;
-    const val = currentSettings[key] !== undefined ? currentSettings[key] : def;
-    const modified = isSettingModified(key, currentSettings[key], def);
-
-    let control = '';
-    if (type === 'boolean') {
-      const checked = (val === true || val === 'true') ? 'checked' : '';
-      control = `<label class="settings-switch"><input type="checkbox" data-key="${esc(key)}" ${checked}><span class="settings-slider"></span></label>`;
-    } else if (type === 'select') {
-      const opts = item.options || item.Options || [];
-      if (opts.length <= 4) {
-        control = `<div class="settings-segment" role="group">${opts.map(o => {
-          const on = String(o) === String(val);
-          return `<button type="button" class="settings-pill-tag${on ? ' active' : ''}" data-set-key="${esc(key)}" data-set-val="${esc(String(o))}" aria-pressed="${on}">${esc(String(o))}</button>`;
-        }).join('')}</div>`;
-      } else {
-        control = `<select class="settings-select" data-key="${esc(key)}">${opts.map(o => `<option value="${esc(o)}" ${String(o) === String(val) ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
-      }
-    } else if (type === 'number') {
-      const min = item.min !== undefined ? item.min : item.Min;
-      const max = item.max !== undefined ? item.max : item.Max;
-      const step = item.step !== undefined ? item.step : item.Step;
-      control = `<input type="number" class="settings-input settings-input-num" data-key="${esc(key)}" value="${esc(String(val))}" ${min !== undefined ? `min="${min}"` : ''} ${max !== undefined ? `max="${max}"` : ''} step="${step !== undefined ? step : 1}">`;
-    } else {
-      control = `<input type="text" class="settings-input" data-key="${esc(key)}" value="${esc(String(val || ''))}" placeholder="${esc(String(def ?? ''))}">`;
-    }
-
-    const reset = modified
-      ? `<button class="settings-reset-btn" data-reset="${esc(key)}" title="Reset to ${esc(String(def))}">Reset</button>`
-      : '';
-    return `
-      <div class="settings-card${modified ? ' is-modified' : ''}" data-setting="${esc(key)}">
-        <div class="settings-card-left">
-          <div class="settings-card-title">${esc(title)}</div>
-          ${desc ? `<div class="settings-card-desc">${esc(desc)}</div>` : ''}
-          <div class="settings-card-key">${esc(key)}</div>
-        </div>
-        <div class="settings-card-right">${reset}${control}</div>
-      </div>`;
-  };
-
-  const groups = new Map();
-  for (const item of items) {
-    const cat = q ? (item.category || item.Category || 'General') : activeSettingsCategory;
-    if (!groups.has(cat)) groups.set(cat, []);
-    groups.get(cat).push(item);
-  }
-  container.innerHTML = [...groups].map(([cat, list]) => `
-    <section class="settings-group">
-      <h3 class="settings-group-title">${esc(cat)}</h3>
-      <div class="settings-group-card">${list.map(row).join('')}</div>
-    </section>`).join('');
-}
-
-async function handleSettingChange(key, value) {
-  // Update state locally
-  if (!settingsData.settings) settingsData.settings = {};
-  settingsData.settings[key] = value;
-  applySettingLive(key, value);
-
-  // Re-render setting card modified state
-  renderSettingsList();
-
-  // Persist to server
-  try {
-    const res = await apiPost('/api/settings', { [key]: value });
-    if (res.raw) settingsData.raw = res.raw;
-  } catch (err) {
-    console.error(`Failed to save setting ${key}:`, err);
-  }
-}
-
-async function handleResetSetting(key) {
-  const def = settingsData.defaults ? settingsData.defaults[key] : undefined;
-  if (def !== undefined) {
-    await handleSettingChange(key, def);
-  }
 }
 
 async function handleSaveRawSettings() {
@@ -618,96 +168,13 @@ function initSettingsDOM() {
   settingsModalEl = $('#settings-modal');
   if (!settingsModalEl) return;
 
-  // Header close button
   $('#settings-close')?.addEventListener('click', closeSettings);
-
-  // Click outside dialog to close
   settingsModalEl.addEventListener('click', e => {
     if (e.target === settingsModalEl) closeSettings();
   });
-
-  // Switch between UI and JSON mode
-  $('#settings-mode-ui')?.addEventListener('click', () => showSettingsUIView());
-  $('#settings-mode-json')?.addEventListener('click', () => showSettingsJSONView());
-
-  // Copy path to clipboard
   $('#settings-path')?.addEventListener('click', () => {
-    if (settingsData.path) {
-      navigator.clipboard.writeText(settingsData.path);
-      const toast = $('#toast');
-      if (toast) {
-        toast.textContent = 'Copied settings path to clipboard';
-        toast.hidden = false;
-        setTimeout(() => { toast.hidden = true; }, 2000);
-      }
-    }
+    if (settingsData.path) navigator.clipboard.writeText(settingsData.path);
   });
-
-  // Search filter
-  const searchInput = $('#settings-search');
-  if (searchInput) {
-    searchInput.addEventListener('input', e => {
-      settingsFilterQuery = e.target.value;
-      renderSettingsList();
-    });
-    $('#settings-search-clear')?.addEventListener('click', () => {
-      searchInput.value = '';
-      settingsFilterQuery = '';
-      renderSettingsList();
-      searchInput.focus();
-    });
-  }
-
-  // Nav categories
-  $('#settings-nav')?.addEventListener('click', e => {
-    const btn = e.target.closest('.settings-nav-item');
-    if (!btn) return;
-    activeSettingsCategory = btn.dataset.cat;
-    settingsFilterQuery = '';
-    if (searchInput) searchInput.value = '';
-    renderSettingsNav();
-    renderSettingsList();
-  });
-
-  // Settings list events (controls & reset buttons)
-  const listEl = $('#settings-list');
-  if (listEl) {
-    listEl.addEventListener('change', e => {
-      const target = e.target;
-      const key = target.dataset.key;
-      if (!key) return;
-
-      let value;
-      if (target.type === 'checkbox') {
-        value = target.checked;
-      } else if (target.type === 'number') {
-        value = parseFloat(target.value);
-      } else {
-        value = target.value;
-      }
-      handleSettingChange(key, value);
-    });
-
-    listEl.addEventListener('click', e => {
-      const pill = e.target.closest('.settings-pill-tag');
-      if (pill) {
-        const key = pill.dataset.setKey;
-        let value = pill.dataset.setVal;
-        if (value === 'true') value = true;
-        else if (value === 'false') value = false;
-        else if (!isNaN(Number(value)) && value.trim() !== '') value = Number(value);
-        if (key) handleSettingChange(key, value);
-        return;
-      }
-      const resetBtn = e.target.closest('.settings-reset-btn');
-      if (resetBtn) {
-        const key = resetBtn.dataset.reset;
-        if (key) handleResetSetting(key);
-      }
-    });
-  }
-
-  // JSON Raw view buttons
   $('#btn-settings-save-raw')?.addEventListener('click', handleSaveRawSettings);
   $('#btn-settings-reset-raw')?.addEventListener('click', () => {
     const rawEditor = $('#settings-raw-editor');
@@ -719,7 +186,5 @@ function initSettingsDOM() {
 
 export function initSettings() {
   initSettingsDOM();
-  loadSettings().then(() => {
-    applyAllSettingsLive();
-  });
+  loadSettings().then(applyAllSettingsLive);
 }

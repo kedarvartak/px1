@@ -354,14 +354,15 @@ func readSettingsLocked() settings {
 	return s
 }
 
-// readMergedSettingsMap returns all settings, overlaying stored settings onto defaults.
+// readMergedSettingsMap returns only persisted settings. Defaults belong to
+// runtime consumers; the settings editor is intentionally a raw JSON escape
+// hatch rather than an IDE preference catalog.
 func readMergedSettingsMap() map[string]any {
 	settingsMu.Lock()
 	defer settingsMu.Unlock()
 
-	res := defaultSettingsMap()
 	raw := readSettingsRawMap()
-
+	res := make(map[string]any, len(raw)+2)
 	for k, v := range raw {
 		res[k] = v
 	}
