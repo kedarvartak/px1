@@ -160,7 +160,6 @@
     try {
       localStorage.setItem("px1.wrap", S2.wrap ? "true" : "false");
     } catch {}
-    updateEditorOptionControls();
     layout();
     render();
   }
@@ -185,11 +184,6 @@
     measure();
     layout();
     render();
-  }
-  function updateEditorOptionControls() {
-    const wrapBtn = $('[data-action="wrap"]');
-    if (wrapBtn)
-      wrapBtn.classList.toggle("active", !!S2.wrap);
   }
   var raf = 0;
   function render() {
@@ -975,33 +969,23 @@
   // web/src/status.js
   function updateStatus() {
     const d = doc_();
-    const sizeEl = $("#st-size");
-    if (sizeEl)
-      sizeEl.textContent = d ? fmtBytes(d.size) : "";
     const hasDiff = !!(d && d.diffAvailable);
     const isDiffOn = !!(d && d.diffMode);
     const currentLayout = d && d.diffMode || layoutPref();
     const dsw = $("#diff-switch");
-    if (dsw) {
-      dsw.hidden = !hasDiff;
-      document.body.classList.toggle("diff-tab", hasDiff);
-      const btn = $("#diff-btn");
-      if (btn) {
-        btn.classList.toggle("on", hasDiff && isDiffOn);
-        btn.title = withKeys(`Show changes against HEAD, ${currentLayout === "unified" ? "unified" : "split"} ({Mod+D})`);
-      }
-      $("#diff-source")?.classList.toggle("on", hasDiff && !isDiffOn);
-      const menuItems = dsw.querySelectorAll(".diff-menu-item");
-      for (const item of menuItems) {
-        item.classList.toggle("active", item.dataset.diffOpt === currentLayout);
-      }
+    if (!dsw)
+      return;
+    dsw.hidden = !hasDiff;
+    document.body.classList.toggle("diff-tab", hasDiff);
+    const btn = $("#diff-btn");
+    if (btn) {
+      btn.classList.toggle("on", hasDiff && isDiffOn);
+      btn.title = withKeys(`Show changes against HEAD, ${currentLayout === "unified" ? "unified" : "split"} ({Mod+D})`);
     }
-    const verEl = $("#st-ver");
-    if (verEl && S2.meta?.version) {
-      verEl.textContent = "v" + S2.meta.version;
-      verEl.title = `px1 v${S2.meta.version} (Click for shortcuts & help)`;
+    $("#diff-source")?.classList.toggle("on", hasDiff && !isDiffOn);
+    for (const item of dsw.querySelectorAll(".diff-menu-item")) {
+      item.classList.toggle("active", item.dataset.diffOpt === currentLayout);
     }
-    drawLspStatus();
   }
   var noteTimer = null;
   function setStatusNote(msg, timeoutMs = 0) {
@@ -1020,13 +1004,6 @@
       }, timeoutMs);
     }
   }
-  function fmtBytes(n) {
-    if (n < 1024)
-      return n + " B";
-    if (n < 1048576)
-      return (n / 1024).toFixed(1) + " KB";
-    return (n / 1048576).toFixed(1) + " MB";
-  }
   function setLspState(j) {
     if (!j || !j.state)
       return;
@@ -1034,41 +1011,6 @@
     S2.lsp.server = j.server || S2.lsp.server;
     if ("missing" in j || j.state !== "off")
       S2.lsp.missing = j.missing || "";
-    drawLspStatus();
-  }
-  function drawLspStatus() {
-    const el = $("#st-lsp");
-    const { state, server, missing } = S2.lsp;
-    el.title = "";
-    if (state === "off" && missing) {
-      el.dataset.state = "missing";
-      el.textContent = "LSP: set up";
-      el.title = "No language server for " + missing + ". Click to install or start one.";
-      return;
-    }
-    if (!server || state === "off") {
-      el.textContent = "";
-      el.removeAttribute("data-state");
-      return;
-    }
-    el.dataset.state = state;
-    el.textContent = state === "ready" ? server : server + " " + state;
-    if (state === "failed")
-      el.title = "The language server did not start. Click for details.";
-  }
-  var FIT_STEPS = 6;
-  var statusEl = $("#status");
-  function fitStatus() {
-    for (let i = 1;i <= FIT_STEPS; i++)
-      statusEl.classList.remove("fit-" + i);
-    for (let i = 1;i <= FIT_STEPS && statusEl.scrollWidth > statusEl.clientWidth; i++) {
-      statusEl.classList.add("fit-" + i);
-    }
-  }
-  function initStatusFit() {
-    new ResizeObserver(fitStatus).observe(statusEl);
-    new MutationObserver(fitStatus).observe(statusEl, { childList: true, subtree: true, characterData: true });
-    document.fonts?.ready.then(fitStatus);
   }
 
   // web/src/history.js
@@ -2397,10 +2339,6 @@
       if (!T && (S2.at || S2.lsp.state === "off" || S2.lsp.state === "failed"))
         showCalls(S2.at);
     });
-    $("#st-lsp")?.addEventListener("click", () => {
-      if (S2.lsp.missing || S2.lsp.state === "failed")
-        openLspSetup();
-    });
     listEl()?.addEventListener("click", async (e) => {
       const row = e.target.closest(".cnode");
       if (!row)
@@ -2819,7 +2757,6 @@
     const lines = info.l2 - info.l1 + 1;
     statsEl.textContent = (lines === 1 ? "1 line" : lines + " lines") + " · " + info.text.length.toLocaleString() + " chars";
     status.classList.add("selecting");
-    fitStatus();
   }
   function hideSelectionBar() {
     closeSelMenu();
@@ -2829,7 +2766,6 @@
     if (statsEl)
       statsEl.textContent = "";
     status.classList.remove("selecting");
-    fitStatus();
   }
   function updateSelectionBar() {
     const info = getSelectedRangeInfo();
@@ -4068,34 +4004,8 @@
   function initShortcuts() {
     $("#btn-settings")?.addEventListener("click", () => openSettings("ui"));
     $("#btn-help")?.addEventListener("click", showHelp);
-    $("#st-ver")?.addEventListener("click", showHelp);
     $("#helpsheet").addEventListener("click", () => {
       $("#helpsheet").hidden = true;
-    });
-    $("#footer-actions")?.addEventListener("click", (e) => {
-      const btn = e.target.closest(".footer-btn");
-      if (!btn)
-        return;
-      const act = btn.dataset.action;
-      if (act === "quick-open")
-        openPalette("file");
-      else if (act === "search") {
-        showRightInspector("search");
-        $("#q")?.select();
-      } else if (act === "symbols")
-        openPalette("symbol");
-      else if (act === "find")
-        openFind(S2.lastWord);
-      else if (act === "goto")
-        openPalette("line");
-      else if (act === "wrap")
-        toggleWordWrap();
-      else if (act === "palette")
-        openPalette("command");
-      else if (act === "settings")
-        openSettings("ui");
-      else if (act === "help")
-        showHelp();
     });
     addEventListener("keydown", (e) => {
       const mod = e[MOD];
@@ -5357,7 +5267,6 @@ Switch worktree` : "Switch worktree" : S2.meta?.root || "";
   initPalette();
   initShortcuts();
   initDiff();
-  initStatusFit();
   initSettings();
   initReviewQueue();
   (async function boot() {
@@ -5367,7 +5276,6 @@ Switch worktree` : "Switch worktree" : S2.meta?.root || "";
       document.body.classList.toggle("word-wrap", S2.wrap);
       S2.lineNumbers = true;
       document.body.classList.remove("hide-lines");
-      updateEditorOptionControls();
     } catch {}
     applyKeyLabels();
     measure();

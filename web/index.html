@@ -20,7 +20,6 @@
     <section id="review-queue" class="review-queue" hidden aria-label="Review queue"></section>
     <footer class="side-foot">
       <a class="side-logo" href="https://github.com/kedarvartak/px1" target="_blank" rel="noopener" title="px1 on GitHub">px1</a>
-      <span id="st-ver" class="status-ver" title="px1 Version"></span>
       <span class="side-actions">
       <a class="mini" href="https://github.com/kedarvartak/px1" target="_blank" rel="noopener" title="px1 on GitHub" aria-label="px1 on GitHub">
         <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
@@ -143,7 +142,7 @@
     <!-- Selection context menu: the footer's selection actions, at the pointer -->
     <div id="sel-menu" role="menu" hidden></div>
 
-    <!-- Bottom Status Bar -->
+    <!-- Review action bar -->
     <footer id="status">
       <!-- Selection actions: replace the buttons and size below while code is selected -->
       <div id="footer-sel">
@@ -153,19 +152,8 @@
         <button class="footer-btn" data-sel="review-comment" title="Add a review comment for the agent"><span class="footer-btn-label">Comment</span></button>
         <button class="footer-btn" data-sel="review-patch" title="Temporarily edit this selection"><span class="footer-btn-label">Patch</span></button>
       </div>
-      <div id="footer-actions">
-        <button class="footer-btn" data-action="quick-open" title="Go to File ({Mod+P})"><span class="footer-btn-label">Files</span><kbd class="footer-kbd" data-keys="Mod+P"></kbd></button>
-        <button class="footer-btn" data-action="search" title="Search in Files ({Mod+Shift+F})"><span class="footer-btn-label">Search</span><kbd class="footer-kbd" data-keys="Mod+Shift+F"></kbd></button>
-        <button class="footer-btn" data-action="find" title="Find in File ({Mod+F})"><span class="footer-btn-label">Find in File</span><kbd class="footer-kbd" data-keys="Mod+F"></kbd></button>
-        <button class="footer-btn" data-action="goto" title="Go to Line ({Mod+G})"><span class="footer-btn-label">Go to</span><kbd class="footer-kbd" data-keys="Mod+G"></kbd></button>
-        <button class="footer-btn" data-action="wrap" title="Toggle Word Wrap ({Alt+Z})"><span class="footer-btn-label">Wrap</span><kbd class="footer-kbd" data-keys="Alt+Z"></kbd></button>
-        <button class="footer-btn" data-action="help" title="Keyboard Shortcuts ({?})"><span class="footer-btn-label">Help</span><kbd class="footer-kbd" data-keys="?"></kbd></button>
-      </div>
-      <span class="status-sep"></span>
-      <span id="st-size"></span>
       <span id="st-pos"></span>
       <span class="grow"></span>
-      <span id="st-lsp"></span>
       <span id="sel-stats"></span>
     </footer>
   </main>

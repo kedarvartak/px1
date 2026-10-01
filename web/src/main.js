@@ -1,6 +1,6 @@
 // web/src/main.js
 import { $, S, api, applyKeyLabels } from './state.js';
-import { measure, layout, render, initRenderer, updateEditorOptionControls } from './renderer.js';
+import { measure, layout, render, initRenderer } from './renderer.js';
 import { initTabs, openFile } from './tabs.js';
 import { initCursor } from './cursor.js';
 import { initHover } from './hover.js';
@@ -15,7 +15,7 @@ import { initFind } from './find.js';
 import { initPalette } from './palette.js';
 import { initShortcuts } from './shortcuts.js';
 import { initDiff } from './diff.js';
-import { initStatusFit, updateStatus } from './status.js';
+import { updateStatus } from './status.js';
 import { initSettings } from './settings.js';
 import { initReviewQueue, refreshReviewQueue, watchReviewWorkspace } from './review.js';
 import { initWorktrees } from './worktree.js';
@@ -36,7 +36,6 @@ initFind();
 initPalette();
 initShortcuts();
 initDiff();
-initStatusFit();
 initSettings();
 initReviewQueue();
 
@@ -52,7 +51,6 @@ initReviewQueue();
     S.lineNumbers = true;
     document.body.classList.remove('hide-lines');
 
-    updateEditorOptionControls();
   } catch {}
 
   applyKeyLabels();
@@ -94,7 +92,7 @@ initReviewQueue();
   }
 
   // If the background indexer was still running when the UI loaded, poll briefly
-  // until complete to update the total file count and index time in the status bar.
+  // until complete to refresh the total file count and index time.
   if (S.meta && !S.meta.ready) {
     const timer = setInterval(async () => {
       try {
