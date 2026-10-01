@@ -3,11 +3,10 @@ import { $, S, doc_, keyLabel } from './state.js';
 import { vp, copyToClipboard, showToast } from './ui.js';
 import { render } from './renderer.js';
 import { findReferences } from './lsp.js';
-import { fitStatus } from './status.js';
 
-/* While code is selected, the left of the status bar trades its navigation
-   buttons for actions on the selection, and hands them back once the selection
-   is gone. Unlike a floating menu it never covers code, and its buttons stay put. */
+/* While code is selected, the review action bar exposes actions on the
+   selection. Unlike a floating menu it never covers code, and its buttons stay
+   put. */
 
 const status = $('#status');
 const statsEl = $('#sel-stats');
@@ -104,7 +103,6 @@ function showSelectionBar(info) {
   statsEl.textContent = (lines === 1 ? '1 line' : lines + ' lines') + ' · ' +
     info.text.length.toLocaleString() + ' chars';
   status.classList.add('selecting');
-  fitStatus();
 }
 
 export function hideSelectionBar() {
@@ -113,7 +111,6 @@ export function hideSelectionBar() {
   current = null;
   if (statsEl) statsEl.textContent = '';
   status.classList.remove('selecting');
-  fitStatus();
 }
 
 export function updateSelectionBar() {

@@ -24,7 +24,6 @@ export function toggleWordWrap(forced) {
   S.wrap = typeof forced === 'boolean' ? forced : !S.wrap;
   document.body.classList.toggle('word-wrap', S.wrap);
   try { localStorage.setItem('px1.wrap', S.wrap ? 'true' : 'false'); } catch {}
-  updateEditorOptionControls();
   layout();
   render();
 }
@@ -48,11 +47,6 @@ export function applyEditorTypography(fontSize, fontFamily, lineHeight, tabSize)
   measure();
   layout();
   render();
-}
-
-export function updateEditorOptionControls() {
-  const wrapBtn = $('[data-action="wrap"]');
-  if (wrapBtn) wrapBtn.classList.toggle('active', !!S.wrap);
 }
 
 let raf = 0;

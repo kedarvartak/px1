@@ -57,24 +57,7 @@ export const inField = el => el && (el.tagName === 'INPUT' || el.tagName === 'TE
 export function initShortcuts() {
   $('#btn-settings')?.addEventListener('click', () => openSettings());
   $('#btn-help')?.addEventListener('click', showHelp);
-  $('#st-ver')?.addEventListener('click', showHelp);
   $('#helpsheet').addEventListener('click', () => { $('#helpsheet').hidden = true; });
-
-  // Footer quick action buttons
-  $('#footer-actions')?.addEventListener('click', e => {
-    const btn = e.target.closest('.footer-btn');
-    if (!btn) return;
-    const act = btn.dataset.action;
-    if (act === 'quick-open') openPalette('file');
-    else if (act === 'search') { showRightInspector('search'); $('#q')?.select(); }
-    else if (act === 'symbols') openPalette('symbol');
-    else if (act === 'find') openFind(S.lastWord);
-    else if (act === 'goto') openPalette('line');
-    else if (act === 'wrap') toggleWordWrap();
-    else if (act === 'palette') openPalette('command');
-    else if (act === 'settings') openSettings();
-    else if (act === 'help') showHelp();
-  });
 
   addEventListener('keydown', e => {
     const mod = e[MOD];
