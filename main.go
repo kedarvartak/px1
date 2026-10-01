@@ -124,8 +124,7 @@ func main() {
 	// Index workspace asynchronously so the server and UI respond in <1ms.
 	go func() {
 		ix.Build()
-		n, _, ms := ix.Stats()
-		uiStatus("ok", fmt.Sprintf("indexed %d files", n), fmt.Sprintf("%dms", ms), 0, os.Stdout)
+		uiStatus("ok", "workspace indexed", "", 0, os.Stdout)
 		if names := lsp.Available(); len(names) > 0 {
 			uiBullet(fmt.Sprintf("language servers: %s (started on first use)", strings.Join(names, ", ")), os.Stdout)
 		}

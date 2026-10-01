@@ -236,13 +236,10 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleMeta(w http.ResponseWriter, r *http.Request) {
-	n, at, ms := s.ix.Stats()
 	writeJSON(w, map[string]any{
 		"root":       s.ix.Root(),
 		"name":       filepath.Base(s.ix.Root()),
-		"files":      n,
-		"indexMs":    ms,
-		"builtAt":    at,
+		"files":      s.ix.FileCount(),
 		"ready":      s.ix.Ready(),
 		"git":        gitAvailable(s.ix.Root()),
 		"lspServers": s.lsp.Available(),
@@ -754,8 +751,7 @@ func (s *Server) handleDef(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleReindex(w http.ResponseWriter, r *http.Request) {
 	s.ix.Build()
-	n, _, ms := s.ix.Stats()
-	writeJSON(w, map[string]any{"files": n, "indexMs": ms})
+	writeJSON(w, map[string]any{"ok": true})
 }
 
 func (s *Server) handleSettings(w http.ResponseWriter, r *http.Request) {

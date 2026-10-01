@@ -144,7 +144,7 @@ func TestIndexHonoursGitignore(t *testing.T) {
 			t.Errorf("indexed an ignored path: %s", f.Path)
 		}
 	}
-	if n, _, _ := s.ix.Stats(); n != 4 {
+	if n := s.ix.FileCount(); n != 4 {
 		t.Errorf("indexed %d files, want 4", n)
 	}
 }
