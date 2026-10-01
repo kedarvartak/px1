@@ -55,6 +55,11 @@ them. The former harness discovery, selection, direct-edit, and cancellation
 routes are intentionally gone; they made an editor-like agent control plane
 part of px1's review artifact API.
 
+px1 does not scan installed providers at startup and `/api/meta` does not expose
+provider names, models, or pinning state. A provider is resolved only when the
+configured `-agent` value or persisted setting is loaded, keeping provider
+configuration out of the workspace metadata and the normal navigation path.
+
 ## Security
 
 Harness execution is arbitrary local code execution as the user running px1.

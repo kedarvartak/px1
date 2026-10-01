@@ -429,7 +429,7 @@ func (s *Server) handleReviewPinStatus(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusConflict, err.Error())
 		return
 	}
-	job, err := s.agent.StartWithDone(abs, rel, current.LineStart, current.LineEnd, switchInstruction(current.reviewPin, choice), false, func(_ string, runErr error) {
+	job, err := s.agent.StartWithDone(abs, rel, current.LineStart, current.LineEnd, switchInstruction(current.reviewPin, choice), func(_ string, runErr error) {
 		if runErr != nil {
 			return
 		}
@@ -441,7 +441,7 @@ func (s *Server) handleReviewPinStatus(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		_, _ = s.review.SetPinStatus(req.ID, "proposed", "")
 		code := http.StatusBadRequest
-		if errors.Is(err, errAgentBusy) || errors.Is(err, errAgentDirty) {
+		if errors.Is(err, errAgentBusy) {
 			code = http.StatusConflict
 		}
 		fail(w, code, err.Error())
