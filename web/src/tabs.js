@@ -62,7 +62,6 @@ export async function openFile(path, opts = {}) {
   if (!S.at || S.at.path !== d.path) S.at = null;
   S.lsp.state = (d.lsp && d.lsp.state) || 'off';
   S.lsp.server = (d.lsp && d.lsp.server) || '';
-  S.lsp.missing = (d.lsp && d.lsp.missing) || '';
   warmLSP(d);
   drawTabs(); drawCrumbs(); layout();
 
@@ -180,7 +179,6 @@ export async function reloadOpenTabs() {
   if (d) {
     S.lsp.state = (d.lsp && d.lsp.state) || 'off';
     S.lsp.server = (d.lsp && d.lsp.server) || '';
-    S.lsp.missing = (d.lsp && d.lsp.missing) || '';
     warmLSP(d);
     syncDiffView();
     layout();
@@ -266,7 +264,6 @@ export function switchTab(i) {
   S.at = null;
   S.lsp.state = (S.tabs[i].lsp && S.tabs[i].lsp.state) || 'off';
   S.lsp.server = (S.tabs[i].lsp && S.tabs[i].lsp.server) || '';
-  S.lsp.missing = (S.tabs[i].lsp && S.tabs[i].lsp.missing) || '';
   warmLSP(S.tabs[i]);
   drawTabs(); drawCrumbs(); layout();
   vp.scrollTop = S.tabs[i].scrollTop;

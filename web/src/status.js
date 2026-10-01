@@ -45,5 +45,4 @@ export function setLspState(j) {
   if (!j || !j.state) return;
   S.lsp.state = j.state;
   S.lsp.server = j.server || S.lsp.server;
-  if ('missing' in j || j.state !== 'off') S.lsp.missing = j.missing || '';
 }
