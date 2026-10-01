@@ -1080,10 +1080,10 @@ func (s *Server) handleReviewCommentsAgent(w http.ResponseWriter, r *http.Reques
 		fail(w, 400, "bad comment path")
 		return
 	}
-	job, err := s.agent.Start(abs, rel, anchor.LineStart, anchor.LineEnd, reviewFeedbackInstruction(ready), false)
+	job, err := s.agent.Start(abs, rel, anchor.LineStart, anchor.LineEnd, reviewFeedbackInstruction(ready))
 	if err != nil {
 		code := 400
-		if errors.Is(err, errAgentBusy) || errors.Is(err, errAgentDirty) {
+		if errors.Is(err, errAgentBusy) {
 			code = http.StatusConflict
 		}
 		fail(w, code, err.Error())

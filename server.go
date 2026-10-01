@@ -238,19 +238,15 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleMeta(w http.ResponseWriter, r *http.Request) {
 	n, at, ms := s.ix.Stats()
 	writeJSON(w, map[string]any{
-		"root":        s.ix.Root(),
-		"name":        filepath.Base(s.ix.Root()),
-		"files":       n,
-		"indexMs":     ms,
-		"builtAt":     at,
-		"ready":       s.ix.Ready(),
-		"git":         gitAvailable(s.ix.Root()),
-		"lspServers":  s.lsp.Available(),
-		"version":     version,
-		"agent":       s.agent.Name(),
-		"agentModel":  s.agent.Model(),
-		"agentPinned": s.agent.Pinned(),
-		"agents":      []agentHarness{},
+		"root":       s.ix.Root(),
+		"name":       filepath.Base(s.ix.Root()),
+		"files":      n,
+		"indexMs":    ms,
+		"builtAt":    at,
+		"ready":      s.ix.Ready(),
+		"git":        gitAvailable(s.ix.Root()),
+		"lspServers": s.lsp.Available(),
+		"version":    version,
 	})
 }
 

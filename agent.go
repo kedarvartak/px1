@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -17,23 +15,16 @@ import (
 	"time"
 )
 
-// Editing through a coding harness. px1 never authors a change itself: it
-// composes an instruction anchored to a line range, hands it to a harness
-// already installed on this machine, and reloads whatever moved once that
-// harness exits. The harness edits; px1 stays the reader that knows exactly
-// when to look again.
-//
-// Harnesses are discovered the same way language servers are, and the one to
-// use is chosen in the UI. Discovery alone never enables editing: running a
-// general-purpose agent over a workspace is a decision the user makes once,
-// and it is remembered in the settings file rather than a flag.
+// Review-provider actions run a configured local command. px1 composes a
+// review-specific prompt, records the bounded job output, and reloads whatever
+// moved once the provider exits. Normal harness work remains outside px1.
 
 const (
 	agentTimeout  = 10 * time.Minute
 	agentLogBytes = 32 << 10
 )
 
-// agentPreset is a harness px1 knows and the argv that runs it headless. Each
+// agentPreset is a provider command px1 knows and the argv that runs it headless. Each
 // of these starts an interactive session by default and would sit forever
 // waiting for approval, so every preset carries the flag that turns that off
 // and the one that lets it apply edits without asking.
@@ -42,7 +33,6 @@ type agentPreset struct {
 	Args         []string
 	ModelFlag    string
 	DefaultModel string
-	Models       []string
 }
 
 var agentPresets = []agentPreset{
@@ -51,277 +41,49 @@ var agentPresets = []agentPreset{
 		Args:         []string{"claude", "--permission-mode", "acceptEdits", "-p", "{prompt}"},
 		ModelFlag:    "--model",
 		DefaultModel: "haiku",
-		Models:       []string{"haiku", "sonnet", "opus"},
 	},
 	{
 		Name:         "gemini",
 		Args:         []string{"gemini", "--approval-mode", "auto_edit", "-p", "{prompt}"},
 		ModelFlag:    "-m",
 		DefaultModel: "gemini-2.5-flash-lite",
-		Models:       []string{"gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"},
 	},
 	{
 		Name:         "cursor-agent",
 		Args:         []string{"cursor-agent", "--force", "-p", "{prompt}"},
 		ModelFlag:    "--model",
 		DefaultModel: "gemini-3.6-flash-minimal",
-		Models: []string{
-			"gemini-3.6-flash-minimal",
-			"gemini-3.6-flash-low",
-			"gemini-3.7-flash-low",
-			"gemini-3.8-flash-low",
-			"gpt-5.4-nano-none",
-			"gpt-5.4-mini-none",
-			"claude-sonnet-5-low",
-			"claude-opus-4-8-thinking-low",
-		},
 	},
 	{
 		Name:         "agy",
 		Args:         []string{"agy", "--dangerously-skip-permissions", "--mode", "accept-edits", "-p", "{prompt}"},
 		ModelFlag:    "--model",
 		DefaultModel: "gemini-3.6-flash-low",
-		Models: []string{
-			"gemini-3.6-flash-low",
-			"gemini-3.6-flash-medium",
-			"gemini-3.6-flash-high",
-			"gemini-3.7-flash-low",
-			"gemini-3.7-flash-medium",
-			"gemini-3.7-flash-high",
-			"gemini-3.8-flash-low",
-			"gemini-3.8-flash-medium",
-			"gemini-3.8-flash-high",
-			"gemini-3.1-pro-low",
-			"gemini-3.1-pro-high",
-		},
 	},
 	{
 		Name:         "opencode",
 		Args:         []string{"opencode", "run", "{prompt}"},
 		ModelFlag:    "-m",
 		DefaultModel: "opencode/big-pickle",
-		Models: []string{
-			"opencode/big-pickle",
-			"opencode/gpt-5-nano",
-			"opencode/minimax-m2.5-free",
-			"opencode/trinity-large-preview-free",
-			"github-copilot/claude-haiku-4.5",
-			"github-copilot/claude-sonnet-4.5",
-			"github-copilot/claude-opus-4.5",
-			"google/gemini-2.5-flash",
-			"google/gemini-2.5-pro",
-		},
 	},
 	{
 		Name:         "codex",
 		Args:         []string{"codex", "exec", "--approve-for-me", "{prompt}"},
 		ModelFlag:    "-m",
 		DefaultModel: "gpt-5.6-sol",
-		Models: []string{
-			"gpt-5.6-sol",
-			"gpt-5.6-terra",
-			"gpt-5.6-luna",
-			"gpt-6-astra",
-			"gpt-5.5",
-		},
 	},
 	{
 		Name:         "aider",
 		Args:         []string{"aider", "--yes-always", "--no-auto-commits", "--message", "{prompt}"},
 		ModelFlag:    "--model",
 		DefaultModel: "claude-3-7-sonnet",
-		Models: []string{
-			"claude-3-7-sonnet",
-			"claude-3-5-haiku",
-			"claude-3-opus",
-			"gpt-4o",
-			"gpt-4o-mini",
-			"o3-mini",
-			"gemini/gemini-2.5-flash",
-			"deepseek/deepseek-chat",
-			"ollama/qwen2.5-coder",
-		},
 	},
 	{
 		Name:         "goose",
 		Args:         []string{"goose", "run", "--no-session", "-t", "{prompt}"},
 		ModelFlag:    "--model",
 		DefaultModel: "gpt-4o",
-		Models: []string{
-			"gpt-4o",
-			"gpt-4o-mini",
-			"claude-3-5-sonnet",
-			"claude-3-5-haiku",
-			"gemini-2.5-flash",
-		},
 	},
-}
-
-var (
-	discoveredModelsMu sync.Mutex
-	discoveredModels   = map[string][]string{}
-	discoveringModels  = map[string]bool{}
-)
-
-func discoverHarnessModels(name, bin string, staticModels []string) []string {
-	discoveredModelsMu.Lock()
-	if cached, ok := discoveredModels[name]; ok {
-		discoveredModelsMu.Unlock()
-		return cached
-	}
-	isDiscovering := discoveringModels[name]
-	if !isDiscovering && bin != "" {
-		discoveringModels[name] = true
-		go runModelDiscovery(name, bin, staticModels)
-	}
-	discoveredModelsMu.Unlock()
-
-	return staticModels
-}
-
-func runModelDiscovery(name, bin string, staticModels []string) {
-	models := append([]string(nil), staticModels...)
-	switch name {
-	case "agy":
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		out, err := exec.CommandContext(ctx, bin, "models").Output()
-		cancel()
-		if err == nil {
-			var list []string
-			scanner := bufio.NewScanner(bytes.NewReader(out))
-			for scanner.Scan() {
-				line := strings.TrimSpace(scanner.Text())
-				if strings.HasPrefix(line, "Fetching") || line == "" {
-					continue
-				}
-				parts := strings.Fields(line)
-				if len(parts) > 0 && !strings.Contains(parts[0], " ") {
-					list = append(list, parts[0])
-				}
-			}
-			if len(list) > 0 {
-				def := "gemini-3.6-flash-low"
-				reordered := []string{def}
-				for _, m := range list {
-					if m != def {
-						reordered = append(reordered, m)
-					}
-				}
-				models = reordered
-			}
-		}
-	case "cursor-agent":
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		out, err := exec.CommandContext(ctx, bin, "--list-models").Output()
-		cancel()
-		if err == nil {
-			var list []string
-			scanner := bufio.NewScanner(bytes.NewReader(out))
-			for scanner.Scan() {
-				line := strings.TrimSpace(scanner.Text())
-				if line == "" || strings.HasPrefix(line, "Tip:") {
-					continue
-				}
-				parts := strings.SplitN(line, " - ", 2)
-				if len(parts) > 0 {
-					id := strings.TrimSpace(parts[0])
-					if id != "" && !strings.Contains(id, " ") {
-						list = append(list, id)
-					}
-				}
-			}
-			if len(list) > 0 {
-				def := "gemini-3.6-flash-minimal"
-				reordered := []string{def}
-				for _, m := range list {
-					if m != def {
-						reordered = append(reordered, m)
-					}
-				}
-				models = reordered
-			}
-		}
-	case "claude":
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		cmd := exec.CommandContext(ctx, bin, "-p", "/model")
-		cmd.Stdin = strings.NewReader("")
-		out, err := cmd.Output()
-		cancel()
-		if err == nil {
-			var list []string
-			text := string(out)
-			if idx := strings.Index(text, "Available:"); idx != -1 {
-				avail := text[idx+len("Available:"):]
-				if dot := strings.IndexByte(avail, '.'); dot != -1 {
-					avail = avail[:dot]
-				}
-				for _, part := range strings.Split(avail, ",") {
-					m := strings.TrimSpace(part)
-					m = strings.TrimPrefix(m, "or ")
-					if m != "" && !strings.Contains(m, " ") {
-						list = append(list, m)
-					}
-				}
-			}
-			if len(list) > 0 {
-				def := "haiku"
-				reordered := []string{}
-				hasDef := false
-				for _, m := range list {
-					if m == def {
-						hasDef = true
-					} else {
-						reordered = append(reordered, m)
-					}
-				}
-				if hasDef {
-					models = append([]string{def}, reordered...)
-				} else {
-					models = list
-				}
-			}
-		}
-	case "opencode":
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		out, err := exec.CommandContext(ctx, bin, "models").Output()
-		cancel()
-		if err == nil {
-			var list []string
-			scanner := bufio.NewScanner(bytes.NewReader(out))
-			for scanner.Scan() {
-				line := strings.TrimSpace(scanner.Text())
-				if line == "" || strings.Contains(line, " ") {
-					continue
-				}
-				list = append(list, line)
-			}
-			if len(list) > 0 {
-				def := "opencode/big-pickle"
-				reordered := []string{def}
-				for _, m := range list {
-					if m != def {
-						reordered = append(reordered, m)
-					}
-				}
-				models = reordered
-			}
-		}
-	}
-
-	discoveredModelsMu.Lock()
-	discoveredModels[name] = models
-	discoveringModels[name] = false
-	discoveredModelsMu.Unlock()
-}
-
-// agentHarness is one row of the picker.
-type agentHarness struct {
-	Name      string   `json:"name"`
-	Cmd       string   `json:"cmd"`
-	Installed bool     `json:"installed"`
-	Path      string   `json:"path,omitempty"`
-	Models    []string `json:"models,omitempty"`
-	Model     string   `json:"model,omitempty"`
 }
 
 // agentJob is one dispatch, snapshot-able while it runs.
@@ -338,7 +100,7 @@ type agentJob struct {
 	Changed []string `json:"changed"`
 	Ms      int64    `json:"ms"`
 	// Tracked is false outside a git repository, where px1 cannot tell which
-	// files a harness touched. An empty Changed then means "unknown", not
+	// files a provider touched. An empty Changed then means "unknown", not
 	// "nothing", and the client reloads regardless.
 	Tracked bool `json:"tracked"`
 
@@ -354,10 +116,9 @@ type agentJob struct {
 }
 
 var (
-	// The refusals the UI reacts to rather than merely reporting.
-	errAgentBusy  = errors.New("an edit is already running")
-	errAgentDirty = errors.New("uncommitted")
-	errAgentNone  = errors.New("no coding harness is selected")
+	// The refusals the review UI reacts to rather than merely reporting.
+	errAgentBusy = errors.New("a provider job is already running")
+	errAgentNone = errors.New("no coding harness is selected")
 )
 
 // lineStreamer forwards complete lines to w with a prefix in real time,
@@ -405,10 +166,9 @@ func (s *lineStreamer) Flush() {
 	}
 }
 
-// agentManager owns discovery, the current choice, and every edit currently in
-// flight. Several harnesses can run at once as long as they touch disjoint
-// line ranges: two harnesses rewriting the same lines produces a state nobody
-// can review afterwards, so overlapping ranges are refused rather than queued.
+// agentManager owns the configured provider and every review job in flight.
+// Several jobs can run at once as long as they touch disjoint line ranges:
+// overlapping ranges are refused rather than queued.
 type agentManager struct {
 	root string
 	lsp  *lspManager
@@ -417,13 +177,13 @@ type agentManager struct {
 	selected string            // preset name, or the template itself when pinned
 	args     []string          // resolved argv, nil when nothing is selected
 	pinned   bool              // -agent was given, so the UI cannot change it
-	models   map[string]string // harness name -> selected model
+	models   map[string]string // provider name -> selected model
 	jobs     map[int64]*agentJob
 	seq      int64
 }
 
-// newAgentManager wires discovery and restores the remembered choice. A flag
-// value pins a harness (or an arbitrary command template) for this run and is
+// newAgentManager wires provider configuration and restores the remembered choice. A flag
+// value pins a provider (or an arbitrary command template) for this run and is
 // the only case that can fail: a bad -agent should stop startup, whereas a
 // stale settings file should just leave nothing selected.
 func newAgentManager(root, flagSpec string, lsp *lspManager) (*agentManager, error) {
@@ -467,7 +227,7 @@ func newAgentManager(root, flagSpec string, lsp *lspManager) (*agentManager, err
 func resolveAgentSpec(spec, model string) (string, []string, string, error) {
 	spec = strings.TrimSpace(spec)
 	if spec == "" {
-		return "", nil, "", errors.New("empty harness")
+		return "", nil, "", errors.New("empty provider")
 	}
 
 	var name string
@@ -504,10 +264,10 @@ func resolveAgentSpec(spec, model string) (string, []string, string, error) {
 	if args == nil {
 		args = strings.Fields(spec)
 		if len(args) == 0 {
-			return "", nil, "", errors.New("empty harness command")
+			return "", nil, "", errors.New("empty provider command")
 		}
 		if !strings.Contains(spec, "{prompt}") {
-			return "", nil, "", fmt.Errorf("a command template must contain {prompt} (known harnesses: %s)",
+			return "", nil, "", fmt.Errorf("a command template must contain {prompt} (known providers: %s)",
 				strings.Join(agentPresetNames(), ", "))
 		}
 		name = filepath.Base(args[0])
@@ -536,45 +296,8 @@ func agentPresetNames() []string {
 	return names
 }
 
-// Detect reports every harness px1 knows and whether it is installed right
-// now, so a tool installed since startup shows up without a restart.
-func (m *agentManager) Detect() []agentHarness {
-	m.mu.Lock()
-	savedModels := make(map[string]string, len(m.models))
-	for k, v := range m.models {
-		savedModels[k] = v
-	}
-	m.mu.Unlock()
-
-	out := make([]agentHarness, 0, len(agentPresets))
-	for _, p := range agentPresets {
-		bin, ok := lookPathIn(p.Args[0], lspBinDirs())
-		models := discoverHarnessModels(p.Name, bin, p.Models)
-		curModel := savedModels[p.Name]
-		if curModel == "" {
-			curModel = p.DefaultModel
-		}
-
-		cmdStr := strings.Join(p.Args, " ")
-		if _, args, _, err := resolveAgentSpec(p.Name, curModel); err == nil {
-			cmdStr = strings.Join(args, " ")
-		}
-
-		h := agentHarness{
-			Name:      p.Name,
-			Cmd:       cmdStr,
-			Installed: ok,
-			Path:      bin,
-			Models:    models,
-			Model:     curModel,
-		}
-		out = append(out, h)
-	}
-	return out
-}
-
-// SetRoot points dispatch at another checkout. It refuses while an edit is in
-// flight: that harness is writing into the old one.
+// SetRoot points provider dispatch at another checkout. It refuses while a job
+// is in flight because the provider may still be writing into the old one.
 func (m *agentManager) SetRoot(root string) error {
 	if m == nil {
 		return nil
@@ -609,22 +332,13 @@ func (m *agentManager) Model() string {
 	return m.models[m.selected]
 }
 
-func (m *agentManager) Pinned() bool {
-	if m == nil {
-		return false
-	}
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	return m.pinned
-}
-
-// Select remembers a harness for this workspace and every later run. Passing an
-// empty name turns editing back off.
+// Select remembers a provider for this workspace and every later run. Passing
+// an empty name turns provider actions off.
 func (m *agentManager) Select(name string, modelOpt ...string) error {
 	m.mu.Lock()
 	if m.pinned {
 		m.mu.Unlock()
-		return errors.New("px1 was started with -agent, so the harness is fixed for this run")
+		return errors.New("px1 was started with -agent, so the provider is fixed for this run")
 	}
 	if m.anyRunningLocked() {
 		m.mu.Unlock()
@@ -652,7 +366,7 @@ func (m *agentManager) Select(name string, modelOpt ...string) error {
 
 	display, args, chosenModel, err := resolveAgentSpec(name, reqModel)
 	if err != nil {
-		uiStatus("err", fmt.Sprintf("agent: failed to select harness %q", name), err.Error(), 0, os.Stdout)
+		uiStatus("err", fmt.Sprintf("agent: failed to configure provider %q", name), err.Error(), 0, os.Stdout)
 		return err
 	}
 	m.mu.Lock()
@@ -735,13 +449,13 @@ func (m *agentManager) overlapLocked(rel string, l1, l2 int) bool {
 	return false
 }
 
-// Start dispatches an instruction anchored to abs:l1-l2. It returns as soon as
-// the harness is running.
-func (m *agentManager) Start(abs, rel string, l1, l2 int, instruction string, force bool) (*agentJob, error) {
-	return m.StartWithDone(abs, rel, l1, l2, instruction, force, nil)
+// Start dispatches a review instruction anchored to abs:l1-l2. It returns as
+// soon as the provider is running.
+func (m *agentManager) Start(abs, rel string, l1, l2 int, instruction string) (*agentJob, error) {
+	return m.StartWithDone(abs, rel, l1, l2, instruction, nil)
 }
 
-func (m *agentManager) StartWithDone(abs, rel string, l1, l2 int, instruction string, force bool, onDone func(stdout string, err error)) (*agentJob, error) {
+func (m *agentManager) StartWithDone(abs, rel string, l1, l2 int, instruction string, onDone func(stdout string, err error)) (*agentJob, error) {
 	instruction = strings.TrimSpace(instruction)
 	if instruction == "" {
 		return nil, errors.New("instruction is empty")
@@ -750,12 +464,12 @@ func (m *agentManager) StartWithDone(abs, rel string, l1, l2 int, instruction st
 	m.mu.Lock()
 	if m.args == nil {
 		m.mu.Unlock()
-		uiStatus("err", "agent", "edit dispatch refused: no coding harness selected", 0, os.Stdout)
+		uiStatus("err", "agent", "provider dispatch refused: no review provider selected", 0, os.Stdout)
 		return nil, errAgentNone
 	}
 	if m.overlapLocked(rel, l1, l2) {
 		m.mu.Unlock()
-		uiStatus("warn", "agent", "edit dispatch refused: overlapping edit already running", 0, os.Stdout)
+		uiStatus("warn", "agent", "provider dispatch refused: overlapping review job already running", 0, os.Stdout)
 		return nil, errAgentBusy
 	}
 	args := m.args
@@ -773,7 +487,7 @@ func (m *agentManager) StartWithDone(abs, rel string, l1, l2 int, instruction st
 	// above and here, while this one was reading the file and git status.
 	if m.overlapLocked(rel, l1, l2) {
 		m.mu.Unlock()
-		uiStatus("warn", "agent", "edit dispatch refused: overlapping edit already running", 0, os.Stdout)
+		uiStatus("warn", "agent", "provider dispatch refused: overlapping review job already running", 0, os.Stdout)
 		return nil, errAgentBusy
 	}
 	m.seq++
@@ -942,42 +656,22 @@ func (m *agentManager) settle(changed []string) {
 	}
 }
 
-// Cancel stops every harness currently running. Whatever each has already
-// written stays.
-func (m *agentManager) Cancel() bool {
-	return m.CancelJob(0)
-}
-
-// CancelJob stops the harness run with the given id, or every running harness
-// when id is 0.
-func (m *agentManager) CancelJob(id int64) bool {
+// Close stops provider jobs during process shutdown. Whatever each job has
+// already written stays.
+func (m *agentManager) Close() {
 	if m == nil {
-		return false
+		return
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if id != 0 {
-		j := m.jobs[id]
-		if j != nil && j.Running && j.cancel != nil {
-			uiStatus("warn", "agent", fmt.Sprintf("cancelled in-flight run with %s (job %d)", j.Harness, j.ID), 0, os.Stdout)
-			j.cancel()
-			return true
-		}
-		return false
-	}
-	cancelled := false
 	for _, j := range m.jobs {
 		if !j.Running || j.cancel == nil {
 			continue
 		}
-		uiStatus("warn", "agent", fmt.Sprintf("cancelled in-flight run with %s (job %d)", j.Harness, j.ID), 0, os.Stdout)
+		uiStatus("warn", "agent", fmt.Sprintf("stopping provider job with %s (job %d)", j.Harness, j.ID), 0, os.Stdout)
 		j.cancel()
-		cancelled = true
 	}
-	return cancelled
 }
-
-func (m *agentManager) Close() { m.Cancel() }
 
 // changedSince reports the paths whose state differs from the snapshot taken
 // before the run. Asking git is the only honest answer to "what did it touch":
@@ -1048,7 +742,7 @@ func readLineRange(abs string, l1, l2 int) (string, error) {
 	return strings.Join(lines[l1-1:l2], "\n"), nil
 }
 
-// agentPrompt composes what the harness is told. It deliberately matches the
+// agentPrompt composes what the provider is told. It deliberately matches the
 // shape of the Copy for Agent snippet in web/src/selbar.js, which these tools
 // already read well.
 func agentPrompt(rel string, l1, l2 int, snippet, instruction string) string {
@@ -1065,7 +759,7 @@ func agentPrompt(rel string, l1, l2 int, snippet, instruction string) string {
 	return b.String()
 }
 
-// reviewFeedbackInstruction is deliberately plain text: coding harnesses
+// reviewFeedbackInstruction is deliberately plain text: providers
 // already understand file:line references, while Start still supplies the
 // first comment's exact current snippet as the immutable anchor.
 func reviewFeedbackInstruction(comments []reviewCommentView) string {

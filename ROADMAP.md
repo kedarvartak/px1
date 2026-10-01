@@ -46,13 +46,14 @@ requirement to break existing local users in one release.
    settings, Markdown preview, generic navigation, and IDE-like status panels.
    The first slices remove the local cross-worktree Review inbox and its
    automatic aggregation, then replace theme switching with one fixed palette.
-- [ ] **Separate or remove agent-editing orchestration.** Keep an optional
+- [x] **Separate or remove agent-editing orchestration.** Keep an optional
    explanation-provider interface, but do not make harness detection,
    selection, inline editing, cancellation, and agent prompts part of the
    review artifact path. The first slice removes the stale inline-edit
    shortcut and legacy harness discovery, selection, direct-edit, and
-   cancellation endpoints; configured provider calls for explanations and
-   comment follow-up remain available.
+   cancellation endpoints; issue #56 removes the remaining startup discovery
+   and metadata residue. Configured provider calls for explanations and comment
+   follow-up remain available.
 - [x] **Replace personal decision memory with explicit team rules.** Keep human
    comments and finding acknowledgement; make learned rules proposals rather
    than a second hidden policy store.
@@ -65,14 +66,12 @@ requirement to break existing local users in one release.
    baselines are now opt-in; the Review panel remains the explicit local path.
 
 Each reduction should leave the policy-review path clearer and easier to test.
-The first reduction was merged in PR #47. The second reduction began in PR #48
-by removing the local cross-worktree Review inbox and its automatic aggregation.
-The third reduction is implemented in this PR: personal decision memory and its
-reversal challenges are removed in favor of explicit team rules.
-
-The fourth reduction is implemented in this PR: local shell verification is
-removed in favor of a small `.px1/verification.json` contract for
-revision-matched GitHub Actions results.
+The first reduction was merged in PR #47. The UI reduction continued through
+PRs #48, #53, and #58, removing cross-worktree aggregation, theme switching,
+and Markdown preview. The provider boundary was separated from the review UI
+in PR #49 and #54, then made configuration-only in issue #56. Team rules and
+revision-pinned CI results landed in PRs #50 and #51; local automatic reviews
+became opt-in in PR #52.
 
 ### Delivery stages
 

@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -81,9 +82,9 @@ func waitIdleID(t *testing.T, s *Server, id int64) *agentJob {
 	return nil
 }
 
-func startAgentJob(t *testing.T, s *Server, root, rel string, l1, l2 int, instruction string, force bool) *agentJob {
+func startAgentJob(t *testing.T, s *Server, root, rel string, l1, l2 int, instruction string) *agentJob {
 	t.Helper()
-	job, err := s.agent.Start(filepath.Join(root, filepath.FromSlash(rel)), rel, l1, l2, instruction, force)
+	job, err := s.agent.Start(filepath.Join(root, filepath.FromSlash(rel)), rel, l1, l2, instruction)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,9 +109,6 @@ func TestAgentSpecResolution(t *testing.T) {
 	if m.Name() != "echo" {
 		t.Fatalf("name = %q, want echo", m.Name())
 	}
-	if !m.Pinned() {
-		t.Fatal("-agent should pin the harness")
-	}
 	if err := m.Select("echo {prompt}"); err == nil {
 		t.Fatal("a pinned harness must not be changeable from the UI")
 	}
@@ -120,8 +118,8 @@ func TestAgentSpecResolution(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if idle.Name() != "" || idle.Pinned() {
-		t.Fatalf("fresh manager = %q pinned=%v, want unselected and unpinned", idle.Name(), idle.Pinned())
+	if idle.Name() != "" {
+		t.Fatalf("fresh manager = %q, want unselected", idle.Name())
 	}
 }
 
@@ -133,29 +131,6 @@ func TestReviewFeedbackInstructionIncludesAnchors(t *testing.T) {
 	for _, want := range []string{"src/auth.go:4-6", "Handle expiry.", "tests/auth_test.go:10", "Cover the failure."} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("feedback prompt missing %q:\n%s", want, got)
-		}
-	}
-}
-
-func TestAgentDetectListsKnownHarnesses(t *testing.T) {
-	isolateSettings(t)
-	m, err := newAgentManager(t.TempDir(), "", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := m.Detect()
-	if len(got) != len(agentPresets) {
-		t.Fatalf("detected %d rows, want one per preset (%d)", len(got), len(agentPresets))
-	}
-	for i, h := range got {
-		if h.Name != agentPresets[i].Name {
-			t.Fatalf("row %d = %q, want %q", i, h.Name, agentPresets[i].Name)
-		}
-		if !strings.Contains(h.Cmd, "{prompt}") {
-			t.Fatalf("%s cmd should show the template, got %q", h.Name, h.Cmd)
-		}
-		if h.Installed && h.Path == "" {
-			t.Fatalf("%s reported installed with no path", h.Name)
 		}
 	}
 }
@@ -227,11 +202,10 @@ func TestAgentHarnessEndpointsRequireAvailability(t *testing.T) {
 	}
 
 	_, meta := get(t, s, "/api/meta")
-	if meta["agent"] != "" {
-		t.Fatalf("meta agent = %v, want empty", meta["agent"])
-	}
-	if got, ok := meta["agents"].([]any); !ok || len(got) != 0 {
-		t.Fatalf("meta agents = %v, want an empty list", meta["agents"])
+	for _, key := range []string{"agent", "agentModel", "agentPinned", "agents"} {
+		if _, ok := meta[key]; ok {
+			t.Fatalf("meta unexpectedly exposes provider control-plane field %q: %v", key, meta[key])
+		}
 	}
 }
 
@@ -257,6 +231,30 @@ func TestLegacyAgentRoutesRemoved(t *testing.T) {
 	}
 }
 
+func TestAgentJobEndpointPollsConfiguredProviderJob(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "a.go"), []byte("package a\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s := agentServer(t, root, writeHarness(t, "sleep 1\n"))
+	_, meta := get(t, s, "/api/meta")
+	for _, key := range []string{"agent", "agentModel", "agentPinned", "agents"} {
+		if _, ok := meta[key]; ok {
+			t.Fatalf("configured provider leaked into meta field %q: %v", key, meta[key])
+		}
+	}
+	job := startAgentJob(t, s, root, "a.go", 1, 1, "explain the change")
+
+	if code, body := get(t, s, "/api/agent/job?id="+strconv.FormatInt(job.ID, 10)); code != http.StatusOK || body["id"] == nil {
+		t.Fatalf("running job snapshot = %d %#v, want an identified job", code, body)
+	}
+	waitIdleID(t, s, job.ID)
+	code, body := get(t, s, "/api/agent/job?id="+strconv.FormatInt(job.ID, 10))
+	if code != http.StatusOK || body["running"] != false {
+		t.Fatalf("completed job snapshot = %d %#v, want running=false", code, body)
+	}
+}
+
 func TestAgentEditRunsHarnessAndReportsChange(t *testing.T) {
 	if !gitInstalled() {
 		t.Skip("git not installed")
@@ -267,7 +265,7 @@ func TestAgentEditRunsHarnessAndReportsChange(t *testing.T) {
 	s := agentServer(t, root, writeHarness(t,
 		"printf 'touched\\n' >> keep.go\nprintf '%s' \"$1\" > "+filepath.Join(out, "prompt.txt")+"\n"))
 
-	startAgentJob(t, s, root, "keep.go", 1, 1, "add a line", false)
+	startAgentJob(t, s, root, "keep.go", 1, 1, "add a line")
 
 	job := waitIdle(t, s)
 	if job.Error != "" {
@@ -308,7 +306,7 @@ func TestAgentOutsideGitReportsUnknownChanges(t *testing.T) {
 	s := agentServer(t, root, writeHarness(t, "printf 'touched\\n' >> a.go\n"))
 
 	// With no git there is also no uncommitted-work guard to satisfy.
-	startAgentJob(t, s, root, "a.go", 1, 1, "hi", false)
+	startAgentJob(t, s, root, "a.go", 1, 1, "hi")
 	job := waitIdle(t, s)
 	if job.Error != "" {
 		t.Fatalf("run failed: %s (log: %s)", job.Error, job.Log)
@@ -332,8 +330,8 @@ func TestAgentRefusesSecondEditWhileRunning(t *testing.T) {
 	root := gitRepo(t)
 	s := agentServer(t, root, writeHarness(t, "sleep 2\n"))
 
-	startAgentJob(t, s, root, "keep.go", 1, 1, "one", false)
-	if _, err := s.agent.Start(filepath.Join(root, "keep.go"), "keep.go", 1, 1, "two", false); !errors.Is(err, errAgentBusy) {
+	startAgentJob(t, s, root, "keep.go", 1, 1, "one")
+	if _, err := s.agent.Start(filepath.Join(root, "keep.go"), "keep.go", 1, 1, "two"); !errors.Is(err, errAgentBusy) {
 		t.Fatalf("second edit error = %v, want busy", err)
 	}
 	waitIdle(t, s)
@@ -347,29 +345,9 @@ func TestAgentAllowsEditOverUncommittedFileWithoutForce(t *testing.T) {
 	// sub/mod.go is modified but not committed by gitRepo.
 	s := agentServer(t, root, writeHarness(t, "printf 'touched\\n' >> keep.go\n"))
 
-	startAgentJob(t, s, root, "sub/mod.go", 1, 1, "hi", false)
+	startAgentJob(t, s, root, "sub/mod.go", 1, 1, "hi")
 	if job := waitIdle(t, s); job.Error != "" {
 		t.Fatalf("run failed: %s", job.Error)
-	}
-}
-
-func TestAgentModelSelectionAndDefaults(t *testing.T) {
-	isolateSettings(t)
-	m, err := newAgentManager(t.TempDir(), "", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rows := m.Detect()
-	for _, h := range rows {
-		if len(h.Models) == 0 {
-			t.Fatalf("%s should list models", h.Name)
-		}
-		if h.Model == "" {
-			t.Fatalf("%s should have a default model", h.Name)
-		}
-		if h.Model != h.Models[0] {
-			t.Fatalf("%s default model %q != least capable model %q", h.Name, h.Model, h.Models[0])
-		}
 	}
 }
 
@@ -409,44 +387,6 @@ func TestCodexPresetUsesCurrentUnattendedFlag(t *testing.T) {
 	t.Fatal("codex preset not found")
 }
 
-func TestClaudeModelDiscovery(t *testing.T) {
-	dir := t.TempDir()
-	fakeClaude := filepath.Join(dir, "claude")
-	script := "#!/bin/sh\necho 'Current model: Sonnet 5'\necho 'Usage: /model <name>. Available: sonnet, opus, haiku, fable, best, sonnet[1m], opus[1m], fable[1m], opusplan, default, or a full model ID.'\n"
-	if err := os.WriteFile(fakeClaude, []byte(script), 0o755); err != nil {
-		t.Fatal(err)
-	}
-
-	discoveredModelsMu.Lock()
-	delete(discoveredModels, "claude")
-	delete(discoveringModels, "claude")
-	discoveredModelsMu.Unlock()
-
-	runModelDiscovery("claude", fakeClaude, []string{"haiku", "sonnet", "opus"})
-
-	discoveredModelsMu.Lock()
-	models := discoveredModels["claude"]
-	discoveredModelsMu.Unlock()
-
-	if len(models) == 0 {
-		t.Fatal("expected discovered models for claude, got none")
-	}
-	if models[0] != "haiku" {
-		t.Fatalf("expected least capable default 'haiku' at index 0, got %q", models[0])
-	}
-	// Check that fable, best, sonnet[1m] etc are parsed
-	foundFable := false
-	for _, m := range models {
-		if m == "fable" {
-			foundFable = true
-			break
-		}
-	}
-	if !foundFable {
-		t.Fatalf("expected 'fable' in discovered models: %v", models)
-	}
-}
-
 // Editing in the diff view means editing a file that is already modified. Its
 // git status reads M before and after, so the change has to be seen some other way.
 func TestAgentReportsEditToAlreadyModifiedFile(t *testing.T) {
@@ -456,7 +396,7 @@ func TestAgentReportsEditToAlreadyModifiedFile(t *testing.T) {
 	root := gitRepo(t)
 	s := agentServer(t, root, writeHarness(t, "printf 'touched\\n' >> sub/mod.go\n"))
 
-	startAgentJob(t, s, root, "sub/mod.go", 1, 1, "hi", true)
+	startAgentJob(t, s, root, "sub/mod.go", 1, 1, "hi")
 	job := waitIdle(t, s)
 	if job.Error != "" {
 		t.Fatalf("harness failed: %s", job.Error)
@@ -475,9 +415,9 @@ func TestAgentAllowsNonOverlappingEditsInParallel(t *testing.T) {
 	root := gitRepo(t)
 	s := agentServer(t, root, writeHarness(t, "sleep 1\n"))
 
-	first := startAgentJob(t, s, root, "keep.go", 1, 1, "one", false)
-	startAgentJob(t, s, root, "keep.go", 2, 2, "two", false)
-	if _, err := s.agent.Start(filepath.Join(root, "keep.go"), "keep.go", 1, 2, "three", false); !errors.Is(err, errAgentBusy) {
+	first := startAgentJob(t, s, root, "keep.go", 1, 1, "one")
+	startAgentJob(t, s, root, "keep.go", 2, 2, "two")
+	if _, err := s.agent.Start(filepath.Join(root, "keep.go"), "keep.go", 1, 2, "three"); !errors.Is(err, errAgentBusy) {
 		t.Fatalf("overlapping edit error = %v, want busy", err)
 	}
 
