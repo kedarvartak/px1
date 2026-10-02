@@ -87,7 +87,11 @@ These pieces can be implemented and tested locally without external accounts:
 4. Add an import endpoint that accepts PR metadata and a snapshot, with strict
    SHA validation.
 5. Add a GitHub Action template that publishes or updates the sticky link when
-   `PX1_REVIEW_BASE_URL` is configured.
+   `PX1_REVIEW_BASE_URL` is configured. The first Pages-based workflow is now
+   implemented in `.github/workflows/px1-review-report.yml`: it runs trusted
+   base-branch code, fetches the PR head as an object, publishes
+   `reviews/<head-sha>/index.html`, and creates or updates one marked PR
+   comment. It does not execute the PR checkout.
 6. Add interfaces for GitHub and LLM providers, with local fakes for tests.
 7. Add documentation and fixture-based tests for both flows.
 
@@ -102,6 +106,25 @@ These pieces can be implemented and tested locally without external accounts:
   results, never secrets.
 - Comments and approvals must remain tied to the snapshot SHA and become stale
   after the PR changes.
+
+## GitHub Pages workflow
+
+The repository can publish the local exporter without a px1 server. Enable
+GitHub Pages with **GitHub Actions** as its source, then keep
+`.github/workflows/px1-review-report.yml` on the target base branch. On each
+opened, synchronized, or reopened non-draft pull request, it creates a link in
+the form:
+
+```text
+https://<owner>.github.io/<repo>/reviews/<head-sha>/
+```
+
+The workflow uses `pull_request_target` so it can update the PR comment and
+deploy Pages for fork pull requests. Its checkout is always the trusted base
+SHA; the PR head is fetched only to let Git inspect its diff and committed
+`.px1/rules.json`. Do not change it to execute code from the PR head. The
+initial Pages deployment contains the latest generated report; retaining every
+historical SHA across deployments is a follow-up improvement.
 
 ## Suggested delivery order
 
