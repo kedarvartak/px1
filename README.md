@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/px1-banner.png" alt="Collaborative robots around px1" width="100%">
+  <img src="assets/px1-eclipse-orbital-banner.png" alt="PX1 eclipse orbital banner" width="100%">
 </div>
 
 <div align="center">
