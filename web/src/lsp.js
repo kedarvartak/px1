@@ -37,7 +37,7 @@ export async function warmLSP(d, tries = 0) {
   try { j = await api('/api/lsp/warm', { path: d.path, wait: tries === 0 ? 1 : 1200 }); }
   catch { return; }
   if (!S.tabs.includes(d)) return;
-  d.lsp = { state: j.state, server: j.server, missing: j.missing || '' };
+  d.lsp = { state: j.state, server: j.server };
   if (doc_() === d) setLspState(j);
   if (j.state === 'starting' || j.state === 'indexing') {
     setTimeout(() => warmLSP(d, tries + 1), 900);

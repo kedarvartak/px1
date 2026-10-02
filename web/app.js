@@ -1009,8 +1009,6 @@
       return;
     S2.lsp.state = j.state;
     S2.lsp.server = j.server || S2.lsp.server;
-    if ("missing" in j || j.state !== "off")
-      S2.lsp.missing = j.missing || "";
   }
 
   // web/src/history.js
@@ -1462,7 +1460,7 @@
     }
     if (!S2.tabs.includes(d))
       return;
-    d.lsp = { state: j.state, server: j.server, missing: j.missing || "" };
+    d.lsp = { state: j.state, server: j.server };
     if (doc_() === d)
       setLspState(j);
     if (j.state === "starting" || j.state === "indexing") {
@@ -2102,7 +2100,7 @@
       if (t !== d && t.lsp && (t.lsp.state === "off" || t.lsp.state === "failed"))
         t.lsp = { state: "starting", server: "" };
     }
-    d.lsp = { state: j.state, server: j.server, missing: j.missing || "" };
+    d.lsp = { state: j.state, server: j.server };
     setLspState(j);
     updateStatus();
     warmLSP(d);
@@ -2999,7 +2997,6 @@
       S2.at = null;
     S2.lsp.state = d.lsp && d.lsp.state || "off";
     S2.lsp.server = d.lsp && d.lsp.server || "";
-    S2.lsp.missing = d.lsp && d.lsp.missing || "";
     warmLSP(d);
     drawTabs();
     drawCrumbs();
@@ -3108,7 +3105,6 @@
     if (d) {
       S2.lsp.state = d.lsp && d.lsp.state || "off";
       S2.lsp.server = d.lsp && d.lsp.server || "";
-      S2.lsp.missing = d.lsp && d.lsp.missing || "";
       warmLSP(d);
       syncDiffView();
       layout();
@@ -3197,7 +3193,6 @@
     S2.at = null;
     S2.lsp.state = S2.tabs[i].lsp && S2.tabs[i].lsp.state || "off";
     S2.lsp.server = S2.tabs[i].lsp && S2.tabs[i].lsp.server || "";
-    S2.lsp.missing = S2.tabs[i].lsp && S2.tabs[i].lsp.missing || "";
     warmLSP(S2.tabs[i]);
     drawTabs();
     drawCrumbs();
