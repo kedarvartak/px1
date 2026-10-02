@@ -63,6 +63,21 @@ px1 main.go:42         # open a file at a line
 px1 -no-open -port 8080 /workspace
 ```
 
+### Export a static review report
+
+For a local or CI checkout, export a self-contained HTML review page from
+exact Git commits:
+
+```bash
+px1 export-review --base "$BASE_SHA" --head "$HEAD_SHA" --out ./site
+```
+
+The command reads `.px1/rules.json` and `.px1/verification.json` from the
+pinned head commit, evaluates team rules against added lines, and writes
+`./site/index.html`. It does not read mutable worktree policy files, call an
+LLM, require GitHub credentials, or start a server. The resulting directory
+can be opened locally or published by a later GitHub Pages workflow.
+
 For a remote machine, bind to a private network and access it over Tailscale, WireGuard, or a tunnel:
 
 ```bash

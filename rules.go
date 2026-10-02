@@ -241,6 +241,10 @@ func (m *ruleMemory) teamRules() ([]reviewRule, error) {
 		}
 		return nil, err
 	}
+	return parseTeamRules(b)
+}
+
+func parseTeamRules(b []byte) ([]reviewRule, error) {
 	var file struct {
 		Rules []ruleInput `json:"rules"`
 	}

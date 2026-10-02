@@ -74,7 +74,13 @@ embedded in review links or browser code.
 
 These pieces can be implemented and tested locally without external accounts:
 
-1. Add a versioned review snapshot export/import format.
+1. Add a versioned review snapshot export/import format. The first local
+   export slice is now available as `px1 export-review`: it takes explicit
+   `--base` and `--head` commits, reads team rules and verification from the
+   head commit, and writes a self-contained `index.html` containing changed
+   files, unified diffs, rule findings, and verification status. It is suitable
+   for a local preview or as the artifact consumed by a future GitHub Action;
+   it intentionally does not publish, authenticate, or call an LLM yet.
 2. Add commit-pinned GitHub review URL parsing and routing.
 3. Add persisted review disposition with approval guards for stale files and
    open comments.

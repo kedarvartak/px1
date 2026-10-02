@@ -25,6 +25,13 @@ var rawVersion string
 var version = strings.TrimSpace(rawVersion)
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "export-review" {
+		if err := runExportReview(os.Args[2:]); err != nil {
+			fatal(err)
+		}
+		return
+	}
+
 	var (
 		port         = flag.Int("port", 7777, "port to listen on (0 picks a free one)")
 		host         = flag.String("host", "127.0.0.1", "address to bind")
