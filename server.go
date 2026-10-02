@@ -241,7 +241,6 @@ func (s *Server) handleMeta(w http.ResponseWriter, r *http.Request) {
 		"name":       filepath.Base(s.ix.Root()),
 		"files":      s.ix.FileCount(),
 		"git":        gitAvailable(s.ix.Root()),
-		"lspServers": s.lsp.Available(),
 		"version":    version,
 	})
 }
