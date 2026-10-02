@@ -1732,9 +1732,7 @@
   }
   function initPanels() {
     $("#btn-reindex").addEventListener("click", async () => {
-      const j = await api("/api/reindex");
-      S2.meta.files = j.files;
-      S2.meta.indexMs = j.indexMs;
+      await api("/api/reindex");
       treeEl.innerHTML = "";
       openDirs.clear();
       await drawTree("", treeEl, 0);

@@ -42,7 +42,7 @@ sequenceDiagram
     UI->>Panels: Trigger click listener
     Panels->>Server: POST /api/reindex
     Server->>Server: Rescan index & run git status (porcelain=v2)
-    Server-->>Panels: Return {files, indexMs}
+    Server-->>Panels: Return {ok: true}
     Panels->>Panels: Redraw file explorer tree
     Panels->>Tabs: await reloadOpenTabs()
 

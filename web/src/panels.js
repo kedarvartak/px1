@@ -15,8 +15,7 @@ export function showPanel(name) {
 
 export function initPanels() {
   $('#btn-reindex').addEventListener('click', async () => {
-    const j = await api('/api/reindex');
-    S.meta.files = j.files; S.meta.indexMs = j.indexMs;
+    await api('/api/reindex');
     treeEl.innerHTML = ''; openDirs.clear();
     await drawTree('', treeEl, 0);
     // Reindex is a refresh: re-fetch open tabs quietly in place without tab switching.
