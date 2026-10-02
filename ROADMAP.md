@@ -84,8 +84,9 @@ queue removes dead implementation residue around those smaller surfaces.
 1. Static report MVP: evaluate `.px1/rules.json`, render diffs and findings,
    publish to GitHub Pages, and update a commit-pinned PR comment. The local
    commit-pinned export is implemented with `px1 export-review`; the remaining
-   work in this stage is the GitHub Action, Pages publication, and sticky PR
-   comment.
+   work in this stage is now covered by the GitHub Action, Pages publication,
+   and sticky PR comment workflow. Historical report retention remains a later
+   improvement.
 2. Improve the static report with block extraction, plain-language explanations,
    verification summaries, finding acknowledgement, and historical SHA paths.
 3. Self-hosted live px1: add an import endpoint, authenticated links, secure
