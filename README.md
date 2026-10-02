@@ -78,6 +78,10 @@ pinned head commit, evaluates team rules against added lines, and writes
 LLM, require GitHub credentials, or start a server. The resulting directory
 can be opened locally or published by a later GitHub Pages workflow.
 
+CI integrations may pass `--verification-file` with a generated
+`github-actions` report; px1 still requires that report's full revision to
+match the exported head commit.
+
 For a remote machine, bind to a private network and access it over Tailscale, WireGuard, or a tunnel:
 
 ```bash
