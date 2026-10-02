@@ -8,7 +8,6 @@ import { setLayoutPref } from './diff.js';
 // when a user chooses to keep them in ~/.px1/settings.json.
 export let settingsModalEl = null;
 let settingsData = {
-  settings: {},
   raw: '{\n}\n',
   path: '~/.px1/settings.json'
 };
@@ -19,11 +18,11 @@ export async function loadSettings() {
     if (data) {
       settingsData = {
         ...settingsData,
-        ...data,
-        settings: data.settings || {}
+        raw: data.raw || settingsData.raw,
+        path: data.path || settingsData.path
       };
+      S.settings = data.settings || {};
     }
-    S.settings = settingsData.settings || {};
     return settingsData;
   } catch (err) {
     console.warn('Using local settings fallback:', err);
@@ -142,7 +141,6 @@ async function handleSaveRawSettings() {
   try {
     const res = await apiPost('/api/settings', { raw: rawText });
     if (res.settings) {
-      settingsData.settings = res.settings;
       S.settings = res.settings;
       applyAllSettingsLive();
     }

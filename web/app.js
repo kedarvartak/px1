@@ -3255,7 +3255,6 @@
   // web/src/settings.js
   var settingsModalEl = null;
   var settingsData = {
-    settings: {},
     raw: `{
 }
 `,
@@ -3267,11 +3266,11 @@
       if (data) {
         settingsData = {
           ...settingsData,
-          ...data,
-          settings: data.settings || {}
+          raw: data.raw || settingsData.raw,
+          path: data.path || settingsData.path
         };
+        S2.settings = data.settings || {};
       }
-      S2.settings = settingsData.settings || {};
       return settingsData;
     } catch (err) {
       console.warn("Using local settings fallback:", err);
@@ -3390,7 +3389,6 @@
     try {
       const res = await apiPost("/api/settings", { raw: rawText });
       if (res.settings) {
-        settingsData.settings = res.settings;
         S2.settings = res.settings;
         applyAllSettingsLive();
       }
