@@ -79,6 +79,9 @@ func TestGenerateStaticReviewUsesPinnedCommits(t *testing.T) {
 	if len(report.Files) != 2 || report.Files[0].Path != ".px1/rules.json" || report.Files[1].Path != "api/users.ts" {
 		t.Fatalf("files = %#v", report.Files)
 	}
+	if len(report.Files[1].Hunks) != 1 || len(report.Files[1].Hunks[0].Lines) == 0 {
+		t.Fatalf("structured hunks = %#v", report.Files[1].Hunks)
+	}
 	if len(report.RuleHits) != 1 {
 		t.Fatalf("rule hits = %#v", report.RuleHits)
 	}

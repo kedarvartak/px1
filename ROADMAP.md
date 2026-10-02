@@ -92,8 +92,9 @@ queue removes dead implementation residue around those smaller surfaces.
    The Pages workflow now includes exact-head GitHub check-run summaries, and
    findings now include hunk-local context blocks. A provider-neutral,
    commit-pinned JSON input now renders plain-language explanation chips; an
-   automated explanation generator is still planned. The remaining report
-   improvements are richer block presentation, acknowledgement, and retention.
+   automated explanation generator is still planned. Changed files now render
+   as structured, line-numbered, highlighted hunks instead of raw patch text.
+   The remaining report improvements are acknowledgement and retention.
 3. Self-hosted live px1: add an import endpoint, authenticated links, secure
    link configuration, and deployment documentation for private repositories.
 4. Hosted GitHub App: add accounts, organizations, repository permissions, and

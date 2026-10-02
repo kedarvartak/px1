@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -32,9 +33,23 @@ type staticReviewReport struct {
 }
 
 type staticReviewFile struct {
-	Path   string `json:"path"`
-	Status string `json:"status"`
-	Diff   string `json:"diff"`
+	Path   string             `json:"path"`
+	Status string             `json:"status"`
+	Diff   string             `json:"diff"`
+	Hunks  []staticReviewHunk `json:"hunks"`
+}
+
+type staticReviewHunk struct {
+	ID     string                 `json:"id"`
+	Header string                 `json:"header"`
+	Lines  []staticReviewDiffLine `json:"lines"`
+}
+
+type staticReviewDiffLine struct {
+	OldLine int    `json:"oldLine,omitempty"`
+	NewLine int    `json:"newLine,omitempty"`
+	Kind    string `json:"kind"` // context, added, or removed
+	Text    string `json:"text"`
 }
 
 type staticReviewHit struct {
@@ -270,9 +285,46 @@ func parseStaticReviewFiles(root, base, head, diff string) ([]staticReviewFile, 
 	sort.Strings(paths)
 	files := make([]staticReviewFile, 0, len(paths))
 	for _, p := range paths {
-		files = append(files, staticReviewFile{Path: p, Status: statuses[p], Diff: diffs[p]})
+		files = append(files, staticReviewFile{Path: p, Status: statuses[p], Diff: diffs[p], Hunks: parseStaticReviewHunks(p, diffs[p])})
 	}
 	return files, nil
+}
+
+var staticReviewHunkHeader = regexp.MustCompile(`^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@.*$`)
+
+func parseStaticReviewHunks(path, diff string) []staticReviewHunk {
+	var hunks []staticReviewHunk
+	var current *staticReviewHunk
+	oldLine, newLine := 0, 0
+	for _, raw := range strings.Split(diff, "\n") {
+		if match := staticReviewHunkHeader.FindStringSubmatch(raw); match != nil {
+			oldLine, _ = strconv.Atoi(match[1])
+			newLine, _ = strconv.Atoi(match[2])
+			sum := sha256.Sum256([]byte(path + "\x00" + raw))
+			hunks = append(hunks, staticReviewHunk{ID: fmt.Sprintf("diff-%x", sum[:8]), Header: raw, Lines: []staticReviewDiffLine{}})
+			current = &hunks[len(hunks)-1]
+			continue
+		}
+		if current == nil || raw == "" || strings.HasPrefix(raw, `\`) {
+			continue
+		}
+		switch raw[0] {
+		case ' ':
+			current.Lines = append(current.Lines, staticReviewDiffLine{OldLine: oldLine, NewLine: newLine, Kind: "context", Text: raw[1:]})
+			oldLine++
+			newLine++
+		case '-':
+			current.Lines = append(current.Lines, staticReviewDiffLine{OldLine: oldLine, Kind: "removed", Text: raw[1:]})
+			oldLine++
+		case '+':
+			current.Lines = append(current.Lines, staticReviewDiffLine{NewLine: newLine, Kind: "added", Text: raw[1:]})
+			newLine++
+		}
+	}
+	if hunks == nil {
+		return []staticReviewHunk{}
+	}
+	return hunks
 }
 
 func staticDiffPath(diff string) string {
@@ -490,8 +542,8 @@ func renderStaticReviewHTML(report staticReviewReport) ([]byte, error) {
 	const pagePrefix = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>px1 static review</title><style>
-:root{color-scheme:dark;--bg:#101318;--panel:#171b22;--border:#2b3340;--text:#e8edf3;--muted:#9aa6b2;--accent:#7dd3fc;--bad:#fca5a5;--good:#86efac}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,sans-serif}main{max-width:1100px;margin:0 auto;padding:32px 20px}h1,h2{line-height:1.2}h1{margin:0 0 8px}h2{margin:28px 0 12px;font-size:20px}.meta,.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px}.meta{color:var(--muted)}.meta code{color:var(--accent);word-break:break-all}.stats{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}.stat{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 14px}.stat strong{display:block;font-size:20px}.finding{border-left:3px solid var(--bad);margin:10px 0;padding:10px 12px;background:var(--panel)}.finding code{color:var(--accent)}.finding pre{margin:10px 0 0;border:1px solid var(--border)}.explanation{margin:10px 0;padding:12px;background:var(--panel);border:1px solid var(--border);border-radius:8px}.chip{color:var(--accent);border-color:#31536a;background:#102331;font-weight:600}.explanation p{margin:10px 0 0}.muted{color:var(--muted)}.ok{color:var(--good)}.bad{color:var(--bad)}details{background:var(--panel);border:1px solid var(--border);border-radius:8px;margin:10px 0}summary{cursor:pointer;padding:12px;font-weight:600}pre{overflow:auto;margin:0;padding:14px;background:#0b0d10;color:#d5dee8;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}button{background:none;border:1px solid var(--border);color:var(--text);border-radius:5px;padding:3px 8px;cursor:pointer}
+:root{color-scheme:dark;--bg:#101318;--panel:#171b22;--border:#2b3340;--text:#e8edf3;--muted:#9aa6b2;--accent:#7dd3fc;--bad:#fca5a5;--good:#86efac;--add:#102a22;--remove:#321c21}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,sans-serif}main{max-width:1100px;margin:0 auto;padding:32px 20px}h1,h2{line-height:1.2}h1{margin:0 0 8px}h2{margin:28px 0 12px;font-size:20px}.meta,.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px}.meta{color:var(--muted)}.meta code{color:var(--accent);word-break:break-all}.stats{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}.stat{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 14px}.stat strong{display:block;font-size:20px}.finding{border-left:3px solid var(--bad);margin:10px 0;padding:10px 12px;background:var(--panel)}.finding code{color:var(--accent)}.finding pre{margin:10px 0 0;border:1px solid var(--border)}.explanation{margin:10px 0;padding:12px;background:var(--panel);border:1px solid var(--border);border-radius:8px}.chip{color:var(--accent);border-color:#31536a;background:#102331;font-weight:600}.explanation p{margin:10px 0 0}.muted{color:var(--muted)}.ok{color:var(--good)}.bad{color:var(--bad)}details{background:var(--panel);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}summary{cursor:pointer;padding:12px;font-weight:600}.diff{overflow:auto;background:#0b0d10;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}.hunk{min-width:max-content}.hunk-head{position:sticky;left:0;padding:7px 12px;color:var(--accent);background:#142332;border-block:1px solid #25445d}.diff-line{display:grid;grid-template-columns:52px 52px 24px minmax(max-content,1fr)}.diff-line.added{background:var(--add)}.diff-line.removed{background:var(--remove)}.gutter,.mark{padding:0 8px;color:var(--muted);text-align:right;user-select:none;border-right:1px solid var(--border)}.mark{text-align:center}.line-code{padding:0 12px;white-space:pre}pre{overflow:auto;margin:0;padding:14px;background:#0b0d10;color:#d5dee8;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}button{background:none;border:1px solid var(--border);color:var(--text);border-radius:5px;padding:3px 8px;cursor:pointer}
 </style></head><body><main id="app"><p class="muted">Loading review…</p></main>
 <script type="application/json" id="report-data">`
 	const pageSuffix = `</script><script>
@@ -504,7 +556,7 @@ const stats=text('div');stats.className='stats';for(const [label,value] of [['Ch
 section('Team-rule findings');if(!report.ruleHits.length)app.append(text('p','No team-rule findings on added lines.','ok'));for(const hit of report.ruleHits){const n=text('div');n.className='finding';n.append(text('div',hit.message),text('div',hit.path+':'+hit.line+' — '),code(hit.text));if(hit.context?.length){const lines=hit.context.map((line)=>{const marker=line.kind==='added'?'+':line.kind==='removed'?'-':' ';const number=line.number?String(line.number).padStart(4,' '):'    ';return marker+' '+number+' | '+line.text}).join('\n');n.append(text('pre',lines));}app.append(n)}
 section('AI explanations');if(!report.explanations.length)app.append(text('p','No AI explanations were supplied for this commit.','muted'));for(const item of report.explanations){const n=text('div');n.className='explanation';const chip=text('button',item.title,'chip');chip.type='button';chip.setAttribute('aria-expanded','false');const where=text('span',' '+item.path+':'+item.lineStart+(item.lineEnd!==item.lineStart?'-'+item.lineEnd:''),'muted');const detail=text('p',item.summary);detail.hidden=true;chip.addEventListener('click',()=>{detail.hidden=!detail.hidden;chip.setAttribute('aria-expanded',String(!detail.hidden))});n.append(chip,where,detail);app.append(n)}
 section('Verification');const v=text('div');v.className='card';if(report.verification.available){v.append(text('div','Verified by '+report.verification.source+' for '+report.verification.revision,'ok'));for(const check of report.verification.checks){const row=text('div',check.name+': '+check.status);if(check.url){row.append(text('span',' '),code(check.url))}v.append(row)}}else{v.append(text('div',report.verification.error||'No verification report is attached.','muted'))}app.append(v);
-section('Changed files');if(!report.files.length)app.append(text('p','No changed files.','muted'));for(const file of report.files){const d=document.createElement('details'),s=text('summary',file.status+' '+file.path);d.append(s);if(file.diff){const pre=text('pre',file.diff);d.append(pre)}else d.append(text('p','No textual diff available.','muted'));app.append(d)}
+section('Changed files');if(!report.files.length)app.append(text('p','No changed files.','muted'));for(const file of report.files){const d=document.createElement('details'),s=text('summary',file.status+' '+file.path);d.append(s);if(file.hunks?.length){const diff=text('div');diff.className='diff';for(const hunk of file.hunks){const block=text('div');block.className='hunk';block.id=hunk.id;block.append(text('div',hunk.header,'hunk-head'));for(const line of hunk.lines){const row=text('div');row.className='diff-line '+line.kind;const marker=line.kind==='added'?'+':line.kind==='removed'?'-':' ';row.append(text('span',line.oldLine||'','gutter'),text('span',line.newLine||'','gutter'),text('span',marker,'mark'),text('span',line.text,'line-code'));block.append(row)}diff.append(block)}d.append(diff)}else if(file.diff){d.append(text('pre',file.diff))}else d.append(text('p','No textual diff available.','muted'));app.append(d)}
 </script></body></html>`
 	return []byte(pagePrefix + string(data) + pageSuffix), nil
 }
