@@ -129,6 +129,10 @@ SHA; the PR head is fetched only to let Git inspect its diff and committed
 initial Pages deployment contains the latest generated report; retaining every
 historical SHA across deployments is a follow-up improvement.
 
+Static findings include a short hunk-local context block with line numbers and
+added, unchanged, or removed markers. The full unified diff remains available
+below the findings for reviewers who need broader context.
+
 ## Suggested delivery order
 
 1. Local snapshot contract, deep links, review disposition, and fake providers.

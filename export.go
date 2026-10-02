@@ -26,7 +26,7 @@ type staticReviewReport struct {
 	Head         string               `json:"head"`
 	GeneratedAt  time.Time            `json:"generatedAt"`
 	Files        []staticReviewFile   `json:"files"`
-	RuleHits     []ruleHit            `json:"ruleHits"`
+	RuleHits     []staticReviewHit    `json:"ruleHits"`
 	Verification verificationResponse `json:"verification"`
 }
 
@@ -34,6 +34,28 @@ type staticReviewFile struct {
 	Path   string `json:"path"`
 	Status string `json:"status"`
 	Diff   string `json:"diff"`
+}
+
+type staticReviewHit struct {
+	Key     string                    `json:"key"`
+	RuleID  string                    `json:"ruleId"`
+	Message string                    `json:"message"`
+	Source  string                    `json:"source"`
+	Origin  string                    `json:"origin,omitempty"`
+	Path    string                    `json:"path"`
+	Line    int                       `json:"line"`
+	Text    string                    `json:"text"`
+	Context []staticReviewContextLine `json:"context,omitempty"`
+}
+
+type staticReviewContextLine struct {
+	Number int    `json:"number"`
+	Kind   string `json:"kind"` // added, context, or removed
+	Text   string `json:"text"`
+}
+
+type staticReviewContextBlock struct {
+	Lines []staticReviewContextLine
 }
 
 func runExportReview(args []string) error {
@@ -103,6 +125,7 @@ func generateStaticReviewWithVerification(root, base, head, verificationFile str
 	if err != nil {
 		return staticReviewReport{}, err
 	}
+	staticHits := addStaticReviewContexts(hits, diff)
 	verification, err := verificationAtCommit(root, headSHA)
 	if verificationFile != "" {
 		verification, err = verificationAtFile(verificationFile, headSHA)
@@ -117,7 +140,7 @@ func generateStaticReviewWithVerification(root, base, head, verificationFile str
 		Head:         headSHA,
 		GeneratedAt:  time.Now().UTC(),
 		Files:        files,
-		RuleHits:     hits,
+		RuleHits:     staticHits,
 		Verification: verification,
 	}, nil
 }
@@ -288,6 +311,96 @@ func addedLinesByPath(diff string) map[string]map[int]string {
 	return out
 }
 
+func addStaticReviewContexts(hits []ruleHit, diff string) []staticReviewHit {
+	blocks := staticContextBlocksByPath(diff)
+	out := make([]staticReviewHit, 0, len(hits))
+	for _, hit := range hits {
+		staticHit := staticReviewHit{
+			Key:     hit.Key,
+			RuleID:  hit.RuleID,
+			Message: hit.Message,
+			Source:  hit.Source,
+			Origin:  hit.Origin,
+			Path:    hit.Path,
+			Line:    hit.Line,
+			Text:    hit.Text,
+		}
+		for _, block := range blocks[hit.Path] {
+			target := -1
+			for i, line := range block.Lines {
+				if line.Kind == "added" && line.Number == hit.Line {
+					target = i
+					break
+				}
+			}
+			if target < 0 {
+				continue
+			}
+			start, end := target-2, target+3
+			if start < 0 {
+				start = 0
+			}
+			if end > len(block.Lines) {
+				end = len(block.Lines)
+			}
+			staticHit.Context = append(staticHit.Context, block.Lines[start:end]...)
+			break
+		}
+		out = append(out, staticHit)
+	}
+	return out
+}
+
+func staticContextBlocksByPath(diff string) map[string][]staticReviewContextBlock {
+	out := map[string][]staticReviewContextBlock{}
+	for _, rawBlock := range strings.Split(diff, "diff --git ") {
+		if strings.TrimSpace(rawBlock) == "" {
+			continue
+		}
+		block := "diff --git " + rawBlock
+		file := staticDiffPath(block)
+		if file == "" || strings.HasPrefix(file, ".px1/") {
+			continue
+		}
+		lineNumber := 0
+		var lines []staticReviewContextLine
+		flush := func() {
+			if len(lines) > 0 {
+				out[file] = append(out[file], staticReviewContextBlock{Lines: lines})
+				lines = nil
+			}
+		}
+		for _, raw := range strings.Split(block, "\n") {
+			if m := hunkHeader.FindStringSubmatch(raw); m != nil {
+				flush()
+				lineNumber, _ = strconv.Atoi(m[1])
+				continue
+			}
+			if lineNumber == 0 || raw == "" || strings.HasPrefix(raw, `\`) {
+				continue
+			}
+			switch raw[0] {
+			case '+':
+				if strings.HasPrefix(raw, "+++") {
+					continue
+				}
+				lines = append(lines, staticReviewContextLine{Number: lineNumber, Kind: "added", Text: raw[1:]})
+				lineNumber++
+			case '-':
+				if strings.HasPrefix(raw, "---") {
+					continue
+				}
+				lines = append(lines, staticReviewContextLine{Kind: "removed", Text: raw[1:]})
+			case ' ':
+				lines = append(lines, staticReviewContextLine{Number: lineNumber, Kind: "context", Text: raw[1:]})
+				lineNumber++
+			}
+		}
+		flush()
+	}
+	return out
+}
+
 func matchStaticRuleAdditions(rules []reviewRule, additions map[string]map[int]string) ([]ruleHit, error) {
 	type compiledRule struct {
 		rule reviewRule
@@ -355,7 +468,7 @@ func renderStaticReviewHTML(report staticReviewReport) ([]byte, error) {
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>px1 static review</title><style>
 :root{color-scheme:dark;--bg:#101318;--panel:#171b22;--border:#2b3340;--text:#e8edf3;--muted:#9aa6b2;--accent:#7dd3fc;--bad:#fca5a5;--good:#86efac}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,sans-serif}main{max-width:1100px;margin:0 auto;padding:32px 20px}h1,h2{line-height:1.2}h1{margin:0 0 8px}h2{margin:28px 0 12px;font-size:20px}.meta,.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px}.meta{color:var(--muted)}.meta code{color:var(--accent);word-break:break-all}.stats{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}.stat{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 14px}.stat strong{display:block;font-size:20px}.finding{border-left:3px solid var(--bad);margin:10px 0;padding:10px 12px;background:var(--panel)}.finding code{color:var(--accent)}.muted{color:var(--muted)}.ok{color:var(--good)}.bad{color:var(--bad)}details{background:var(--panel);border:1px solid var(--border);border-radius:8px;margin:10px 0}summary{cursor:pointer;padding:12px;font-weight:600}pre{overflow:auto;margin:0;padding:14px;background:#0b0d10;color:#d5dee8;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}button{background:none;border:1px solid var(--border);color:var(--text);border-radius:5px;padding:3px 8px;cursor:pointer}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,sans-serif}main{max-width:1100px;margin:0 auto;padding:32px 20px}h1,h2{line-height:1.2}h1{margin:0 0 8px}h2{margin:28px 0 12px;font-size:20px}.meta,.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px}.meta{color:var(--muted)}.meta code{color:var(--accent);word-break:break-all}.stats{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}.stat{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 14px}.stat strong{display:block;font-size:20px}.finding{border-left:3px solid var(--bad);margin:10px 0;padding:10px 12px;background:var(--panel)}.finding code{color:var(--accent)}.finding pre{margin:10px 0 0;border:1px solid var(--border)}.muted{color:var(--muted)}.ok{color:var(--good)}.bad{color:var(--bad)}details{background:var(--panel);border:1px solid var(--border);border-radius:8px;margin:10px 0}summary{cursor:pointer;padding:12px;font-weight:600}pre{overflow:auto;margin:0;padding:14px;background:#0b0d10;color:#d5dee8;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}button{background:none;border:1px solid var(--border);color:var(--text);border-radius:5px;padding:3px 8px;cursor:pointer}
 </style></head><body><main id="app"><p class="muted">Loading review…</p></main>
 <script type="application/json" id="report-data">`
 	const pageSuffix = `</script><script>
@@ -365,7 +478,7 @@ const code=(value)=>text('code',value); const section=(title)=>{const n=text('h2
 const header=text('h1','px1 static review');app.append(header);const repo=text('div',report.repository,'muted');app.append(repo);
 const meta=text('div');meta.className='meta';meta.append(text('div','Base: '),code(report.base),text('div','Head: '),code(report.head),text('div','Generated: '+report.generatedAt));app.append(meta);
 const stats=text('div');stats.className='stats';for(const [label,value] of [['Changed files',report.files.length],['Rule findings',report.ruleHits.length],['CI checks',report.verification.checks.length]]){const s=text('div');s.className='stat';s.append(text('strong',value),text('span',label,'muted'));stats.append(s)}app.append(stats);
-section('Team-rule findings');if(!report.ruleHits.length)app.append(text('p','No team-rule findings on added lines.','ok'));for(const hit of report.ruleHits){const n=text('div');n.className='finding';n.append(text('div',hit.message),text('div',hit.path+':'+hit.line+' — '),code(hit.text));app.append(n)}
+section('Team-rule findings');if(!report.ruleHits.length)app.append(text('p','No team-rule findings on added lines.','ok'));for(const hit of report.ruleHits){const n=text('div');n.className='finding';n.append(text('div',hit.message),text('div',hit.path+':'+hit.line+' — '),code(hit.text));if(hit.context?.length){const lines=hit.context.map((line)=>{const marker=line.kind==='added'?'+':line.kind==='removed'?'-':' ';const number=line.number?String(line.number).padStart(4,' '):'    ';return marker+' '+number+' | '+line.text}).join('\n');n.append(text('pre',lines));}app.append(n)}
 section('Verification');const v=text('div');v.className='card';if(report.verification.available){v.append(text('div','Verified by '+report.verification.source+' for '+report.verification.revision,'ok'));for(const check of report.verification.checks){const row=text('div',check.name+': '+check.status);if(check.url){row.append(text('span',' '),code(check.url))}v.append(row)}}else{v.append(text('div',report.verification.error||'No verification report is attached.','muted'))}app.append(v);
 section('Changed files');if(!report.files.length)app.append(text('p','No changed files.','muted'));for(const file of report.files){const d=document.createElement('details'),s=text('summary',file.status+' '+file.path);d.append(s);if(file.diff){const pre=text('pre',file.diff);d.append(pre)}else d.append(text('p','No textual diff available.','muted'));app.append(d)}
 </script></body></html>`

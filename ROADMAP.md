@@ -89,8 +89,9 @@ queue removes dead implementation residue around those smaller surfaces.
    improvement.
 2. Improve the static report with block extraction, plain-language explanations,
    verification summaries, finding acknowledgement, and historical SHA paths.
-   The Pages workflow now includes exact-head GitHub check-run summaries; the
-   remaining improvements are richer presentation and retention.
+   The Pages workflow now includes exact-head GitHub check-run summaries, and
+   findings now include hunk-local context blocks; the remaining improvements
+   are plain-language explanations, acknowledgement, and retention.
 3. Self-hosted live px1: add an import endpoint, authenticated links, secure
    link configuration, and deployment documentation for private repositories.
 4. Hosted GitHub App: add accounts, organizations, repository permissions, and
