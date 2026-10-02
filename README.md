@@ -2,7 +2,9 @@
   <img src="assets/px1-banner.png" alt="Collaborative robots around px1" width="100%">
 </div>
 
-# Understand the PR before you approve it
+<div align="center">
+  <h1>Understand the PR before you approve it</h1>
+</div>
 
 Agents write the PR. px1 helps reviewers understand it.
 
