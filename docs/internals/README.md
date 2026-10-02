@@ -1,6 +1,12 @@
 # px1 Internal Architecture & Design Documentation
 
-Welcome to the internal engineering documentation for px1, an ultra-lightweight, zero-config code reader and navigator that delegates edits to the user's coding agent, packaged as a single statically-linked binary (~9.5 MB).
+Welcome to the internal engineering documentation for px1, a local-first review
+control plane for AI-generated code. It turns team-specific rules, commit-
+pinned diffs, contextual findings, and CI evidence into a reviewable artifact;
+optional provider integrations can explain code without making the core depend
+on a cloud service or an LLM. The local application remains an ultra-lightweight,
+zero-config code reader and navigator packaged as a single statically-linked
+binary (~9.5 MB).
 
 This directory contains in-depth technical write-ups explaining how px1 achieves sub-millisecond startup, instantaneous file navigation, deep code intelligence, and a minimal memory footprint (~20 MB RSS) across codebases containing tens of thousands of files.
 

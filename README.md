@@ -1,15 +1,19 @@
 
 
-<div align="center"><pre>
-██████╗ ██╗  ██╗ ██╗
-██╔══██╗╚██╗██╔╝███║
-██████╔╝ ╚███╔╝ ╚██║
-██╔═══╝  ██╔██╗  ██║
-██║     ██╔╝ ██╗ ██║
-╚═╝     ╚═╝  ╚═╝ ╚═╝
-</pre></div>
+<div align="center">
+  <img src="assets/px1-banner.png" alt="Collaborative robots around px1" width="100%">
+</div>
 
-px1 is a fast, local control plane for reviewing coding-agent work. It opens any worktree in a browser and keeps the human in charge of what changes, why it changed, and whether it is ready.
+px1 is a local-first review control plane for AI-generated code. Teams describe
+their own standards in versioned `.px1/rules.json`; px1 evaluates added lines,
+shows contextual findings and diffs, and produces a commit-pinned report that
+can be attached to a GitHub pull request. The core remains self-hosted and
+useful without an account, SaaS backend, or LLM API key.
+
+The long-term vision is a shared review language between humans, coding agents,
+and GitHub: feedback becomes team policy, every explanation stays anchored to
+the exact commit, and optional AI assistance helps clarify code without taking
+ownership of the decision.
 
 ## The moat
 
