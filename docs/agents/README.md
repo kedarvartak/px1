@@ -2,18 +2,20 @@
 
 ## Product vision
 
-px1 is a local-first review control plane for AI-generated code. A team writes
-its standards as versioned `.px1/rules.json` policy, px1 evaluates the added
-lines of a change, and reviewers receive contextual evidence tied to an exact
-commit. Static reports can be attached to GitHub pull requests; optional AI
-providers explain code but never replace human approval. Preserve the
-self-hosted, no-account core and keep GitHub/LLM integrations additive.
+Agents write the PR. px1 helps reviewers understand it through an attached HTML
+report: diffs, highlighted code blocks, concise AI explanation chips, and
+violations of team rules stored in `.px1/rules.json`. Each report identifies
+the reviewed commit. Reviewers make the final decision in GitHub.
+
+Prioritize the PR report experience. The CLI and local viewer support it.
+Follow the [product vision](../PRODUCT_VISION.md), and distinguish implemented
+features from planned AI chips and natural-language rule understanding.
 
 This document defines critical instructions, architectural principles, and documentation maintenance workflows for AI coding agents working on px1.
 
 ## 1. Core Architectural Tenets
 
-1. Human-Controlled Agent Changes: px1 keeps code reading fast while giving the reviewer deliberate, bounded control over agent-generated changes. Preserve the review baseline, explicit confirmation, preview, and undo requirements for any mutation API; do not grow px1 into a general-purpose editor.
+1. Review artifacts first: help reviewers understand PR changes through diffs, explanations, and team-rule findings. Keep evidence tied to the reviewed commit. Preserve existing confirmation, preview, and undo protections for local mutation APIs.
 1. Zero Runtime and Single Binary Footprint: Any change must compile into a single static binary (`go:embed` for web assets). Do not introduce runtime dependencies (no Node.js/npm runtime requirement, no external database, no CGO dependencies).
 1. Stateless in the Workspace: px1 never writes metadata into a served repository. Per-user settings and durable review-session snapshots live outside it under the px1 state directory.
 1. Performance Budgets: Indexing must complete in milliseconds using bounded concurrency (`NumCPU * 4`). File open must remain $O(1)$ relative to file length using windowed chunking (`hlChunk = 1000`) and browser DOM virtualization. Maintain explicit memory reclamation (`debug.FreeOSMemory()` on idle).

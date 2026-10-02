@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Propose a feature, enhancement, or capability for px0
+about: Help reviewers understand PR changes and team-rule findings in px1 reports
 title: "[FEATURE] "
 labels: ["enhancement"]
 assignees: ""

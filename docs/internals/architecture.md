@@ -4,7 +4,10 @@ This document describes the high-level architecture, startup pipeline, HTTP serv
 
 ## 1. High-Level Design Principles
 
-px1 is engineered as an ultra-fast, zero-overhead code exploration console. Its architecture is guided by five foundational tenets:
+px1 is building review reports linked from GitHub PRs, with diffs, concise AI
+explanations beside highlighted code, and team-rule findings. See the
+[product vision](../PRODUCT_VISION.md) for status. This document describes the
+existing local application that supports that work:
 
 1. Edits Are Delegated: px1 navigates, searches, and inspects code, and does not author changes itself. There are no save buttons and no endpoint accepts file content. Changes are made by a coding harness px1 dispatches on request, one per non-overlapping line range so several can run at once (see [Harness Editing & Agent Dispatch](agent-editing.md)).
 1. Single Static Binary Footprint: All frontend assets (HTML, CSS, JavaScript, icons, themes) are embedded directly into the Go binary at compile time via `go:embed`. px1 requires no Node.js, Python, or Ruby runtime, no external database, and no CGO dependencies.
