@@ -138,6 +138,11 @@ Static findings include a short hunk-local context block with line numbers and
 added, unchanged, or removed markers. The full unified diff remains available
 below the findings for reviewers who need broader context.
 
+Reviewers can acknowledge individual team-rule findings in the generated page.
+Acknowledgements are intentionally browser-local and keyed by repository plus
+the exact head SHA, so they require no account and cannot leak onto a later PR
+revision. They are personal review progress, not a shared approval signal.
+
 ## Suggested delivery order
 
 1. Local snapshot contract, deep links, review disposition, and fake providers.
