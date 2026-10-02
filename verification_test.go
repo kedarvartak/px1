@@ -69,3 +69,33 @@ func TestVerificationReportRejectsUntrustedValues(t *testing.T) {
 		t.Fatalf("expected URL validation error, got %v", err)
 	}
 }
+
+func TestVerificationAtFilePinsRevision(t *testing.T) {
+	head := strings.Repeat("c", 40)
+	root := t.TempDir()
+	path := filepath.Join(root, "checks.json")
+	report := verificationReport{
+		Source:   "github-actions",
+		Revision: head,
+		URL:      "https://github.com/example/project/actions/runs/99",
+		Checks: []verificationCheck{
+			{Name: "tests", Status: "passed", URL: "https://github.com/example/project/actions/runs/99/jobs/1"},
+		},
+	}
+	b, err := json.Marshal(report)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, b, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := verificationAtFile(path, head)
+	if err != nil || !loaded.Available || len(loaded.Checks) != 1 {
+		t.Fatalf("loaded = %+v err=%v", loaded, err)
+	}
+
+	stale, err := verificationAtFile(path, strings.Repeat("d", 40))
+	if err != nil || stale.Available || !strings.Contains(stale.Error, "this review is for") {
+		t.Fatalf("stale = %+v err=%v", stale, err)
+	}
+}

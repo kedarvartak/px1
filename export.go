@@ -43,8 +43,9 @@ func runExportReview(args []string) error {
 	head := fs.String("head", "HEAD", "head commit or ref")
 	root := fs.String("root", ".", "repository root")
 	out := fs.String("out", ".px1-review", "directory to write the static report")
+	verificationFile := fs.String("verification-file", "", "optional verification JSON file to validate for the head commit")
 	fs.Usage = func() {
-		fmt.Fprintln(fs.Output(), "usage: px1 export-review --base <commit> [--head <commit>] [--root <repo>] [--out <dir>]")
+		fmt.Fprintln(fs.Output(), "usage: px1 export-review --base <commit> [--head <commit>] [--root <repo>] [--verification-file <path>] [--out <dir>]")
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {
@@ -62,7 +63,7 @@ func runExportReview(args []string) error {
 	if err != nil {
 		return fmt.Errorf("resolve output: %w", err)
 	}
-	report, err := generateStaticReview(repoRoot, *base, *head)
+	report, err := generateStaticReviewWithVerification(repoRoot, *base, *head, *verificationFile)
 	if err != nil {
 		return err
 	}
@@ -74,6 +75,10 @@ func runExportReview(args []string) error {
 }
 
 func generateStaticReview(root, base, head string) (staticReviewReport, error) {
+	return generateStaticReviewWithVerification(root, base, head, "")
+}
+
+func generateStaticReviewWithVerification(root, base, head, verificationFile string) (staticReviewReport, error) {
 	baseSHA, err := resolveCommit(root, base)
 	if err != nil {
 		return staticReviewReport{}, err
@@ -99,6 +104,9 @@ func generateStaticReview(root, base, head string) (staticReviewReport, error) {
 		return staticReviewReport{}, err
 	}
 	verification, err := verificationAtCommit(root, headSHA)
+	if verificationFile != "" {
+		verification, err = verificationAtFile(verificationFile, headSHA)
+	}
 	if err != nil {
 		return staticReviewReport{}, err
 	}
@@ -157,9 +165,21 @@ func verificationAtCommit(root, head string) (verificationResponse, error) {
 	if !found {
 		return verificationResponse{Available: false, Checks: []verificationCheck{}}, nil
 	}
+	return verificationFromBytes(b, head, ".px1/verification.json")
+}
+
+func verificationAtFile(path, head string) (verificationResponse, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return verificationResponse{}, fmt.Errorf("read verification file %s: %w", path, err)
+	}
+	return verificationFromBytes(b, head, filepath.ToSlash(path))
+}
+
+func verificationFromBytes(b []byte, head, label string) (verificationResponse, error) {
 	var report verificationReport
 	if err := json.Unmarshal(b, &report); err != nil {
-		return verificationResponse{Available: false, Checks: []verificationCheck{}, Error: fmt.Sprintf("invalid .px1/verification.json: %v", err)}, nil
+		return verificationResponse{Available: false, Checks: []verificationCheck{}, Error: fmt.Sprintf("invalid %s: %v", label, err)}, nil
 	}
 	if err := validateVerificationReport(report, head); err != nil {
 		return verificationResponse{Available: false, Source: report.Source, Revision: report.Revision, URL: report.URL, Checks: []verificationCheck{}, Error: err.Error()}, nil
