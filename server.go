@@ -242,7 +242,6 @@ func (s *Server) handleMeta(w http.ResponseWriter, r *http.Request) {
 		"files":      s.ix.FileCount(),
 		"ready":      s.ix.Ready(),
 		"git":        gitAvailable(s.ix.Root()),
-		"lspServers": s.lsp.Available(),
 		"version":    version,
 	})
 }
