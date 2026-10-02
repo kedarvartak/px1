@@ -1,13 +1,8 @@
 
 
-<div align="center"><pre>
-██████╗ ██╗  ██╗ ██╗
-██╔══██╗╚██╗██╔╝███║
-██████╔╝ ╚███╔╝ ╚██║
-██╔═══╝  ██╔██╗  ██║
-██║     ██╔╝ ██╗ ██║
-╚═╝     ╚═╝  ╚═╝ ╚═╝
-</pre></div>
+<div align="center">
+  <img src="assets/px1-banner.png" alt="Collaborative robots around px1" width="100%">
+</div>
 
 px1 is a local-first review control plane for AI-generated code. Teams describe
 their own standards in versioned `.px1/rules.json`; px1 evaluates added lines,
