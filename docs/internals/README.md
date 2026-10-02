@@ -9,7 +9,7 @@ This directory contains in-depth technical write-ups explaining how px1 achieves
 ```mermaid
 flowchart TD
     subgraph Client ["Browser Frontend (Vanilla JS + CSS, Virtualized)"]
-        UI["DOM Shell (Rail, Sidebar, Tabs, Status)"]
+        UI["DOM Shell (Sidebar, Tabs, Review Actions)"]
         VirtEditor["Virtualized Code Viewer (~60 DOM rows)"]
         Inspector["Right Inspector (Call Hierarchy / References)"]
         Palette["Command Palette & Fuzzy Picker"]
