@@ -4800,19 +4800,5 @@ Switch worktree` : "Switch worktree" : S2.meta?.root || "";
         render();
       });
     }
-    if (S2.meta && !S2.meta.ready) {
-      const timer = setInterval(async () => {
-        try {
-          const m = await api("/api/meta");
-          if (m.ready) {
-            clearInterval(timer);
-            S2.meta = m;
-            updateStatus();
-          }
-        } catch {
-          clearInterval(timer);
-        }
-      }, 150);
-    }
   })();
 })();

@@ -91,21 +91,4 @@ initReviewQueue();
     document.fonts.ready.then(() => { measure(); layout(); render(); });
   }
 
-  // If the background indexer was still running when the UI loaded, poll briefly
-  // until complete to refresh the total file count and index time.
-  if (S.meta && !S.meta.ready) {
-    const timer = setInterval(async () => {
-      try {
-        const m = await api('/api/meta');
-        if (m.ready) {
-          clearInterval(timer);
-          S.meta = m;
-          updateStatus();
-        }
-      } catch {
-        clearInterval(timer);
-      }
-    }, 150);
-  }
-
 })();

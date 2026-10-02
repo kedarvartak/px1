@@ -58,7 +58,7 @@ The server is implemented in [`server.go`](../../server.go) using Go's standard 
 | --------------------- | ------ | ----------------------------------------------------------------------- | ------------------------------------------ |
 | `/`                   | `GET`  | Serves `web/index.html` (embedded or `-dev` disk copy)                  | `text/html; charset=utf-8`                 |
 | `/static/*`           | `GET`  | Serves bundled JavaScript, CSS, and static assets                       | Asset MIME type                            |
-| `/api/meta`           | `GET`  | Workspace metadata (root path, file count, readiness, git status)       | JSON (`{root, name, files, ready, git}`)   |
+| `/api/meta`           | `GET`  | Workspace metadata (root path, file count, git status)                  | JSON (`{root, name, files, git}`)          |
 | `/api/tree`           | `GET`  | Directory contents for the sidebar file explorer (`?dir=path`)          | JSON array of `Node` objects               |
 | `/api/file`           | `GET`  | Windowed, highlighted source file lines (`?path=...&start=0&count=500`) | JSON (`{lines, total, refine}`)  |
 | `/api/raw`            | `GET`  | Raw, unhighlighted file content for whole-file copies                  | `text/plain` or binary                     |
