@@ -234,18 +234,15 @@ button.pin-head:hover { background: transparent; }
 .review-rule-preview { min-height: 18px; padding: 0 2px; color: var(--faint); font-size: 12px; }
 .review-rule-preview.warn { color: var(--gd); }
 
-/* Version, level with the status bar beside it. */
+/* Sidebar footer. */
 .side-foot {
   flex: none; height: 24px; display: flex; align-items: center; gap: 6px;
   padding: 0 8px; border-top: 1px solid var(--line);
 }
 .side-foot .mini svg { display: block; }
-/* Project links and settings, together at the right edge. */
+/* GitHub link and settings, together at the right edge. */
 .side-actions { margin-left: auto; display: flex; align-items: center; gap: 2px; }
 .side-actions .mini { margin-left: 0; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; padding: 0; }
-.side-logo { flex: none; display: flex; align-items: center; padding: 2px 3px; border-radius: 3px; }
-.side-logo:hover { background: var(--bg4); }
-.side-logo img { height: 13px; width: auto; }
 
 /* ---------- tree ---------- */
 .tw { display: block; }
