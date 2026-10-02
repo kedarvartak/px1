@@ -306,7 +306,7 @@ export function initTabs() {
   if (crumbsEl) {
     crumbsEl.addEventListener('click', e => {
       const c = e.target.closest('[data-dir]');
-      if (c) { showPanel('files'); revealDir(c.dataset.dir); }
+      if (c) { showPanel(); revealDir(c.dataset.dir); }
     });
   }
 }

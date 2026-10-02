@@ -1,13 +1,12 @@
 // web/src/panels.js
-import { $, $$, S, api } from './state.js';
+import { $, api } from './state.js';
 import { layout, render } from './renderer.js';
 import { updateStatus } from './status.js';
-import { loadOutline } from './outline.js';
 import { treeEl, openDirs, drawTree } from './tree.js';
 import { reloadOpenTabs } from './tabs.js';
 import { showToast } from './ui.js';
 
-export function showPanel(name) {
+export function showPanel() {
   document.body.classList.remove('side-hidden');
   layout();
   render();
