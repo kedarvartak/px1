@@ -1,5 +1,14 @@
 # Operational Guidelines for AI Agents
 
+## Product vision
+
+px1 is a local-first review control plane for AI-generated code. A team writes
+its standards as versioned `.px1/rules.json` policy, px1 evaluates the added
+lines of a change, and reviewers receive contextual evidence tied to an exact
+commit. Static reports can be attached to GitHub pull requests; optional AI
+providers explain code but never replace human approval. Preserve the
+self-hosted, no-account core and keep GitHub/LLM integrations additive.
+
 This document defines critical instructions, architectural principles, and documentation maintenance workflows for AI coding agents working on px1.
 
 ## 1. Core Architectural Tenets
