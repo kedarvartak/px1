@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  checks: read
   pages: write
   id-token: write
   pull-requests: write
@@ -50,6 +51,51 @@ jobs:
           go-version: '1.25'
           cache: true
 
+      - name: Collect GitHub check-run verification
+        uses: actions/github-script@v7
+        env:
+          VERIFICATION_FILE: .px1/verification.json
+        with:
+          script: |
+            const fs = require('fs');
+            const runs = await github.paginate(
+              github.rest.checks.listForRef,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: process.env.HEAD_SHA,
+                per_page: 100,
+              },
+            );
+            const names = new Map();
+            const checks = runs.map((run) => {
+              const baseName = run.name || run.app?.name || 'GitHub check';
+              const count = (names.get(baseName) || 0) + 1;
+              names.set(baseName, count);
+              const name = count === 1 ? baseName : `${baseName} (${count})`;
+              let status = 'cancelled';
+              if (run.status === 'queued') status = 'queued';
+              else if (run.status !== 'completed') status = 'running';
+              else if (run.conclusion === 'success' || run.conclusion === 'neutral') status = 'passed';
+              else if (run.conclusion === 'failure' || run.conclusion === 'timed_out' || run.conclusion === 'action_required') status = 'failed';
+              return {
+                name,
+                status,
+                summary: run.output?.summary || '',
+                url: run.html_url || '',
+                startedAt: run.started_at || undefined,
+                finishedAt: run.completed_at || undefined,
+              };
+            });
+            const report = {
+              source: 'github-actions',
+              revision: process.env.HEAD_SHA,
+              url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              checks,
+            };
+            fs.mkdirSync('.px1', { recursive: true });
+            fs.writeFileSync(process.env.VERIFICATION_FILE, `${JSON.stringify(report, null, 2)}\n`);
+
       - name: Export commit-pinned report
         shell: bash
         run: |
@@ -59,6 +105,7 @@ jobs:
             --root . \
             --base "$BASE_SHA" \
             --head "$HEAD_SHA" \
+            --verification-file .px1/verification.json \
             --out "$report_dir"
           test -s "$report_dir/index.html"
 

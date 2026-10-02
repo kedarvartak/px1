@@ -91,7 +91,10 @@ These pieces can be implemented and tested locally without external accounts:
    implemented in `.github/workflows/px1-review-report.yml`: it runs trusted
    base-branch code, fetches the PR head as an object, publishes
    `reviews/<head-sha>/index.html`, and creates or updates one marked PR
-   comment. It does not execute the PR checkout.
+   comment. It does not execute the PR checkout. Before export it also reads
+   GitHub check runs for the exact head SHA and supplies them through the
+   existing `.px1/verification.json` contract, so the report shows CI status
+   without requiring that file to be committed by the PR.
 6. Add interfaces for GitHub and LLM providers, with local fakes for tests.
 7. Add documentation and fixture-based tests for both flows.
 
