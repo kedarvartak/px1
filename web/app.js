@@ -1723,7 +1723,7 @@
   }
 
   // web/src/panels.js
-  function showPanel(name) {
+  function showPanel() {
     document.body.classList.remove("side-hidden");
     layout();
     render();
@@ -3245,7 +3245,7 @@
       crumbsEl.addEventListener("click", (e) => {
         const c = e.target.closest("[data-dir]");
         if (c) {
-          showPanel("files");
+          showPanel();
           revealDir(c.dataset.dir);
         }
       });
@@ -3784,7 +3784,7 @@
     { name: "Reveal Active File in Explorer", run: () => {
       const d = doc_();
       if (d) {
-        showPanel("files");
+        showPanel();
         revealFile(d.path);
       }
     } },

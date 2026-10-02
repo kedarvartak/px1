@@ -34,7 +34,7 @@ export const COMMANDS = [
     else hideRightInspector();
   } },
   { name: 'Show File Symbols (Right Panel)', run: () => showRightInspector('symbols') },
-  { name: 'Reveal Active File in Explorer', run: () => { const d = doc_(); if (d) { showPanel('files'); revealFile(d.path); } } },
+  { name: 'Reveal Active File in Explorer', run: () => { const d = doc_(); if (d) { showPanel(); revealFile(d.path); } } },
   { name: withKeys('Toggle Word Wrap ({Alt+Z})'), run: () => toggleWordWrap() },
   { name: withKeys('Toggle Sidebar ({Mod+B})'), run: () => document.body.classList.toggle('side-hidden') },
   { name: 'Re-index Workspace', run: () => $('#btn-reindex').click() },
