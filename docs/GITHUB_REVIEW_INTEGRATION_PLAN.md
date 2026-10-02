@@ -80,7 +80,10 @@ These pieces can be implemented and tested locally without external accounts:
    head commit, and writes a self-contained `index.html` containing changed
    files, unified diffs, rule findings, and verification status. It is suitable
    for a local preview or as the artifact consumed by a future GitHub Action;
-   it intentionally does not publish, authenticate, or call an LLM yet.
+   it intentionally does not publish, authenticate, or call an LLM. An
+   optional `--explanations-file` input accepts provider-neutral, commit-pinned
+   explanation JSON and renders expandable chips; generation remains a
+   separate local or CI concern.
 2. Add commit-pinned GitHub review URL parsing and routing.
 3. Add persisted review disposition with approval guards for stale files and
    open comments.

@@ -85,7 +85,11 @@ or published by a later GitHub Pages workflow.
 
 CI integrations may pass `--verification-file` with a generated
 `github-actions` report; px1 still requires that report's full revision to
-match the exported head commit.
+match the exported head commit. A local script or CI job may also pass
+`--explanations-file ./px1-explanations.json` to add short, expandable AI
+explanation chips. px1 validates that every explanation belongs to the exact
+head commit and a changed file. See
+[the explanation JSON contract](docs/STATIC_REVIEW_EXPLANATIONS.md).
 
 For a remote machine, bind to a private network and access it over Tailscale, WireGuard, or a tunnel:
 
