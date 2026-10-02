@@ -1,13 +1,14 @@
 # px1
 
-px1 is a local-first review control plane for AI-generated code. Teams encode
-their own standards in `.px1/rules.json`; px1 evaluates changed lines, shows
-contextual findings and diffs, and can export a commit-pinned report for a
-GitHub pull request. The core runs locally without an account, hosted service,
-or LLM API key.
+Agents write the PR. px1 helps reviewers understand it.
 
-Optional AI providers can explain a finding, but the reviewer remains the
-decision-maker and the evidence stays tied to the exact commit.
+We are building an HTML report linked from each GitHub PR: diffs, highlighted
+code blocks, short AI explanation chips, and findings for rules your team keeps
+in `.px1/rules.json`.
+
+This package installs the existing local CLI. The PR report work is under
+development; AI chips and arbitrary plain-language rules are planned. See the
+[product vision and status](https://github.com/kedarvartak/px1/blob/master/docs/PRODUCT_VISION.md).
 
 ```sh
 npx px1-cli            # review the current directory

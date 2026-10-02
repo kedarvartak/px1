@@ -1,7 +1,7 @@
 {
   "name": "px1-cli",
   "version": "0.0.0",
-  "description": "px1: a read-only code review workspace for agent-written changes. Installs the px1 command.",
+  "description": "px1 helps reviewers understand agent-written PRs. Installs the CLI for the GitHub review-report project.",
   "keywords": ["px1", "code-review", "ai", "agent", "diff", "cli"],
   "homepage": "https://github.com/kedarvartak/px1#readme",
   "bugs": "https://github.com/kedarvartak/px1/issues",

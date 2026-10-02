@@ -1,101 +1,89 @@
-
-
 <div align="center">
   <img src="assets/px1-banner.png" alt="Collaborative robots around px1" width="100%">
 </div>
 
-px1 is a local-first review control plane for AI-generated code. Teams describe
-their own standards in versioned `.px1/rules.json`; px1 evaluates added lines,
-shows contextual findings and diffs, and produces a commit-pinned report that
-can be attached to a GitHub pull request. The core remains self-hosted and
-useful without an account, SaaS backend, or LLM API key.
+# Understand the PR before you approve it
 
-The long-term vision is a shared review language between humans, coding agents,
-and GitHub: feedback becomes team policy, every explanation stays anchored to
-the exact commit, and optional AI assistance helps clarify code without taking
-ownership of the decision.
+Agents write the PR. px1 helps reviewers understand it.
 
-## The moat
+px1 is building a review report attached to a GitHub pull request. Open one
+link to see the changes, short explanations beside the code, and places where
+the change breaks your team's rules.
 
-Most tools help an agent write code. px1 makes its output reviewable over time.
+## How the review works
 
-- **Task baselines, not just Git diffs.** Start a review before work begins; px1 queues the exact changes made for that task and can restore them to the baseline.
-- **Decision memory.** Plain-language decision pins explain important changes in context. Accepted decisions persist per workspace and later changes that reverse them are flagged for review.
-- **Review memory.** Turn a review comment into a reusable rule. px1 checks later agent changes against it, so hard-won feedback does not disappear in chat history.
-- **Evidence tied to the revision.** Run your configured tests, lint, or typechecks from the review queue. Results go stale when the reviewed files change.
-- **Fast enough to stay open.** A single static Go binary gives instant navigation, virtualized large-file viewing, Git diffs, and remote inspection without an IDE, cloud account, or background indexer.
+1. **An agent opens or updates a PR.** Your team's rules live in the repository.
+2. **px1 generates a report.** A GitHub Action attaches a link to the PR.
+3. **The reviewer opens the link.** Diffs show what changed. Highlighted code
+   blocks carry small AI explanation chips describing what the change does
+   and why it matters.
+4. **Rule violations stand out.** Each finding points to the relevant code and
+   explains which team rule it breaks.
+5. **The reviewer decides.** Use the report to ask for changes or approve the
+   PR in GitHub. AI explanations help with understanding; they can be wrong.
 
-Agents implement. px1 preserves human judgment.
+A report belongs to a specific commit, so reviewers know which version they
+are reading. Here, “artifact” simply means the generated HTML review report.
 
-## Review loop
+## Your repository, your rules
 
-Start px1 before the harness, then use Claude, Codex, Gemini, or any other tool normally. px1 captures a review baseline automatically and notices external edits in the browser, so no wrapper, plugin command, or manual re-index is required. Existing local work is part of that baseline; only later changes enter the queue. For an agent worktree opened after work has started, px1 instead uses the commit checked out when that worktree was created, so committed and uncommitted agent work remains reviewable. Turn automatic baselines off with `review.autoStart` in settings.
+Keep team rules in `.px1/rules.json` at the repository root. For example:
 
-1. Start px1 before assigning the task; the review baseline starts automatically.
-2. Inspect each task-baseline diff with **Next change**.
-3. Leave feedback, ask the agent to revise, make a narrow patch, or revert a hunk.
-4. Run a configured check; approve only the revision it verified.
+- “Use a ternary instead of an if/else for simple value assignments.”
+- “Use our API client instead of calling fetch directly.”
+- “Never log access tokens.”
 
-## Install
+The goal is to explain a team's expectations in plain language and highlight
+code that does not meet them. Today's report implementation uses regex patterns
+and file globs with readable messages. Understanding arbitrary natural-language
+rules is still planned; a regex match alone does not prove a semantic violation.
 
-The quickest install is through npm (Node 16+):
+## What is ready, and what is next?
+
+The report work on the [integration branch](https://github.com/kedarvartak/px1/tree/codex/remove-telemetry-metrics)
+includes HTML export, diffs, rule findings with surrounding code, CI result
+import, and a GitHub Pages workflow that posts a PR link. Deployment still needs
+end-to-end testing. The default branch and published CLI do not yet include
+all of that work.
+
+AI explanation chips, richer block highlighting, broader rule understanding,
+and keeping earlier reports available are next. See the [product vision](docs/PRODUCT_VISION.md)
+for the intended experience and current limits.
+
+The first delivery path uses GitHub Actions and GitHub Pages. It does not
+require running a px1 SaaS. AI-generated explanations will need a configured
+provider; basic diffs and pattern-based rule findings do not. Reports contain
+source code, so choose publication access appropriate for your repository.
+
+## Try the existing CLI
+
+The existing CLI opens a repository in your browser. This is the current local
+review tool; the PR report experience above is the product being built.
 
 ```bash
 npx px1-cli
+# Or install the command:
 npm install -g px1-cli
+px1 /path/to/repo
 ```
 
-The command is `px1`; the package downloads the platform binary and has no runtime dependencies beyond Node. For a source build, you need Go 1.25+ and Node for the bundled web assets:
+To build from source, use Go 1.25+ and Node for the web assets:
 
 ```bash
 git clone https://github.com/kedarvartak/px1.git
 cd px1
 make build
-install -d ~/.local/bin && install px1 ~/.local/bin/
 ```
-
-## Demos
-
-[CLI to review](output/demos/cli-to-review.mp4) shows the npm-installed command opening a workspace and moving from the terminal into review. A [WebM version](output/demos/cli-to-review.webm) is included for browsers that prefer it.
-
-## Use
-
-```bash
-px1                    # current workspace
-px1 ~/src/project      # another workspace
-px1 main.go:42         # open a file at a line
-px1 -no-open -port 8080 /workspace
-```
-
-For a remote machine, bind to a private network and access it over Tailscale, WireGuard, or a tunnel:
-
-```bash
-px1 -host 0.0.0.0 -port 7777 ~/work/repo
-```
-
-Anyone able to reach px1 by IP can dispatch configured agent edits as you. Keep remote instances on a private network; agent editing is intentionally refused through hostnames such as reverse proxies and tunnel domains.
-
-## What is included
-
-- File, symbol, and workspace search; Git-aware tree and diffs; Markdown preview
-- Optional local LSP navigation and hover, with a regex-outline fallback
-- Coding-agent handoff for Claude Code, Codex, Gemini CLI, Cursor Agent, OpenCode, Aider, Goose, and custom commands
-- Configurable verification commands, themes, and user-local settings
-- Local-first operation: one binary, no account, no code upload
-
-## Performance
-
-px1 is built for large repositories and remote machines: it indexes the Linux kernel corpus (95,710 files / 1.8 GB) in 370 ms with 55 MB RSS in the included benchmark. Run `./benchmark.sh` to reproduce results; see [BENCHMARKS.md](BENCHMARKS.md) for methodology.
 
 ## Development
 
 ```bash
 make test
 go run . -dev . .
-make dist
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidance and [docs/internals](docs/internals/README.md) for architecture details.
+See [contribution guidance](CONTRIBUTING.md), [engineering documentation](docs/internals/README.md),
+and [release instructions](PUBLISHING.md).
 
 ## License
 

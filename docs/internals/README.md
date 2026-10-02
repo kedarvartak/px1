@@ -1,12 +1,12 @@
 # px1 Internal Architecture & Design Documentation
 
-Welcome to the internal engineering documentation for px1, a local-first review
-control plane for AI-generated code. It turns team-specific rules, commit-
-pinned diffs, contextual findings, and CI evidence into a reviewable artifact;
-optional provider integrations can explain code without making the core depend
-on a cloud service or an LLM. The local application remains an ultra-lightweight,
-zero-config code reader and navigator packaged as a single statically-linked
-binary (~9.5 MB).
+px1 is building a review report attached to a GitHub PR. Reviewers open it to
+read diffs, understand highlighted blocks through concise AI explanation chips,
+and find violations of rules stored in the repository.
+
+See the [product vision](../PRODUCT_VISION.md) for the intended experience and
+implementation status. The guides below describe the existing Go application
+and browser viewer that support this work; AI chips are still planned.
 
 This directory contains in-depth technical write-ups explaining how px1 achieves sub-millisecond startup, instantaneous file navigation, deep code intelligence, and a minimal memory footprint (~20 MB RSS) across codebases containing tens of thousands of files.
 

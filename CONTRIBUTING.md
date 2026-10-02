@@ -1,12 +1,17 @@
 # Contributing to px1
 
-Thank you for your interest in improving px1.
+px1 helps reviewers understand agent-written PRs through an attached report.
+The goal is clear diffs, short AI explanations beside highlighted code blocks,
+and findings for team rules stored in the repository. See the
+[product vision](docs/PRODUCT_VISION.md) for status and priorities.
 
 ## AI-Driven Development and Contributions
 
 px1 is built and maintained entirely using AI coding agents.
 
-Because all implementation, architecture refactoring, and code changes are written by AI agents guided by our core design principles (zero config, zero runtime dependencies, lean memory footprint, single binary, reads-first focus with edits delegated to coding agents), we generally do not accept unsolicited pull requests containing manual or disparate code patches.
+Implementation is written by AI agents guided by the PR report workflow and
+our engineering constraints. We generally do not accept unsolicited pull
+requests containing manual or disparate code patches.
 
 Instead, the most valuable contribution you can provide is a clear, detailed bug report or a well-reasoned feature idea.
 
@@ -21,14 +26,14 @@ If you encounter unexpected behavior, memory leaks, navigation bugs, or performa
 
 ### Suggest a Feature or Improvement
 
-Have an idea to make reading and navigating code faster or smoother?
+Have an idea that makes a PR easier to understand or a team-rule finding easier to verify?
 
 - Open a new issue using our [Feature Request Template](.github/ISSUE_TEMPLATE/feature_request.md).
-- Explain the motivation: what problem does this solve, why would it strengthen px1's human review and agent-control workflow while preserving its minimal footprint?
+- Explain how it helps a reviewer understand a change, check a rule, or reach a review decision.
 
 ## Review and Implementation Process
 
-1. Review: Maintainers evaluate every issue against px1's design philosophy (simplicity, single-binary distribution, minimal resource consumption, speed).
+1. Review: Maintainers evaluate how the change improves the PR report and whether it stays simple and fast.
 1. Assessment: We determine whether the proposal is apt, feasible, and aligned with the project roadmap.
 1. Execution: If approved, we formulate prompt specifications and task plans, and our AI agents implement, test, benchmark, and release the changes.
 
