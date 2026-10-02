@@ -8,7 +8,7 @@ on:
     types: [opened, synchronize, reopened]
 
 permissions:
-  contents: read
+  contents: write
   checks: read
   pages: write
   id-token: write
@@ -96,6 +96,10 @@ jobs:
             fs.mkdirSync('.px1', { recursive: true });
             fs.writeFileSync(process.env.VERIFICATION_FILE, `${JSON.stringify(report, null, 2)}\n`);
 
+      - name: Restore historical review reports
+        shell: bash
+        run: scripts/review-report-history.sh restore site
+
       - name: Export commit-pinned report
         shell: bash
         run: |
@@ -108,6 +112,10 @@ jobs:
             --verification-file .px1/verification.json \
             --out "$report_dir"
           test -s "$report_dir/index.html"
+
+      - name: Preserve historical review reports
+        shell: bash
+        run: scripts/review-report-history.sh publish site
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
