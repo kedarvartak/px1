@@ -32,6 +32,27 @@ index 1111111..2222222 100644
 	}
 }
 
+func TestStaticReviewContextStaysWithinHunk(t *testing.T) {
+	diff := `diff --git a/api/users.ts b/api/users.ts
+index 1111111..2222222 100644
+--- a/api/users.ts
++++ b/api/users.ts
+@@ -1,4 +1,5 @@
+ const before = true
+-const old = true
++const added = fetch('/users')
++const after = true
+ const trailing = true
+`
+	hits := addStaticReviewContexts([]ruleHit{{Path: "api/users.ts", Line: 2, Text: "const added = fetch('/users')"}}, diff)
+	if len(hits) != 1 || len(hits[0].Context) != 5 {
+		t.Fatalf("contexts = %#v", hits)
+	}
+	if hits[0].Context[0].Kind != "context" || hits[0].Context[1].Kind != "removed" || hits[0].Context[2].Kind != "added" || hits[0].Context[2].Number != 2 {
+		t.Fatalf("context kinds = %#v", hits[0].Context)
+	}
+}
+
 func TestGenerateStaticReviewUsesPinnedCommits(t *testing.T) {
 	root := t.TempDir()
 	runGitTest(t, root, "init")
@@ -64,6 +85,9 @@ func TestGenerateStaticReviewUsesPinnedCommits(t *testing.T) {
 	hit := report.RuleHits[0]
 	if hit.Path != "api/users.ts" || hit.Line != 2 || hit.Message != "Use apiClient, not fetch" {
 		t.Fatalf("hit = %#v", hit)
+	}
+	if len(hit.Context) == 0 || hit.Context[0].Text != "export const load = () => true" {
+		t.Fatalf("context = %#v", hit.Context)
 	}
 	if report.Verification.Available || report.Verification.Error != "" || len(report.Verification.Checks) != 0 {
 		t.Fatalf("verification = %#v", report.Verification)
