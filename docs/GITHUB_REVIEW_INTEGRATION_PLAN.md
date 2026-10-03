@@ -86,7 +86,11 @@ These pieces can be implemented and tested locally without external accounts:
    separate local or CI concern. Changed files are parsed into structured
    hunks with old/new line numbers and addition/removal highlighting, while
    binary or otherwise unparsed patches retain a raw-diff fallback.
-2. Add commit-pinned GitHub review URL parsing and routing.
+2. Add commit-pinned GitHub review URL parsing and routing. This is now
+   implemented: the live server accepts only the exact shared-link shape,
+   requires one full 40-character SHA, and embeds the validated, read-only
+   review identity in the app page. Snapshot import remains separate, so
+   opening a valid route does not mutate a local review session.
 3. Add persisted review disposition with approval guards for stale files and
    open comments.
 4. Add an import endpoint that accepts PR metadata and a snapshot, with strict

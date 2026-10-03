@@ -60,6 +60,7 @@ The server is implemented in [`server.go`](../../server.go) using Go's standard 
 | Endpoint              | Method | Purpose                                                                 | Response Format                            |
 | --------------------- | ------ | ----------------------------------------------------------------------- | ------------------------------------------ |
 | `/`                   | `GET`  | Serves `web/index.html` (embedded or `-dev` disk copy)                  | `text/html; charset=utf-8`                 |
+| `/github/:owner/:repo/pull/:number?sha=:head` | `GET` | Validates a commit-pinned GitHub review identity and serves the app with that identity embedded as read-only JSON | `text/html; charset=utf-8` |
 | `/static/*`           | `GET`  | Serves bundled JavaScript, CSS, and static assets                       | Asset MIME type                            |
 | `/api/meta`           | `GET`  | Workspace metadata (root path, file count, git status)                  | JSON (`{root, name, files, git}`)          |
 | `/api/tree`           | `GET`  | Directory contents for the sidebar file explorer (`?dir=path`)          | JSON array of `Node` objects               |
