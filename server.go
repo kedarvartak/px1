@@ -64,6 +64,7 @@ func NewServer(ix *Index, lsp *lspManager) *Server {
 	s := &Server{ix: ix, lsp: lsp, mux: http.NewServeMux(), review: newReviewManager(ix.Root()), rules: newRuleMemory(ix.Root()), ruleSuggest: map[int64]map[string]any{}, verify: newVerificationManager(ix.Root())}
 	sub, _ := fs.Sub(assets, "web")
 	s.mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(sub))))
+	s.mux.HandleFunc("/github/", s.handleGitHubReview)
 	s.mux.HandleFunc("/", s.handleIndex)
 	s.mux.HandleFunc("/api/meta", s.handleMeta)
 	s.mux.HandleFunc("/api/tree", s.handleTree)
@@ -226,13 +227,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	b, err := fs.ReadFile(assets, "web/index.html")
-	if err != nil {
-		fail(w, 500, err.Error())
-		return
-	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write(b)
+	s.serveIndex(w, nil)
 }
 
 func (s *Server) handleMeta(w http.ResponseWriter, r *http.Request) {
