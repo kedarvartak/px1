@@ -60,7 +60,7 @@ The server is implemented in [`server.go`](../../server.go) using Go's standard 
 | Endpoint              | Method | Purpose                                                                 | Response Format                            |
 | --------------------- | ------ | ----------------------------------------------------------------------- | ------------------------------------------ |
 | `/`                   | `GET`  | Serves `web/index.html` (embedded or `-dev` disk copy)                  | `text/html; charset=utf-8`                 |
-| `/github/:owner/:repo/pull/:number?sha=:head` | `GET` | Validates a commit-pinned GitHub review identity and serves the app with that identity embedded as read-only JSON | `text/html; charset=utf-8` |
+| `/github/:owner/:repo/pull/:number?sha=:head` | `GET` | Serves an imported immutable report when present; otherwise serves the app with the validated identity embedded as read-only JSON | `text/html; charset=utf-8` |
 | `/static/*`           | `GET`  | Serves bundled JavaScript, CSS, and static assets                       | Asset MIME type                            |
 | `/api/meta`           | `GET`  | Workspace metadata (root path, file count, git status)                  | JSON (`{root, name, files, git}`)          |
 | `/api/tree`           | `GET`  | Directory contents for the sidebar file explorer (`?dir=path`)          | JSON array of `Node` objects               |
@@ -83,6 +83,7 @@ The server is implemented in [`server.go`](../../server.go) using Go's standard 
 | `/api/lsp/install`    | `POST` | Executes user-level installer in background                             | JSON (`{ok: true}`)                        |
 | `/api/lsp/start`      | `POST` | Rescans and starts language server after installation                   | JSON (`{ok: true}`)                        |
 | `/api/agent/job`      | `GET`  | Snapshot of an explicit review-provider job `?id=...`, or the most recently started when omitted | JSON job snapshot |
+| `/api/review/import`  | `POST` | Authenticated, size-limited import of a versioned GitHub PR snapshot; requires `PX1_IMPORT_TOKEN` | JSON (`{imported, path, target}`) |
 
 ### Automatic external-change refresh
 

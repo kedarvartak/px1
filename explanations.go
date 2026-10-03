@@ -51,12 +51,16 @@ func parseStaticExplanations(b []byte, head string, changed map[string]bool, lab
 	if !validRevision(file.Revision) || file.Revision != head {
 		return nil, fmt.Errorf("%s: revision must match review head %s", label, shortRevision(head))
 	}
-	if len(file.Explanations) > explanationMaxItems {
+	return validateStaticExplanations(file.Explanations, changed, label)
+}
+
+func validateStaticExplanations(explanations []staticExplanation, changed map[string]bool, label string) ([]staticExplanation, error) {
+	if len(explanations) > explanationMaxItems {
 		return nil, fmt.Errorf("%s: at most %d explanations", label, explanationMaxItems)
 	}
 	seen := map[string]bool{}
-	for i := range file.Explanations {
-		explanation := &file.Explanations[i]
+	for i := range explanations {
+		explanation := &explanations[i]
 		explanation.ID = strings.TrimSpace(explanation.ID)
 		explanation.Path = filepath.ToSlash(strings.TrimSpace(explanation.Path))
 		explanation.Title = strings.TrimSpace(explanation.Title)
@@ -78,8 +82,8 @@ func parseStaticExplanations(b []byte, head string, changed map[string]bool, lab
 			return nil, fmt.Errorf("%s explanation %q: summary must be between 1 and %d bytes", label, explanation.ID, explanationMaxText)
 		}
 	}
-	sort.Slice(file.Explanations, func(i, j int) bool {
-		left, right := file.Explanations[i], file.Explanations[j]
+	sort.Slice(explanations, func(i, j int) bool {
+		left, right := explanations[i], explanations[j]
 		if left.Path != right.Path {
 			return left.Path < right.Path
 		}
@@ -88,10 +92,10 @@ func parseStaticExplanations(b []byte, head string, changed map[string]bool, lab
 		}
 		return left.ID < right.ID
 	})
-	if file.Explanations == nil {
+	if explanations == nil {
 		return []staticExplanation{}, nil
 	}
-	return file.Explanations, nil
+	return explanations, nil
 }
 
 func safeExplanationPath(path string) bool {

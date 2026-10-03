@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -109,6 +110,21 @@ func TestGenerateStaticReviewUsesPinnedCommits(t *testing.T) {
 	out := t.TempDir()
 	if err := writeStaticReviewReport(out, report); err != nil {
 		t.Fatal(err)
+	}
+	snapshotPath := filepath.Join(out, "snapshot.json")
+	if err := writeStaticReviewSnapshot(snapshotPath, report); err != nil {
+		t.Fatal(err)
+	}
+	snapshotBytes, err := os.ReadFile(snapshotPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var snapshot staticReviewReport
+	if err := json.Unmarshal(snapshotBytes, &snapshot); err != nil {
+		t.Fatal(err)
+	}
+	if snapshot.Version != 1 || snapshot.Base != base || snapshot.Head != head || len(snapshot.Files) != len(report.Files) {
+		t.Fatalf("snapshot JSON lost report identity: %#v", snapshot)
 	}
 	b, err := os.ReadFile(filepath.Join(out, "index.html"))
 	if err != nil {

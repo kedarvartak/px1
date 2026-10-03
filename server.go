@@ -39,13 +39,14 @@ func useDiskAssets(dir string) error {
 }
 
 type Server struct {
-	ix     *Index
-	lsp    *lspManager
-	agent  *agentManager // nil unless main wires editing for this session
-	review *reviewManager
-	rules  *ruleMemory
-	verify *verificationManager
-	mux    *http.ServeMux
+	ix        *Index
+	lsp       *lspManager
+	agent     *agentManager // nil unless main wires editing for this session
+	review    *reviewManager
+	rules     *ruleMemory
+	verify    *verificationManager
+	snapshots *reviewSnapshotStore
+	mux       *http.ServeMux
 
 	pinMu  sync.Mutex
 	pinJob int64
@@ -61,7 +62,7 @@ func NewServer(ix *Index, lsp *lspManager) *Server {
 	if lsp == nil {
 		lsp = newLSPManager(ix.Root(), false)
 	}
-	s := &Server{ix: ix, lsp: lsp, mux: http.NewServeMux(), review: newReviewManager(ix.Root()), rules: newRuleMemory(ix.Root()), ruleSuggest: map[int64]map[string]any{}, verify: newVerificationManager(ix.Root())}
+	s := &Server{ix: ix, lsp: lsp, mux: http.NewServeMux(), review: newReviewManager(ix.Root()), rules: newRuleMemory(ix.Root()), ruleSuggest: map[int64]map[string]any{}, verify: newVerificationManager(ix.Root()), snapshots: newReviewSnapshotStore(reviewSnapshotRoot())}
 	sub, _ := fs.Sub(assets, "web")
 	s.mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(sub))))
 	s.mux.HandleFunc("/github/", s.handleGitHubReview)
@@ -89,6 +90,7 @@ func NewServer(ix *Index, lsp *lspManager) *Server {
 	s.mux.HandleFunc("/api/lsp/start", s.handleLSPStart)
 	s.mux.HandleFunc("/api/agent/job", s.handleAgentJob)
 	s.mux.HandleFunc("/api/review/session", s.handleReviewSession)
+	s.mux.HandleFunc("/api/review/import", s.handleReviewImport)
 	s.mux.HandleFunc("/api/review/revision", s.handleReviewRevision)
 	s.mux.HandleFunc("/api/review/session/start", s.handleReviewStart)
 	s.mux.HandleFunc("/api/review/session/restore", s.handleReviewRestore)

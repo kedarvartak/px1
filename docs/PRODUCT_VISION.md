@@ -46,15 +46,12 @@ The first path uses GitHub Actions to generate a static report, GitHub Pages
 to serve it, and a PR comment to link to it. No px1 SaaS is required. AI
 explanations need a configured provider; diffs and pattern matching do not.
 
-Report export, contextual findings, CI imports, and the publishing workflow
-are implemented on the [integration branch](https://github.com/kedarvartak/px1/tree/codex/remove-telemetry-metrics).
-Deployment testing and integration into the default branch remain. AI
-explanation chips and richer block highlighting are planned.
-
-Reports identify the commit being reviewed. The current publishing workflow
-replaces the deployed site with the latest report. Preserving earlier links,
-including reports for other PRs, remains unfinished. CI results are a snapshot
-at generation time.
+Report export, contextual findings, explanation chips, structured highlighted
+diffs, exact-revision CI evidence, GitHub Pages publishing, sticky PR links,
+and historical SHA retention are implemented on the default branch. A
+self-hosted server can also accept a bearer-authenticated, immutable snapshot
+and serve it from a commit-pinned GitHub review route. Authenticated reviewer
+links and automated explanation generation remain planned.
 
 ## Priorities
 

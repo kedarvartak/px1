@@ -94,7 +94,11 @@ These pieces can be implemented and tested locally without external accounts:
 3. Add persisted review disposition with approval guards for stale files and
    open comments.
 4. Add an import endpoint that accepts PR metadata and a snapshot, with strict
-   SHA validation.
+   SHA validation. This is now implemented at `POST /api/review/import`: it
+   requires `PX1_IMPORT_TOKEN`, rejects ambiguous or mismatched identities,
+   stores immutable snapshots outside the checkout, and serves them from the
+   commit-pinned GitHub route. Read-link authentication remains the next
+   security slice.
 5. Add a GitHub Action template that publishes or updates the sticky link when
    `PX1_REVIEW_BASE_URL` is configured. The first Pages-based workflow is now
    implemented in `.github/workflows/px1-review-report.yml`: it runs trusted
@@ -113,6 +117,8 @@ These pieces can be implemented and tested locally without external accounts:
   short-lived `GITHUB_TOKEN`.
 - Hosted mode uses a GitHub App with least-privilege repository permissions.
 - Snapshot imports must validate repository, PR number, and full commit SHA.
+- Snapshot imports require a high-entropy `PX1_IMPORT_TOKEN`; identical
+  deliveries are idempotent and existing commit identities cannot be replaced.
 - Review links should be authenticated or signed before exposing private code.
 - API keys are server-side configuration only; the browser receives provider
   results, never secrets.
