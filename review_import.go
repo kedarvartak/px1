@@ -84,7 +84,48 @@ func (s *reviewSnapshotStore) Save(in reviewSnapshotImport) (bool, error) {
 	if !errors.Is(err, os.ErrNotExist) {
 		return false, err
 	}
-	if err := writeAtomic(path, b, 0o600); err != nil {
+	created, err := writeImmutable(path, b, 0o600)
+	if err == nil && created {
+		return true, nil
+	}
+	if err != nil && !errors.Is(err, os.ErrExist) {
+		return false, err
+	}
+	// Another px1 process may have won the exclusive publish after our first
+	// read. Compare its complete file rather than replacing it.
+	existing, err = os.ReadFile(path)
+	if err != nil {
+		return false, err
+	}
+	if string(existing) == string(b) {
+		return false, nil
+	}
+	return false, errReviewSnapshotConflict
+}
+
+// writeImmutable publishes a complete file only when its destination does not
+// exist. Linking a fully written temporary file keeps the operation atomic
+// across multiple px1 processes sharing the same state directory.
+func writeImmutable(path string, b []byte, mode os.FileMode) (bool, error) {
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return false, err
+	}
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".px1-import-")
+	if err != nil {
+		return false, err
+	}
+	tmpName := tmp.Name()
+	defer os.Remove(tmpName)
+	if _, err = tmp.Write(b); err == nil {
+		err = tmp.Chmod(mode)
+	}
+	if closeErr := tmp.Close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		return false, err
+	}
+	if err := os.Link(tmpName, path); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -213,12 +254,15 @@ func validateReviewSnapshotImport(in *reviewSnapshotImport) error {
 	if in.PullRequest <= 0 {
 		return errors.New("import has an invalid pull request number")
 	}
+	in.Owner = strings.ToLower(in.Owner)
+	in.Repository = strings.ToLower(in.Repository)
 	in.Base = strings.ToLower(in.Base)
 	in.Head = strings.ToLower(in.Head)
 	if !validRevision(in.Base) || !validRevision(in.Head) {
 		return errors.New("base and head must be full 40-character commit SHAs")
 	}
 	report := &in.Snapshot
+	report.Repository = strings.ToLower(report.Repository)
 	report.Base = strings.ToLower(report.Base)
 	report.Head = strings.ToLower(report.Head)
 	if report.Version != 1 {

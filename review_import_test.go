@@ -3,9 +3,11 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -170,5 +172,58 @@ func TestReviewSnapshotImportRequiresJSON(t *testing.T) {
 	s.ServeHTTP(w, r)
 	if w.Code != http.StatusUnsupportedMediaType {
 		t.Fatalf("status = %d, body = %s", w.Code, w.Body.String())
+	}
+}
+
+func TestReviewSnapshotStoreIsImmutableAcrossProcesses(t *testing.T) {
+	root := t.TempDir()
+	firstStore := newReviewSnapshotStore(root)
+	secondStore := newReviewSnapshotStore(root)
+	first := testReviewImport()
+	second := testReviewImport()
+	second.Snapshot.GeneratedAt = second.Snapshot.GeneratedAt.Add(time.Minute)
+
+	start := make(chan struct{})
+	type result struct {
+		created bool
+		err     error
+	}
+	results := make(chan result, 2)
+	var wg sync.WaitGroup
+	for _, candidate := range []reviewSnapshotImport{first, second} {
+		candidate := candidate
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-start
+			created, err := newReviewSnapshotStore(root).Save(candidate)
+			results <- result{created: created, err: err}
+		}()
+	}
+	close(start)
+	wg.Wait()
+	close(results)
+
+	created, conflicts := 0, 0
+	for result := range results {
+		if result.created {
+			created++
+		}
+		if errors.Is(result.err, errReviewSnapshotConflict) {
+			conflicts++
+		} else if result.err != nil {
+			t.Fatal(result.err)
+		}
+	}
+	if created != 1 || conflicts != 1 {
+		t.Fatalf("created = %d, conflicts = %d; want one of each", created, conflicts)
+	}
+
+	target := githubReviewTarget{Owner: "ACME", Repository: "Widgets", PullRequest: 42, Head: testReviewSHA}
+	if _, found, err := firstStore.Load(target); err != nil || !found {
+		t.Fatalf("first store load: found=%v err=%v", found, err)
+	}
+	if _, found, err := secondStore.Load(target); err != nil || !found {
+		t.Fatalf("second store load: found=%v err=%v", found, err)
 	}
 }
