@@ -13,29 +13,11 @@ import (
 func TestSettingsDefaults(t *testing.T) {
 	isolateSettings(t)
 	m := readMergedSettingsMap()
-	if m["editor.fontSize"] != 13.5 {
-		t.Errorf("expected editor.fontSize 13.5, got %v", m["editor.fontSize"])
+	if len(m) != 0 {
+		t.Errorf("fresh settings should be empty, got %v", m)
 	}
-	if m["workbench.colorTheme"] != "github-dark" {
-		t.Errorf("expected workbench.colorTheme github-dark, got %v", m["workbench.colorTheme"])
-	}
-	if m["editor.wordWrap"] != "on" {
-		t.Errorf("expected editor.wordWrap on, got %v", m["editor.wordWrap"])
-	}
-	if m["editor.cursorStyle"] != "line" {
-		t.Errorf("expected editor.cursorStyle line, got %v", m["editor.cursorStyle"])
-	}
-	if m["explorer.compactFolders"] != true {
-		t.Errorf("expected explorer.compactFolders true, got %v", m["explorer.compactFolders"])
-	}
-	if m["search.smartCase"] != true {
-		t.Errorf("expected search.smartCase true, got %v", m["search.smartCase"])
-	}
-	if m["lsp.enabled"] != true {
-		t.Errorf("expected lsp.enabled true, got %v", m["lsp.enabled"])
-	}
-	if m["agent.timeoutSeconds"] != 120.0 && m["agent.timeoutSeconds"] != 120 {
-		t.Errorf("expected agent.timeoutSeconds 120, got %v", m["agent.timeoutSeconds"])
+	if reviewAutoStartEnabled() {
+		t.Errorf("expected local automatic reviews to be opt-in")
 	}
 }
 
@@ -44,9 +26,8 @@ func TestSettingsPreserveNonAgentValues(t *testing.T) {
 
 	// Step 1: Update editor settings
 	err := updateSettingsMap(map[string]any{
-		"editor.fontSize":      16.0,
-		"workbench.colorTheme": "midnight",
-		"custom.property":      "hello",
+		"editor.fontSize": 16.0,
+		"custom.property": "hello",
 	})
 	if err != nil {
 		t.Fatalf("updateSettingsMap failed: %v", err)
@@ -67,9 +48,6 @@ func TestSettingsPreserveNonAgentValues(t *testing.T) {
 	m := readMergedSettingsMap()
 	if m["editor.fontSize"] != 16.0 {
 		t.Errorf("editor.fontSize was overwritten: got %v, want 16", m["editor.fontSize"])
-	}
-	if m["workbench.colorTheme"] != "midnight" {
-		t.Errorf("workbench.colorTheme was overwritten: got %v, want midnight", m["workbench.colorTheme"])
 	}
 	if m["custom.property"] != "hello" {
 		t.Errorf("custom.property was lost: got %v, want hello", m["custom.property"])
@@ -108,13 +86,13 @@ func TestSettingsAPIEndpoints(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &getResp); err != nil {
 		t.Fatalf("invalid GET json response: %v", err)
 	}
-	if _, ok := getResp["schema"]; !ok {
-		t.Errorf("missing schema in GET /api/settings response")
+	if _, ok := getResp["raw"]; !ok {
+		t.Errorf("missing raw settings in GET /api/settings response")
 	}
 
 	// 2. POST /api/settings with key/value updates
 	payload := map[string]any{
-		"editor.tabSize":       2,
+		"editor.tabSize":              2,
 		"diffEditor.renderSideBySide": false,
 	}
 	b, _ := json.Marshal(payload)
@@ -136,10 +114,9 @@ func TestSettingsAPIEndpoints(t *testing.T) {
 	if m["diffEditor.renderSideBySide"] != false {
 		t.Errorf("expected diffEditor.renderSideBySide false, got %v", m["diffEditor.renderSideBySide"])
 	}
-
 	// 4. POST /api/settings with raw JSON
 	rawPayload := map[string]any{
-		"raw": "{\n  \"editor.fontSize\": 15,\n  \"workbench.colorTheme\": \"vesper\"\n}\n",
+		"raw": "{\n  \"editor.fontSize\": 15\n}\n",
 	}
 	rb, _ := json.Marshal(rawPayload)
 	rawReq := httptest.NewRequest(http.MethodPost, "/api/settings", bytes.NewReader(rb))
@@ -155,8 +132,5 @@ func TestSettingsAPIEndpoints(t *testing.T) {
 	m2 := readMergedSettingsMap()
 	if m2["editor.fontSize"] != float64(15) && m2["editor.fontSize"] != 15 {
 		t.Errorf("expected editor.fontSize 15 from raw, got %v", m2["editor.fontSize"])
-	}
-	if m2["workbench.colorTheme"] != "vesper" {
-		t.Errorf("expected workbench.colorTheme vesper from raw, got %v", m2["workbench.colorTheme"])
 	}
 }

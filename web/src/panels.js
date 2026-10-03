@@ -1,13 +1,12 @@
 // web/src/panels.js
-import { $, $$, S, api } from './state.js';
+import { $, api } from './state.js';
 import { layout, render } from './renderer.js';
 import { updateStatus } from './status.js';
-import { loadOutline } from './outline.js';
 import { treeEl, openDirs, drawTree } from './tree.js';
 import { reloadOpenTabs } from './tabs.js';
 import { showToast } from './ui.js';
 
-export function showPanel(name) {
+export function showPanel() {
   document.body.classList.remove('side-hidden');
   layout();
   render();
@@ -15,8 +14,7 @@ export function showPanel(name) {
 
 export function initPanels() {
   $('#btn-reindex').addEventListener('click', async () => {
-    const j = await api('/api/reindex');
-    S.meta.files = j.files; S.meta.indexMs = j.indexMs;
+    await api('/api/reindex');
     treeEl.innerHTML = ''; openDirs.clear();
     await drawTree('', treeEl, 0);
     // Reindex is a refresh: re-fetch open tabs quietly in place without tab switching.

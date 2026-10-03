@@ -2,13 +2,13 @@
 
 Agents write the PR. px1 helps reviewers understand it.
 
-We are building an HTML report linked from each GitHub PR: diffs, highlighted
-code blocks, short AI explanation chips, and findings for rules your team keeps
-in `.px1/rules.json`.
+px1 evaluates versioned `.px1/rules.json` policy, renders structured diffs and
+contextual findings, and exports a commit-pinned HTML report for a GitHub pull
+request. The core runs locally without an account, hosted service, or LLM API
+key. Optional provider-generated explanations clarify changes; reviewers remain
+the decision-makers.
 
-This package installs the existing local CLI. The PR report work is under
-development; AI chips and arbitrary plain-language rules are planned. See the
-[product vision and status](https://github.com/kedarvartak/px1/blob/master/docs/PRODUCT_VISION.md).
+See the [product vision and status](https://github.com/kedarvartak/px1/blob/master/docs/PRODUCT_VISION.md).
 
 ```sh
 npx px1-cli            # review the current directory

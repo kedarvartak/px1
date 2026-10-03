@@ -1,11 +1,10 @@
 // web/src/diff.js
 // Git diff view for the active tab: renders the file's unified diff against
-// HEAD in a dedicated overlay (like the Markdown preview), in either a
+// HEAD in a dedicated overlay, in either a
 // side-by-side split layout (default) or a single-column unified layout.
 // Unlike the code viewport this is not virtualized -- a file's own diff is
 // bounded in size, so a plain DOM render is simple and fast enough.
 import { $, S, doc_, esc, api, apiPost } from './state.js';
-import { syncPreview } from './markdown.js';
 import { setStatusNote, updateStatus } from './status.js';
 
 export const diffview = $('#diffview');
@@ -73,7 +72,6 @@ export async function setDiffMode(mode) {
     d.diffDismissed = false;
     setLayoutPref(mode);
   }
-  syncPreview(); // markdown preview and diff view are mutually exclusive
   syncDiffView();
   updateStatus();
 }
@@ -89,7 +87,6 @@ export async function openReviewDiff(path) {
   d.diffHunks = undefined;
   d.diffMode = layoutPref() || 'split';
   d.diffDismissed = false;
-  syncPreview();
   syncDiffView();
   await drawDiff(d);
   updateStatus();
@@ -125,7 +122,7 @@ function renderDiff(d) {
   if (!d.diffHunks || !d.diffHunks.length) {
     const p = document.createElement('div');
     p.className = 'diff-empty';
-    p.textContent = 'No changes against HEAD.';
+    p.textContent = d.diffSource === 'review' ? 'No changes in this review.' : 'No changes against HEAD.';
     diffContent.append(p);
     return;
   }
@@ -139,22 +136,11 @@ function renderDiff(d) {
   }
   diffContent.append(frag);
   if (d.diffSource === 'review') placePins(d, tables);
-  syncDiffAgentTargets();
 }
 
 function rowLines(row) {
   const els = row.matches('[data-l]') ? [row] : [...row.querySelectorAll('[data-l]')];
   return els.map(el => +el.dataset.l);
-}
-
-function rowOld(row) {
-  const els = row.matches('[data-o]') ? [row] : [...row.querySelectorAll('[data-o]')];
-  return els.map(el => +el.dataset.o);
-}
-
-function rowCurrent(row) {
-  const els = row.matches('[data-l],[data-at]') ? [row] : [...row.querySelectorAll('[data-l],[data-at]')];
-  return els.map(el => +(el.dataset.l || el.dataset.at));
 }
 
 function placePins(d, tables) {
@@ -170,24 +156,6 @@ function placePins(d, tables) {
     }
     if (target) target.after(ruleHitCard(hit));
     else loose.push(ruleHitCard(hit));
-  }
-  for (const ch of (S.reviewChallenges || []).filter(c => c.path === d.path)) {
-    let target = null;
-    const current = [];
-    for (const table of tables) {
-      for (const row of table.children) {
-        if (rowOld(row).some(l => l >= ch.baselineFrom && l <= ch.baselineTo)) {
-          target = row;
-          current.push(...rowCurrent(row));
-        }
-      }
-      if (target) break;
-    }
-    const lines = current.filter(n => n > 0);
-    const at = lines.length ? { l1: Math.min(...lines), l2: Math.max(...lines) } : { l1: 1, l2: 1 };
-    const card = challengeCard(ch, at);
-    if (target) target.after(card);
-    else loose.push(card);
   }
   for (const pin of pins) {
     let target = null;
@@ -237,51 +205,6 @@ function ruleHitCard(hit) {
 
 export function revealRuleHit(key, line) {
   const card = diffContent.querySelector(`[data-rule-hit="${CSS.escape(key + '@' + line)}"]`);
-  if (!card) return false;
-  card.scrollIntoView({ block: 'center' });
-  return true;
-}
-
-function challengeCard(ch, at) {
-  const card = document.createElement('div');
-  card.className = 'pin pin-challenge';
-  card.dataset.challengeId = ch.id;
-  const head = document.createElement('button');
-  head.className = 'pin-head';
-  const mark = document.createElement('span');
-  mark.className = 'pin-mark';
-  mark.textContent = '⟲';
-  const text = document.createElement('span');
-  text.className = 'pin-decision';
-  text.textContent = 'Reverses a past decision: ' + ch.decision;
-  const ref = document.createElement('span');
-  ref.className = 'pin-ref';
-  ref.textContent = new Date(ch.recordedAt).toLocaleDateString();
-  head.append(mark, text, ref);
-  const body = document.createElement('div');
-  body.className = 'pin-body';
-  if (ch.why) {
-    const why = document.createElement('p');
-    why.className = 'pin-why';
-    why.textContent = ch.why;
-    body.append(why);
-  }
-  const acts = document.createElement('div');
-  acts.className = 'pin-acts';
-  acts.append(
-    pinButton('Ask agent to keep it', 'challenge-ask', { ...ch, at }),
-    pinButton('Decision changed', 'challenge-supersede', ch),
-    pinButton('Still holds', 'challenge-dismiss', ch),
-  );
-  body.append(acts);
-  head.addEventListener('click', () => { body.hidden = !body.hidden; card.classList.toggle('open', !body.hidden); });
-  card.classList.add('open');
-  card.append(head, body);
-  return card;
-}
-
-export function revealChallenge(id) {
-  const card = diffContent.querySelector(`[data-challenge-id="${CSS.escape(id)}"]`);
   if (!card) return false;
   card.scrollIntoView({ block: 'center' });
   return true;
@@ -360,18 +283,6 @@ export function revealPin(id) {
   card.classList.add('open');
   card.scrollIntoView({ block: 'center' });
   return true;
-}
-
-export function syncDiffAgentTargets() {
-  if (!diffview || diffview.hidden) return;
-  const d = doc_();
-  if (!d) return;
-  const ranges = (S.agentTargets || []).filter(t => t.path === d.path);
-  for (const el of diffview.querySelectorAll('[data-l]')) {
-    const l = +el.dataset.l;
-    const inAgent = ranges.some(r => l >= r.l1 && l <= r.l2);
-    el.classList.toggle('agent-sel', inAgent);
-  }
 }
 
 function hunkHeader(d, hunk) {

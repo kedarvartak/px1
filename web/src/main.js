@@ -1,6 +1,6 @@
 // web/src/main.js
 import { $, S, api, applyKeyLabels } from './state.js';
-import { measure, layout, render, initRenderer, updateEditorOptionControls } from './renderer.js';
+import { measure, layout, render, initRenderer } from './renderer.js';
 import { initTabs, openFile } from './tabs.js';
 import { initCursor } from './cursor.js';
 import { initHover } from './hover.js';
@@ -14,11 +14,8 @@ import { initCalls } from './calls.js';
 import { initFind } from './find.js';
 import { initPalette } from './palette.js';
 import { initShortcuts } from './shortcuts.js';
-import { initTheme } from './theme.js';
-import { initMarkdown } from './markdown.js';
 import { initDiff } from './diff.js';
-import { initAgent, applyAgentMeta, loadAgentAsync } from './agent.js';
-import { initMetrics, initStatusFit, updateMetricsDisplay, updateStatus } from './status.js';
+import { updateStatus } from './status.js';
 import { initSettings } from './settings.js';
 import { initReviewQueue, refreshReviewQueue, watchReviewWorkspace } from './review.js';
 import { initWorktrees } from './worktree.js';
@@ -38,19 +35,13 @@ initCalls();
 initFind();
 initPalette();
 initShortcuts();
-initMarkdown();
 initDiff();
-initAgent();
-initMetrics();
-initStatusFit();
 initSettings();
 initReviewQueue();
 
 // Bootstrap application lifecycle
 (async function boot() {
   try {
-    initTheme();
-
     // Restore word wrap (default ON)
     const wrapPref = localStorage.getItem('px1.wrap');
     S.wrap = wrapPref !== null ? wrapPref === 'true' : true;
@@ -60,20 +51,13 @@ initReviewQueue();
     S.lineNumbers = true;
     document.body.classList.remove('hide-lines');
 
-    // Restore Markdown preview (default ON)
-    const mdPref = localStorage.getItem('px1.mdPreview');
-    S.mdPreview = mdPref !== null ? mdPref === 'true' : true;
-
-    updateEditorOptionControls();
   } catch {}
 
   applyKeyLabels();
 
   measure();
   S.meta = await api('/api/meta');
-  if (S.meta.metrics) updateMetricsDisplay(S.meta.metrics);
   if (S.meta.git) { const b = $('#btn-changed'); if (b) b.hidden = false; }
-  applyAgentMeta();
   document.title = S.meta.name + ' - px1';
   $('#root-name').textContent = S.meta.name;
   $('#root-name').title = S.meta.root;
@@ -107,23 +91,4 @@ initReviewQueue();
     document.fonts.ready.then(() => { measure(); layout(); render(); });
   }
 
-  // If the background indexer was still running when the UI loaded, poll briefly
-  // until complete to update the total file count and index time in the status bar.
-  if (S.meta && !S.meta.ready) {
-    const timer = setInterval(async () => {
-      try {
-        const m = await api('/api/meta');
-        if (m.ready) {
-          clearInterval(timer);
-          S.meta = m;
-          updateStatus();
-        }
-      } catch {
-        clearInterval(timer);
-      }
-    }, 150);
-  }
-
-  // Load harnesses and models asynchronously after the browser is loaded.
-  loadAgentAsync();
 })();

@@ -43,7 +43,6 @@ type Server struct {
 	lsp    *lspManager
 	agent  *agentManager // nil unless main wires editing for this session
 	review *reviewManager
-	memory *decisionMemory
 	rules  *ruleMemory
 	verify *verificationManager
 	mux    *http.ServeMux
@@ -62,19 +61,16 @@ func NewServer(ix *Index, lsp *lspManager) *Server {
 	if lsp == nil {
 		lsp = newLSPManager(ix.Root(), false)
 	}
-	s := &Server{ix: ix, lsp: lsp, mux: http.NewServeMux(), review: newReviewManager(ix.Root()), memory: newDecisionMemory(ix.Root()), rules: newRuleMemory(ix.Root()), ruleSuggest: map[int64]map[string]any{}, verify: newVerificationManager(ix.Root())}
+	s := &Server{ix: ix, lsp: lsp, mux: http.NewServeMux(), review: newReviewManager(ix.Root()), rules: newRuleMemory(ix.Root()), ruleSuggest: map[int64]map[string]any{}, verify: newVerificationManager(ix.Root())}
 	sub, _ := fs.Sub(assets, "web")
 	s.mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(sub))))
-	s.mux.HandleFunc("/static/themes.css", s.handleThemes)
 	s.mux.HandleFunc("/", s.handleIndex)
 	s.mux.HandleFunc("/api/meta", s.handleMeta)
-	s.mux.HandleFunc("/api/metrics", s.handleMetrics)
 	s.mux.HandleFunc("/api/tree", s.handleTree)
 	s.mux.HandleFunc("/api/find", s.handleFind)
 	s.mux.HandleFunc("/api/file", s.handleFile)
 	s.mux.HandleFunc("/api/close", s.handleClose)
 	s.mux.HandleFunc("/api/raw", s.handleRaw)
-	s.mux.HandleFunc("/api/markdown", s.handleMarkdown)
 	s.mux.HandleFunc("/api/diff", s.handleDiff)
 	s.mux.HandleFunc("/api/gutter", s.handleGutter)
 	s.mux.HandleFunc("/api/search", s.handleSearch)
@@ -90,11 +86,7 @@ func NewServer(ix *Index, lsp *lspManager) *Server {
 	s.mux.HandleFunc("/api/lsp/setup", s.handleLSPSetup)
 	s.mux.HandleFunc("/api/lsp/install", s.handleLSPInstall)
 	s.mux.HandleFunc("/api/lsp/start", s.handleLSPStart)
-	s.mux.HandleFunc("/api/agent/harnesses", s.handleAgentHarnesses)
-	s.mux.HandleFunc("/api/agent/select", s.handleAgentSelect)
-	s.mux.HandleFunc("/api/agent/edit", s.handleAgentEdit)
 	s.mux.HandleFunc("/api/agent/job", s.handleAgentJob)
-	s.mux.HandleFunc("/api/agent/cancel", s.handleAgentCancel)
 	s.mux.HandleFunc("/api/review/session", s.handleReviewSession)
 	s.mux.HandleFunc("/api/review/revision", s.handleReviewRevision)
 	s.mux.HandleFunc("/api/review/session/start", s.handleReviewStart)
@@ -102,7 +94,6 @@ func NewServer(ix *Index, lsp *lspManager) *Server {
 	s.mux.HandleFunc("/api/review/session/close", s.handleReviewClose)
 	s.mux.HandleFunc("/api/review/diff", s.handleReviewDiff)
 	s.mux.HandleFunc("/api/review/checks", s.handleReviewChecks)
-	s.mux.HandleFunc("/api/review/check/run", s.handleReviewCheckRun)
 	s.mux.HandleFunc("/api/review/mark", s.handleReviewMark)
 	s.mux.HandleFunc("/api/review/comments", s.handleReviewComments)
 	s.mux.HandleFunc("/api/review/comments/agent", s.handleReviewCommentsAgent)
@@ -114,9 +105,6 @@ func NewServer(ix *Index, lsp *lspManager) *Server {
 	s.mux.HandleFunc("/api/review/pins", s.handleReviewPins)
 	s.mux.HandleFunc("/api/review/pins/explain", s.handleReviewPinsExplain)
 	s.mux.HandleFunc("/api/review/pin/status", s.handleReviewPinStatus)
-	s.mux.HandleFunc("/api/review/challenges", s.handleReviewChallenges)
-	s.mux.HandleFunc("/api/decisions", s.handleDecisions)
-	s.mux.HandleFunc("/api/decisions/resolve", s.handleDecisionResolve)
 	s.mux.HandleFunc("/api/rules", s.handleRules)
 	s.mux.HandleFunc("/api/rules/update", s.handleRuleUpdate)
 	s.mux.HandleFunc("/api/rules/suggest", s.handleRuleSuggest)
@@ -229,18 +217,9 @@ func fail(w http.ResponseWriter, code int, msg string) {
 	json.NewEncoder(w).Encode(map[string]string{"error": msg})
 }
 
-// SetAgent makes editing through a coding harness available. Unavailable
-// unless main wires it; available still means nothing runs until a harness is
-// picked, in the UI or with -agent.
+// SetAgent makes optional review-provider actions available. The provider is
+// configured with -agent or persisted settings; review actions start jobs.
 func (s *Server) SetAgent(a *agentManager) { s.agent = a }
-
-// agentHarnesses is the picker's list, empty when editing is unavailable.
-func (s *Server) agentHarnesses() []agentHarness {
-	if s.agent == nil {
-		return []agentHarness{}
-	}
-	return s.agent.Detect()
-}
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
@@ -256,51 +235,14 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
-// handleThemes joins web/themes/*.css into one stylesheet in file name order, so
-// adding a theme means adding a file: there is no list to keep in sync.
-func (s *Server) handleThemes(w http.ResponseWriter, r *http.Request) {
-	names, err := fs.Glob(assets, "web/themes/*.css")
-	if err != nil {
-		fail(w, 500, err.Error())
-		return
-	}
-	var css strings.Builder
-	for _, name := range names {
-		b, err := fs.ReadFile(assets, name)
-		if err != nil {
-			fail(w, 500, err.Error())
-			return
-		}
-		css.WriteString("/* " + strings.TrimPrefix(name, "web/") + " */\n")
-		css.Write(b)
-		css.WriteString("\n")
-	}
-	w.Header().Set("Content-Type", "text/css; charset=utf-8")
-	io.WriteString(w, css.String())
-}
-
 func (s *Server) handleMeta(w http.ResponseWriter, r *http.Request) {
-	n, at, ms := s.ix.Stats()
 	writeJSON(w, map[string]any{
-		"root":        s.ix.Root(),
-		"name":        filepath.Base(s.ix.Root()),
-		"files":       n,
-		"indexMs":     ms,
-		"builtAt":     at,
-		"ready":       s.ix.Ready(),
-		"git":         gitAvailable(s.ix.Root()),
-		"lspServers":  s.lsp.Available(),
-		"metrics":     getProcessMetrics(),
-		"version":     version,
-		"agent":       s.agent.Name(),
-		"agentModel":  s.agent.Model(),
-		"agentPinned": s.agent.Pinned(),
-		"agents":      []agentHarness{},
+		"root":    s.ix.Root(),
+		"name":    filepath.Base(s.ix.Root()),
+		"files":   s.ix.FileCount(),
+		"git":     gitAvailable(s.ix.Root()),
+		"version": version,
 	})
-}
-
-func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, getProcessMetrics())
 }
 
 // lspCtx bounds how long a caller is willing to wait. Language servers can take
@@ -598,7 +540,6 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
 		"path": rel, "lang": d.Lang, "total": d.Total, "maxCols": d.MaxCols,
 		"start": start, "lines": lines, "size": st.Size(),
 		"exact": exact, "refine": !exact && coming,
-		"markdown":      isMarkdown(rel),
 		"diffAvailable": diffAvail,
 		"lsp":           s.lspBrief(rel),
 	})
@@ -808,8 +749,7 @@ func (s *Server) handleDef(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleReindex(w http.ResponseWriter, r *http.Request) {
 	s.ix.Build()
-	n, _, ms := s.ix.Stats()
-	writeJSON(w, map[string]any{"files": n, "indexMs": ms})
+	writeJSON(w, map[string]any{"ok": true})
 }
 
 func (s *Server) handleSettings(w http.ResponseWriter, r *http.Request) {
@@ -817,8 +757,6 @@ func (s *Server) handleSettings(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		writeJSON(w, map[string]any{
 			"settings": readMergedSettingsMap(),
-			"defaults": defaultSettingsMap(),
-			"schema":   settingsSchema,
 			"raw":      readRawSettingsJSON(),
 			"path":     settingsPath(),
 		})
@@ -930,7 +868,6 @@ func (s *Server) handleWorktreeSwitch(w http.ResponseWriter, r *http.Request) {
 	}
 	s.lsp.SetRoot(target.Path)
 	s.review.SetRoot(target.Path)
-	s.memory.SetRoot(target.Path)
 	s.rules.SetRoot(target.Path)
 	s.verify.SetRoot(target.Path)
 	s.ix.SetRoot(target.Path)

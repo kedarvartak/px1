@@ -122,42 +122,18 @@ func get(t *testing.T, s *Server, url string) (int, map[string]any) {
 	return rec.Code, m
 }
 
-func TestThemesStylesheetJoinsEveryThemeFile(t *testing.T) {
+func TestFixedPaletteIsServed(t *testing.T) {
 	s, _ := newTestServer(t)
 	rec := httptest.NewRecorder()
-	s.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/static/themes.css", nil))
+	s.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/static/themes/github-dark.css", nil))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status %d", rec.Code)
 	}
 	if ct := rec.Header().Get("Content-Type"); !strings.HasPrefix(ct, "text/css") {
 		t.Fatalf("content type %q", ct)
 	}
-	files, _ := filepath.Glob(filepath.Join("web", "themes", "*.css"))
-	if len(files) == 0 {
-		t.Fatal("no themes in web/themes")
-	}
-	// Tokens with no fallback in style.css. Keep in sync with docs/internals/styling-and-themes.md.
-	required := []string{
-		"--bg", "--bg2", "--bg3", "--bg4", "--fg", "--dim", "--faint", "--line",
-		"--accent", "--accent-fg", "--sel", "--mark", "--mark-active", "--cur", "--shadow",
-		"--k", "--nf", "--s", "--m", "--c", "--err",
-	}
-	body := rec.Body.String()
-	for _, f := range files {
-		// The file name is the theme id, which the picker and saved preference use.
-		id := strings.TrimSuffix(filepath.Base(f), ".css")
-		if !strings.Contains(body, `:root[data-theme="`+id+`"]`) {
-			t.Errorf("%s: no :root[data-theme=%q] rule", f, id)
-		}
-		src, err := os.ReadFile(f)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, tok := range required {
-			if !strings.Contains(string(src), tok+":") {
-				t.Errorf("%s: missing required token %s", f, tok)
-			}
-		}
+	if !strings.Contains(rec.Body.String(), `:root[data-theme="github-dark"]`) || !strings.Contains(rec.Body.String(), "--bg:") {
+		t.Fatal("fixed palette is missing its selector or surface token")
 	}
 }
 
@@ -168,7 +144,7 @@ func TestIndexHonoursGitignore(t *testing.T) {
 			t.Errorf("indexed an ignored path: %s", f.Path)
 		}
 	}
-	if n, _, _ := s.ix.Stats(); n != 4 {
+	if n := s.ix.FileCount(); n != 4 {
 		t.Errorf("indexed %d files, want 4", n)
 	}
 }

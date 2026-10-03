@@ -1,8 +1,9 @@
 package main
 
-// Review sessions are deliberately kept outside a workspace.  They capture the
-// state a human started reviewing, so later agent changes can be compared with
-// (and restored to) that state without treating HEAD as the only baseline.
+// Review sessions are deliberately kept outside a workspace. Local sessions
+// capture the state a human started reviewing, while commit-pinned sessions
+// carry explicit base/head SHAs so later changes cannot replace their identity
+// with whatever happens to be checked out.
 
 import (
 	"archive/tar"
@@ -50,9 +51,8 @@ type reviewSession struct {
 	Patches  []reviewPatch             `json:"patches,omitempty"`
 	Pins     []reviewPin               `json:"pins,omitempty"`
 
-	DismissedDecisions []string   `json:"dismissedDecisions,omitempty"`
-	DismissedRuleHits  []string   `json:"dismissedRuleHits,omitempty"`
-	ClosedAt           *time.Time `json:"closedAt,omitempty"`
+	DismissedRuleHits []string   `json:"dismissedRuleHits,omitempty"`
+	ClosedAt          *time.Time `json:"closedAt,omitempty"`
 }
 
 // reviewDecision is tied to the exact content a human saw. A later write to
@@ -225,14 +225,30 @@ func writeAtomic(path string, b []byte, mode fs.FileMode) error {
 }
 
 func reviewHead(root string) string {
-	if !gitAvailable(root) {
-		return ""
-	}
-	b, err := execOutput("git", "-C", root, "rev-parse", "HEAD")
+	head, err := resolveCommit(root, "HEAD")
 	if err != nil {
 		return ""
 	}
-	return strings.TrimSpace(string(b))
+	return head
+}
+
+// resolveCommit turns a Git ref into its canonical commit SHA. Explicit
+// review identities use this boundary so aliases and the current workspace
+// state cannot silently replace the requested commit.
+func resolveCommit(root, ref string) (string, error) {
+	ref = strings.TrimSpace(ref)
+	if ref == "" {
+		return "", errors.New("commit ref is empty")
+	}
+	b, err := execOutput("git", "-C", root, "rev-parse", "--verify", ref+"^{commit}")
+	if err != nil {
+		return "", fmt.Errorf("could not resolve commit %q: %w", ref, err)
+	}
+	commit := strings.TrimSpace(string(b))
+	if commit == "" {
+		return "", fmt.Errorf("could not resolve commit %q", ref)
+	}
+	return commit, nil
 }
 
 // execOutput exists so review code has one small, testable seam around Git.
@@ -367,15 +383,37 @@ func snapshotRef(root, ref, copyTo string) ([]reviewFile, []string, error) {
 	return files, dirs, nil
 }
 
-func (m *reviewManager) Start() (*reviewSession, error) { return m.start("") }
+func (m *reviewManager) Start() (*reviewSession, error) {
+	return m.start("", reviewHead(m.root))
+}
 
-// StartFromRef takes the baseline from a commit instead of from the working
-// tree. Everything the branch has done since that commit, committed or not,
-// then shows up in the queue, so a review can begin after an agent has already
-// been working.
-func (m *reviewManager) StartFromRef(ref string) (*reviewSession, error) { return m.start(ref) }
+// StartFromRef is the local compatibility path used by opt-in automatic
+// worktree reviews. It pins the requested baseline and derives the head from
+// the checkout at the moment automatic mode starts.
+func (m *reviewManager) StartFromRef(ref string) (*reviewSession, error) {
+	base, err := resolveCommit(m.root, ref)
+	if err != nil {
+		return nil, err
+	}
+	return m.start(base, reviewHead(m.root))
+}
 
-func (m *reviewManager) start(ref string) (*reviewSession, error) {
+// StartFromCommits starts a commit-pinned review. Both identity values are
+// explicit and canonicalized before the baseline is read; this path never
+// infers a head from the current workspace.
+func (m *reviewManager) StartFromCommits(base, head string) (*reviewSession, error) {
+	baseSHA, err := resolveCommit(m.root, base)
+	if err != nil {
+		return nil, err
+	}
+	headSHA, err := resolveCommit(m.root, head)
+	if err != nil {
+		return nil, err
+	}
+	return m.start(baseSHA, headSHA)
+}
+
+func (m *reviewManager) start(baseRef, head string) (*reviewSession, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.active != nil {
@@ -394,8 +432,8 @@ func (m *reviewManager) start(ref string) (*reviewSession, error) {
 	var files []reviewFile
 	var dirs []string
 	var err error
-	if ref != "" {
-		files, dirs, err = snapshotRef(m.root, ref, filepath.Join(staging, "files"))
+	if baseRef != "" {
+		files, dirs, err = snapshotRef(m.root, baseRef, filepath.Join(staging, "files"))
 	} else {
 		files, dirs, err = snapshotTree(m.root, filepath.Join(staging, "files"))
 	}
@@ -403,7 +441,7 @@ func (m *reviewManager) start(ref string) (*reviewSession, error) {
 		os.RemoveAll(staging)
 		return nil, err
 	}
-	s := &reviewSession{Version: reviewManifestVersion, ID: id, Root: m.root, StartedAt: time.Now().UTC(), Head: reviewHead(m.root), BaseRef: ref, Files: files, Dirs: dirs, Reviews: map[string]reviewDecision{}}
+	s := &reviewSession{Version: reviewManifestVersion, ID: id, Root: m.root, StartedAt: time.Now().UTC(), Head: head, BaseRef: baseRef, Files: files, Dirs: dirs, Reviews: map[string]reviewDecision{}}
 	b, err := json.Marshal(s)
 	if err != nil {
 		os.RemoveAll(staging)
@@ -580,17 +618,32 @@ func (m *reviewManager) BaselineDiff(path string) (string, error) {
 	}
 	baseline := filepath.Join(m.sessionDir(m.active.ID), "files", filepath.FromSlash(path))
 	m.mu.Unlock()
-	if _, err := os.Stat(baseline); err != nil {
-		if os.IsNotExist(err) {
-			return "", errors.New("file was not present at review start")
-		}
-		return "", err
-	}
 	current := filepath.Join(m.root, filepath.FromSlash(path))
-	if _, err := os.Stat(current); err != nil {
-		return "", err
+	baseExists := true
+	if _, err := os.Stat(baseline); err != nil {
+		if !os.IsNotExist(err) {
+			return "", err
+		}
+		baseExists = false
 	}
-	cmd := exec.Command("git", "diff", "--no-index", "--no-color", "--", baseline, current)
+	currentExists := true
+	if _, err := os.Stat(current); err != nil {
+		if !os.IsNotExist(err) {
+			return "", err
+		}
+		currentExists = false
+	}
+	if !baseExists && !currentExists {
+		return "", errors.New("file was not available at either review state")
+	}
+	left, right := baseline, current
+	if !baseExists {
+		left = os.DevNull
+	}
+	if !currentExists {
+		right = os.DevNull
+	}
+	cmd := exec.Command("git", "diff", "--no-index", "--no-color", "--", left, right)
 	out, err := cmd.Output()
 	if err != nil {
 		if exit, ok := err.(*exec.ExitError); !ok || exit.ExitCode() != 1 {
@@ -1066,10 +1119,10 @@ func (s *Server) handleReviewCommentsAgent(w http.ResponseWriter, r *http.Reques
 		fail(w, 400, "bad comment path")
 		return
 	}
-	job, err := s.agent.Start(abs, rel, anchor.LineStart, anchor.LineEnd, reviewFeedbackInstruction(ready), false)
+	job, err := s.agent.Start(abs, rel, anchor.LineStart, anchor.LineEnd, reviewFeedbackInstruction(ready))
 	if err != nil {
 		code := 400
-		if errors.Is(err, errAgentBusy) || errors.Is(err, errAgentDirty) {
+		if errors.Is(err, errAgentBusy) {
 			code = http.StatusConflict
 		}
 		fail(w, code, err.Error())

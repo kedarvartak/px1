@@ -3,11 +3,10 @@ import { $, S, doc_, keyLabel } from './state.js';
 import { vp, copyToClipboard, showToast } from './ui.js';
 import { render } from './renderer.js';
 import { findReferences } from './lsp.js';
-import { fitStatus } from './status.js';
 
-/* While code is selected, the left of the status bar trades its navigation
-   buttons for actions on the selection, and hands them back once the selection
-   is gone. Unlike a floating menu it never covers code, and its buttons stay put. */
+/* While code is selected, the review action bar exposes actions on the
+   selection. Unlike a floating menu it never covers code, and its buttons stay
+   put. */
 
 const status = $('#status');
 const statsEl = $('#sel-stats');
@@ -15,13 +14,8 @@ const statsEl = $('#sel-stats');
 const diffviewEl = $('#diffview');
 
 // e.code, not e.key: Option+letter types a symbol on macOS.
-export const SEL_KEYS = { KeyC: 'copy-ref', KeyA: 'copy-agent', KeyU: 'usages', KeyE: 'agent-edit' };
+export const SEL_KEYS = { KeyC: 'copy-ref', KeyA: 'copy-agent', KeyU: 'usages' };
 
-/* Editing lives in agent.js, which registers itself here on load. Keeping the
-   dependency one-way means selbar imports nothing back and the two never form
-   a cycle; the button simply does nothing when no harness is configured. */
-let agentHandler = null;
-export function setAgentHandler(fn) { agentHandler = fn; }
 let reviewCommentHandler = null;
 export function setReviewCommentHandler(fn) { reviewCommentHandler = fn; }
 let reviewPatchHandler = null;
@@ -109,7 +103,6 @@ function showSelectionBar(info) {
   statsEl.textContent = (lines === 1 ? '1 line' : lines + ' lines') + ' · ' +
     info.text.length.toLocaleString() + ' chars';
   status.classList.add('selecting');
-  fitStatus();
 }
 
 export function hideSelectionBar() {
@@ -118,7 +111,6 @@ export function hideSelectionBar() {
   current = null;
   if (statsEl) statsEl.textContent = '';
   status.classList.remove('selecting');
-  fitStatus();
 }
 
 export function updateSelectionBar() {
@@ -178,9 +170,6 @@ export function runSelectionAction(act) {
     const lineStr = current.l1 === current.l2 ? 'line ' + current.l1 : 'lines ' + current.l1 + '-' + current.l2;
     const snippet = '@' + path + ' ' + lineStr + '\n```' + ext + '\n' + text + '\n```';
     copyToClipboard(snippet, 'Copied');
-  } else if (act === 'agent-edit') {
-    if (!agentHandler) return false;
-    agentHandler(current);
   } else if (act === 'review-comment') {
     if (!reviewCommentHandler) return false;
     reviewCommentHandler(current);
@@ -208,7 +197,6 @@ const SEL_MENU_ITEMS = [
   { sel: 'copy-agent', label: 'Copy with Context', keys: 'Alt+A' },
   { sel: 'review-comment', label: 'Add Review Comment', keys: '' },
   { sel: 'review-patch', label: 'Patch Selection', keys: '' },
-  { sel: 'agent-edit', label: 'Edit Inline', keys: 'Alt+E' },
   { sel: 'usages', label: 'Find Usages', keys: 'Alt+U' },
 ];
 

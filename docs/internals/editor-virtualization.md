@@ -2,6 +2,8 @@
 
 This document provides a comprehensive technical breakdown of px1's bespoke virtualized code viewer, caret engine, and selection preservation system ([`web/src/renderer.js`](../../web/src/renderer.js), [`web/src/cursor.js`](../../web/src/cursor.js), and [`web/style.css`](../../web/style.css)).
 
+The review queue is a separate, bounded sidebar surface rather than part of the virtualized editor. Its diffs are rendered from the task snapshot in [`web/src/diff.js`](../../web/src/diff.js), so a file created after the review starts is rendered as a `/dev/null` to current-file diff and is not confused with a clean Git HEAD diff. Queue search and status filters reduce the rendered file rows before they are mounted, keeping large review sessions responsive. CI verification results stay in the sidebar and are read-only: px1 displays the `.px1/verification.json` report only when its GitHub Actions source and commit SHA match the active review.
+
 ## 1. Why a Bespoke Virtualized Viewer?
 
 General-purpose browser code editors (such as Monaco, CodeMirror 6, or Ace) are engineered for bidirectional text editing, undo/redo trees, multi-cursor keystrokes, and complex grammar parsing inside the browser. Consequently:
@@ -180,4 +182,4 @@ Pressing `Ctrl+A` / `Cmd+A` outside a text input does not use the browser's nati
 
 ### Selection Actions
 
-Any selection, native or whole-file, drives the footer selection bar (`#footer-sel`) and the right-click menu (`#sel-menu`) in [`web/src/selbar.js`](../../web/src/selbar.js): Copy Ref, Copy with Context, Edit Inline, Find Usages, and reference copying via `Alt+C`. The viewport's `mousedown` handler only moves the caret for the primary button, so a right click on a selection neither moves the caret nor collapses the selection. See [Harness Editing & Agent Dispatch](agent-editing.md).
+Any selection, native or whole-file, drives the footer selection bar (`#footer-sel`) and the right-click menu (`#sel-menu`) in [`web/src/selbar.js`](../../web/src/selbar.js): Copy Ref, Copy with Context, Add Review Comment, Find Usages, and reference copying via `Alt+C`. The viewport's `mousedown` handler only moves the caret for the primary button, so a right click on a selection neither moves the caret nor collapses the selection.

@@ -74,17 +74,14 @@ export const S = {
   chW: 7.8,
   wrap: true,        // word wrap (default ON)
   lineNumbers: true, // line numbers gutter (default ON)
-  mdPreview: true,   // Markdown tabs open rendered (default ON)
   settings: null,    // loaded from /api/settings
-  agentTargets: [],  // [{ id, path, l1, l2 }, ...] ranges of open compose/edit sessions
   review: null,      // active review-session reply, refreshed by review queue
   reviewComments: [],
   reviewPins: [],
   reviewRuleHits: [],
   reviewRules: { rules: [] },
   reviewExplain: {},
-  lastReviewPatch: null,
-  reviewChecks: { commands: {}, jobs: [] },
+  reviewChecks: { available: false, checks: [] },
 };
 
 export const doc_ = () => (S.active >= 0 ? S.tabs[S.active] : null);

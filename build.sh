@@ -4,12 +4,7 @@ set -eu
 
 VERSION=$(cat VERSION | tr -d ' \r\n')
 OUT=${OUT:-dist}
-POSTHOG_KEY="${POSTHOG_KEY:-${PX1_POSTHOG_KEY:-}}"
-
 LDFLAGS="-s -w"
-if [ -n "$POSTHOG_KEY" ]; then
-  LDFLAGS="$LDFLAGS -X main.posthogKey=$POSTHOG_KEY"
-fi
 
 # Bundle frontend web assets
 ./scripts/build-web.js

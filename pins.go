@@ -399,16 +399,7 @@ func (s *Server) handleReviewPinStatus(w http.ResponseWriter, r *http.Request) {
 			fail(w, http.StatusConflict, err.Error())
 			return
 		}
-		remembered := false
-		if pin.Status == "accepted" {
-			abs, _, ok := s.resolvePath(pin.Path)
-			if snippet, err := readLineRange(abs, pin.LineStart, pin.LineEnd); ok && err == nil {
-				remembered = s.rememberPin(pin, snippet) == nil
-			}
-		} else {
-			_ = s.memory.ForgetPin(pin.ID)
-		}
-		writeJSON(w, map[string]any{"pin": pin, "remembered": remembered})
+		writeJSON(w, map[string]any{"pin": pin, "acknowledged": pin.Status == "accepted"})
 		return
 	}
 	if !s.agentOrFail(w) {
@@ -438,7 +429,7 @@ func (s *Server) handleReviewPinStatus(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusConflict, err.Error())
 		return
 	}
-	job, err := s.agent.StartWithDone(abs, rel, current.LineStart, current.LineEnd, switchInstruction(current.reviewPin, choice), false, func(_ string, runErr error) {
+	job, err := s.agent.StartWithDone(abs, rel, current.LineStart, current.LineEnd, switchInstruction(current.reviewPin, choice), func(_ string, runErr error) {
 		if runErr != nil {
 			return
 		}
@@ -446,14 +437,11 @@ func (s *Server) handleReviewPinStatus(w http.ResponseWriter, r *http.Request) {
 		if err != nil || latest.Status != "switched" {
 			return
 		}
-		if snippet, err := readLineRange(abs, latest.LineStart, latest.LineEnd); err == nil {
-			_ = s.rememberPin(latest.reviewPin, snippet)
-		}
 	})
 	if err != nil {
 		_, _ = s.review.SetPinStatus(req.ID, "proposed", "")
 		code := http.StatusBadRequest
-		if errors.Is(err, errAgentBusy) || errors.Is(err, errAgentDirty) {
+		if errors.Is(err, errAgentBusy) {
 			code = http.StatusConflict
 		}
 		fail(w, code, err.Error())

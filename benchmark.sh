@@ -146,10 +146,9 @@ bench_one() {
   pid=$(start_server "$dir" "$port" -no-lsp) || { echo "  skip $name (did not start)"; return; }
   base="http://127.0.0.1:$port"
 
-  local meta files index_ms mem_idx
+  local meta files mem_idx
   meta=$(curl -s "$base/api/meta")
   files=$(echo "$meta" | sed 's/.*"files":\([0-9]*\).*/\1/')
-  index_ms=$(echo "$meta" | sed 's/.*"indexMs":\([0-9]*\).*/\1/')
   mem_idx=$(rss_mb "$pid")
 
   local find_ms scan_ms open_ms warm_ms big
@@ -170,8 +169,8 @@ bench_one() {
   mem_peak=$(rss_mb "$pid")
   mb=$(du -sm --exclude=.git "$dir" 2>/dev/null | cut -f1)
 
-  printf '| %-12s | %6s | %7s | %8s | %8s | %9s | %8s | %7s | %7s | %7s |\n' \
-    "$name" "${mb} MB" "$files" "${index_ms} ms" "${find_ms} ms" "${scan_ms} ms" \
+  printf '| %-12s | %6s | %7s | %8s | %9s | %8s | %7s | %7s | %7s |\n' \
+    "$name" "${mb} MB" "$files" "${find_ms} ms" "${scan_ms} ms" \
     "$open_ms" "$warm_ms" "${mem_idx} MB" "${mem_peak} MB"
 
   kill "$pid" 2>/dev/null; wait "$pid" 2>/dev/null
@@ -292,10 +291,9 @@ bench_vscode() {
   sleep 1
   local px1_rss px1_meta
   px1_rss=$(rss_mb "$pid")
-  px1_meta=$(curl -sf "http://127.0.0.1:$port/api/meta" || echo '{"files":0,"indexMs":0}')
-  local px1_files px1_idx
+  px1_meta=$(curl -sf "http://127.0.0.1:$port/api/meta" || echo '{"files":0}')
+  local px1_files
   px1_files=$(echo "$px1_meta" | sed 's/.*"files":\([0-9]*\).*/\1/')
-  px1_idx=$(echo "$px1_meta" | sed 's/.*"indexMs":\([0-9]*\).*/\1/')
   kill "$pid" 2>/dev/null; wait "$pid" 2>/dev/null
 
   python3 -c "
@@ -370,14 +368,12 @@ total_vs_mb = total_vs_rss / 1024.0
 
 px1_mem = $px1_rss
 px1_files = '$px1_files'
-px1_idx = '$px1_idx'
 
 print('\n### px1 vs. VS Code Comparison\n')
 print('| Metric / Parameter | px1 | VS Code (Server/Remote) | Notes |')
 print('| ------------------ | --- | ----------------------- | ----- |')
 print(f'| **Memory (RSS)** | **{px1_mem} MB** | **{total_vs_mb:.1f} MB** | {total_vs_mb/max(1, px1_mem):.0f}x lighter |')
 print(f'| **Instant CPU %** | **0.0%** | **{total_vs_cpu:.1f}%** | Measured over 1s |')
-print(f'| **Index Time** | **{px1_idx} ms** ({px1_files} files) | **~4 - 10 s** | px1 is immediate |')
 print(f'| **Process Count** | **1 single Go binary** | **{len(p2)} processes** | Multi-process Node tree |')
 
 if breakdown:
@@ -400,10 +396,9 @@ bench_vscode_vanilla() {
   sleep 1
   local px1_rss px1_meta
   px1_rss=$(rss_mb "$pid")
-  px1_meta=$(curl -sf "http://127.0.0.1:$port/api/meta" || echo '{"files":0,"indexMs":0}')
-  local px1_files px1_idx
+  px1_meta=$(curl -sf "http://127.0.0.1:$port/api/meta" || echo '{"files":0}')
+  local px1_files
   px1_files=$(echo "$px1_meta" | sed 's/.*"files":\([0-9]*\).*/\1/')
-  px1_idx=$(echo "$px1_meta" | sed 's/.*"indexMs":\([0-9]*\).*/\1/')
   kill "$pid" 2>/dev/null; wait "$pid" 2>/dev/null
 
   echo "### Spawning Vanilla VS Code (no extensions, clean user-data-dir) on $abs_target ..."
@@ -416,7 +411,6 @@ tmp_ext = tempfile.mkdtemp(prefix='vscode_bench_ext_')
 target_path = '$abs_target'
 px1_mem = $px1_rss
 px1_files = '$px1_files'
-px1_idx = '$px1_idx'
 
 # Locate VS Code executable
 code_bin = shutil.which('code')
@@ -482,7 +476,6 @@ print('\n### px1 vs. Vanilla VS Code Comparison\n')
 print('| Metric / Parameter | px1 | Vanilla VS Code (Clean) | Difference |')
 print('| ------------------ | --- | ----------------------- | ---------- |')
 print(f'| **Memory (RSS)** | **{px1_mem} MB** | **{vs_rss:.1f} MB** | {vs_rss/max(1, px1_mem):.0f}x lighter |')
-print(f'| **Index Time** | **{px1_idx} ms** ({px1_files} files) | **~2 - 5 s** | px1 is immediate |')
 print(f'| **Process Count** | **1 single Go binary** | **{len(new_pids)} processes** | Multi-process tree |')
 print(f'| **Extensions** | Native built-ins | Disabled (0 active) | Clean isolate |')
 
@@ -510,10 +503,9 @@ bench_editors() {
   sleep 1
   local px1_rss px1_meta
   px1_rss=$(rss_mb "$pid")
-  px1_meta=$(curl -sf "http://127.0.0.1:$port/api/meta" || echo '{"files":0,"indexMs":0}')
-  local px1_files px1_idx
+  px1_meta=$(curl -sf "http://127.0.0.1:$port/api/meta" || echo '{"files":0}')
+  local px1_files
   px1_files=$(echo "$px1_meta" | sed 's/.*"files":\([0-9]*\).*/\1/')
-  px1_idx=$(echo "$px1_meta" | sed 's/.*"indexMs":\([0-9]*\).*/\1/')
   kill "$pid" 2>/dev/null; wait "$pid" 2>/dev/null
 
   python3 -c "
@@ -522,10 +514,9 @@ import subprocess, time, shutil, tempfile, os
 target = '$abs_target'
 px1_mem = $px1_rss
 px1_files = '$px1_files'
-px1_idx = '$px1_idx'
 
 results = []
-results.append(('px1', 'Single native Go server', f'{px1_mem} MB', f'~10 ms', f'~{10 + int(float(px1_idx))} ms', '1 process (native)'))
+results.append(('px1', 'Single native Go server', f'{px1_mem} MB', '~10 ms', '~10 ms', '1 process (native)'))
 
 # 1. Check running VS Code (configured with user extensions)
 try:
@@ -665,6 +656,6 @@ if [ ${#targets[@]} -eq 0 ]; then
   targets=("$CORPUS"/*/)
 fi
 
-echo "| Repo         | Source | Files   | Index    | Fuzzy   | Full scan | Open big | Reopen  | Mem     | Peak    |"
+echo "| Repo         | Source | Files   | Fuzzy   | Full scan | Open big | Reopen  | Mem     | Peak    |"
 echo "| ------------ | ------ | ------- | -------- | ------- | --------- | -------- | ------- | ------- | ------- |"
 for t in "${targets[@]}"; do bench_one "${t%/}"; done

@@ -2,7 +2,7 @@ import { $, esc, S, api, apiPost } from './state.js';
 import { openFile } from './tabs.js';
 import { reloadOpenTabs } from './tabs.js';
 import { drawTree, treeEl } from './tree.js';
-import { openReviewDiff, setPinHandler, syncDiffView, revealPin, revealChallenge, revealRuleHit } from './diff.js';
+import { openReviewDiff, setPinHandler, syncDiffView, revealPin, revealRuleHit } from './diff.js';
 import { showToast } from './ui.js';
 import { openSettings } from './settings.js';
 import { hideSelectionBar, setReviewCommentHandler, setReviewPatchHandler } from './selbar.js';
@@ -22,8 +22,34 @@ let rulesOpen = false;
 let pinSig = '';
 let ruleTarget = null;
 const ruleBox = $('#review-rulebox');
+let reviewFilter = 'all';
+let reviewSearch = '';
 
 const pending = item => item.state === 'unreviewed' || item.state === 'stale' || item.state === 'blocked';
+
+const reviewFilterOptions = [
+  ['all', 'All'],
+  ['pending', 'Needs review'],
+  ['stale', 'Stale'],
+  ['reviewed', 'Reviewed'],
+];
+
+function matchesReviewFilter(item) {
+  if (reviewFilter === 'pending') return pending(item);
+  if (reviewFilter === 'all') return true;
+  return item.state === reviewFilter;
+}
+
+function filteredReviewItems(items) {
+  const query = reviewSearch.trim().toLowerCase();
+  return items.filter(item => matchesReviewFilter(item) && (!query || item.path.toLowerCase().includes(query)));
+}
+
+function filterCount(items, filter) {
+  if (filter === 'all') return items.length;
+  if (filter === 'pending') return items.filter(pending).length;
+  return items.filter(item => item.state === filter).length;
+}
 
 export async function refreshReviewQueue() {
   try {
@@ -45,13 +71,9 @@ export async function refreshReviewQueue() {
     S.reviewRuleHits = j.hits || [];
   } catch { S.reviewRuleHits = []; }
   try { S.reviewRules = (await api('/api/rules')) || { rules: [] }; } catch { S.reviewRules = { rules: [] }; }
-  try {
-    const j = S.review?.active ? await api('/api/review/challenges') : { challenges: [] };
-    S.reviewChallenges = j.challenges || [];
-  } catch { S.reviewChallenges = []; }
-  try { S.reviewChecks = S.review?.active ? await api('/api/review/checks') : { commands: {}, jobs: [] }; } catch { S.reviewChecks = { commands: {}, jobs: [] }; }
+  try { S.reviewChecks = S.review?.active ? await api('/api/review/checks') : { available: false, checks: [] }; } catch { S.reviewChecks = { available: false, checks: [] }; }
   drawReviewQueue();
-  const sig = JSON.stringify([S.reviewPins, S.reviewChallenges, S.reviewRuleHits]);
+  const sig = JSON.stringify([S.reviewPins, S.reviewRuleHits]);
   if (sig !== pinSig) {
     pinSig = sig;
     syncDiffView();
@@ -73,13 +95,6 @@ function rulesMarkup() {
   return `<details class="review-rules"${rulesOpen ? ' open' : ''}><summary>Rules <span>${rules.filter(r => r.enabled).length} active</span></summary>${err}${rows}</details>`;
 }
 
-function challengesMarkup() {
-  const list = S.reviewChallenges || [];
-  if (!list.length) return '';
-  const rows = list.map(c => `<button class="review-pin review-challenge" data-review-challenge="${esc(c.id)}" data-path="${esc(c.path)}" title="${esc(c.why || c.decision)}"><span class="review-pin-mark">⟲</span><span class="review-pin-text">${esc(c.decision)}</span><span class="review-pin-ref">${esc(c.path.split('/').pop())}</span></button>`).join('');
-  return `<div class="review-pins review-challenges"><div class="review-pins-head"><strong>Reversed decisions</strong><span>${list.length} to resolve</span></div><div class="review-pin-list">${rows}</div></div>`;
-}
-
 function pinsMarkup() {
   const pins = S.reviewPins || [];
   const open = pins.filter(p => p.status === 'proposed' && !p.stale).length;
@@ -97,6 +112,14 @@ function itemMarkup(item) {
   </div>`;
 }
 
+function reviewFiltersMarkup(items) {
+  const buttons = reviewFilterOptions.map(([id, label]) => `<button class="review-filter${reviewFilter === id ? ' active' : ''}" data-review-filter="${id}" aria-pressed="${reviewFilter === id}">${label}<span>${filterCount(items, id)}</span></button>`).join('');
+  return `<div class="review-filters">
+    <label class="review-filter-search"><span class="sr-only">Search changed files</span><input data-review-search type="search" value="${esc(reviewSearch)}" placeholder="Search changed files" autocomplete="off" spellcheck="false"></label>
+    <div class="review-filter-tabs" role="group" aria-label="Review file status filter">${buttons}</div>
+  </div>`;
+}
+
 function drawReviewQueue() {
   if (!queueEl) return;
   const active = S.review?.active;
@@ -106,31 +129,41 @@ function drawReviewQueue() {
     return;
   }
   const items = q?.items || [];
+  const visibleItems = filteredReviewItems(items);
   const count = q?.total || items.length;
   const reviewed = q?.reviewed || 0;
-  const next = items.find(pending);
+  const next = visibleItems.find(pending);
   const comments = (S.reviewComments || []).filter(c => c.status === 'open' && !c.stale);
-  const checks = S.reviewChecks || { commands: {}, jobs: [] };
-  const names = Object.keys(checks.commands || {}).sort();
-  const latest = new Map();
-  for (const job of checks.jobs || []) if (!latest.has(job.name)) latest.set(job.name, job);
-  const checkMarkup = names.length ? `<div class="review-checks">${names.map(name => {
-    const j = latest.get(name); const state = j?.running ? 'running' : j?.stale ? 'stale' : j?.exitCode ? 'failed' : j ? 'passed' : 'idle';
-    const label = j?.running ? 'Running…' : j?.stale ? 'Stale' : j?.exitCode ? 'Failed' : j ? 'Passed' : 'Run';
-    const detail = j?.output ? checks.commands[name] + '\n\n' + j.output.slice(-1200) : checks.commands[name];
-    return `<button class="review-check ${state}" data-review-check="${esc(name)}" title="${esc(detail)}" ${j?.running ? 'disabled' : ''}><span>${esc(name)}</span><span>${label}</span></button>`;
-  }).join('')}</div>` : '<button class="review-check-empty" data-review-setup-checks title="Add named commands under verification.commands in settings.json">Set up checks</button>';
+  const checks = S.reviewChecks || { available: false, checks: [] };
+  const results = checks.checks || [];
+  const source = checks.source === 'github-actions' ? 'GitHub Actions' : checks.source || 'CI';
+  const sourceLink = checks.url ? `<a class="review-ci-link" href="${esc(checks.url)}" target="_blank" rel="noreferrer">Open run</a>` : '';
+  const checkMarkup = results.length ? `<div class="review-checks"><div class="review-checks-head"><strong>CI verification</strong><span>${esc(source)} ${sourceLink}</span></div>${results.map(check => {
+    const status = ['queued', 'running', 'passed', 'failed', 'cancelled'].includes(check.status) ? check.status : 'unknown';
+    const label = status === 'passed' ? 'Passed' : status === 'failed' ? 'Failed' : status[0].toUpperCase() + status.slice(1);
+    const target = check.url || checks.url;
+    const detail = check.summary || `Status: ${label}`;
+    return target
+      ? `<a class="review-check ${status}" href="${esc(target)}" target="_blank" rel="noreferrer" title="${esc(detail)}"><span>${esc(check.name)}</span><span>${label}</span></a>`
+      : `<div class="review-check ${status}" title="${esc(detail)}"><span>${esc(check.name)}</span><span>${label}</span></div>`;
+  }).join('')}</div>` : checks.error
+    ? `<div class="review-check-empty">${esc(checks.error)}</div>`
+    : '<div class="review-check-empty">CI results appear here after GitHub Actions publishes .px1/verification.json.</div>';
+  const emptyHint = items.length ? 'No changed files match this filter.' : 'No files have changed since this review began.';
+  const nextLabel = next ? 'Next change →' : visibleItems.length ? 'All visible changes reviewed' : 'No matching changes';
   queueEl.innerHTML = `<div class="review-summary"><div class="review-summary-text"><strong>Agent changes</strong><span>${reviewed} of ${count} reviewed${active.baseRef ? ' · since worktree creation' : ''}</span></div><button class="review-close" data-review-close title="Close review session">Close</button><div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div></div>
-    ${challengesMarkup()}
     ${ruleHitsMarkup()}
     ${pinsMarkup()}
-    <div class="review-list">${items.length ? items.map(itemMarkup).join('') : '<div class="hint">No files have changed since this review began.</div>'}</div>
     ${rulesMarkup()}
-    <div class="review-foot">${checkMarkup}${comments.length ? `<button class="review-feedback" data-review-feedback>Ask agent to address ${comments.length} comment${comments.length === 1 ? '' : 's'}</button>` : ''}${S.lastReviewPatch ? '<button class="review-undo" data-review-undo>Undo last patch</button>' : ''}<button class="review-next" data-review-next ${next ? '' : 'disabled'}>${next ? 'Next change →' : 'All changes reviewed'}</button></div>`;
+    ${reviewFiltersMarkup(items)}
+    <div class="review-list">${visibleItems.length ? visibleItems.map(itemMarkup).join('') : `<div class="hint">${emptyHint}</div>`}</div>
+    <div class="review-foot">${checkMarkup}${comments.length ? `<button class="review-feedback" data-review-feedback>Ask agent to address ${comments.length} comment${comments.length === 1 ? '' : 's'}</button>` : ''}${S.lastReviewPatch ? '<button class="review-undo" data-review-undo>Undo last patch</button>' : ''}<button class="review-next" data-review-next ${next ? '' : 'disabled'}>${nextLabel}</button></div>`;
 }
 
 async function start() {
   try {
+    reviewFilter = 'all';
+    reviewSearch = '';
     await apiPost('/api/review/session/start');
     await refreshReviewQueue();
     showToast('✓', 'Review baseline captured');
@@ -147,7 +180,7 @@ async function mark(path) {
 }
 
 async function openNext() {
-  const item = S.review?.queue?.items?.find(pending);
+  const item = filteredReviewItems(S.review?.queue?.items || []).find(pending);
   if (!item) return;
   await openFile(item.path);
   await openReviewDiff(item.path);
@@ -262,22 +295,6 @@ async function undoPatch() {
   } catch (e) { showToast('!', e.message); }
 }
 
-async function runCheck(name) {
-  try {
-    const j = await apiPost('/api/review/check/run', { name });
-    await refreshReviewQueue();
-    while (true) {
-      await new Promise(resolve => setTimeout(resolve, 700));
-      await refreshReviewQueue();
-      const job = (S.reviewChecks.jobs || []).find(x => x.id === j.job.id);
-      if (!job?.running) {
-        showToast(job?.exitCode ? '!' : '✓', job?.exitCode ? name + ' failed' : name + ' passed');
-        return;
-      }
-    }
-  } catch (e) { showToast('!', e.message); }
-}
-
 async function explain() {
   explaining = true;
   drawReviewQueue();
@@ -299,12 +316,6 @@ async function openPin(id) {
   await openFile(pin.path);
   await openReviewDiff(pin.path);
   revealPin(id);
-}
-
-async function openChallenge(id, path) {
-  await openFile(path);
-  await openReviewDiff(path);
-  revealChallenge(id);
 }
 
 function suggestPattern(code) {
@@ -434,20 +445,6 @@ async function onPin(action, pin, choice) {
       showToast('✓', 'Rule disabled');
       return;
     }
-    if (action === 'challenge-ask') {
-      const why = pin.why ? ` (${pin.why})` : '';
-      openComment({ path: pin.path, l1: pin.at.l1, l2: pin.at.l2 }, `This change reverses an earlier decision: ${pin.decision}${why}. Restore it unless the requirement changed.`);
-      return;
-    }
-    if (action === 'challenge-supersede' || action === 'challenge-dismiss') {
-      await apiPost('/api/decisions/resolve', undefined, {
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: pin.id, action: action === 'challenge-supersede' ? 'supersede' : 'dismiss' }),
-      });
-      await refreshReviewQueue();
-      showToast('✓', action === 'challenge-supersede' ? 'Decision retired' : 'Decision kept; change allowed');
-      return;
-    }
     if (action === 'ask') {
       openComment({ path: pin.path, l1: pin.lineStart, l2: pin.lineEnd }, `Why was this needed: ${pin.decision}?`);
       return;
@@ -459,7 +456,7 @@ async function onPin(action, pin, choice) {
       });
       await refreshReviewQueue();
       revealPin(pin.id);
-      if (action === 'accept') showToast('✓', j.remembered ? 'Marked as understood and remembered' : 'Marked as understood');
+      if (action === 'accept') showToast('✓', j.acknowledged ? 'Marked as understood for this review' : 'Marked as understood');
       return;
     }
     if (action === 'switch') {
@@ -500,13 +497,30 @@ export function initReviewQueue() {
   queueEl?.addEventListener('toggle', e => {
     if (e.target.matches('.review-rules')) rulesOpen = e.target.open;
   }, true);
+  queueEl?.addEventListener('input', e => {
+    const input = e.target.closest('[data-review-search]');
+    if (!input) return;
+    const caret = input.selectionStart;
+    reviewSearch = input.value;
+    drawReviewQueue();
+    const nextInput = queueEl.querySelector('[data-review-search]');
+    if (nextInput) {
+      nextInput.focus();
+      nextInput.setSelectionRange(caret, caret);
+    }
+  });
   queueEl?.addEventListener('click', async e => {
     const startBtn = e.target.closest('[data-review-start]');
     if (startBtn) return start();
+    const filter = e.target.closest('[data-review-filter]');
+    if (filter) {
+      reviewFilter = filter.dataset.reviewFilter;
+      drawReviewQueue();
+      return;
+    }
     if (e.target.closest('[data-review-close]')) return close();
     if (e.target.closest('[data-review-feedback]')) return sendFeedback();
     if (e.target.closest('[data-review-undo]')) return undoPatch();
-    if (e.target.closest('[data-review-setup-checks]')) return openSettings('json');
     if (e.target.closest('[data-review-explain]')) return explain();
     if (e.target.closest('[data-review-rulehits-send]')) return sendRuleHits();
     const hitBtn = e.target.closest('[data-review-rulehit]');
@@ -528,12 +542,8 @@ export function initReviewQueue() {
       }
       return;
     }
-    const chBtn = e.target.closest('[data-review-challenge]');
-    if (chBtn) return openChallenge(chBtn.dataset.reviewChallenge, chBtn.dataset.path);
     const pinBtn = e.target.closest('[data-review-pin]');
     if (pinBtn) return openPin(pinBtn.dataset.reviewPin);
-    const check = e.target.closest('[data-review-check]');
-    if (check) return runCheck(check.dataset.reviewCheck);
     if (e.target.closest('[data-review-next]')) return openNext();
     const markBtn = e.target.closest('[data-review-mark]');
     if (markBtn) return mark(markBtn.dataset.reviewMark);

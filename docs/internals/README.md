@@ -1,12 +1,15 @@
 # px1 Internal Architecture & Design Documentation
 
-px1 is building a review report attached to a GitHub PR. Reviewers open it to
-read diffs, understand highlighted blocks through concise AI explanation chips,
-and find violations of rules stored in the repository.
+Welcome to the internal engineering documentation for px1, a local-first review
+control plane for AI-generated code. It turns team-specific rules, commit-
+pinned diffs, contextual findings, and CI evidence into a reviewable artifact;
+optional provider integrations can explain code without making the core depend
+on a cloud service or an LLM. The local application remains an ultra-lightweight,
+zero-config code reader and navigator packaged as a single statically-linked
+binary (~9.5 MB).
 
 See the [product vision](../PRODUCT_VISION.md) for the intended experience and
-implementation status. The guides below describe the existing Go application
-and browser viewer that support this work; AI chips are still planned.
+implementation status.
 
 This directory contains in-depth technical write-ups explaining how px1 achieves sub-millisecond startup, instantaneous file navigation, deep code intelligence, and a minimal memory footprint (~20 MB RSS) across codebases containing tens of thousands of files.
 
@@ -15,9 +18,8 @@ This directory contains in-depth technical write-ups explaining how px1 achieves
 ```mermaid
 flowchart TD
     subgraph Client ["Browser Frontend (Vanilla JS + CSS, Virtualized)"]
-        UI["DOM Shell (Rail, Sidebar, Tabs, Status)"]
+        UI["DOM Shell (Sidebar, Tabs, Review Actions)"]
         VirtEditor["Virtualized Code Viewer (~60 DOM rows)"]
-        MDViewer["Sanitized Markdown Preview Engine"]
         Inspector["Right Inspector (Call Hierarchy / References)"]
         Palette["Command Palette & Fuzzy Picker"]
     end
@@ -74,14 +76,13 @@ The internal documentation is modularized into the following focused guides:
 - [Windowed Syntax Highlighting](syntax-highlighting.md): Solving Chroma lexer bottlenecks with viewport-based windowing (`hlChunk = 1000`), byte-capping (`512 KB`), dual-tier tokenization (instant inexact window + background exact pass), and byte-budgeted LRU caching.
 - [Language Server Protocol (LSP) Architecture](lsp-and-intelligence.md): Lazy on-demand server lifecycle, zero-cost background binary discovery, external path boundary control, stateless call hierarchy trails, in-app installer recipes, and regex fallback.
 - [Git Awareness & Diffing](git-integration.md): CLI shell-out architecture that never stages or commits, concurrent status generation with indexing, ancestor folder dirty propagation, gutter diff parsing, and the client-side split/unified diff renderer.
-- [Harness Editing & Agent Dispatch](agent-editing.md): The optional agent flow. Starting an edit from the selection bar, right-click menu or diff view, headless invocation contract for Claude Code / Gemini CLI / Cursor Agent, inline failure output, running several edits at once with an overlap guard and an uncommitted-work guard, change detection, and the cache, language-server and tab reload path.
+- [Review Provider Dispatch](agent-editing.md): The optional provider flow for review explanations and comment follow-up, its headless invocation contract, job status, change detection, and the cache, language-server and tab reload path. Inline editing is intentionally outside the review UI.
 
 ### Frontend & UI Subsystems
 
 - [Editor Virtualization & Caret Engine](editor-virtualization.md): Custom ~60-row DOM virtualization, offscreen sub-pixel font measurement, selection preservation across repaints, decoupled overlay caret, and non-destructive inline decorations.
-- [File Updates & In-Place Tab Reloading](file-reload-and-updates.md): End-to-end flow for workspace reindex and tab refreshing, in-place document reconciliation, concurrent chunk fetches, live viewport/markdown scroll snapshotting, and file shrinkage handling.
-- [Markdown Preview Implementation](markdown.md): Goldmark pipeline, source line anchors (`data-line`), robust browser-side DOM allowlist sanitizer, and synchronized bi-directional scrolling between preview and source.
-- [Theme Architecture & CSS Tokens](styling-and-themes.md): CSS custom property token architecture, zero literal colors in `style.css`, dynamic stylesheet discovery at `/static/themes.css`, and custom theme authoring.
+- [File Updates & In-Place Tab Reloading](file-reload-and-updates.md): End-to-end flow for workspace reindex and tab refreshing, in-place document reconciliation, concurrent chunk fetches, live viewport scroll snapshotting, and file shrinkage handling.
+- [Styling & CSS Tokens](styling-and-themes.md): the fixed GitHub Dark palette and the shared CSS custom-property token architecture.
 
 ### Operations & Maintenance
 
