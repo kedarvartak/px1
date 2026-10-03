@@ -87,6 +87,9 @@ func TestWorktreesListsEveryCheckout(t *testing.T) {
 func TestWorktreeSwitchRepointsWorkspace(t *testing.T) {
 	root, wt := worktreeRepo(t)
 	s := serverAt(t, root)
+	if err := updateSettingsMap(map[string]any{"review.autoStart": true}); err != nil {
+		t.Fatal(err)
+	}
 
 	post := func(path string) (int, map[string]any) {
 		t.Helper()
@@ -152,10 +155,6 @@ func TestWorktreeSwitchRepointsWorkspace(t *testing.T) {
 	}
 }
 
-// The case this feature exists for: the agent makes its own worktree and starts
-// editing before anyone opens px1. A baseline taken when the human arrives would
-// record the finished work as the starting state, so it is taken from the commit
-// checked out when the worktree was created instead.
 func TestReviewStartsFromWorktreeBaseAfterAgentWorked(t *testing.T) {
 	root, wt := worktreeRepo(t)
 	run := func(dir string, args ...string) {
@@ -211,6 +210,52 @@ func TestReviewStartsFromWorktreeBaseAfterAgentWorked(t *testing.T) {
 	}
 }
 
+func TestReviewStartsFromExplicitCommitsWithoutInferringHead(t *testing.T) {
+	_, wt := worktreeRepo(t)
+	run := func(dir string, args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Dir = dir
+		cmd.Env = append(os.Environ(), "GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t@t", "GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@t")
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+
+	base := worktreeBase(wt)
+	if base == "" {
+		t.Fatal("no base commit for the worktree")
+	}
+	if err := os.WriteFile(filepath.Join(wt, "head.go"), []byte("package main\n\nfunc head() {}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	run(wt, "add", "head.go")
+	run(wt, "commit", "-qm", "head work")
+	currentHead := reviewHead(wt)
+	if currentHead == "" || currentHead == base {
+		t.Fatalf("test repository did not advance: base=%s head=%s", base, currentHead)
+	}
+
+	m := newReviewManager(wt)
+	if _, err := m.StartFromCommits(base, base); err != nil {
+		t.Fatalf("start from explicit commits: %v", err)
+	}
+	active, _ := m.Active()
+	if active == nil || active.BaseRef != base || active.Head != base {
+		t.Fatalf("explicit identity was inferred or changed: %#v", active)
+	}
+	if active.Head == currentHead {
+		t.Fatalf("explicit head was replaced with workspace HEAD %s", currentHead)
+	}
+	q, err := m.Queue()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(q.Items) == 0 {
+		t.Fatal("explicit base should show committed work after that base")
+	}
+}
+
 func TestWorktreeBaseExcludesChangesAlreadyOnItsStartingBranch(t *testing.T) {
 	root, _ := worktreeRepo(t)
 	run := func(dir string, args ...string) {
@@ -260,9 +305,12 @@ func TestSwitchingToAWorktreeStartsItsReview(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := serverAt(t, root)
+	if err := updateSettingsMap(map[string]any{"review.autoStart": true}); err != nil {
+		t.Fatal(err)
+	}
 
-	// Main checkouts now capture a baseline too, so any later harness edit can
-	// be reviewed without a separate px1 command.
+	// Local automatic review is opt-in, so this test enables that mode before
+	// checking the worktree handoff behavior.
 	s.autoStartReview()
 	if active, _ := s.review.Active(); active == nil || active.Root != root {
 		t.Fatalf("main checkout review = %#v", active)

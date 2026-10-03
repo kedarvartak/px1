@@ -8,85 +8,141 @@
 
 Agents write the PR. px1 helps reviewers understand it.
 
-px1 is building a review report attached to a GitHub pull request. Open one
-link to see the changes, short explanations beside the code, and places where
-the change breaks your team's rules.
+px1 produces a commit-pinned HTML review report that can be attached to a
+GitHub pull request. Reviewers get readable diffs, short explanations beside
+changed code, trusted CI evidence, and highlights where changes break rules
+stored in the repository.
+
+The core stays self-hosted and useful without an account, SaaS backend, or LLM
+API key. Optional AI explanations help with understanding; reviewers still
+make the decision.
 
 ## How the review works
 
-1. **An agent opens or updates a PR.** Your team's rules live in the repository.
-2. **px1 generates a report.** A GitHub Action attaches a link to the PR.
-3. **The reviewer opens the link.** Diffs show what changed. Highlighted code
-   blocks carry small AI explanation chips describing what the change does
-   and why it matters.
-4. **Rule violations stand out.** Each finding points to the relevant code and
-   explains which team rule it breaks.
-5. **The reviewer decides.** Use the report to ask for changes or approve the
-   PR in GitHub. AI explanations help with understanding; they can be wrong.
+1. **An agent opens or updates a PR.** Team rules live in `.px1/rules.json`.
+2. **px1 generates a report.** The included GitHub Action publishes it through
+   GitHub Pages and posts one sticky link on the PR.
+3. **The reviewer opens the link.** Structured, line-numbered diff blocks show
+   exactly what changed.
+4. **Important context stands out.** Rule findings include nearby code, CI
+   results are tied to the exact commit, and optional explanation chips clarify
+   unfamiliar changes.
+5. **The reviewer decides.** Findings can be acknowledged while reviewing;
+   approval and change requests remain in GitHub.
 
-A report belongs to a specific commit, so reviewers know which version they
-are reading. Here, “artifact” simply means the generated HTML review report.
+Every report belongs to an exact head commit, and older report links remain
+available after a PR receives newer commits.
 
-## Your repository, your rules
+## Team rules
 
-Keep team rules in `.px1/rules.json` at the repository root. For example:
+Teams keep review policy in `.px1/rules.json`. Current rules use file globs and
+regular-expression patterns with readable messages. For example, a team can
+flag direct `fetch` calls and explain that its shared API client must be used.
 
-- “Use a ternary instead of an if/else for simple value assignments.”
-- “Use our API client instead of calling fetch directly.”
-- “Never log access tokens.”
+This makes expectations versioned, visible, and repeatable. Broader semantic
+understanding of arbitrary natural-language rules is planned; a pattern match
+alone does not prove a semantic violation.
 
-The goal is to explain a team's expectations in plain language and highlight
-code that does not meet them. Today's report implementation uses regex patterns
-and file globs with readable messages. Understanding arbitrary natural-language
-rules is still planned; a regex match alone does not prove a semantic violation.
+## What is included
 
-## What is ready, and what is next?
+- Commit-pinned static review export
+- GitHub Pages publishing and a sticky PR link
+- Structured highlighted diffs with old/new line numbers
+- Contextual team-rule findings on added lines
+- Exact-revision GitHub check summaries
+- Optional, provider-neutral AI explanation chips
+- Browser-local finding acknowledgement scoped to the exact revision
+- Historical SHA report retention
+- Local task-baseline review, comments, patches, and hunk reverts
+- File, symbol, and workspace search with Git-aware navigation
+- Optional LSP navigation and review-provider handoff
+- One local binary, no account, and no required code upload
 
-The report work on the [integration branch](https://github.com/kedarvartak/px1/tree/codex/remove-telemetry-metrics)
-includes HTML export, diffs, rule findings with surrounding code, CI result
-import, and a GitHub Pages workflow that posts a PR link. Deployment still needs
-end-to-end testing. The default branch and published CLI do not yet include
-all of that work.
+## Install
 
-AI explanation chips, richer block highlighting, broader rule understanding,
-and keeping earlier reports available are next. See the [product vision](docs/PRODUCT_VISION.md)
-for the intended experience and current limits.
-
-The first delivery path uses GitHub Actions and GitHub Pages. It does not
-require running a px1 SaaS. AI-generated explanations will need a configured
-provider; basic diffs and pattern-based rule findings do not. Reports contain
-source code, so choose publication access appropriate for your repository.
-
-## Try the existing CLI
-
-The existing CLI opens a repository in your browser. This is the current local
-review tool; the PR report experience above is the product being built.
+The quickest install is through npm (Node 16+):
 
 ```bash
 npx px1-cli
-# Or install the command:
 npm install -g px1-cli
-px1 /path/to/repo
 ```
 
-To build from source, use Go 1.25+ and Node for the web assets:
+The command is `px1`; the package downloads the platform binary and has no
+runtime dependencies beyond Node. For a source build, use Go 1.25+ and Node for
+the bundled web assets:
 
 ```bash
 git clone https://github.com/kedarvartak/px1.git
 cd px1
 make build
+install -d ~/.local/bin && install px1 ~/.local/bin/
 ```
+
+## Use
+
+```bash
+px1                    # current workspace
+px1 ~/src/project      # another workspace
+px1 main.go:42         # open a file at a line
+px1 -no-open -port 8080 /workspace
+```
+
+### Export a static review report
+
+Export a self-contained report from exact Git commits:
+
+```bash
+px1 export-review --base "$BASE_SHA" --head "$HEAD_SHA" --out ./site
+```
+
+The exporter reads committed team rules and verification evidence, evaluates
+added lines, and writes `./site/index.html`. It does not execute PR code, call
+an LLM, require GitHub credentials, or start a server.
+
+CI may pass `--verification-file` with an exact-revision GitHub Actions report.
+A local script or CI job may pass
+`--explanations-file ./px1-explanations.json` to add expandable explanation
+chips. See the [explanation JSON contract](docs/STATIC_REVIEW_EXPLANATIONS.md).
+
+The included workflow publishes reports at
+`reviews/<head-sha>/index.html`, retains older revisions on the generated-only
+`px1-review-reports` branch, and updates one PR comment with the current link.
+
+## Local review loop
+
+Start a review from the Review panel before assigning an agent. px1 records the
+task baseline, notices later edits, and includes files created or deleted after
+the task starts. Reviewers can inspect changes, leave comments, ask a configured
+provider to follow up, revert a hunk, and verify imported CI results.
+
+For remote use, keep px1 on a private network such as Tailscale or WireGuard:
+
+```bash
+px1 -host 0.0.0.0 -port 7777 ~/work/repo
+```
+
+Anyone who can reach the instance may invoke configured provider actions as
+you, so do not expose it publicly.
+
+## Performance
+
+px1 is built for large repositories. The included benchmark indexes the Linux
+kernel corpus (95,710 files / 1.8 GB) in 370 ms with 55 MB RSS. See
+[BENCHMARKS.md](BENCHMARKS.md) for methodology.
 
 ## Development
 
 ```bash
 make test
 go run . -dev . .
+make dist
 ```
 
-See [contribution guidance](CONTRIBUTING.md), [engineering documentation](docs/internals/README.md),
-and [release instructions](PUBLISHING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md), the
+[engineering documentation](docs/internals/README.md), the
+[roadmap](ROADMAP.md), and [release instructions](PUBLISHING.md).
 
 ## License
 
-[MIT](LICENSE) © 2026 Arpit Bhayani. px1 is a fork of [px0](https://github.com/px0-ai/px0); upstream notices are retained.
+[MIT](LICENSE) © 2026 Arpit Bhayani. px1 is a fork of
+[px0](https://github.com/px0-ai/px0); upstream notices are retained.

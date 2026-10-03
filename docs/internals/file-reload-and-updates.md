@@ -6,7 +6,7 @@ This document details the end-to-end architecture, performance optimizations, an
 
 ## 1. Problem Statement & Motivation
 
-Most file mutations (such as `git checkout`, `git pull`, branch switching, code generation, or edits from an external IDE) occur on the host filesystem outside of px1's process boundary. Edits px1 dispatches to a coding harness reuse the same reload path once they finish (see [Harness Editing & Agent Dispatch](agent-editing.md)).
+Most file mutations (such as `git checkout`, `git pull`, branch switching, code generation, or edits from an external IDE) occur on the host filesystem outside of px1's process boundary. Review-provider actions reuse the same reload path once they finish (see [Review Provider Dispatch](agent-editing.md)).
 
 Users trigger a workspace re-index by clicking the **Re-index** button (`#btn-reindex` in the sidebar header) or via the Command Palette (`Mod+K` &rarr; `Re-index Workspace`).
 
@@ -42,14 +42,13 @@ sequenceDiagram
     UI->>Panels: Trigger click listener
     Panels->>Server: POST /api/reindex
     Server->>Server: Rescan index & run git status (porcelain=v2)
-    Server-->>Panels: Return {files, indexMs}
+    Server-->>Panels: Return {ok: true}
     Panels->>Panels: Redraw file explorer tree
     Panels->>Tabs: await reloadOpenTabs()
 
     rect rgb(30, 35, 45)
         note over Tabs: Step 1: Pre-flight Snapshotting
         Tabs->>Tabs: Capture live activeDoc.scrollTop from vp.scrollTop
-        Tabs->>Tabs: If previewing markdown: capture mdview.scrollTop
         Tabs->>Tabs: Compute chunk start for each open tab based on cur anchor
     end
 
@@ -79,7 +78,7 @@ sequenceDiagram
 
     rect rgb(45, 35, 35)
         note over Tabs,Renderer: Step 4: Single-Pass Resync & Viewport Restoration
-        Tabs->>Tabs: Sync active doc LSP, Markdown preview, and Diff views
+        Tabs->>Tabs: Sync active doc LSP and Diff views
         Tabs->>Renderer: layout() (recalculate sizer height/width)
         Tabs->>Tabs: Restore vp.scrollTop = d.scrollTop
         Tabs->>Renderer: render() (virtualized rows mount)
@@ -99,15 +98,10 @@ Before issuing any network requests, `reloadOpenTabs` captures volatile DOM scro
 const activeDoc = doc_();
 if (activeDoc) {
   activeDoc.scrollTop = vp.scrollTop;
-  if (previewing(activeDoc)) {
-    const mv = $('#mdview');
-    if (mv) activeDoc.mdScroll = mv.scrollTop;
-  }
 }
 ```
 
 - **Viewport DOM Offset**: While `activeDoc.scrollTop` is maintained in memory during tab switches, native mouse-wheel or trackpad scrolling mutates `vp.scrollTop` directly. Snapshotting guarantees the live scroll offset is preserved.
-- **Markdown Preview Offset**: Markdown preview uses a decoupled overlay container (`#mdview`). Its scroll offset is independent of the editor virtualizer `#viewport`, so `mdScroll` is recorded separately.
 
 ### Step 2: Virtualized Chunk Target Calculation
 
@@ -195,7 +189,6 @@ if (d) {
   S.lsp.server = (d.lsp && d.lsp.server) || '';
   S.lsp.missing = (d.lsp && d.lsp.missing) || '';
   warmLSP(d);
-  syncPreview();
   syncDiffView();
   layout();
   vp.scrollTop = d.scrollTop;
@@ -264,11 +257,7 @@ updateStatus();
   - If changes were committed externally, `hasDiff` evaluates to `false`, and `diffMode` cleanly resets to `null`.
   - Opening a file fresh is unaffected: a modified file still opens in the diff view.
 
-### 5. Markdown Preview Scroll Offset Preservation
-- **Problem**: In Markdown preview mode (`#mdview`), the preview is rendered inside an independent HTML container rather than the virtualized line scroller (`#viewport`). Re-rendering resets scroll containers to `0`.
-- **Solution**: `reloadOpenTabs` captures `activeDoc.mdScroll = $('#mdview').scrollTop` during pre-flight and passes `mdScroll: keep.mdScroll || 0` to the new document state, which `syncPreview()` restores upon re-render.
-
-### 6. Binary & Image Tab Protection
+### 5. Binary & Image Tab Protection
 - **Problem**: If a file extension was replaced with an image or binary file, passing it to the text virtualization buffer would corrupt line array parsing.
 - **Solution**: `if (j.image) continue;` skips image tabs, allowing specialized image rendering flows to handle the media.
 

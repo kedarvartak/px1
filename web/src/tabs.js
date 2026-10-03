@@ -2,7 +2,7 @@
 import { $, esc, S, doc_, api, LH, CHUNK, withKeys } from './state.js';
 import { vp, sizer, rowsEl, editor } from './ui.js';
 import { render, layout, refineChunk } from './renderer.js';
-import { updateStatus, setStatusNote, refreshMetrics } from './status.js';
+import { updateStatus, setStatusNote } from './status.js';
 import { pushHistory } from './history.js';
 import { warmLSP } from './lsp.js';
 import { loadOutline } from './outline.js';
@@ -11,7 +11,6 @@ import { revealDir } from './tree.js';
 import { clearLink } from './hover.js';
 import { clearFind } from './find.js';
 import { clearSelectAll } from './selbar.js';
-import { syncPreview, previewing, previewLine } from './markdown.js';
 import { syncDiffView, layoutPref, diffScrollTop } from './diff.js';
 
 // Recently closed files, newest last, for Alt+Shift+T.
@@ -39,7 +38,7 @@ export async function openFile(path, opts = {}) {
       path, name: path.split('/').pop(), lang: j.lang, total: j.total, maxCols: j.maxCols,
       size: j.size, lines: new Array(j.total), chunks: new Set([start / CHUNK]),
       pending: new Set(), refining: new Set(), scrollTop: 0, cur: line || 1,
-      outline: null, gen: 0, markdown: !!j.markdown, gutter: null,
+      outline: null, gen: 0, gutter: null,
       diffMode: hasDiff ? (layoutPref() || 'split') : null,
       diffAvailable: hasDiff,
       diffDismissed: false,
@@ -50,7 +49,6 @@ export async function openFile(path, opts = {}) {
     idx = S.tabs.length - 1;
     if (j.refine) refineChunk(d, start / CHUNK);
     loadGutter(d);
-    loadDecisions(d);
   }
   const prev = doc_();
   if (prev && prev !== S.tabs[idx]) prev.scrollTop = vp.scrollTop;
@@ -60,12 +58,10 @@ export async function openFile(path, opts = {}) {
 
   $('#empty').hidden = true;
   hideImage();
-  syncPreview();
   syncDiffView();
   if (!S.at || S.at.path !== d.path) S.at = null;
   S.lsp.state = (d.lsp && d.lsp.state) || 'off';
   S.lsp.server = (d.lsp && d.lsp.server) || '';
-  S.lsp.missing = (d.lsp && d.lsp.missing) || '';
   warmLSP(d);
   drawTabs(); drawCrumbs(); layout();
 
@@ -82,21 +78,6 @@ export async function openFile(path, opts = {}) {
 // Fetches on any open in a git repo rather than threading per-file status
 // through every open path — the backend returns available:false for
 // clean/untracked files, so the extra request is cheap and self-limiting.
-function loadDecisions(d) {
-  api('/api/decisions', { path: d.path }).then(j => {
-    const byLine = new Map();
-    for (const rec of j.decisions || []) {
-      if (!rec.located) continue;
-      for (let n = rec.currentFrom; n <= rec.currentTo; n++) {
-        if (!byLine.has(n)) byLine.set(n, []);
-        byLine.get(n).push(rec);
-      }
-    }
-    d.decisions = byLine;
-    if (doc_() === d) render();
-  }).catch(() => {});
-}
-
 function loadGutter(d) {
   if (!S.meta?.git) return;
   api('/api/gutter', { path: d.path }).then(j => {
@@ -105,7 +86,6 @@ function loadGutter(d) {
       d.diffMode = layoutPref() || 'split';
       if (doc_() === d) {
         syncDiffView();
-        syncPreview();
       }
     }
     if (doc_() === d) updateStatus();
@@ -119,18 +99,12 @@ function loadGutter(d) {
 }
 
 // Quietly re-fetches all open tabs on workspace reindex without tab-switching thrash.
-// Preserves live scroll position, cursor column/line (clamped), diff settings, and markdown scroll.
+// Preserves live scroll position, cursor column/line (clamped), and diff settings.
 export async function reloadOpenTabs() {
   if (S.tabs.length === 0) return;
 
   const activeDoc = doc_();
-  if (activeDoc) {
-    activeDoc.scrollTop = vp.scrollTop;
-    if (previewing(activeDoc)) {
-      const mv = $('#mdview');
-      if (mv) activeDoc.mdScroll = mv.scrollTop;
-    }
-  }
+  if (activeDoc) activeDoc.scrollTop = vp.scrollTop;
 
   const targets = S.tabs.map(t => ({
     oldDoc: t,
@@ -184,8 +158,6 @@ export async function reloadOpenTabs() {
       col: keep.col || 0,
       outline: null,
       gen: 0,
-      markdown: !!j.markdown,
-      mdScroll: keep.mdScroll || 0,
       gutter: null,
       diffMode,
       diffAvailable: hasDiff,
@@ -201,16 +173,13 @@ export async function reloadOpenTabs() {
     S.tabs[idx] = d;
     if (j.refine) refineChunk(d, tgt.start / CHUNK);
     loadGutter(d);
-    loadDecisions(d);
   }
 
   const d = doc_();
   if (d) {
     S.lsp.state = (d.lsp && d.lsp.state) || 'off';
     S.lsp.server = (d.lsp && d.lsp.server) || '';
-    S.lsp.missing = (d.lsp && d.lsp.missing) || '';
     warmLSP(d);
-    syncPreview();
     syncDiffView();
     layout();
     vp.scrollTop = d.scrollTop;
@@ -224,7 +193,6 @@ export async function reloadOpenTabs() {
 }
 
 export function centerLine(n) {
-  if (previewing()) { previewLine(n); return; }
   const y = (n - 1) * LH - Math.max(0, vp.clientHeight / 2 - LH * 2);
   vp.scrollTop = Math.max(0, y);
 }
@@ -239,7 +207,6 @@ export function closeTab(i) {
       closedTabs.push({ path: closed.path, cur: closed.cur, scrollTop });
       if (closedTabs.length > MAX_CLOSED) closedTabs.shift();
       api('/api/close', { path: closed.path })
-        .then(() => refreshMetrics())
         .catch(() => {});
     }
     // Release large arrays to assist garbage collection
@@ -251,7 +218,6 @@ export function closeTab(i) {
   }
   if (S.tabs.length === 0) {
     S.active = -1;
-    syncPreview();
     syncDiffView();
     rowsEl.innerHTML = ''; sizer.style.height = '0px';
     $('#empty').hidden = false; drawCrumbs();
@@ -260,7 +226,6 @@ export function closeTab(i) {
   }
   S.active = Math.min(i, S.tabs.length - 1);
   const d = doc_();
-  syncPreview();
   syncDiffView();
   drawTabs(); drawCrumbs(); layout();
   vp.scrollTop = d.scrollTop; render(); updateStatus();
@@ -293,14 +258,12 @@ export function switchTab(i) {
   const prev = doc_();
   if (prev) prev.scrollTop = vp.scrollTop;
   S.active = i;
-  syncPreview();
   syncDiffView();
   clearFind();
   clearSelectAll();
   S.at = null;
   S.lsp.state = (S.tabs[i].lsp && S.tabs[i].lsp.state) || 'off';
   S.lsp.server = (S.tabs[i].lsp && S.tabs[i].lsp.server) || '';
-  S.lsp.missing = (S.tabs[i].lsp && S.tabs[i].lsp.missing) || '';
   warmLSP(S.tabs[i]);
   drawTabs(); drawCrumbs(); layout();
   vp.scrollTop = S.tabs[i].scrollTop;
@@ -343,7 +306,7 @@ export function initTabs() {
   if (crumbsEl) {
     crumbsEl.addEventListener('click', e => {
       const c = e.target.closest('[data-dir]');
-      if (c) { showPanel('files'); revealDir(c.dataset.dir); }
+      if (c) { showPanel(); revealDir(c.dataset.dir); }
     });
   }
 }

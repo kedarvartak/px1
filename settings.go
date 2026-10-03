@@ -13,23 +13,9 @@ import (
 // never in the working tree.
 
 type settings struct {
-	Agent                string            `json:"agent,omitempty"`
-	Models               map[string]string `json:"models,omitempty"`
-	VerificationCommands map[string]string `json:"verification.commands,omitempty"`
-
-	EditorFontSize             *float64 `json:"editor.fontSize,omitempty"`
-	EditorFontFamily           *string  `json:"editor.fontFamily,omitempty"`
-	EditorLineHeight           *float64 `json:"editor.lineHeight,omitempty"`
-	EditorTabSize              *int     `json:"editor.tabSize,omitempty"`
-	EditorWordWrap             *string  `json:"editor.wordWrap,omitempty"`
-	EditorLineNumbers          *string  `json:"editor.lineNumbers,omitempty"`
-	EditorRenderWhitespace     *string  `json:"editor.renderWhitespace,omitempty"`
-	EditorMinimapEnabled       *bool    `json:"editor.minimap.enabled,omitempty"`
-	WorkbenchColorTheme        *string  `json:"workbench.colorTheme,omitempty"`
-	DiffEditorRenderSideBySide *bool    `json:"diffEditor.renderSideBySide,omitempty"`
-	MarkdownPreviewOpen        *bool    `json:"markdown.preview.open,omitempty"`
-	TelemetryEnabled           *bool    `json:"telemetry.enabled,omitempty"`
-	ReviewAutoStart            *bool    `json:"review.autoStart,omitempty"`
+	Agent           string            `json:"agent,omitempty"`
+	Models          map[string]string `json:"models,omitempty"`
+	ReviewAutoStart *bool             `json:"review.autoStart,omitempty"`
 }
 
 var settingsMu sync.Mutex
@@ -45,305 +31,6 @@ func settingsPath() string {
 		return ""
 	}
 	return filepath.Join(home, ".px1", "settings.json")
-}
-
-type settingSchemaItem struct {
-	Key         string   `json:"key"`
-	Title       string   `json:"title"`
-	Description string   `json:"description"`
-	Category    string   `json:"category"`
-	Type        string   `json:"type"` // "string", "number", "boolean", "select"
-	Default     any      `json:"default"`
-	Options     []string `json:"options,omitempty"`
-	Min         *float64 `json:"min,omitempty"`
-	Max         *float64 `json:"max,omitempty"`
-	Step        *float64 `json:"step,omitempty"`
-}
-
-func numPtr(v float64) *float64 { return &v }
-
-var settingsSchema = []settingSchemaItem{
-	{
-		Key:         "editor.fontSize",
-		Title:       "Font Size",
-		Description: "Controls the font size in pixels for the code viewer.",
-		Category:    "Text Editor",
-		Type:        "number",
-		Default:     13.5,
-		Min:         numPtr(9.0),
-		Max:         numPtr(32.0),
-		Step:        numPtr(0.5),
-	},
-	{
-		Key:         "editor.fontFamily",
-		Title:       "Font Family",
-		Description: "Controls the font family used in the code viewer.",
-		Category:    "Text Editor",
-		Type:        "string",
-		Default:     `"JetBrains Mono", "Fira Code", "Cascadia Code", "SF Mono", Menlo, Consolas, ui-monospace, monospace`,
-	},
-	{
-		Key:         "editor.lineHeight",
-		Title:       "Line Height",
-		Description: "Controls the line height in pixels for the code viewer.",
-		Category:    "Text Editor",
-		Type:        "number",
-		Default:     21.0,
-		Min:         numPtr(14.0),
-		Max:         numPtr(48.0),
-		Step:        numPtr(1.0),
-	},
-	{
-		Key:         "editor.tabSize",
-		Title:       "Tab Size",
-		Description: "The number of spaces a tab is equal to.",
-		Category:    "Text Editor",
-		Type:        "select",
-		Default:     4,
-		Options:     []string{"2", "4", "8"},
-	},
-	{
-		Key:         "editor.wordWrap",
-		Title:       "Word Wrap",
-		Description: "Controls whether lines should wrap around or scroll horizontally.",
-		Category:    "Text Editor",
-		Type:        "select",
-		Default:     "on",
-		Options:     []string{"on", "off"},
-	},
-	{
-		Key:         "editor.lineNumbers",
-		Title:       "Line Numbers",
-		Description: "Controls the display of line numbers in the gutter.",
-		Category:    "Text Editor",
-		Type:        "select",
-		Default:     "on",
-		Options:     []string{"on", "off"},
-	},
-	{
-		Key:         "editor.renderWhitespace",
-		Title:       "Render Whitespace",
-		Description: "Controls how whitespace characters are rendered in the viewer.",
-		Category:    "Text Editor",
-		Type:        "select",
-		Default:     "selection",
-		Options:     []string{"none", "boundary", "selection", "all"},
-	},
-	{
-		Key:         "editor.minimap.enabled",
-		Title:       "Minimap Hits",
-		Description: "Controls whether search hit indicators are shown in the scroll minimap gutter.",
-		Category:    "Text Editor",
-		Type:        "boolean",
-		Default:     true,
-	},
-	{
-		Key:         "workbench.colorTheme",
-		Title:       "Color Theme",
-		Description: "Specifies the color theme used in the workbench.",
-		Category:    "Workbench",
-		Type:        "select",
-		Default:     "github-dark",
-		Options: []string{
-			"github-dark", "graphite", "midnight",
-			"vesper", "poimandres", "kanagawa-dragon",
-		},
-	},
-	{
-		Key:         "diffEditor.renderSideBySide",
-		Title:       "Diff Side By Side",
-		Description: "Controls whether the diff editor shows changes in split (side-by-side) or unified mode.",
-		Category:    "Workbench",
-		Type:        "boolean",
-		Default:     true,
-	},
-	{
-		Key:         "markdown.preview.open",
-		Title:       "Markdown Preview",
-		Description: "Controls whether Markdown files open in rendered preview by default.",
-		Category:    "Workbench",
-		Type:        "boolean",
-		Default:     true,
-	},
-	{
-		Key:         "editor.cursorStyle",
-		Title:       "Cursor Style",
-		Description: "Controls the cursor style in the code viewer.",
-		Category:    "Text Editor",
-		Type:        "select",
-		Default:     "line",
-		Options:     []string{"line", "block", "underline"},
-	},
-	{
-		Key:         "editor.cursorBlinking",
-		Title:       "Cursor Blinking",
-		Description: "Controls the cursor animation style.",
-		Category:    "Text Editor",
-		Type:        "select",
-		Default:     "smooth",
-		Options:     []string{"blink", "smooth", "solid"},
-	},
-	{
-		Key:         "editor.renderLineHighlight",
-		Title:       "Render Line Highlight",
-		Description: "Controls how the editor should render the current line highlight.",
-		Category:    "Text Editor",
-		Type:        "select",
-		Default:     "line",
-		Options:     []string{"line", "none"},
-	},
-	{
-		Key:         "editor.occurrencesHighlight",
-		Title:       "Occurrences Highlight",
-		Description: "Controls whether the editor should highlight occurrences of the selected word.",
-		Category:    "Text Editor",
-		Type:        "boolean",
-		Default:     true,
-	},
-	{
-		Key:         "editor.scrollBeyondLastLine",
-		Title:       "Scroll Beyond Last Line",
-		Description: "Controls whether the editor will scroll beyond the last line of the file.",
-		Category:    "Text Editor",
-		Type:        "boolean",
-		Default:     true,
-	},
-	{
-		Key:         "editor.bracketPairColorization",
-		Title:       "Bracket Pair Colorization",
-		Description: "Controls whether bracket pair colorization and matching is enabled.",
-		Category:    "Text Editor",
-		Type:        "boolean",
-		Default:     true,
-	},
-	{
-		Key:         "explorer.compactFolders",
-		Title:       "Compact Folders",
-		Description: "Controls whether the file tree renders single-child directory chains compactly.",
-		Category:    "Files & Explorer",
-		Type:        "boolean",
-		Default:     true,
-	},
-	{
-		Key:         "explorer.autoReveal",
-		Title:       "Auto Reveal Active File",
-		Description: "Controls whether the file explorer automatically scrolls to and reveals active tabs.",
-		Category:    "Files & Explorer",
-		Type:        "boolean",
-		Default:     true,
-	},
-	{
-		Key:         "files.exclude",
-		Title:       "Files Exclude Patterns",
-		Description: "Configure glob patterns for excluding files and folders from search and trees.",
-		Category:    "Files & Explorer",
-		Type:        "string",
-		Default:     "**/.git, **/node_modules, **/target, **/.DS_Store",
-	},
-	{
-		Key:         "search.smartCase",
-		Title:       "Smart Case Search",
-		Description: "Searches case-insensitively when query is lowercase, and case-sensitively when uppercase characters exist.",
-		Category:    "Search",
-		Type:        "boolean",
-		Default:     true,
-	},
-	{
-		Key:         "search.maxResults",
-		Title:       "Max Search Results",
-		Description: "Controls the maximum number of results returned in workspace-wide searches.",
-		Category:    "Search",
-		Type:        "number",
-		Default:     1000.0,
-		Min:         numPtr(50.0),
-		Max:         numPtr(10000.0),
-		Step:        numPtr(50.0),
-	},
-	{
-		Key:         "diffEditor.ignoreTrimWhitespace",
-		Title:       "Diff: Ignore Trim Whitespace",
-		Description: "Controls whether the diff viewer ignores changes in leading or trailing whitespace.",
-		Category:    "Git & Diff",
-		Type:        "boolean",
-		Default:     true,
-	},
-	{
-		Key:         "git.gutterIndicators",
-		Title:       "Git Gutter Indicators",
-		Description: "Controls whether changed line indicators are shown in the editor gutter.",
-		Category:    "Git & Diff",
-		Type:        "boolean",
-		Default:     true,
-	},
-	{
-		Key:         "lsp.enabled",
-		Title:       "Language Server Protocol (LSP)",
-		Description: "Master switch for language server integrations (definitions, references, diagnostics).",
-		Category:    "LSP & Intelligence",
-		Type:        "boolean",
-		Default:     true,
-	},
-	{
-		Key:         "lsp.hover.enabled",
-		Title:       "Hover Documentation",
-		Description: "Controls whether hovercards with documentation and type signatures appear on hover.",
-		Category:    "LSP & Intelligence",
-		Type:        "boolean",
-		Default:     true,
-	},
-	{
-		Key:         "agent.harness",
-		Title:       "Coding Harness",
-		Description: "Coding agent harness invoked for code edits (e.g. claude, gemini, cursor-agent, agy, opencode, codex, aider, goose).",
-		Category:    "Agent / AI",
-		Type:        "string",
-		Default:     "",
-	},
-	{
-		Key:         "agent.timeoutSeconds",
-		Title:       "Agent Timeout (Seconds)",
-		Description: "Controls the maximum execution time in seconds for agent edits before canceling.",
-		Category:    "Agent / AI",
-		Type:        "number",
-		Default:     120.0,
-		Min:         numPtr(10.0),
-		Max:         numPtr(600.0),
-		Step:        numPtr(10.0),
-	},
-	{
-		Key:         "agent.autoAcceptEdits",
-		Title:       "Auto Accept Agent Edits",
-		Description: "Controls whether agent-generated code diffs are accepted without manual confirmation.",
-		Category:    "Agent / AI",
-		Type:        "boolean",
-		Default:     false,
-	},
-	{
-		Key:         "review.autoStart",
-		Title:       "Start Reviews Automatically",
-		Description: "Start a review session when px1 opens a workspace. Main checkouts snapshot their current files; linked worktrees use the commit checked out when they were created so existing agent work stays reviewable.",
-		Category:    "Agent / AI",
-		Type:        "boolean",
-		Default:     true,
-	},
-	{
-		Key:         "telemetry.enabled",
-		Title:       "Telemetry",
-		Description: "Enable anonymous usage metrics to help improve px1.",
-		Category:    "Security & Privacy",
-		Type:        "boolean",
-		Default:     true,
-	},
-}
-
-func defaultSettingsMap() map[string]any {
-	res := make(map[string]any, len(settingsSchema)+2)
-	for _, item := range settingsSchema {
-		res[item.Key] = item.Default
-	}
-	res["agent"] = ""
-	res["models"] = map[string]string{}
-	return res
 }
 
 // readSettingsRawMap returns the raw JSON contents unmarshaled into a map.
@@ -379,18 +66,17 @@ func readSettingsLocked() settings {
 		return s
 	}
 
-	// Unmarshal known typed fields
 	if b, err := json.Marshal(raw); err == nil {
 		_ = json.Unmarshal(b, &s)
 	}
 
-	// Bi-directional bridge between agent <-> agent.harness
+	// Keep the legacy agent and models keys compatible with their namespaced
+	// counterparts used by the raw settings editor.
 	if s.Agent == "" {
 		if h, ok := raw["agent.harness"].(string); ok && h != "" {
 			s.Agent = h
 		}
 	}
-	// Bi-directional bridge between models <-> agent.models
 	if s.Models == nil || len(s.Models) == 0 {
 		if am, ok := raw["agent.models"].(map[string]any); ok {
 			s.Models = make(map[string]string, len(am))
@@ -405,26 +91,25 @@ func readSettingsLocked() settings {
 	return s
 }
 
-// readMergedSettingsMap returns all settings, overlaying stored settings onto defaults.
+// readMergedSettingsMap returns only persisted settings. Defaults belong to
+// runtime consumers; the settings editor is intentionally a raw JSON escape
+// hatch rather than an IDE preference catalog.
 func readMergedSettingsMap() map[string]any {
 	settingsMu.Lock()
 	defer settingsMu.Unlock()
 
-	res := defaultSettingsMap()
 	raw := readSettingsRawMap()
-
+	res := make(map[string]any, len(raw)+2)
 	for k, v := range raw {
 		res[k] = v
 	}
 
-	// Synchronize agent / agent.harness
 	if ag, ok := raw["agent"].(string); ok && ag != "" {
 		res["agent.harness"] = ag
 	} else if ah, ok := raw["agent.harness"].(string); ok && ah != "" {
 		res["agent"] = ah
 	}
 
-	// Synchronize models / agent.models
 	if m, ok := raw["models"].(map[string]any); ok && len(m) > 0 {
 		res["agent.models"] = m
 	} else if am, ok := raw["agent.models"].(map[string]any); ok && len(am) > 0 {
@@ -447,7 +132,6 @@ func readRawSettingsJSON() string {
 	if err != nil || len(data) == 0 {
 		return "{\n}\n"
 	}
-	// Pretty format if possible
 	var raw map[string]any
 	if err := json.Unmarshal(data, &raw); err == nil {
 		if formatted, err := json.MarshalIndent(raw, "", "  "); err == nil {
@@ -503,7 +187,6 @@ func updateSettingsMap(updates map[string]any) error {
 			raw[k] = v
 		}
 
-		// Keep agent / agent.harness in sync
 		if k == "agent" {
 			if v == nil || v == "" {
 				delete(raw, "agent.harness")
@@ -518,7 +201,6 @@ func updateSettingsMap(updates map[string]any) error {
 			}
 		}
 
-		// Keep models / agent.models in sync
 		if k == "models" {
 			if v == nil {
 				delete(raw, "agent.models")
@@ -551,7 +233,6 @@ func saveRawSettingsJSON(rawJSON []byte) error {
 	settingsMu.Lock()
 	defer settingsMu.Unlock()
 
-	// Sync agent bridges if present
 	if ag, ok := m["agent"].(string); ok && ag != "" {
 		m["agent.harness"] = ag
 	} else if ah, ok := m["agent.harness"].(string); ok && ah != "" {

@@ -2,12 +2,13 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -81,6 +82,15 @@ func waitIdleID(t *testing.T, s *Server, id int64) *agentJob {
 	return nil
 }
 
+func startAgentJob(t *testing.T, s *Server, root, rel string, l1, l2 int, instruction string) *agentJob {
+	t.Helper()
+	job, err := s.agent.Start(filepath.Join(root, filepath.FromSlash(rel)), rel, l1, l2, instruction)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return job
+}
+
 func TestAgentSpecResolution(t *testing.T) {
 	isolateSettings(t)
 	root := t.TempDir()
@@ -99,9 +109,6 @@ func TestAgentSpecResolution(t *testing.T) {
 	if m.Name() != "echo" {
 		t.Fatalf("name = %q, want echo", m.Name())
 	}
-	if !m.Pinned() {
-		t.Fatal("-agent should pin the harness")
-	}
 	if err := m.Select("echo {prompt}"); err == nil {
 		t.Fatal("a pinned harness must not be changeable from the UI")
 	}
@@ -111,8 +118,8 @@ func TestAgentSpecResolution(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if idle.Name() != "" || idle.Pinned() {
-		t.Fatalf("fresh manager = %q pinned=%v, want unselected and unpinned", idle.Name(), idle.Pinned())
+	if idle.Name() != "" {
+		t.Fatalf("fresh manager = %q, want unselected", idle.Name())
 	}
 }
 
@@ -124,29 +131,6 @@ func TestReviewFeedbackInstructionIncludesAnchors(t *testing.T) {
 	for _, want := range []string{"src/auth.go:4-6", "Handle expiry.", "tests/auth_test.go:10", "Cover the failure."} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("feedback prompt missing %q:\n%s", want, got)
-		}
-	}
-}
-
-func TestAgentDetectListsKnownHarnesses(t *testing.T) {
-	isolateSettings(t)
-	m, err := newAgentManager(t.TempDir(), "", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := m.Detect()
-	if len(got) != len(agentPresets) {
-		t.Fatalf("detected %d rows, want one per preset (%d)", len(got), len(agentPresets))
-	}
-	for i, h := range got {
-		if h.Name != agentPresets[i].Name {
-			t.Fatalf("row %d = %q, want %q", i, h.Name, agentPresets[i].Name)
-		}
-		if !strings.Contains(h.Cmd, "{prompt}") {
-			t.Fatalf("%s cmd should show the template, got %q", h.Name, h.Cmd)
-		}
-		if h.Installed && h.Path == "" {
-			t.Fatalf("%s reported installed with no path", h.Name)
 		}
 	}
 }
@@ -205,52 +189,70 @@ func TestAgentHarnessEndpointsRequireAvailability(t *testing.T) {
 		t.Fatalf("job = %d, want 404", code)
 	}
 	if code, _ := get(t, s, "/api/agent/harnesses"); code != http.StatusNotFound {
-		t.Fatalf("harnesses = %d, want 404", code)
+		t.Fatalf("removed harnesses route = %d, want 404", code)
 	}
 	if code, _ := agentPost(t, s, "/api/agent/edit?path=main.go&l1=1&l2=1&instruction=hi"); code != http.StatusNotFound {
-		t.Fatalf("edit = %d, want 404", code)
+		t.Fatalf("removed edit route = %d, want 404", code)
+	}
+	if code, _ := agentPost(t, s, "/api/agent/select?name=echo"); code != http.StatusNotFound {
+		t.Fatalf("removed select route = %d, want 404", code)
+	}
+	if code, _ := agentPost(t, s, "/api/agent/cancel"); code != http.StatusNotFound {
+		t.Fatalf("removed cancel route = %d, want 404", code)
 	}
 
 	_, meta := get(t, s, "/api/meta")
-	if meta["agent"] != "" {
-		t.Fatalf("meta agent = %v, want empty", meta["agent"])
-	}
-	if got, ok := meta["agents"].([]any); !ok || len(got) != 0 {
-		t.Fatalf("meta agents = %v, want an empty list", meta["agents"])
+	for _, key := range []string{"agent", "agentModel", "agentPinned", "agents"} {
+		if _, ok := meta[key]; ok {
+			t.Fatalf("meta unexpectedly exposes provider control-plane field %q: %v", key, meta[key])
+		}
 	}
 }
 
-func TestAgentEditRefusedUntilHarnessChosen(t *testing.T) {
-	isolateSettings(t)
+func TestLegacyAgentRoutesRemoved(t *testing.T) {
+	s := agentServer(t, t.TempDir(), writeHarness(t, "exit 0\n"))
+	for _, tc := range []struct {
+		method string
+		path   string
+	}{
+		{http.MethodGet, "/api/agent/harnesses"},
+		{http.MethodPost, "/api/agent/select?name=echo"},
+		{http.MethodPost, "/api/agent/edit?path=main.go&l1=1&l2=1&instruction=hi"},
+		{http.MethodPost, "/api/agent/cancel"},
+	} {
+		req := httptest.NewRequest(tc.method, tc.path, nil)
+		req.Host = "127.0.0.1:7777"
+		req.Header.Set("Origin", "http://127.0.0.1:7777")
+		rec := httptest.NewRecorder()
+		s.ServeHTTP(rec, req)
+		if rec.Code != http.StatusNotFound {
+			t.Fatalf("removed %s %s = %d, want 404", tc.method, tc.path, rec.Code)
+		}
+	}
+}
+
+func TestAgentJobEndpointPollsConfiguredProviderJob(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, "a.go"), []byte("package a\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	m, err := newAgentManager(root, "", nil) // available, nothing selected
-	if err != nil {
-		t.Fatal(err)
+	s := agentServer(t, root, writeHarness(t, "sleep 1\n"))
+	_, meta := get(t, s, "/api/meta")
+	for _, key := range []string{"agent", "agentModel", "agentPinned", "agents"} {
+		if _, ok := meta[key]; ok {
+			t.Fatalf("configured provider leaked into meta field %q: %v", key, meta[key])
+		}
 	}
-	ix := NewIndex(root)
-	ix.Build()
-	s := NewServer(ix, nil)
-	s.SetAgent(m)
+	job := startAgentJob(t, s, root, "a.go", 1, 1, "explain the change")
 
-	code, body := agentPost(t, s, "/api/agent/edit?path=a.go&l1=1&l2=1&instruction=hi")
-	if code != 400 {
-		t.Fatalf("edit with nothing selected = %d, want 400", code)
+	if code, body := get(t, s, "/api/agent/job?id="+strconv.FormatInt(job.ID, 10)); code != http.StatusOK || body["id"] == nil {
+		t.Fatalf("running job snapshot = %d %#v, want an identified job", code, body)
 	}
-	if !strings.Contains(body["error"].(string), "no coding harness") {
-		t.Fatalf("error = %q", body["error"])
+	waitIdleID(t, s, job.ID)
+	code, body := get(t, s, "/api/agent/job?id="+strconv.FormatInt(job.ID, 10))
+	if code != http.StatusOK || body["running"] != false {
+		t.Fatalf("completed job snapshot = %d %#v, want running=false", code, body)
 	}
-
-	// Picking one over HTTP is enough to make editing work.
-	if code, _ = agentPost(t, s, "/api/agent/select?name="+"echo+%7Bprompt%7D"); code != 200 {
-		t.Fatalf("select = %d, want 200", code)
-	}
-	if code, _ = agentPost(t, s, "/api/agent/edit?path=a.go&l1=1&l2=1&instruction=hi"); code != 200 {
-		t.Fatalf("edit after select = %d, want 200", code)
-	}
-	waitIdle(t, s)
 }
 
 func TestAgentEditRunsHarnessAndReportsChange(t *testing.T) {
@@ -263,10 +265,7 @@ func TestAgentEditRunsHarnessAndReportsChange(t *testing.T) {
 	s := agentServer(t, root, writeHarness(t,
 		"printf 'touched\\n' >> keep.go\nprintf '%s' \"$1\" > "+filepath.Join(out, "prompt.txt")+"\n"))
 
-	code, _ := agentPost(t, s, "/api/agent/edit?path=keep.go&l1=1&l2=1&instruction=add+a+line")
-	if code != 200 {
-		t.Fatalf("edit = %d, want 200", code)
-	}
+	startAgentJob(t, s, root, "keep.go", 1, 1, "add a line")
 
 	job := waitIdle(t, s)
 	if job.Error != "" {
@@ -307,9 +306,7 @@ func TestAgentOutsideGitReportsUnknownChanges(t *testing.T) {
 	s := agentServer(t, root, writeHarness(t, "printf 'touched\\n' >> a.go\n"))
 
 	// With no git there is also no uncommitted-work guard to satisfy.
-	if code, _ := agentPost(t, s, "/api/agent/edit?path=a.go&l1=1&l2=1&instruction=hi"); code != 200 {
-		t.Fatalf("edit = %d, want 200", code)
-	}
+	startAgentJob(t, s, root, "a.go", 1, 1, "hi")
 	job := waitIdle(t, s)
 	if job.Error != "" {
 		t.Fatalf("run failed: %s (log: %s)", job.Error, job.Log)
@@ -333,18 +330,10 @@ func TestAgentRefusesSecondEditWhileRunning(t *testing.T) {
 	root := gitRepo(t)
 	s := agentServer(t, root, writeHarness(t, "sleep 2\n"))
 
-	if code, _ := agentPost(t, s, "/api/agent/edit?path=keep.go&l1=1&l2=1&instruction=one"); code != 200 {
-		t.Fatalf("first edit = %d, want 200", code)
+	startAgentJob(t, s, root, "keep.go", 1, 1, "one")
+	if _, err := s.agent.Start(filepath.Join(root, "keep.go"), "keep.go", 1, 1, "two"); !errors.Is(err, errAgentBusy) {
+		t.Fatalf("second edit error = %v, want busy", err)
 	}
-	code, body := agentPost(t, s, "/api/agent/edit?path=keep.go&l1=1&l2=1&instruction=two")
-	if code != http.StatusConflict {
-		t.Fatalf("second edit = %d, want 409", code)
-	}
-	if !strings.Contains(body["error"].(string), "already running") {
-		t.Fatalf("error = %q", body["error"])
-	}
-
-	s.agent.Cancel()
 	waitIdle(t, s)
 }
 
@@ -356,32 +345,9 @@ func TestAgentAllowsEditOverUncommittedFileWithoutForce(t *testing.T) {
 	// sub/mod.go is modified but not committed by gitRepo.
 	s := agentServer(t, root, writeHarness(t, "printf 'touched\\n' >> keep.go\n"))
 
-	code, _ := agentPost(t, s, "/api/agent/edit?path=sub/mod.go&l1=1&l2=1&instruction=hi")
-	if code != http.StatusOK {
-		t.Fatalf("edit over uncommitted work = %d, want 200", code)
-	}
+	startAgentJob(t, s, root, "sub/mod.go", 1, 1, "hi")
 	if job := waitIdle(t, s); job.Error != "" {
 		t.Fatalf("run failed: %s", job.Error)
-	}
-}
-
-func TestAgentModelSelectionAndDefaults(t *testing.T) {
-	isolateSettings(t)
-	m, err := newAgentManager(t.TempDir(), "", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	rows := m.Detect()
-	for _, h := range rows {
-		if len(h.Models) == 0 {
-			t.Fatalf("%s should list models", h.Name)
-		}
-		if h.Model == "" {
-			t.Fatalf("%s should have a default model", h.Name)
-		}
-		if h.Model != h.Models[0] {
-			t.Fatalf("%s default model %q != least capable model %q", h.Name, h.Model, h.Models[0])
-		}
 	}
 }
 
@@ -421,44 +387,6 @@ func TestCodexPresetUsesCurrentUnattendedFlag(t *testing.T) {
 	t.Fatal("codex preset not found")
 }
 
-func TestClaudeModelDiscovery(t *testing.T) {
-	dir := t.TempDir()
-	fakeClaude := filepath.Join(dir, "claude")
-	script := "#!/bin/sh\necho 'Current model: Sonnet 5'\necho 'Usage: /model <name>. Available: sonnet, opus, haiku, fable, best, sonnet[1m], opus[1m], fable[1m], opusplan, default, or a full model ID.'\n"
-	if err := os.WriteFile(fakeClaude, []byte(script), 0o755); err != nil {
-		t.Fatal(err)
-	}
-
-	discoveredModelsMu.Lock()
-	delete(discoveredModels, "claude")
-	delete(discoveringModels, "claude")
-	discoveredModelsMu.Unlock()
-
-	runModelDiscovery("claude", fakeClaude, []string{"haiku", "sonnet", "opus"})
-
-	discoveredModelsMu.Lock()
-	models := discoveredModels["claude"]
-	discoveredModelsMu.Unlock()
-
-	if len(models) == 0 {
-		t.Fatal("expected discovered models for claude, got none")
-	}
-	if models[0] != "haiku" {
-		t.Fatalf("expected least capable default 'haiku' at index 0, got %q", models[0])
-	}
-	// Check that fable, best, sonnet[1m] etc are parsed
-	foundFable := false
-	for _, m := range models {
-		if m == "fable" {
-			foundFable = true
-			break
-		}
-	}
-	if !foundFable {
-		t.Fatalf("expected 'fable' in discovered models: %v", models)
-	}
-}
-
 // Editing in the diff view means editing a file that is already modified. Its
 // git status reads M before and after, so the change has to be seen some other way.
 func TestAgentReportsEditToAlreadyModifiedFile(t *testing.T) {
@@ -468,9 +396,7 @@ func TestAgentReportsEditToAlreadyModifiedFile(t *testing.T) {
 	root := gitRepo(t)
 	s := agentServer(t, root, writeHarness(t, "printf 'touched\\n' >> sub/mod.go\n"))
 
-	if code, _ := agentPost(t, s, "/api/agent/edit?path=sub/mod.go&l1=1&l2=1&instruction=hi&force=1"); code != 200 {
-		t.Fatalf("edit = %d, want 200", code)
-	}
+	startAgentJob(t, s, root, "sub/mod.go", 1, 1, "hi")
 	job := waitIdle(t, s)
 	if job.Error != "" {
 		t.Fatalf("harness failed: %s", job.Error)
@@ -489,83 +415,15 @@ func TestAgentAllowsNonOverlappingEditsInParallel(t *testing.T) {
 	root := gitRepo(t)
 	s := agentServer(t, root, writeHarness(t, "sleep 1\n"))
 
-	code, first := agentPost(t, s, "/api/agent/edit?path=keep.go&l1=1&l2=1&instruction=one")
-	if code != 200 {
-		t.Fatalf("first edit = %d, want 200", code)
-	}
-	code, _ = agentPost(t, s, "/api/agent/edit?path=keep.go&l1=2&l2=2&instruction=two")
-	if code != 200 {
-		t.Fatalf("disjoint-range edit = %d, want 200 (should run in parallel)", code)
-	}
-	code, _ = agentPost(t, s, "/api/agent/edit?path=keep.go&l1=1&l2=2&instruction=three")
-	if code != http.StatusConflict {
-		t.Fatalf("edit overlapping both = %d, want 409", code)
+	first := startAgentJob(t, s, root, "keep.go", 1, 1, "one")
+	startAgentJob(t, s, root, "keep.go", 2, 2, "two")
+	if _, err := s.agent.Start(filepath.Join(root, "keep.go"), "keep.go", 1, 2, "three"); !errors.Is(err, errAgentBusy) {
+		t.Fatalf("overlapping edit error = %v, want busy", err)
 	}
 
-	firstID := int64(first["id"].(float64))
+	firstID := first.ID
 	if job := waitIdleID(t, s, firstID); job.Error != "" {
 		t.Fatalf("first edit failed: %s", job.Error)
-	}
-}
-
-func TestAgentMutationsRejectCrossOriginPost(t *testing.T) {
-	if !gitInstalled() {
-		t.Skip("git not installed")
-	}
-	root := gitRepo(t)
-	s := agentServer(t, root, writeHarness(t, "printf 'touched\\n' >> keep.go\n"))
-
-	for _, path := range []string{
-		"/api/agent/edit?path=keep.go&l1=1&l2=1&instruction=hi",
-		"/api/agent/select?name=claude",
-		"/api/agent/cancel",
-	} {
-		req := httptest.NewRequest(http.MethodPost, path, nil)
-		req.Host = "127.0.0.1:7777"
-		req.Header.Set("Origin", "http://evil.example.com")
-		rec := httptest.NewRecorder()
-		s.ServeHTTP(rec, req)
-		if rec.Code != http.StatusForbidden {
-			t.Fatalf("cross-origin %s = %d, want 403", path, rec.Code)
-		}
-
-		if code, _ := get(t, s, path); code != http.StatusMethodNotAllowed {
-			t.Fatalf("GET %s = %d, want 405", path, code)
-		}
-	}
-}
-
-func TestAgentCancelJob(t *testing.T) {
-	if !gitInstalled() {
-		t.Skip("git not installed")
-	}
-	root := gitRepo(t)
-	// Harness that sleeps to simulate a long-running edit
-	s := agentServer(t, root, writeHarness(t, "sleep 5\n"))
-
-	code, first := agentPost(t, s, "/api/agent/edit?path=keep.go&l1=1&l2=1&instruction=first")
-	if code != http.StatusOK {
-		t.Fatalf("edit first = %d, want 200", code)
-	}
-	id := int64(first["id"].(float64))
-
-	// Cancel by id
-	cancelCode, cancelBody := agentPost(t, s, fmt.Sprintf("/api/agent/cancel?id=%d", id))
-	if cancelCode != http.StatusOK {
-		t.Fatalf("cancel = %d, want 200", cancelCode)
-	}
-	if cancelled, _ := cancelBody["cancelled"].(bool); !cancelled {
-		t.Fatalf("cancelled = false, want true")
-	}
-
-	// Job should be stopped
-	time.Sleep(100 * time.Millisecond)
-	code, job := get(t, s, fmt.Sprintf("/api/agent/job?id=%d", id))
-	if code != http.StatusOK {
-		t.Fatalf("job = %d, want 200", code)
-	}
-	if running, _ := job["running"].(bool); running {
-		t.Fatalf("job still running after cancel")
 	}
 }
 

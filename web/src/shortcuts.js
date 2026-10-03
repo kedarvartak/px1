@@ -14,8 +14,6 @@ import { moveCursor, moveCol, moveWord, caretToEdge } from './cursor.js';
 import { showCalls } from './calls.js';
 import { SEL_KEYS, runSelectionAction, selectAll, clearSelectAll, copySelectAll } from './selbar.js';
 
-import { cycleTheme } from './theme.js';
-import { previewing, togglePreview, previewKey, selectPreview } from './markdown.js';
 import { toggleDiff } from './diff.js';
 import { openSettings, closeSettings, isSettingsOpen } from './settings.js';
 
@@ -28,7 +26,6 @@ export const SHORTCUTS = [
   [['Mod+Shift+P'], 'Command palette'], [['Mod+Shift+O'], 'Go to symbol'],
   [['Mod+Shift+F'], 'Search in files'], [['Mod+F'], 'Find in file'],
   [['Mod+G'], 'Go to line'], [['Mod+D'], 'Toggle diff view (git)'], [['Alt+Z'], 'Toggle word wrap'],
-  [['Alt+M'], 'Toggle Markdown preview'],
   [['Enter', 'Shift+Enter'], 'Next / previous match'],
   [['F12', 'Mod+Click'], 'Go to definition'], [['Shift+F12'], 'Find all references'],
   [['Alt+Shift+H'], 'Call trail (callers / callees)'],
@@ -38,7 +35,6 @@ export const SHORTCUTS = [
   [['Alt+1…9'], 'Select tab'], [['Double click'], 'Highlight all occurrences'],
   [['Mod+A'], 'Select whole file'],
   [['Alt+C', 'Alt+A'], 'Copy selection ref / with context'], [['Alt+U'], 'Find usages of selection'],
-  [['Alt+E'], 'Edit selection inline'],
   [['Right click'], 'Selection actions at the pointer'],
   [['Mod+Home|Mod+Up', 'Mod+End|Mod+Down'], 'Top / bottom of file'],
   [['Home|Mod+Left', 'End|Mod+Right'], 'Start / end of line'],
@@ -59,28 +55,9 @@ export function showHelp() {
 export const inField = el => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
 
 export function initShortcuts() {
-  $('#btn-theme')?.addEventListener('click', cycleTheme);
-  $('#btn-settings')?.addEventListener('click', () => openSettings('ui'));
+  $('#btn-settings')?.addEventListener('click', () => openSettings());
   $('#btn-help')?.addEventListener('click', showHelp);
-  $('#st-ver')?.addEventListener('click', showHelp);
   $('#helpsheet').addEventListener('click', () => { $('#helpsheet').hidden = true; });
-
-  // Footer quick action buttons
-  $('#footer-actions')?.addEventListener('click', e => {
-    const btn = e.target.closest('.footer-btn');
-    if (!btn) return;
-    const act = btn.dataset.action;
-    if (act === 'quick-open') openPalette('file');
-    else if (act === 'search') { showRightInspector('search'); $('#q')?.select(); }
-    else if (act === 'symbols') openPalette('symbol');
-    else if (act === 'find') openFind(S.lastWord);
-    else if (act === 'goto') openPalette('line');
-    else if (act === 'wrap') toggleWordWrap();
-    else if (act === 'md-preview') togglePreview();
-    else if (act === 'palette') openPalette('command');
-    else if (act === 'settings') openSettings('ui');
-    else if (act === 'help') showHelp();
-  });
 
   addEventListener('keydown', e => {
     const mod = e[MOD];
@@ -100,7 +77,7 @@ export function initShortcuts() {
 
     if (mod && (e.key === ',' || e.key === '<')) {
       e.preventDefault();
-      openSettings('ui');
+      openSettings();
       return;
     }
 
@@ -157,23 +134,16 @@ export function initShortcuts() {
       return;
     }
 
-    if (e.altKey && !mod && !e.shiftKey && e.code === 'KeyM') {
-      e.preventDefault();
-      togglePreview();
-      return;
-    }
-
     if (inField(document.activeElement)) return;
 
     // Select all takes the open file only, never the sidebar or status bar around it.
     const plainMod = mod && !e.shiftKey && !e.altKey;
-    if (plainMod && (e.key === 'a' || e.key === 'A')) { e.preventDefault(); if (previewing()) selectPreview(); else selectAll(); return; }
+    if (plainMod && (e.key === 'a' || e.key === 'A')) { e.preventDefault(); selectAll(); return; }
     if (plainMod && (e.key === 'c' || e.key === 'C') && copySelectAll()) { e.preventDefault(); return; }
 
     if (e.key === '?') { e.preventDefault(); showHelp(); return; }
     const d = doc_();
     if (!d) return;
-    if (previewing(d)) { if (previewKey(e)) e.preventDefault(); return; }
     const toTop = () => { vp.scrollTop = 0; d.cur = 1; render(); updateStatus(); };
     const toBottom = () => { vp.scrollTop = sizer.offsetHeight; d.cur = d.total; render(); updateStatus(); };
     const shift = e.shiftKey;

@@ -8,7 +8,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time"
 )
 
 type FileEntry struct {
@@ -41,8 +40,6 @@ type Index struct {
 	mu       sync.RWMutex
 	files    []FileEntry
 	children map[string][]Node
-	builtAt  time.Time
-	buildMS  int64
 	readyCh  chan struct{}
 }
 
@@ -64,8 +61,6 @@ func (ix *Index) SetRoot(root string) {
 	ix.root = root
 	ix.files = nil
 	ix.children = map[string][]Node{}
-	ix.builtAt = time.Time{}
-	ix.buildMS = 0
 }
 
 func (ix *Index) Ready() bool {
@@ -86,10 +81,10 @@ func (ix *Index) WaitReady(ctx context.Context) error {
 	}
 }
 
-func (ix *Index) Stats() (files int, builtAt time.Time, ms int64) {
+func (ix *Index) FileCount() int {
 	ix.mu.RLock()
 	defer ix.mu.RUnlock()
-	return len(ix.files), ix.builtAt, ix.buildMS
+	return len(ix.files)
 }
 
 func (ix *Index) Files() []FileEntry {
@@ -175,7 +170,6 @@ func sortNodes(kids []Node) {
 // directory map (for the tree view). Root entries are published immediately so
 // the frontend can display the file tree without waiting for the full repo scan.
 func (ix *Index) Build() {
-	start := time.Now()
 	rootPath := ix.Root()
 	root := newIgnoreSet(nil)
 	root = root.child(readGitignore(rootPath, ""))
@@ -312,7 +306,6 @@ func (ix *Index) Build() {
 		}
 	}
 	ix.files, ix.children = files, children
-	ix.builtAt, ix.buildMS = time.Now(), time.Since(start).Milliseconds()
 	select {
 	case <-ix.readyCh:
 	default:

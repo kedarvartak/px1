@@ -373,6 +373,41 @@ func TestReviewBaselineDiffUsesTaskStartSnapshot(t *testing.T) {
 	}
 }
 
+func TestReviewBaselineDiffIncludesFilesAddedAndDeletedDuringReview(t *testing.T) {
+	isolateSettings(t)
+	root := t.TempDir()
+	removed := filepath.Join(root, "removed.txt")
+	if err := os.WriteFile(removed, []byte("remove me\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m := newReviewManager(root)
+	if _, err := m.Start(); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(removed); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "added.txt"), []byte("new file\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	deletedDiff, err := m.BaselineDiff("removed.txt")
+	if err != nil {
+		t.Fatalf("deleted file diff: %v", err)
+	}
+	if !strings.Contains(deletedDiff, "-remove me") {
+		t.Fatalf("unexpected deleted file diff:\n%s", deletedDiff)
+	}
+
+	addedDiff, err := m.BaselineDiff("added.txt")
+	if err != nil {
+		t.Fatalf("added file diff: %v", err)
+	}
+	if !strings.Contains(addedDiff, "--- /dev/null") || !strings.Contains(addedDiff, "+new file") {
+		t.Fatalf("unexpected added file diff:\n%s", addedDiff)
+	}
+}
+
 func TestReviewSessionSkipsIgnoredPathsAndSymlinks(t *testing.T) {
 	isolateSettings(t)
 	root := t.TempDir()

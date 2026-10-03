@@ -54,7 +54,7 @@ async function start(el, d, onReady) {
   for (const t of S.tabs) {
     if (t !== d && t.lsp && (t.lsp.state === 'off' || t.lsp.state === 'failed')) t.lsp = { state: 'starting', server: '' };
   }
-  d.lsp = { state: j.state, server: j.server, missing: j.missing || '' };
+  d.lsp = { state: j.state, server: j.server };
   setLspState(j);
   updateStatus();
   warmLSP(d);

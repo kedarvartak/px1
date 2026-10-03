@@ -11,8 +11,6 @@ import { revealFile } from './tree.js';
 import { showRightInspector, hideRightInspector } from './inspector.js';
 import { showCalls, openLspSetup } from './calls.js';
 import { showHelp } from './shortcuts.js';
-import { listThemes, currentTheme, setTheme, cycleTheme } from './theme.js';
-import { togglePreview } from './markdown.js';
 import { openSettings } from './settings.js';
 
 export const overlay = $('#overlay');
@@ -21,8 +19,7 @@ export const palList = $('#pal-list');
 export let pal = null;
 
 export const COMMANDS = [
-  { name: withKeys('Preferences: Open Settings (UI) ({Mod+,})'), run: () => openSettings('ui') },
-  { name: 'Preferences: Open Settings (JSON)', run: () => openSettings('json') },
+  { name: withKeys('Open Settings JSON ({Mod+,})'), run: () => openSettings() },
   { name: 'Go to File…', run: () => openPalette('file') },
   { name: 'Go to Symbol in File…', run: () => openPalette('symbol') },
   { name: 'Go to Line…', run: () => openPalette('line') },
@@ -37,12 +34,9 @@ export const COMMANDS = [
     else hideRightInspector();
   } },
   { name: 'Show File Symbols (Right Panel)', run: () => showRightInspector('symbols') },
-  { name: 'Reveal Active File in Explorer', run: () => { const d = doc_(); if (d) { showPanel('files'); revealFile(d.path); } } },
+  { name: 'Reveal Active File in Explorer', run: () => { const d = doc_(); if (d) { showPanel(); revealFile(d.path); } } },
   { name: withKeys('Toggle Word Wrap ({Alt+Z})'), run: () => toggleWordWrap() },
-  { name: withKeys('Toggle Markdown Preview ({Alt+M})'), run: () => togglePreview() },
   { name: withKeys('Toggle Sidebar ({Mod+B})'), run: () => document.body.classList.toggle('side-hidden') },
-  { name: 'Select Theme…', run: () => openPalette('theme') },
-  { name: 'Next Theme', run: cycleTheme },
   { name: 'Re-index Workspace', run: () => $('#btn-reindex').click() },
   { name: 'Close Tab', run: () => { if (S.active >= 0) closeTab(S.active); } },
   { name: 'Close All Tabs', run: () => { while (S.tabs.length) closeTab(0); } },
@@ -55,11 +49,10 @@ export const PAL_MODES = {
   symbol: { tag: 'Symbol', hint: 'Symbols in the active file.' },
   line: { tag: 'Line', hint: 'Enter a line number.' },
   command: { tag: 'Command', hint: '' },
-  theme: { tag: 'Theme', hint: 'Arrows preview a theme. Enter keeps it, Esc restores the previous one.' },
 };
 
 export function openPalette(mode, seed) {
-  pal = { mode, items: [], sel: 0, restoreTheme: mode === 'theme' ? currentTheme() : null };
+  pal = { mode, items: [], sel: 0 };
   overlay.hidden = false;
   palInput.value = seed !== undefined ? seed : ({ symbol: '@', line: ':', command: '>' }[mode] || '');
   $('#pal-mode').textContent = PAL_MODES[mode].tag;
@@ -71,16 +64,14 @@ export function openPalette(mode, seed) {
 
 export function closePalette() {
   overlay.hidden = true;
-  if (pal && pal.restoreTheme) setTheme(pal.restoreTheme, false); // dismissed mid-preview
   pal = null;
 }
 
 export const refreshPalette = debounce(async () => {
   if (!pal) return;
   let raw = palInput.value;
-  let mode = pal.mode === 'theme' ? 'theme' : 'file';
-  if (mode === 'theme') { /* no prefixes: the query is a theme name */ }
-  else if (raw.startsWith('>')) { mode = 'command'; raw = raw.slice(1); }
+  let mode = 'file';
+  if (raw.startsWith('>')) { mode = 'command'; raw = raw.slice(1); }
   else if (raw.startsWith('@')) { mode = 'symbol'; raw = raw.slice(1); }
   else if (raw.startsWith(':')) { mode = 'line'; raw = raw.slice(1); }
   pal.mode = mode;
@@ -101,10 +92,6 @@ export const refreshPalette = debounce(async () => {
     const lq = q.toLowerCase();
     pal.items = ((d && d.outline) || []).filter(s => !lq || s.name.toLowerCase().includes(lq))
       .slice(0, 400).map(s => ({ kind: 'sym', n: s.line, label: s.name, sub: s.kind, right: String(s.line) }));
-  } else if (mode === 'theme') {
-    const lq = q.toLowerCase();
-    pal.items = listThemes().filter(t => (t.name + ' ' + t.id).toLowerCase().includes(lq))
-      .map(t => ({ kind: 'theme', id: t.id, label: t.name, sub: t.scheme, right: t.id === pal.restoreTheme ? 'current' : '' }));
   } else {
     let j;
     try { j = await api('/api/find', { q, limit: 120 }); } catch { return; }
@@ -118,7 +105,7 @@ export const refreshPalette = debounce(async () => {
       };
     });
   }
-  pal.sel = mode === 'theme' ? Math.max(0, pal.items.findIndex(it => it.id === currentTheme())) : 0;
+  pal.sel = 0;
   drawPalette();
 }, 40);
 
@@ -145,7 +132,6 @@ export function drawPalette() {
     (it.right ? '<span class="pr">' + esc(it.right) + '</span>' : '') + '</div>').join('');
   const s = palList.children[pal.sel];
   if (s) s.scrollIntoView({ block: 'nearest' });
-  if (pal.mode === 'theme') setTheme(pal.items[pal.sel].id, false); // live preview
 }
 
 export function movePalette(delta) {
@@ -157,14 +143,12 @@ export function movePalette(delta) {
 export function acceptPalette() {
   if (!pal || !pal.items.length) return;
   const it = pal.items[pal.sel];
-  if (it.kind === 'theme') pal.restoreTheme = null;
   closePalette();
   if (it.kind === 'file') openFile(it.path);
   else if (it.kind === 'sym' || it.kind === 'line') {
     const d = doc_(); if (!d) return;
     d.cur = it.n; centerLine(it.n); render(); updateStatus(); pushHistory(d.path, it.n);
   } else if (it.kind === 'cmd') it.cmd.run();
-  else if (it.kind === 'theme') setTheme(it.id);
 }
 
 export function initPalette() {

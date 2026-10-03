@@ -25,6 +25,13 @@ var rawVersion string
 var version = strings.TrimSpace(rawVersion)
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "export-review" {
+		if err := runExportReview(os.Args[2:]); err != nil {
+			fatal(err)
+		}
+		return
+	}
+
 	var (
 		port         = flag.Int("port", 7777, "port to listen on (0 picks a free one)")
 		host         = flag.String("host", "127.0.0.1", "address to bind")
@@ -38,9 +45,8 @@ func main() {
 		noColor      = flag.Bool("no-color", false, "disable colour output")
 		quiet        = flag.Bool("quiet", false, "suppress narration")
 		verbose      = flag.Bool("verbose", false, "log requests, searches, symbols, and agent prompts to terminal")
-		noTelemetry  = flag.Bool("no-telemetry", false, "disable anonymous usage telemetry")
-		agentCmd     = flag.String("agent", "", "pin the coding harness used for edits (claude, gemini, cursor-agent, agy, opencode, codex, aider, goose, or a command template containing {prompt}); detected and chosen in the UI when omitted")
-		noAgent      = flag.Bool("no-agent", false, "do not offer editing through a coding harness")
+		agentCmd     = flag.String("agent", "", "pin the local review provider (claude, gemini, cursor-agent, agy, opencode, codex, aider, goose, or a command template containing {prompt})")
+		noAgent      = flag.Bool("no-agent", false, "disable local review-provider actions")
 	)
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "px1 %s - a code navigator\n\nusage: px1 [flags] [file or directory]\n\nflags:\n", version)
@@ -96,9 +102,6 @@ func main() {
 
 	ix := NewIndex(root)
 	lsp := newLSPManager(root, !*noLSP)
-	tel := NewTelemetryService(*noTelemetry)
-	defer tel.Close("normal")
-
 	pxSrv := NewServer(ix, lsp)
 	var agent *agentManager
 	if !*noAgent {
@@ -109,8 +112,7 @@ func main() {
 		pxSrv.SetAgent(agent)
 	}
 
-	// Capture the task baseline before the first request so users can run any
-	// harness normally and see its later changes in the review queue.
+	// Honor the optional local automatic-review mode before the first request.
 	pxSrv.autoStartReview()
 
 	srv := &http.Server{Handler: pxSrv}
@@ -129,33 +131,11 @@ func main() {
 	// Index workspace asynchronously so the server and UI respond in <1ms.
 	go func() {
 		ix.Build()
-		n, _, ms := ix.Stats()
-		uiStatus("ok", fmt.Sprintf("indexed %d files", n), fmt.Sprintf("%dms", ms), 0, os.Stdout)
+		uiStatus("ok", "workspace indexed", "", 0, os.Stdout)
 		if names := lsp.Available(); len(names) > 0 {
 			uiBullet(fmt.Sprintf("language servers: %s (started on first use)", strings.Join(names, ", ")), os.Stdout)
 		}
-		if agent != nil {
-			var found []string
-			for _, h := range agent.Detect() {
-				if h.Installed {
-					item := h.Name
-					if h.Model != "" {
-						item = fmt.Sprintf("%s (%s)", h.Name, h.Model)
-					}
-					found = append(found, item)
-				}
-			}
-			if uiVerbose && len(found) > 0 {
-				uiStatus("info", uiInfo("coding harnesses: "+strings.Join(found, ", "), os.Stdout), "", 0, os.Stdout)
-			}
-		}
 
-		tel.Track("session_started", map[string]any{
-			"files_bucket": filesBucket(n),
-			"index_ms":     ms,
-			"has_git":      gitAvailable(root),
-			"has_lsp":      len(lsp.Available()) > 0,
-		})
 	}()
 
 	// Check for updates asynchronously once a day without delaying startup (<1ms).
@@ -185,11 +165,8 @@ func main() {
 	agent.Close()
 
 	if interrupted {
-		tel.Close("interrupted")
 		os.Exit(130)
 	}
-
-	tel.Close("normal")
 	if err != nil && err != http.ErrServerClosed {
 		fatal(err)
 	}
