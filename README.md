@@ -99,6 +99,9 @@ The exporter reads committed team rules and verification evidence, evaluates
 added lines, and writes `./site/index.html`. It does not execute PR code, call
 an LLM, require GitHub credentials, or start a server.
 
+Add `--snapshot-out ./snapshot.json` when CI also needs the versioned JSON
+payload for a self-hosted import.
+
 CI may pass `--verification-file` with an exact-revision GitHub Actions report.
 A local script or CI job may pass
 `--explanations-file ./px1-explanations.json` to add expandable explanation
@@ -107,6 +110,20 @@ chips. See the [explanation JSON contract](docs/STATIC_REVIEW_EXPLANATIONS.md).
 The included workflow publishes reports at
 `reviews/<head-sha>/index.html`, retains older revisions on the generated-only
 `px1-review-reports` branch, and updates one PR comment with the current link.
+
+### Import into a self-hosted px1 server
+
+A self-hosted server can accept the same versioned report snapshot from CI.
+Set `PX1_IMPORT_TOKEN` on the server, then send an authenticated JSON payload
+to `POST /api/review/import`. Successful imports are available at the
+commit-pinned `/github/<owner>/<repo>/pull/<number>?sha=<head-sha>` route.
+
+Imports are size-limited, strictly validated, stored outside the repository,
+and immutable for a repository, PR, and head SHA. See the
+[self-hosted import contract](docs/SELF_HOSTED_REVIEW_IMPORT.md) for the JSON
+shape and CI example. Until authenticated review links are implemented, keep
+this server on a trusted private network because anyone who has a review URL
+can read its imported report.
 
 ## Local review loop
 
@@ -121,8 +138,8 @@ For remote use, keep px1 on a private network such as Tailscale or WireGuard:
 px1 -host 0.0.0.0 -port 7777 ~/work/repo
 ```
 
-Anyone who can reach the instance may invoke configured provider actions as
-you, so do not expose it publicly.
+Anyone who can reach the instance may read imported reports or invoke
+configured provider actions as you, so do not expose it publicly.
 
 ## Performance
 

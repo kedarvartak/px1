@@ -99,6 +99,23 @@ func (s *Server) handleGitHubReview(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	if s.snapshots != nil {
+		report, found, err := s.snapshots.Load(*target)
+		if err != nil {
+			fail(w, http.StatusInternalServerError, "load review snapshot: "+err.Error())
+			return
+		}
+		if found {
+			page, err := renderStaticReviewHTML(report)
+			if err != nil {
+				fail(w, http.StatusInternalServerError, "render review snapshot: "+err.Error())
+				return
+			}
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			_, _ = w.Write(page)
+			return
+		}
+	}
 	s.serveIndex(w, target)
 }
 

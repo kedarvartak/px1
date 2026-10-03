@@ -81,10 +81,11 @@ func runExportReview(args []string) error {
 	head := fs.String("head", "HEAD", "head commit or ref")
 	root := fs.String("root", ".", "repository root")
 	out := fs.String("out", ".px1-review", "directory to write the static report")
+	snapshotOut := fs.String("snapshot-out", "", "optional path to write the versioned review snapshot JSON")
 	verificationFile := fs.String("verification-file", "", "optional verification JSON file to validate for the head commit")
 	explanationsFile := fs.String("explanations-file", "", "optional AI explanation JSON file to validate for the head commit")
 	fs.Usage = func() {
-		fmt.Fprintln(fs.Output(), "usage: px1 export-review --base <commit> [--head <commit>] [--root <repo>] [--verification-file <path>] [--explanations-file <path>] [--out <dir>]")
+		fmt.Fprintln(fs.Output(), "usage: px1 export-review --base <commit> [--head <commit>] [--root <repo>] [--verification-file <path>] [--explanations-file <path>] [--snapshot-out <file>] [--out <dir>]")
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {
@@ -109,7 +110,26 @@ func runExportReview(args []string) error {
 	if err := writeStaticReviewReport(outDir, report); err != nil {
 		return err
 	}
+	if *snapshotOut != "" {
+		if err := writeStaticReviewSnapshot(*snapshotOut, report); err != nil {
+			return err
+		}
+	}
 	fmt.Printf("static review report written to %s\n", filepath.Join(outDir, "index.html"))
+	return nil
+}
+
+func writeStaticReviewSnapshot(path string, report staticReviewReport) error {
+	b, err := json.MarshalIndent(report, "", "  ")
+	if err != nil {
+		return fmt.Errorf("encode review snapshot: %w", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return fmt.Errorf("create snapshot directory: %w", err)
+	}
+	if err := os.WriteFile(path, b, 0o644); err != nil {
+		return fmt.Errorf("write review snapshot: %w", err)
+	}
 	return nil
 }
 

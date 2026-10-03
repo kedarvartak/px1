@@ -100,8 +100,10 @@ queue removes dead implementation residue around those smaller surfaces.
    report improvements planned for this stage.
 3. Self-hosted live px1: add an import endpoint, authenticated links, secure
    link configuration, and deployment documentation for private repositories.
-   Commit-pinned GitHub review links are now strictly parsed and routed; the
-   import endpoint is the next slice.
+   Commit-pinned GitHub review links are strictly parsed and routed. The
+   bearer-authenticated snapshot import endpoint now stores immutable reports
+   outside the checkout and serves them from those routes. Signed or
+   authenticated read links are the next slice.
 4. Hosted GitHub App: add accounts, organizations, repository permissions, and
    webhook processing.
 5. Hosted snapshot storage, managed or bring-your-own LLM keys, quotas, and
