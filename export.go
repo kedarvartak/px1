@@ -27,6 +27,7 @@ type staticReviewReport struct {
 	GeneratedAt  time.Time            `json:"generatedAt"`
 	Files        []staticReviewFile   `json:"files"`
 	RuleHits     []staticReviewHit    `json:"ruleHits"`
+	Explanations []staticExplanation  `json:"explanations"`
 	Verification verificationResponse `json:"verification"`
 }
 
@@ -66,8 +67,9 @@ func runExportReview(args []string) error {
 	root := fs.String("root", ".", "repository root")
 	out := fs.String("out", ".px1-review", "directory to write the static report")
 	verificationFile := fs.String("verification-file", "", "optional verification JSON file to validate for the head commit")
+	explanationsFile := fs.String("explanations-file", "", "optional AI explanation JSON file to validate for the head commit")
 	fs.Usage = func() {
-		fmt.Fprintln(fs.Output(), "usage: px1 export-review --base <commit> [--head <commit>] [--root <repo>] [--verification-file <path>] [--out <dir>]")
+		fmt.Fprintln(fs.Output(), "usage: px1 export-review --base <commit> [--head <commit>] [--root <repo>] [--verification-file <path>] [--explanations-file <path>] [--out <dir>]")
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {
@@ -85,7 +87,7 @@ func runExportReview(args []string) error {
 	if err != nil {
 		return fmt.Errorf("resolve output: %w", err)
 	}
-	report, err := generateStaticReviewWithVerification(repoRoot, *base, *head, *verificationFile)
+	report, err := generateStaticReviewWithOptions(repoRoot, *base, *head, staticReviewOptions{VerificationFile: *verificationFile, ExplanationsFile: *explanationsFile})
 	if err != nil {
 		return err
 	}
@@ -97,10 +99,19 @@ func runExportReview(args []string) error {
 }
 
 func generateStaticReview(root, base, head string) (staticReviewReport, error) {
-	return generateStaticReviewWithVerification(root, base, head, "")
+	return generateStaticReviewWithOptions(root, base, head, staticReviewOptions{})
 }
 
 func generateStaticReviewWithVerification(root, base, head, verificationFile string) (staticReviewReport, error) {
+	return generateStaticReviewWithOptions(root, base, head, staticReviewOptions{VerificationFile: verificationFile})
+}
+
+type staticReviewOptions struct {
+	VerificationFile string
+	ExplanationsFile string
+}
+
+func generateStaticReviewWithOptions(root, base, head string, options staticReviewOptions) (staticReviewReport, error) {
 	baseSHA, err := resolveCommit(root, base)
 	if err != nil {
 		return staticReviewReport{}, err
@@ -127,8 +138,19 @@ func generateStaticReviewWithVerification(root, base, head, verificationFile str
 	}
 	staticHits := addStaticReviewContexts(hits, diff)
 	verification, err := verificationAtCommit(root, headSHA)
-	if verificationFile != "" {
-		verification, err = verificationAtFile(verificationFile, headSHA)
+	if options.VerificationFile != "" {
+		verification, err = verificationAtFile(options.VerificationFile, headSHA)
+	}
+	if err != nil {
+		return staticReviewReport{}, err
+	}
+	changed := make(map[string]bool, len(files))
+	for _, file := range files {
+		changed[file.Path] = true
+	}
+	explanations := []staticExplanation{}
+	if options.ExplanationsFile != "" {
+		explanations, err = explanationsAtFile(options.ExplanationsFile, headSHA, changed)
 	}
 	if err != nil {
 		return staticReviewReport{}, err
@@ -141,6 +163,7 @@ func generateStaticReviewWithVerification(root, base, head, verificationFile str
 		GeneratedAt:  time.Now().UTC(),
 		Files:        files,
 		RuleHits:     staticHits,
+		Explanations: explanations,
 		Verification: verification,
 	}, nil
 }
@@ -468,7 +491,7 @@ func renderStaticReviewHTML(report staticReviewReport) ([]byte, error) {
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>px1 static review</title><style>
 :root{color-scheme:dark;--bg:#101318;--panel:#171b22;--border:#2b3340;--text:#e8edf3;--muted:#9aa6b2;--accent:#7dd3fc;--bad:#fca5a5;--good:#86efac}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,sans-serif}main{max-width:1100px;margin:0 auto;padding:32px 20px}h1,h2{line-height:1.2}h1{margin:0 0 8px}h2{margin:28px 0 12px;font-size:20px}.meta,.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px}.meta{color:var(--muted)}.meta code{color:var(--accent);word-break:break-all}.stats{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}.stat{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 14px}.stat strong{display:block;font-size:20px}.finding{border-left:3px solid var(--bad);margin:10px 0;padding:10px 12px;background:var(--panel)}.finding code{color:var(--accent)}.finding pre{margin:10px 0 0;border:1px solid var(--border)}.muted{color:var(--muted)}.ok{color:var(--good)}.bad{color:var(--bad)}details{background:var(--panel);border:1px solid var(--border);border-radius:8px;margin:10px 0}summary{cursor:pointer;padding:12px;font-weight:600}pre{overflow:auto;margin:0;padding:14px;background:#0b0d10;color:#d5dee8;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}button{background:none;border:1px solid var(--border);color:var(--text);border-radius:5px;padding:3px 8px;cursor:pointer}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,sans-serif}main{max-width:1100px;margin:0 auto;padding:32px 20px}h1,h2{line-height:1.2}h1{margin:0 0 8px}h2{margin:28px 0 12px;font-size:20px}.meta,.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px}.meta{color:var(--muted)}.meta code{color:var(--accent);word-break:break-all}.stats{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}.stat{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 14px}.stat strong{display:block;font-size:20px}.finding{border-left:3px solid var(--bad);margin:10px 0;padding:10px 12px;background:var(--panel)}.finding code{color:var(--accent)}.finding pre{margin:10px 0 0;border:1px solid var(--border)}.explanation{margin:10px 0;padding:12px;background:var(--panel);border:1px solid var(--border);border-radius:8px}.chip{color:var(--accent);border-color:#31536a;background:#102331;font-weight:600}.explanation p{margin:10px 0 0}.muted{color:var(--muted)}.ok{color:var(--good)}.bad{color:var(--bad)}details{background:var(--panel);border:1px solid var(--border);border-radius:8px;margin:10px 0}summary{cursor:pointer;padding:12px;font-weight:600}pre{overflow:auto;margin:0;padding:14px;background:#0b0d10;color:#d5dee8;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}button{background:none;border:1px solid var(--border);color:var(--text);border-radius:5px;padding:3px 8px;cursor:pointer}
 </style></head><body><main id="app"><p class="muted">Loading review…</p></main>
 <script type="application/json" id="report-data">`
 	const pageSuffix = `</script><script>
@@ -477,8 +500,9 @@ const esc=(value)=>String(value??''); const text=(tag,value,cls)=>{const n=docum
 const code=(value)=>text('code',value); const section=(title)=>{const n=text('h2',title);app.append(n);return n};
 const header=text('h1','px1 static review');app.append(header);const repo=text('div',report.repository,'muted');app.append(repo);
 const meta=text('div');meta.className='meta';meta.append(text('div','Base: '),code(report.base),text('div','Head: '),code(report.head),text('div','Generated: '+report.generatedAt));app.append(meta);
-const stats=text('div');stats.className='stats';for(const [label,value] of [['Changed files',report.files.length],['Rule findings',report.ruleHits.length],['CI checks',report.verification.checks.length]]){const s=text('div');s.className='stat';s.append(text('strong',value),text('span',label,'muted'));stats.append(s)}app.append(stats);
+const stats=text('div');stats.className='stats';for(const [label,value] of [['Changed files',report.files.length],['Rule findings',report.ruleHits.length],['AI explanations',report.explanations.length],['CI checks',report.verification.checks.length]]){const s=text('div');s.className='stat';s.append(text('strong',value),text('span',label,'muted'));stats.append(s)}app.append(stats);
 section('Team-rule findings');if(!report.ruleHits.length)app.append(text('p','No team-rule findings on added lines.','ok'));for(const hit of report.ruleHits){const n=text('div');n.className='finding';n.append(text('div',hit.message),text('div',hit.path+':'+hit.line+' — '),code(hit.text));if(hit.context?.length){const lines=hit.context.map((line)=>{const marker=line.kind==='added'?'+':line.kind==='removed'?'-':' ';const number=line.number?String(line.number).padStart(4,' '):'    ';return marker+' '+number+' | '+line.text}).join('\n');n.append(text('pre',lines));}app.append(n)}
+section('AI explanations');if(!report.explanations.length)app.append(text('p','No AI explanations were supplied for this commit.','muted'));for(const item of report.explanations){const n=text('div');n.className='explanation';const chip=text('button',item.title,'chip');chip.type='button';chip.setAttribute('aria-expanded','false');const where=text('span',' '+item.path+':'+item.lineStart+(item.lineEnd!==item.lineStart?'-'+item.lineEnd:''),'muted');const detail=text('p',item.summary);detail.hidden=true;chip.addEventListener('click',()=>{detail.hidden=!detail.hidden;chip.setAttribute('aria-expanded',String(!detail.hidden))});n.append(chip,where,detail);app.append(n)}
 section('Verification');const v=text('div');v.className='card';if(report.verification.available){v.append(text('div','Verified by '+report.verification.source+' for '+report.verification.revision,'ok'));for(const check of report.verification.checks){const row=text('div',check.name+': '+check.status);if(check.url){row.append(text('span',' '),code(check.url))}v.append(row)}}else{v.append(text('div',report.verification.error||'No verification report is attached.','muted'))}app.append(v);
 section('Changed files');if(!report.files.length)app.append(text('p','No changed files.','muted'));for(const file of report.files){const d=document.createElement('details'),s=text('summary',file.status+' '+file.path);d.append(s);if(file.diff){const pre=text('pre',file.diff);d.append(pre)}else d.append(text('p','No textual diff available.','muted'));app.append(d)}
 </script></body></html>`
