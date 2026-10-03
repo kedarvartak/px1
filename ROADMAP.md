@@ -95,8 +95,9 @@ queue removes dead implementation residue around those smaller surfaces.
    automated explanation generator is still planned. Changed files now render
    as structured, line-numbered, highlighted hunks instead of raw patch text.
    Reviewers can now acknowledge team-rule findings locally, with state scoped
-   to the exact repository and head commit. Historical retention is the
-   remaining report improvement in this stage.
+   to the exact repository and head commit. The Pages workflow preserves older
+   SHA-addressed reports on a generated-artifact branch, completing the static
+   report improvements planned for this stage.
 3. Self-hosted live px1: add an import endpoint, authenticated links, secure
    link configuration, and deployment documentation for private repositories.
 4. Hosted GitHub App: add accounts, organizations, repository permissions, and

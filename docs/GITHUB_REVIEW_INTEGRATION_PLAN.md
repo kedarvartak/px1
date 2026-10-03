@@ -130,9 +130,15 @@ https://<owner>.github.io/<repo>/reviews/<head-sha>/
 The workflow uses `pull_request_target` so it can update the PR comment and
 deploy Pages for fork pull requests. Its checkout is always the trusted base
 SHA; the PR head is fetched only to let Git inspect its diff and committed
-`.px1/rules.json`. Do not change it to execute code from the PR head. The
-initial Pages deployment contains the latest generated report; retaining every
-historical SHA across deployments is a follow-up improvement.
+`.px1/rules.json`. Do not change it to execute code from the PR head.
+
+Before each export, the workflow restores generated reports from the dedicated
+`px1-review-reports` branch. It overlays the new `reviews/<head-sha>/index.html`,
+publishes the complete site, then updates that artifact-only branch through a
+temporary Git index. Historical commit links therefore remain valid across
+deployments without mixing generated HTML into the source branch. The workflow
+validates that the history tree contains only regular
+`reviews/<40-character-sha>/index.html` files before extracting it.
 
 Static findings include a short hunk-local context block with line numbers and
 added, unchanged, or removed markers. The full unified diff remains available

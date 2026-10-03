@@ -94,6 +94,10 @@ explanation chips. px1 validates that every explanation belongs to the exact
 head commit and a changed file. See
 [the explanation JSON contract](docs/STATIC_REVIEW_EXPLANATIONS.md).
 
+The included GitHub Pages workflow preserves every generated
+`reviews/<head-sha>/index.html` on a dedicated `px1-review-reports` branch, so
+links to earlier PR revisions continue to work after a newer report deploys.
+
 For a remote machine, bind to a private network and access it over Tailscale, WireGuard, or a tunnel:
 
 ```bash
