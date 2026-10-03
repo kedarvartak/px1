@@ -78,7 +78,8 @@ px1 export-review --base "$BASE_SHA" --head "$HEAD_SHA" --out ./site
 
 The command reads `.px1/rules.json` and `.px1/verification.json` from the
 pinned head commit, evaluates team rules against added lines, and writes
-`./site/index.html`, with a small contextual code block beside each finding.
+`./site/index.html`, with structured diff hunks, old/new line gutters, and a
+small contextual code block beside each finding.
 It does not read mutable worktree policy files, call an LLM, require GitHub
 credentials, or start a server. The resulting directory can be opened locally
 or published by a later GitHub Pages workflow.

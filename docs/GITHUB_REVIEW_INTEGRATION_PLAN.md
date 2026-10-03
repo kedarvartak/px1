@@ -83,7 +83,9 @@ These pieces can be implemented and tested locally without external accounts:
    it intentionally does not publish, authenticate, or call an LLM. An
    optional `--explanations-file` input accepts provider-neutral, commit-pinned
    explanation JSON and renders expandable chips; generation remains a
-   separate local or CI concern.
+   separate local or CI concern. Changed files are parsed into structured
+   hunks with old/new line numbers and addition/removal highlighting, while
+   binary or otherwise unparsed patches retain a raw-diff fallback.
 2. Add commit-pinned GitHub review URL parsing and routing.
 3. Add persisted review disposition with approval guards for stale files and
    open comments.
