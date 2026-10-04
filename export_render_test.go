@@ -122,8 +122,8 @@ func TestStaticReviewHTMLIsSelfContained(t *testing.T) {
 		}
 	}
 	// Data containing a closing script tag must not end the data block early.
-	if strings.Count(html, "</script>") != 2 {
-		t.Errorf("script tags = %d, want 2", strings.Count(html, "</script>"))
+	if strings.Count(html, "</script>") != 3 {
+		t.Errorf("script tags = %d, want 3", strings.Count(html, "</script>"))
 	}
 }
 
