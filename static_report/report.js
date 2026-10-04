@@ -97,13 +97,19 @@ const seg=h('span','seg');seg.setAttribute('role','group');seg.setAttribute('ari
 const fAll=h('button',null,'All '+files.length),fFlag=h('button',null,'Flagged');
 fAll.type=fFlag.type='button';seg.append(fAll,fFlag);filesHead.append(seg);
 const fileList=h('ul','files');filesSec.append(filesHead,fileList);
-rail.append(queueSec,filesSec);
+const railToggle=h('button','rail-toggle');railToggle.type='button';
+const railCaret=h('span','rt-caret'),railLabel=h('span','rt-label'),railCount=h('span','rt-count');
+railCaret.setAttribute('aria-hidden','true');
+railToggle.append(railCaret,railLabel,railCount);
+rail.append(railToggle,queueSec,filesSec);
 let flaggedOnly=false;
 
 const order={rule:0,attn:1,note:2};
 function paintQueue(){
   queue.textContent='';
   queueCount.textContent=open().length+' open';
+  railCount.textContent=open().length;
+  railCount.title=open().length+' open';
   if(!items.length){queue.append(h('p','empty','Nothing to review beyond the diff.'));return}
   [...items].sort((a,b)=>order[a.k]-order[b.k]).forEach((it)=>{
     const a=h('a','qitem'+(it.k!=='note'&&ack.has(it.ackId)?' done':''));a.href='#'+it.id;
@@ -232,6 +238,26 @@ function paintThumb(){const total=document.documentElement.scrollHeight;thumb.st
 function syncTop(){document.documentElement.style.setProperty('--top-h',top.offsetHeight+'px');paintSpine()}
 
 const wrap=h('div','wrap');wrap.append(rail,main,spine);
+/* The side panel collapses to a slim strip (stacked bar on narrow screens). The choice is
+   remembered; with none saved, narrow screens start collapsed so the diff comes first. */
+const railKey='px1:rail';
+let railCollapsed=matchMedia('(max-width:1000px)').matches;
+try{const saved=localStorage.getItem(railKey);if(saved==='collapsed'||saved==='open')railCollapsed=saved==='collapsed'}catch{}
+function setRail(collapsed,remember){
+  railCollapsed=collapsed;
+  wrap.classList.toggle('collapsed',collapsed);
+  railToggle.setAttribute('aria-expanded',String(!collapsed));
+  railToggle.setAttribute('aria-label',(collapsed?'Show':'Hide')+' review panel');
+  railLabel.textContent=(collapsed?'Show':'Hide')+' review panel';
+  if(remember){try{localStorage.setItem(railKey,collapsed?'collapsed':'open')}catch{}}
+}
+railToggle.onclick=()=>{setRail(!railCollapsed,true);setTimeout(syncTop,260)};
+addEventListener('keydown',(e)=>{
+  if(e.key!=='['||e.ctrlKey||e.metaKey||e.altKey)return;
+  const t=e.target;if(t&&(t.isContentEditable||/^(input|textarea|select)$/i.test(t.tagName)))return;
+  setRail(!railCollapsed,true);setTimeout(syncTop,260);
+});
+setRail(railCollapsed,false);
 const foot=h('div','foot','Acknowledgements are saved in this browser only and apply to commit '+short(report.head)+'.');
 app.textContent='';
 app.append(top,wrap,foot);
