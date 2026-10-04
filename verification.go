@@ -165,6 +165,16 @@ func shortRevision(revision string) string {
 }
 
 func (s *Server) handleReviewChecks(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		// Reading imported CI is not execution. A POST would run a check, and
+		// px1 does not do that; the capability gate still refuses a remote caller
+		// who was not explicitly allowed to try.
+		if !s.permit(w, r, capChecks) {
+			return
+		}
+		fail(w, http.StatusNotImplemented, "px1 does not execute verification commands; it only displays imported CI results")
+		return
+	}
 	if r.Method != http.MethodGet {
 		fail(w, http.StatusMethodNotAllowed, "GET only")
 		return

@@ -3,9 +3,15 @@ export const $ = (s, r = document) => r.querySelector(s);
 export const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 export const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+const remoteToken = () => { try { return sessionStorage.getItem('px1.remoteToken') || ''; } catch { return ''; } };
+
 const request = async (method, path, params, opts = {}) => {
   const u = new URL(path, location.origin);
   for (const [k, v] of Object.entries(params || {})) if (v !== undefined && v !== '') u.searchParams.set(k, v);
+  if (method === 'POST') {
+    const token = remoteToken();
+    if (token) opts = { ...opts, headers: { ...(opts.headers || {}), Authorization: 'Bearer ' + token } };
+  }
   const r = await fetch(u, { method, ...opts });
   const j = await r.json();
   // The body rides along: some replies, like a failed agent job, carry detail beyond the message.

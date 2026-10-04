@@ -55,6 +55,10 @@ type Server struct {
 	ruleMu      sync.Mutex
 	ruleSuggest map[int64]map[string]any
 
+	policy  accessPolicy
+	auditMu sync.Mutex
+	audit   []auditEntry
+
 	lastReq atomic.Int64 // unix nanos of the most recent request
 }
 
@@ -119,6 +123,7 @@ func NewServer(ix *Index, lsp *lspManager) *Server {
 	s.mux.HandleFunc("/api/worktrees", s.handleWorktrees)
 	s.mux.HandleFunc("/api/worktree/switch", s.handleWorktreeSwitch)
 	s.mux.HandleFunc("/api/settings", s.handleSettings)
+	s.mux.HandleFunc("/api/audit", s.handleAudit)
 	s.lastReq.Store(time.Now().UnixNano())
 	go s.scavenge()
 	return s
@@ -241,6 +246,7 @@ func (s *Server) handleMeta(w http.ResponseWriter, r *http.Request) {
 		"files":   s.ix.FileCount(),
 		"git":     gitAvailable(s.ix.Root()),
 		"version": version,
+		"policy":  s.policyView(r),
 	})
 }
 

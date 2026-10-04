@@ -20,5 +20,5 @@ Run this checklist on Go 1.25+ before tagging the P1 MVP. Use a disposable Git w
 
 1. Start a review and place a `.px1/verification.json` report in the workspace with `source: "github-actions"`, the active commit SHA, one passing check, and one failing check. Confirm both results appear in Review and link clicks open HTTPS CI URLs.
 1. Change the report revision to another SHA and confirm the results are rejected as belonging to a different revision. Remove the report and confirm Review remains usable with an empty CI state.
-1. Open px1 through a hostname/reverse proxy and confirm mutation routes (patch and agent) are refused; localhost/IP use remains subject to the local-post guard.
+1. Open px1 through a hostname or LAN IP and confirm patch, agent, and check attempts are refused. Repeat with only `-allow-patch` and `PX1_REMOTE_TOKEN`, and confirm agent execution is still refused while an authenticated patch reaches path checks. Loopback keeps local patch and agent access.
 1. Run `go test ./...`, `node ./scripts/build-web.js`, and `git diff --check` with Go 1.25+. Record exact versions and results in the release notes.

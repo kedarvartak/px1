@@ -1096,7 +1096,7 @@ func (s *Server) handleReviewComments(w http.ResponseWriter, r *http.Request) {
 // local harness. A stale comment must be reconsidered by the human instead of
 // silently being applied to bytes that have moved.
 func (s *Server) handleReviewCommentsAgent(w http.ResponseWriter, r *http.Request) {
-	if !localPost(w, r) || !s.agentOrFail(w) {
+	if !s.permit(w, r, capAgent) || !s.agentOrFail(w) {
 		return
 	}
 	comments, err := s.review.Comments()
@@ -1180,7 +1180,7 @@ func (s *Server) handleReviewCommentStatus(w http.ResponseWriter, r *http.Reques
 }
 
 func (s *Server) handleReviewPatch(w http.ResponseWriter, r *http.Request) {
-	if !localPost(w, r) {
+	if !s.permit(w, r, capPatch) {
 		return
 	}
 	var req struct {
@@ -1209,7 +1209,7 @@ func (s *Server) handleReviewPatch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleReviewUndoPatch(w http.ResponseWriter, r *http.Request) {
-	if !localPost(w, r) {
+	if !s.permit(w, r, capPatch) {
 		return
 	}
 	var req struct {
@@ -1229,7 +1229,7 @@ func (s *Server) handleReviewUndoPatch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleReviewRevertHunk(w http.ResponseWriter, r *http.Request) {
-	if !localPost(w, r) {
+	if !s.permit(w, r, capPatch) {
 		return
 	}
 	var req struct {
@@ -1271,7 +1271,7 @@ func (s *Server) handleReviewStart(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleReviewRestore(w http.ResponseWriter, r *http.Request) {
-	if !localPost(w, r) {
+	if !s.permit(w, r, capPatch) {
 		return
 	}
 	active, err := s.review.Restore()

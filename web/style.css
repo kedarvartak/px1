@@ -251,6 +251,12 @@ button.pin-head:hover { background: transparent; }
 .review-rule-preview { min-height: 18px; padding: 0 2px; color: var(--faint); font-size: 12px; }
 .review-rule-preview.warn { color: var(--gd); }
 
+.access-policy { margin: 0; padding: 6px 10px 0; color: var(--faint); font-size: 11px; line-height: 1.35; }
+.access-token { display: flex; gap: 4px; padding: 4px 8px 6px; }
+.access-token input { flex: 1; min-width: 0; height: 22px; padding: 0 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--fg); font: 11px var(--mono); outline: none; }
+.access-token button { height: 22px; padding: 0 8px; border-radius: 4px; color: var(--dim); font-size: 11px; }
+.access-token button:hover { color: var(--fg); background: var(--bg3); }
+
 /* Sidebar footer. */
 .side-foot {
   flex: none; height: 24px; display: flex; align-items: center; gap: 6px;

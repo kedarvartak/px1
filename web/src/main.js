@@ -20,6 +20,30 @@ import { initSettings } from './settings.js';
 import { initReviewQueue, refreshReviewQueue, watchReviewWorkspace } from './review.js';
 import { initWorktrees } from './worktree.js';
 
+function showAccessPolicy(p) {
+  const el = $('#access-policy');
+  const form = $('#access-token');
+  if (!el || !p) return;
+  const on = ['patch', 'agent', 'checks'].filter(k => p[k]);
+  if (!p.remote) el.textContent = 'Local patch and agent access';
+  else if (p.needsToken) el.textContent = 'Remote writes stay off until PX1_REMOTE_TOKEN is set';
+  else if (!on.length) el.textContent = 'Remote read-only';
+  else el.textContent = 'Remote ' + on.join(', ') + ' need a token';
+  el.hidden = false;
+  if (form) form.hidden = !p.tokenRequired;
+}
+
+function initAccessToken() {
+  const form = $('#access-token');
+  const input = $('#access-token-input');
+  if (!form || !input) return;
+  try { input.value = sessionStorage.getItem('px1.remoteToken') || ''; } catch {}
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    try { sessionStorage.setItem('px1.remoteToken', input.value.trim()); } catch {}
+  });
+}
+
 // Initialize all subsystems
 initRenderer();
 initTabs();
@@ -38,6 +62,7 @@ initShortcuts();
 initDiff();
 initSettings();
 initReviewQueue();
+initAccessToken();
 
 // Bootstrap application lifecycle
 (async function boot() {
@@ -57,6 +82,7 @@ initReviewQueue();
 
   measure();
   S.meta = await api('/api/meta');
+  showAccessPolicy(S.meta.policy);
   if (S.meta.git) { const b = $('#btn-changed'); if (b) b.hidden = false; }
   document.title = S.meta.name + ' - px1';
   $('#root-name').textContent = S.meta.name;

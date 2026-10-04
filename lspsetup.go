@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -265,16 +264,12 @@ func localPost(w http.ResponseWriter, r *http.Request) bool {
 		fail(w, http.StatusMethodNotAllowed, "POST only")
 		return false
 	}
-	host := r.Host
-	if h, _, err := net.SplitHostPort(host); err == nil {
-		host = h
-	}
-	host = strings.Trim(host, "[]")
+	host := requestHost(r)
 	if host != "localhost" && net.ParseIP(host) == nil {
 		fail(w, http.StatusForbidden, "open px1 by IP address or localhost to set up language servers")
 		return false
 	}
-	if o, err := url.Parse(r.Header.Get("Origin")); err != nil || o.Host != r.Host {
+	if !originMatches(r) {
 		fail(w, http.StatusForbidden, "request did not come from px1")
 		return false
 	}
@@ -291,7 +286,7 @@ func (s *Server) handleLSPSetup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleLSPInstall(w http.ResponseWriter, r *http.Request) {
-	if !localPost(w, r) {
+	if !s.permit(w, r, capAgent) {
 		return
 	}
 	q := r.URL.Query()
@@ -307,7 +302,7 @@ func (s *Server) handleLSPInstall(w http.ResponseWriter, r *http.Request) {
 // handleLSPStart finds servers installed since startup, clears earlier start
 // failures and starts the server for path, reporting where it has got to.
 func (s *Server) handleLSPStart(w http.ResponseWriter, r *http.Request) {
-	if !localPost(w, r) {
+	if !s.permit(w, r, capAgent) {
 		return
 	}
 	_, rel, ok := s.resolvePath(r.URL.Query().Get("path"))

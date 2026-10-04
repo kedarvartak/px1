@@ -325,7 +325,7 @@ func (s *Server) explainState() map[string]any {
 }
 
 func (s *Server) handleReviewPinsExplain(w http.ResponseWriter, r *http.Request) {
-	if !localPost(w, r) || !s.agentOrFail(w) {
+	if !s.permit(w, r, capAgent) || !s.agentOrFail(w) {
 		return
 	}
 	prompt, err := s.review.ExplainPrompt()
@@ -375,7 +375,8 @@ func (s *Server) handleReviewPinsExplain(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *Server) handleReviewPinStatus(w http.ResponseWriter, r *http.Request) {
-	if !localPost(w, r) {
+	if r.Method != http.MethodPost {
+		fail(w, http.StatusMethodNotAllowed, "POST only")
 		return
 	}
 	var req struct {
@@ -387,67 +388,70 @@ func (s *Server) handleReviewPinStatus(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusBadRequest, "invalid pin status")
 		return
 	}
-	if req.Status != "switched" {
-		if req.Status == "accepted" {
-			if current, err := s.review.Pin(req.ID); err == nil && current.Stale {
-				fail(w, http.StatusConflict, "these lines changed since the decision was pinned")
-				return
-			}
+	if req.Status == "switched" {
+		if !s.permit(w, r, capAgent) || !s.agentOrFail(w) {
+			return
 		}
-		pin, err := s.review.SetPinStatus(req.ID, req.Status, "")
+		choice := clip(req.Choice, pinMaxAlternative)
+		if choice == "" {
+			fail(w, http.StatusBadRequest, "choose an alternative to switch to")
+			return
+		}
+		current, err := s.review.Pin(req.ID)
 		if err != nil {
 			fail(w, http.StatusConflict, err.Error())
 			return
 		}
-		writeJSON(w, map[string]any{"pin": pin, "acknowledged": pin.Status == "accepted"})
+		if current.Stale {
+			fail(w, http.StatusConflict, "these lines changed since the decision was pinned")
+			return
+		}
+		abs, rel, ok := s.resolvePath(current.Path)
+		if !ok {
+			fail(w, http.StatusBadRequest, "bad pin path")
+			return
+		}
+		pin, err := s.review.SetPinStatus(req.ID, "switched", choice)
+		if err != nil {
+			fail(w, http.StatusConflict, err.Error())
+			return
+		}
+		job, err := s.agent.StartWithDone(abs, rel, current.LineStart, current.LineEnd, switchInstruction(current.reviewPin, choice), func(_ string, runErr error) {
+			if runErr != nil {
+				return
+			}
+			latest, err := s.review.Pin(req.ID)
+			if err != nil || latest.Status != "switched" {
+				return
+			}
+		})
+		if err != nil {
+			_, _ = s.review.SetPinStatus(req.ID, "proposed", "")
+			code := http.StatusBadRequest
+			if errors.Is(err, errAgentBusy) {
+				code = http.StatusConflict
+			}
+			fail(w, code, err.Error())
+			return
+		}
+		writeJSON(w, map[string]any{"pin": pin, "job": job})
 		return
 	}
-	if !s.agentOrFail(w) {
+	if !localPost(w, r) {
 		return
 	}
-	choice := clip(req.Choice, pinMaxAlternative)
-	if choice == "" {
-		fail(w, http.StatusBadRequest, "choose an alternative to switch to")
-		return
+	if req.Status == "accepted" {
+		if current, err := s.review.Pin(req.ID); err == nil && current.Stale {
+			fail(w, http.StatusConflict, "these lines changed since the decision was pinned")
+			return
+		}
 	}
-	current, err := s.review.Pin(req.ID)
+	pin, err := s.review.SetPinStatus(req.ID, req.Status, "")
 	if err != nil {
 		fail(w, http.StatusConflict, err.Error())
 		return
 	}
-	if current.Stale {
-		fail(w, http.StatusConflict, "these lines changed since the decision was pinned")
-		return
-	}
-	abs, rel, ok := s.resolvePath(current.Path)
-	if !ok {
-		fail(w, http.StatusBadRequest, "bad pin path")
-		return
-	}
-	pin, err := s.review.SetPinStatus(req.ID, "switched", choice)
-	if err != nil {
-		fail(w, http.StatusConflict, err.Error())
-		return
-	}
-	job, err := s.agent.StartWithDone(abs, rel, current.LineStart, current.LineEnd, switchInstruction(current.reviewPin, choice), func(_ string, runErr error) {
-		if runErr != nil {
-			return
-		}
-		latest, err := s.review.Pin(req.ID)
-		if err != nil || latest.Status != "switched" {
-			return
-		}
-	})
-	if err != nil {
-		_, _ = s.review.SetPinStatus(req.ID, "proposed", "")
-		code := http.StatusBadRequest
-		if errors.Is(err, errAgentBusy) {
-			code = http.StatusConflict
-		}
-		fail(w, code, err.Error())
-		return
-	}
-	writeJSON(w, map[string]any{"pin": pin, "job": job})
+	writeJSON(w, map[string]any{"pin": pin, "acknowledged": pin.Status == "accepted"})
 }
 
 func switchInstruction(p reviewPin, choice string) string {
