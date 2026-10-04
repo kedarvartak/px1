@@ -68,7 +68,7 @@ func TestStaticReviewHTMLRendersStructuredDiffAndFallback(t *testing.T) {
 		t.Fatal(err)
 	}
 	html := string(body)
-	for _, want := range []string{`"hunks":[{"id":"diff-test"`, "diff-line " + "'", "line.oldLine", "Binary files differ"} {
+	for _, want := range []string{`"hunks":[{"id":"diff-test"`, "'ln '+l.kind", "l.oldLine", "Binary files differ"} {
 		if !strings.Contains(html, want) {
 			t.Errorf("report missing %q", want)
 		}

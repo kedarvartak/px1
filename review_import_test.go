@@ -93,7 +93,7 @@ func TestReviewSnapshotImportPersistsAndServesPinnedReport(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("review route status = %d, body = %s", w.Code, w.Body.String())
 	}
-	if body := w.Body.String(); !strings.Contains(body, "px1 static review") || !strings.Contains(body, `"repository":"widgets"`) || strings.Contains(body, reviewTargetElementID) {
+	if body := w.Body.String(); !strings.Contains(body, "Review report") || !strings.Contains(body, `"repository":"widgets"`) || strings.Contains(body, reviewTargetElementID) {
 		t.Fatalf("review route did not serve the imported report: %s", body)
 	}
 }
