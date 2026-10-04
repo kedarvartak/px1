@@ -124,3 +124,5 @@ must not block this milestone.
 - Review comments, patches, hunk reverts, pin acknowledgement, rules, and stale
   result detection.
 - Read-only, revision-pinned CI verification results in the review queue.
+- Transparent, deterministic attention flags for high-review-risk changes,
+  with rule evidence, direct diff navigation, and session-scoped dismissal.

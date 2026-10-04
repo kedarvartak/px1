@@ -51,8 +51,9 @@ type reviewSession struct {
 	Patches  []reviewPatch             `json:"patches,omitempty"`
 	Pins     []reviewPin               `json:"pins,omitempty"`
 
-	DismissedRuleHits []string   `json:"dismissedRuleHits,omitempty"`
-	ClosedAt          *time.Time `json:"closedAt,omitempty"`
+	DismissedRuleHits  []string   `json:"dismissedRuleHits,omitempty"`
+	DismissedAttention []string   `json:"dismissedAttention,omitempty"`
+	ClosedAt           *time.Time `json:"closedAt,omitempty"`
 }
 
 // reviewDecision is tied to the exact content a human saw. A later write to

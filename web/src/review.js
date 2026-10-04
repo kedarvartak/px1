@@ -70,6 +70,9 @@ export async function refreshReviewQueue() {
     const j = S.review?.active ? await api('/api/review/rule-hits') : { hits: [] };
     S.reviewRuleHits = j.hits || [];
   } catch { S.reviewRuleHits = []; }
+  try {
+    S.reviewAttention = S.review?.active ? await api('/api/review/attention') : { flags: [], truncated: false };
+  } catch { S.reviewAttention = { flags: [], truncated: false }; }
   try { S.reviewRules = (await api('/api/rules')) || { rules: [] }; } catch { S.reviewRules = { rules: [] }; }
   try { S.reviewChecks = S.review?.active ? await api('/api/review/checks') : { available: false, checks: [] }; } catch { S.reviewChecks = { available: false, checks: [] }; }
   drawReviewQueue();
@@ -78,6 +81,17 @@ export async function refreshReviewQueue() {
     pinSig = sig;
     syncDiffView();
   }
+}
+
+function attentionMarkup() {
+  const attention = S.reviewAttention || { flags: [], truncated: false };
+  if (!attention.flags.length && !attention.truncated) return '';
+  const rows = attention.flags.map(flag => `<div class="review-attention-item">
+    <button class="review-attention-open" data-review-attention="${esc(flag.path)}" title="Open ${esc(flag.path)}"><span class="review-attention-title">${esc(flag.title)}</span><span class="review-attention-reason">${esc(flag.reason)}</span><span class="review-attention-ref">${esc(flag.path)}${flag.line ? ':' + flag.line : ''} · ${esc(flag.evidence)}</span></button>
+    <button class="review-attention-dismiss" data-review-attention-dismiss="${esc(flag.id)}" title="Dismiss for this review session" aria-label="Dismiss ${esc(flag.title)}">×</button>
+  </div>`).join('');
+  const clipped = attention.truncated ? '<div class="review-attention-truncated">More changes exist beyond the bounded local analysis.</div>' : '';
+  return `<section class="review-attention"><div class="review-attention-head"><strong>Needs attention</strong><span>${attention.flags.length}</span></div><p>Deterministic review signals, not an approval gate.</p><div class="review-attention-list">${rows}</div>${clipped}</section>`;
 }
 
 function ruleHitsMarkup() {
@@ -152,6 +166,7 @@ function drawReviewQueue() {
   const emptyHint = items.length ? 'No changed files match this filter.' : 'No files have changed since this review began.';
   const nextLabel = next ? 'Next change →' : visibleItems.length ? 'All visible changes reviewed' : 'No matching changes';
   queueEl.innerHTML = `<div class="review-summary"><div class="review-summary-text"><strong>Agent changes</strong><span>${reviewed} of ${count} reviewed${active.baseRef ? ' · since worktree creation' : ''}</span></div><button class="review-close" data-review-close title="Close review session">Close</button><div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div></div>
+    ${attentionMarkup()}
     ${ruleHitsMarkup()}
     ${pinsMarkup()}
     ${rulesMarkup()}
@@ -523,6 +538,20 @@ export function initReviewQueue() {
     if (e.target.closest('[data-review-undo]')) return undoPatch();
     if (e.target.closest('[data-review-explain]')) return explain();
     if (e.target.closest('[data-review-rulehits-send]')) return sendRuleHits();
+    const attentionDismiss = e.target.closest('[data-review-attention-dismiss]');
+    if (attentionDismiss) {
+      try {
+        S.reviewAttention = await apiPost('/api/review/attention/dismiss', { id: attentionDismiss.dataset.reviewAttentionDismiss });
+        drawReviewQueue();
+      } catch (err) { showToast('!', err.message); }
+      return;
+    }
+    const attentionItem = e.target.closest('[data-review-attention]');
+    if (attentionItem) {
+      await openFile(attentionItem.dataset.reviewAttention);
+      await openReviewDiff(attentionItem.dataset.reviewAttention);
+      return;
+    }
     const hitBtn = e.target.closest('[data-review-rulehit]');
     if (hitBtn) {
       await openFile(hitBtn.dataset.path);

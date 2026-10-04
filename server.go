@@ -114,6 +114,8 @@ func NewServer(ix *Index, lsp *lspManager) *Server {
 	s.mux.HandleFunc("/api/review/rule-hits", s.handleReviewRuleHits)
 	s.mux.HandleFunc("/api/review/rule-hits/dismiss", s.handleReviewRuleHitDismiss)
 	s.mux.HandleFunc("/api/review/rule-hits/send", s.handleReviewRuleHitsSend)
+	s.mux.HandleFunc("/api/review/attention", s.handleReviewAttention)
+	s.mux.HandleFunc("/api/review/attention/dismiss", s.handleReviewAttentionDismiss)
 	s.mux.HandleFunc("/api/worktrees", s.handleWorktrees)
 	s.mux.HandleFunc("/api/worktree/switch", s.handleWorktreeSwitch)
 	s.mux.HandleFunc("/api/settings", s.handleSettings)
