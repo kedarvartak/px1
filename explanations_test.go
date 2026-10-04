@@ -105,7 +105,7 @@ func TestGenerateStaticReviewIncludesExternalExplanations(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"AI explanations", "Adds a user request", "This line fetches user data from the API.", "aria-expanded"} {
+	for _, want := range []string{"AI note", "Adds a user request", "This line fetches user data from the API.", "aria-expanded"} {
 		if !strings.Contains(string(html), want) {
 			t.Errorf("report missing %q", want)
 		}

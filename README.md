@@ -97,7 +97,10 @@ px1 export-review --base "$BASE_SHA" --head "$HEAD_SHA" --out ./site
 ```
 
 The exporter reads committed team rules and verification evidence, evaluates
-added lines, and writes `./site/index.html`. It does not execute PR code, call
+added lines, runs the same attention rules as the local review on the two
+commits, and writes `./site/index.html`. The page inlines its styles, script and
+IBM Plex fonts (SIL OFL, see `static_report/fonts/OFL.txt`), so it makes no
+network requests. It does not execute PR code, call
 an LLM, require GitHub credentials, or start a server.
 
 Add `--snapshot-out ./snapshot.json` when CI also needs the versioned JSON
