@@ -21,15 +21,19 @@ import (
 // published page cannot silently drift when a pull request receives another
 // commit.
 type staticReviewReport struct {
-	Version      int                  `json:"version"`
-	Repository   string               `json:"repository"`
-	Base         string               `json:"base"`
-	Head         string               `json:"head"`
-	GeneratedAt  time.Time            `json:"generatedAt"`
-	Files        []staticReviewFile   `json:"files"`
-	RuleHits     []staticReviewHit    `json:"ruleHits"`
-	Explanations []staticExplanation  `json:"explanations"`
-	Verification verificationResponse `json:"verification"`
+	Version      int                 `json:"version"`
+	Repository   string              `json:"repository"`
+	Base         string              `json:"base"`
+	Head         string              `json:"head"`
+	GeneratedAt  time.Time           `json:"generatedAt"`
+	Files        []staticReviewFile  `json:"files"`
+	RuleHits     []staticReviewHit   `json:"ruleHits"`
+	Explanations []staticExplanation `json:"explanations"`
+	// Attention lists the risk signals px1 raises on the diff itself, such as
+	// workflow permission changes or new public API. Snapshots written before
+	// the field existed decode to nil, and the page renders that as none.
+	Attention    []reviewAttentionFlag `json:"attention"`
+	Verification verificationResponse  `json:"verification"`
 }
 
 type staticReviewFile struct {
@@ -190,6 +194,10 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi
 	if err != nil {
 		return staticReviewReport{}, err
 	}
+	flags, err := staticAttention(root, baseSHA, headSHA)
+	if err != nil {
+		return staticReviewReport{}, err
+	}
 	return staticReviewReport{
 		Version:      1,
 		Repository:   filepath.Base(root),
@@ -199,6 +207,7 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi
 		Files:        files,
 		RuleHits:     staticHits,
 		Explanations: explanations,
+		Attention:    flags,
 		Verification: verification,
 	}, nil
 }
@@ -552,34 +561,6 @@ func matchStaticRuleAdditions(rules []reviewRule, additions map[string]map[int]s
 		}
 	}
 	return hits, nil
-}
-
-func renderStaticReviewHTML(report staticReviewReport) ([]byte, error) {
-	data, err := json.Marshal(report)
-	if err != nil {
-		return nil, err
-	}
-	const pagePrefix = `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>px1 static review</title><style>
-:root{color-scheme:dark;--bg:#101318;--panel:#171b22;--border:#2b3340;--text:#e8edf3;--muted:#9aa6b2;--accent:#7dd3fc;--bad:#fca5a5;--good:#86efac;--add:#102a22;--remove:#321c21}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,sans-serif}main{max-width:1100px;margin:0 auto;padding:32px 20px}h1,h2{line-height:1.2}h1{margin:0 0 8px}h2{margin:28px 0 12px;font-size:20px}.meta,.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px}.meta{color:var(--muted)}.meta code{color:var(--accent);word-break:break-all}.stats{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}.stat{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 14px}.stat strong{display:block;font-size:20px}.finding{border-left:3px solid var(--bad);margin:10px 0;padding:10px 12px;background:var(--panel)}.finding.acknowledged{border-left-color:var(--good);opacity:.72}.finding-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.finding code{color:var(--accent)}.finding pre{margin:10px 0 0;border:1px solid var(--border)}.ack.active{color:var(--good);border-color:#315f45}.explanation{margin:10px 0;padding:12px;background:var(--panel);border:1px solid var(--border);border-radius:8px}.chip{color:var(--accent);border-color:#31536a;background:#102331;font-weight:600}.explanation p{margin:10px 0 0}.muted{color:var(--muted)}.ok{color:var(--good)}.bad{color:var(--bad)}details{background:var(--panel);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}summary{cursor:pointer;padding:12px;font-weight:600}.diff{overflow:auto;background:#0b0d10;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}.hunk{min-width:max-content}.hunk-head{position:sticky;left:0;padding:7px 12px;color:var(--accent);background:#142332;border-block:1px solid #25445d}.diff-line{display:grid;grid-template-columns:52px 52px 24px minmax(max-content,1fr)}.diff-line.added{background:var(--add)}.diff-line.removed{background:var(--remove)}.gutter,.mark{padding:0 8px;color:var(--muted);text-align:right;user-select:none;border-right:1px solid var(--border)}.mark{text-align:center}.line-code{padding:0 12px;white-space:pre}pre{overflow:auto;margin:0;padding:14px;background:#0b0d10;color:#d5dee8;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}button{background:none;border:1px solid var(--border);color:var(--text);border-radius:5px;padding:3px 8px;cursor:pointer}
-</style></head><body><main id="app"><p class="muted">Loading review…</p></main>
-<script type="application/json" id="report-data">`
-	const pageSuffix = `</script><script>
-const report=JSON.parse(document.getElementById('report-data').textContent), app=document.getElementById('app');
-const esc=(value)=>String(value??''); const text=(tag,value,cls)=>{const n=document.createElement(tag);n.textContent=esc(value);if(cls)n.className=cls;return n};
-const code=(value)=>text('code',value); const section=(title)=>{const n=text('h2',title);app.append(n);return n};
-const ackStorageKey='px1:ack:'+report.repository+':'+report.head;let acknowledged=new Set();try{const saved=JSON.parse(localStorage.getItem(ackStorageKey)||'[]');if(Array.isArray(saved))acknowledged=new Set(saved.filter((key)=>typeof key==='string'))}catch{}const persistAcknowledged=()=>{try{localStorage.setItem(ackStorageKey,JSON.stringify([...acknowledged].sort()))}catch{}};
-const header=text('h1','px1 static review');app.append(header);const repo=text('div',report.repository,'muted');app.append(repo);
-const meta=text('div');meta.className='meta';meta.append(text('div','Base: '),code(report.base),text('div','Head: '),code(report.head),text('div','Generated: '+report.generatedAt));app.append(meta);
-const openFindingCount=()=>report.ruleHits.filter((hit)=>!acknowledged.has(hit.key)).length;const stats=text('div');stats.className='stats';let openFindingValue;for(const [label,value] of [['Changed files',report.files.length],['Open findings',openFindingCount()],['AI explanations',report.explanations.length],['CI checks',report.verification.checks.length]]){const s=text('div');s.className='stat';const strong=text('strong',value);if(label==='Open findings')openFindingValue=strong;s.append(strong,text('span',label,'muted'));stats.append(s)}app.append(stats);
-section('Team-rule findings');if(!report.ruleHits.length)app.append(text('p','No team-rule findings on added lines.','ok'));for(const hit of report.ruleHits){const n=text('div');const heading=text('div');heading.className='finding-head';const message=text('div',hit.message);const ack=text('button','','ack');ack.type='button';const paintAcknowledged=()=>{const active=acknowledged.has(hit.key);n.className='finding'+(active?' acknowledged':'');ack.className='ack'+(active?' active':'');ack.textContent=active?'Acknowledged':'Acknowledge';ack.setAttribute('aria-pressed',String(active));if(openFindingValue)openFindingValue.textContent=String(openFindingCount())};ack.addEventListener('click',()=>{if(acknowledged.has(hit.key))acknowledged.delete(hit.key);else acknowledged.add(hit.key);persistAcknowledged();paintAcknowledged()});heading.append(message,ack);n.append(heading,text('div',hit.path+':'+hit.line+' — '),code(hit.text));if(hit.context?.length){const lines=hit.context.map((line)=>{const marker=line.kind==='added'?'+':line.kind==='removed'?'-':' ';const number=line.number?String(line.number).padStart(4,' '):'    ';return marker+' '+number+' | '+line.text}).join('\n');n.append(text('pre',lines));}paintAcknowledged();app.append(n)}
-section('AI explanations');if(!report.explanations.length)app.append(text('p','No AI explanations were supplied for this commit.','muted'));for(const item of report.explanations){const n=text('div');n.className='explanation';const chip=text('button',item.title,'chip');chip.type='button';chip.setAttribute('aria-expanded','false');const where=text('span',' '+item.path+':'+item.lineStart+(item.lineEnd!==item.lineStart?'-'+item.lineEnd:''),'muted');const detail=text('p',item.summary);detail.hidden=true;chip.addEventListener('click',()=>{detail.hidden=!detail.hidden;chip.setAttribute('aria-expanded',String(!detail.hidden))});n.append(chip,where,detail);app.append(n)}
-section('Verification');const v=text('div');v.className='card';if(report.verification.available){v.append(text('div','Verified by '+report.verification.source+' for '+report.verification.revision,'ok'));for(const check of report.verification.checks){const row=text('div',check.name+': '+check.status);if(check.url){row.append(text('span',' '),code(check.url))}v.append(row)}}else{v.append(text('div',report.verification.error||'No verification report is attached.','muted'))}app.append(v);
-section('Changed files');if(!report.files.length)app.append(text('p','No changed files.','muted'));for(const file of report.files){const d=document.createElement('details'),s=text('summary',file.status+' '+file.path);d.append(s);if(file.hunks?.length){const diff=text('div');diff.className='diff';for(const hunk of file.hunks){const block=text('div');block.className='hunk';block.id=hunk.id;block.append(text('div',hunk.header,'hunk-head'));for(const line of hunk.lines){const row=text('div');row.className='diff-line '+line.kind;const marker=line.kind==='added'?'+':line.kind==='removed'?'-':' ';row.append(text('span',line.oldLine||'','gutter'),text('span',line.newLine||'','gutter'),text('span',marker,'mark'),text('span',line.text,'line-code'));block.append(row)}diff.append(block)}d.append(diff)}else if(file.diff){d.append(text('pre',file.diff))}else d.append(text('p','No textual diff available.','muted'));app.append(d)}
-</script></body></html>`
-	return []byte(pagePrefix + string(data) + pageSuffix), nil
 }
 
 func writeStaticReviewReport(outDir string, report staticReviewReport) error {
