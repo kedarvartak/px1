@@ -9,6 +9,7 @@
   --ok:#6fcf9d; --attention:#e6b05a; --attention-tint:#3a3122; --danger:#f08a80; --danger-tint:#3c2626;
   --add:#233229; --del:#3a2626;
   --note:#a3b4f7; --note-tint:#262b44;
+  --ann:#191919;
   --fs-body:14px; --fs-small:12.5px; --fs-fine:11.5px; --fs-eyebrow:11px;
   --r-sm:4px; --r-md:6px; --r-lg:10px;
   color-scheme:dark;
@@ -21,6 +22,7 @@
   --ok:#2f6b4f; --attention:#8a5a14; --attention-tint:#efe3cb; --danger:#a1322c; --danger-tint:#f1d9d6;
   --add:#e3ebe4; --del:#ecdcd9;
   --note:#4658b5; --note-tint:#e4e8f8;
+  --ann:#e2e2de;
   color-scheme:light;
 }
 *{box-sizing:border-box}
@@ -110,8 +112,8 @@ a.check:hover .name{text-decoration:underline}
 .ln .c{padding:0 16px 0 4px;white-space:pre}
 .ln.added{background:var(--add)}.ln.removed{background:var(--del)}
 
-.ann{margin:0;padding:10px 16px 12px calc(46px + 46px + 20px + 4px);border-block:1px solid var(--line);background:var(--surface);position:sticky;left:0;width:min(100%,860px);min-width:0;scroll-margin-top:calc(var(--top-h,140px) + 76px);font-family:var(--sans);white-space:normal}
-.ann.note{padding-top:0;padding-bottom:0;background:var(--surface)}
+.ann{margin:0;padding:10px 16px 12px calc(46px + 46px + 20px + 4px);border-block:1px solid var(--line);background:var(--ann);position:sticky;left:0;width:100%;min-width:0;scroll-margin-top:calc(var(--top-h,140px) + 76px);font-family:var(--sans);white-space:normal}
+.ann.note{padding-top:0;padding-bottom:0}
 .ann.note.filelevel{padding-block:10px}
 .note-head{display:flex;gap:10px;align-items:center;width:100%;margin:0;padding:7px 0;background:none;border:0;text-align:left;color:var(--ink)}
 .note-head:hover .note-title{text-decoration:underline}
@@ -122,7 +124,6 @@ a.check:hover .name{text-decoration:underline}
 .note-head[aria-expanded="true"] .note-caret{transform:rotate(-135deg)}
 .note-body{padding:0 0 12px 30px}
 .note-body p{margin:0 0 6px;max-width:68ch;color:var(--dim)}
-.ann.note.open{background:var(--surface)}
 .ann.filelevel{padding-left:16px;border-top:0}
 .ann-top{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .ann-title{font-weight:600}
