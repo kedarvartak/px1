@@ -97,19 +97,13 @@ const seg=h('span','seg');seg.setAttribute('role','group');seg.setAttribute('ari
 const fAll=h('button',null,'All '+files.length),fFlag=h('button',null,'Flagged');
 fAll.type=fFlag.type='button';seg.append(fAll,fFlag);filesHead.append(seg);
 const fileList=h('ul','files');filesSec.append(filesHead,fileList);
-const railToggle=h('button','rail-toggle');railToggle.type='button';
-const railCaret=h('span','rt-caret'),railLabel=h('span','rt-label'),railCount=h('span','rt-count');
-railCaret.setAttribute('aria-hidden','true');
-railToggle.append(railCaret,railLabel,railCount);
-rail.append(railToggle,queueSec,filesSec);
+rail.append(queueSec,filesSec);
 let flaggedOnly=false;
 
 const order={rule:0,attn:1,note:2};
 function paintQueue(){
   queue.textContent='';
   queueCount.textContent=open().length+' open';
-  railCount.textContent=open().length;
-  railCount.title=open().length+' open';
   if(!items.length){queue.append(h('p','empty','Nothing to review beyond the diff.'));return}
   [...items].sort((a,b)=>order[a.k]-order[b.k]).forEach((it)=>{
     const a=h('a','qitem'+(it.k!=='note'&&ack.has(it.ackId)?' done':''));a.href='#'+it.id;
@@ -238,29 +232,52 @@ function paintThumb(){const total=document.documentElement.scrollHeight;thumb.st
 function syncTop(){document.documentElement.style.setProperty('--top-h',top.offsetHeight+'px');paintSpine()}
 
 const wrap=h('div','wrap');wrap.append(rail,main,spine);
-/* The side panel collapses to a slim strip (stacked bar on narrow screens). The choice is
-   remembered; with none saved, narrow screens start collapsed so the diff comes first. */
-const railKey='px1:rail';
-let railCollapsed=matchMedia('(max-width:1000px)').matches;
-try{const saved=localStorage.getItem(railKey);if(saved==='collapsed'||saved==='open')railCollapsed=saved==='collapsed'}catch{}
-function setRail(collapsed,remember){
-  railCollapsed=collapsed;
-  wrap.classList.toggle('collapsed',collapsed);
-  railToggle.setAttribute('aria-expanded',String(!collapsed));
-  railToggle.setAttribute('aria-label',(collapsed?'Show':'Hide')+' review panel');
-  railLabel.textContent=(collapsed?'Show':'Hide')+' review panel';
-  if(remember){try{localStorage.setItem(railKey,collapsed?'collapsed':'open')}catch{}}
+/* The divider between the side panel and the diff is a drag handle. Width is remembered;
+   double-click or Home resets it. Narrow screens stack the panel and hide the handle. */
+const RAIL_DEFAULT=288,RAIL_MIN=200,RAIL_MAX=520,railKey='px1:rail-width';
+const handle=h('div','resize-handle');
+handle.setAttribute('role','separator');handle.setAttribute('aria-orientation','vertical');
+handle.setAttribute('aria-label','Resize side panel');handle.tabIndex=0;
+handle.append(h('span','grip'));
+wrap.append(handle);
+const clampRail=(w)=>Math.round(Math.min(RAIL_MAX,Math.max(RAIL_MIN,Math.min(w,wrap.clientWidth*0.45))));
+function setRailWidth(w,remember){
+  w=clampRail(w);
+  wrap.style.setProperty('--rail-w',w+'px');
+  handle.setAttribute('aria-valuenow',String(w));handle.setAttribute('aria-valuemin',String(RAIL_MIN));handle.setAttribute('aria-valuemax',String(RAIL_MAX));
+  if(remember){try{localStorage.setItem(railKey,String(w))}catch{}}
+  return w;
 }
-railToggle.onclick=()=>{setRail(!railCollapsed,true);setTimeout(syncTop,260)};
-addEventListener('keydown',(e)=>{
-  if(e.key!=='['||e.ctrlKey||e.metaKey||e.altKey)return;
-  const t=e.target;if(t&&(t.isContentEditable||/^(input|textarea|select)$/i.test(t.tagName)))return;
-  setRail(!railCollapsed,true);setTimeout(syncTop,260);
+let savedWidth=RAIL_DEFAULT;
+try{const n=parseInt(localStorage.getItem(railKey),10);if(n>0)savedWidth=n}catch{}
+let frame=0;const settle=()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(syncTop)};
+handle.addEventListener('pointerdown',(e)=>{
+  if(e.button!==0)return;
+  e.preventDefault();handle.setPointerCapture(e.pointerId);
+  document.body.classList.add('resizing');handle.classList.add('active');
+  const left=wrap.getBoundingClientRect().left+parseFloat(getComputedStyle(wrap).paddingLeft);
+  const move=(ev)=>{setRailWidth(ev.clientX-left,false);settle()};
+  const done=()=>{
+    handle.removeEventListener('pointermove',move);handle.removeEventListener('pointerup',done);handle.removeEventListener('pointercancel',done);
+    document.body.classList.remove('resizing');handle.classList.remove('active');
+    setRailWidth(parseFloat(wrap.style.getPropertyValue('--rail-w')),true);settle();
+  };
+  handle.addEventListener('pointermove',move);handle.addEventListener('pointerup',done);handle.addEventListener('pointercancel',done);
 });
-setRail(railCollapsed,false);
+handle.addEventListener('dblclick',()=>{setRailWidth(RAIL_DEFAULT,true);settle()});
+handle.addEventListener('keydown',(e)=>{
+  const now=parseFloat(wrap.style.getPropertyValue('--rail-w'))||RAIL_DEFAULT;
+  let next=null;
+  if(e.key==='ArrowLeft')next=now-16;else if(e.key==='ArrowRight')next=now+16;
+  else if(e.key==='Home')next=RAIL_DEFAULT;
+  if(next===null)return;
+  e.preventDefault();setRailWidth(next,true);settle();
+});
+addEventListener('resize',()=>setRailWidth(parseFloat(wrap.style.getPropertyValue('--rail-w'))||savedWidth,false));
 const foot=h('div','foot','Acknowledgements are saved in this browser only and apply to commit '+short(report.head)+'.');
 app.textContent='';
 app.append(top,wrap,foot);
+setRailWidth(savedWidth,false);
 paintTop();paintQueue();paintFiles();syncTop();
 /* A deep link such as #ann-3 opens its note and scrolls to it once the page is built. */
 openNoteFromHash();

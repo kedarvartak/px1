@@ -163,14 +163,19 @@ func TestStaticReviewHTMLHasNoLineHighlightBars(t *testing.T) {
 	}
 }
 
-func TestStaticReviewHTMLShipsCollapsibleRail(t *testing.T) {
+func TestStaticReviewHTMLShipsResizablePanel(t *testing.T) {
 	body, err := renderStaticReviewHTML(staticReviewReport{Verification: verificationResponse{Checks: []verificationCheck{}}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"rail-toggle", "px1:rail", ".wrap.collapsed", "review panel", "(max-width:1000px)"} {
+	for _, want := range []string{"resize-handle", `"separator"`, "px1:rail-width", "--rail-w", "setPointerCapture", "dblclick"} {
 		if !strings.Contains(string(body), want) {
 			t.Errorf("report missing %q", want)
+		}
+	}
+	for _, banned := range []string{"rail-toggle", "Hide review panel"} {
+		if strings.Contains(string(body), banned) {
+			t.Errorf("report still ships the old collapse toggle (%q)", banned)
 		}
 	}
 }
