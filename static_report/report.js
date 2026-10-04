@@ -152,20 +152,17 @@ function annotation(it,fileLevel){
   if(it.ev)a.append(h('code','ev',it.ev));
   return a;
 }
-/* An AI note is a slim strip under the last line it explains. Opening it tints the
-   whole explained range in the diff, so the code and the reading stay together. */
+/* An AI note is a slim strip under the last line it explains, collapsed until opened. */
 const rangeLabel=(it)=>it.lineEnd>it.line?'Lines '+it.line+'–'+it.lineEnd:'Line '+it.line;
-function noteStrip(it,rows){
+function noteStrip(it){
   const a=h('div','ann note');a.id=it.id;
   const head=h('button','note-head');head.type='button';head.setAttribute('aria-expanded','false');
   const glyph=h('span','note-glyph','✦');glyph.setAttribute('aria-hidden','true');
   head.append(glyph,h('span','note-title',it.title),h('span','note-range',rangeLabel(it)),h('span','note-caret'));
   const body=h('div','note-body');body.hidden=true;
   body.append(h('p',null,it.why),h('span','src','AI explanation · generated for this commit'));
-  const set=(on)=>{head.setAttribute('aria-expanded',String(on));body.hidden=!on;a.classList.toggle('open',on);rows.forEach((r)=>r.classList.toggle('n-on',on))};
+  const set=(on)=>{head.setAttribute('aria-expanded',String(on));body.hidden=!on;a.classList.toggle('open',on)};
   head.onclick=()=>set(body.hidden);
-  head.addEventListener('mouseenter',()=>rows.forEach((r)=>r.classList.add('n-hover')));
-  head.addEventListener('mouseleave',()=>rows.forEach((r)=>r.classList.remove('n-hover')));
   a.open=()=>set(true);
   a.append(head,body);
   return a;
@@ -198,9 +195,8 @@ files.forEach((f,i)=>{
       const hunk=h('div','hunk');hunk.id=hk.id||'';hunk.append(h('div','hh',hk.header));
       for(const l of hk.lines||[]){
         const marks=byLine.get(l)||[];
-        const strongest=marks.length?marks.slice().sort((a,b)=>order[a.k]-order[b.k])[0].k:'';
-        const row=h('div','ln '+l.kind+(strongest?' k-'+strongest:''));
-        row.append(h('span','bar'),h('span','g',l.oldLine||''),h('span','g',l.newLine||''),h('span','mk',l.kind==='added'?'+':l.kind==='removed'?'−':' '),h('span','c',l.text));
+        const row=h('div','ln '+l.kind);
+        row.append(h('span','g',l.oldLine||''),h('span','g',l.newLine||''),h('span','mk',l.kind==='added'?'+':l.kind==='removed'?'−':' '),h('span','c',l.text));
         rowOf.set(l,row);hunk.append(row);
         for(const it of marks)hunk.append(annotation(it,false));
         for(const it of noteAfter.get(l)||[])strips.push([it,hunk]);
@@ -209,9 +205,8 @@ files.forEach((f,i)=>{
     }
     /* Strips are placed after their last explained line once every row exists. */
     for(const [it,hunk] of strips){
-      const span=noteSpans.get(it),rows=span.map((l)=>rowOf.get(l));
-      rows.forEach((r,i)=>{r.classList.add('n-range');if(i===0)r.classList.add('n-first');if(i===rows.length-1)r.classList.add('n-last')});
-      rows[rows.length-1].after(noteStrip(it,rows));
+      const span=noteSpans.get(it);
+      rowOf.get(span[span.length-1]).after(noteStrip(it));
     }
   }else if(f.diff){body.append(h('pre',null,f.diff))}
   else body.append(h('p','none','No textual diff available.'));

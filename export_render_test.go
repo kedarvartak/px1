@@ -138,16 +138,27 @@ func TestStaticReviewHTMLToleratesSnapshotWithoutAttention(t *testing.T) {
 	}
 }
 
-func TestStaticReviewHTMLShipsNoteHighlighting(t *testing.T) {
+func TestStaticReviewHTMLShipsNoteStrips(t *testing.T) {
 	body, err := renderStaticReviewHTML(staticReviewReport{Verification: verificationResponse{Checks: []verificationCheck{}}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Notes explain a line range: the script must highlight the range rows
-	// and the stylesheet must style the open, hover and range states.
-	for _, want := range []string{"note-head", "n-range", "n-on", "lineEnd", ".ln.n-on", ".ln.n-hover", "aria-expanded"} {
+	// Notes explain a line range and open in place under its last line.
+	for _, want := range []string{"note-head", "note-body", "lineEnd", "aria-expanded"} {
 		if !strings.Contains(string(body), want) {
 			t.Errorf("report missing %q", want)
+		}
+	}
+}
+
+func TestStaticReviewHTMLHasNoLineHighlightBars(t *testing.T) {
+	body, err := renderStaticReviewHTML(staticReviewReport{Verification: verificationResponse{Checks: []verificationCheck{}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, banned := range []string{".bar{", "k-rule", "n-range", "n-hover"} {
+		if strings.Contains(string(body), banned) {
+			t.Errorf("report still styles diff lines with %q", banned)
 		}
 	}
 }
