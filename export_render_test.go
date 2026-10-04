@@ -137,3 +137,17 @@ func TestStaticReviewHTMLToleratesSnapshotWithoutAttention(t *testing.T) {
 		t.Fatal("page must render a report whose attention field is null")
 	}
 }
+
+func TestStaticReviewHTMLShipsNoteHighlighting(t *testing.T) {
+	body, err := renderStaticReviewHTML(staticReviewReport{Verification: verificationResponse{Checks: []verificationCheck{}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Notes explain a line range: the script must highlight the range rows
+	// and the stylesheet must style the open, hover and range states.
+	for _, want := range []string{"note-head", "n-range", "n-on", "lineEnd", ".ln.n-on", ".ln.n-hover", "aria-expanded"} {
+		if !strings.Contains(string(body), want) {
+			t.Errorf("report missing %q", want)
+		}
+	}
+}

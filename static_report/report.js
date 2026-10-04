@@ -12,7 +12,7 @@ const h=(tag,cls,txt)=>{const n=document.createElement(tag);if(cls)n.className=c
 const short=(sha)=>String(sha||'').slice(0,7);
 const STATUS={A:'added',M:'modified',D:'deleted',R:'renamed',C:'copied',T:'type changed'};
 const KIND={rule:'Rule',attn:'Attention',note:'Note'};
-const CHIP={rule:'chip-danger',attn:'chip-attention',note:''};
+const CHIP={rule:'chip-danger',attn:'chip-attention',note:'chip-note'};
 const chipFor=(k)=>h('span','chip '+CHIP[k],KIND[k]);
 
 /* Acknowledgements live in this browser only. The key predates the redesign;
@@ -28,7 +28,7 @@ const fileIndex=new Map(files.map((f,i)=>[f.path,i]));
 const add=(it)=>{if(fileIndex.has(it.path)){it.fi=fileIndex.get(it.path);it.id='ann-'+items.length;items.push(it)}};
 for(const hit of ruleHits)add({k:'rule',ackId:hit.key,path:hit.path,line:hit.line,title:hit.message,why:'Team rule '+hit.ruleId+(hit.origin?' ('+hit.origin+')':'')+'.',ev:hit.text,src:hit.source});
 for(const flag of attention)add({k:'attn',ackId:flag.id,path:flag.path,line:flag.line||0,title:flag.title,why:flag.reason,ev:flag.evidence,src:'rule '+flag.rule});
-for(const ex of explanations)add({k:'note',path:ex.path,line:ex.lineStart,title:ex.title,why:ex.summary,src:'AI explanation'+(ex.lineEnd>ex.lineStart?' · lines '+ex.lineStart+'–'+ex.lineEnd:'')});
+for(const ex of explanations)add({k:'note',path:ex.path,line:ex.lineStart,lineEnd:Math.max(ex.lineEnd||0,ex.lineStart),title:ex.title,why:ex.summary,src:'AI explanation'});
 const needsDecision=(it)=>it.k!=='note'&&!ack.has(it.ackId);
 const open=()=>items.filter(needsDecision);
 
@@ -85,7 +85,7 @@ function paintTop(){
   ci.textContent=verification.available&&checks.length?'CI '+checks.filter((c)=>c.status==='passed').length+'/'+checks.length+' passed':'CI not attached';
   ci.onclick=()=>{checksPanel.hidden=!checksPanel.hidden;ci.setAttribute('aria-expanded',String(!checksPanel.hidden));syncTop()};
   verdict.append(ci);
-  verdict.append(h('span','chip',plural(items.filter((i)=>i.k==='note').length,'AI note')));
+  {const n=items.filter((i)=>i.k==='note').length;verdict.append(h('span','chip'+(n?' chip-note':''),plural(n,'AI note')))}
 }
 
 /* ---- rail ---- */
@@ -126,7 +126,7 @@ function paintFiles(){
     if(parts.length)p.append(h('span',null,parts.join('/')+'/'));
     p.append(h('b',null,base));
     const m=h('span','m');
-    for(const [kind,cls] of [['rule','r'],['attn','a'],['note','']]){const n=mine.filter((x)=>x.k===kind).length;if(n)m.append(h('i','mark '+cls,n))}
+    for(const [kind,cls] of [['rule','r'],['attn','a'],['note','n']]){const n=mine.filter((x)=>x.k===kind).length;if(n)m.append(h('i','mark '+cls,n))}
     link.append(p,m,h('span','delta','+'+stats[i].a+' −'+stats[i].d+' · '+(STATUS[f.status]||f.status)));
     li.append(link);fileList.append(li);
   });
@@ -152,6 +152,27 @@ function annotation(it,fileLevel){
   if(it.ev)a.append(h('code','ev',it.ev));
   return a;
 }
+/* An AI note is a slim strip under the last line it explains. Opening it tints the
+   whole explained range in the diff, so the code and the reading stay together. */
+const rangeLabel=(it)=>it.lineEnd>it.line?'Lines '+it.line+'–'+it.lineEnd:'Line '+it.line;
+function noteStrip(it,rows){
+  const a=h('div','ann note');a.id=it.id;
+  const head=h('button','note-head');head.type='button';head.setAttribute('aria-expanded','false');
+  const glyph=h('span','note-glyph','✦');glyph.setAttribute('aria-hidden','true');
+  head.append(glyph,h('span','note-title',it.title),h('span','note-range',rangeLabel(it)),h('span','note-caret'));
+  const body=h('div','note-body');body.hidden=true;
+  body.append(h('p',null,it.why),h('span','src','AI explanation · generated for this commit'));
+  const set=(on)=>{head.setAttribute('aria-expanded',String(on));body.hidden=!on;a.classList.toggle('open',on);rows.forEach((r)=>r.classList.toggle('n-on',on))};
+  head.onclick=()=>set(body.hidden);
+  head.addEventListener('mouseenter',()=>rows.forEach((r)=>r.classList.add('n-hover')));
+  head.addEventListener('mouseleave',()=>rows.forEach((r)=>r.classList.remove('n-hover')));
+  a.open=()=>set(true);
+  a.append(head,body);
+  return a;
+}
+const openNoteFromHash=()=>{const el=location.hash.length>1?document.getElementById(location.hash.slice(1)):null;if(el&&el.open)el.open()};
+addEventListener('hashchange',openNoteFromHash);
+
 const main=h('main','main');
 files.forEach((f,i)=>{
   const sec=h('section','fsec');sec.id='f'+i;
@@ -164,9 +185,14 @@ files.forEach((f,i)=>{
   const hunks=Array.isArray(f.hunks)?f.hunks:[];
   /* An annotation sits under its line when that line is in the diff; otherwise it leads the file. */
   const lineOf=(it)=>{if(!it.line)return null;for(const hk of hunks)for(const l of hk.lines||[])if(l.newLine===it.line&&l.kind!=='removed')return l;return null};
-  const byLine=new Map();
-  for(const it of mine){const l=lineOf(it);if(l){if(!byLine.has(l))byLine.set(l,[]);byLine.get(l).push(it);placed.add(it)}}
-  for(const it of mine)if(!placed.has(it))body.append(annotation(it,true));
+  const spanOf=(it)=>{const out=[];for(const hk of hunks)for(const l of hk.lines||[])if(l.newLine>=it.line&&l.newLine<=it.lineEnd&&l.kind!=='removed')out.push(l);return out};
+  const byLine=new Map(),noteAfter=new Map(),noteSpans=new Map();
+  for(const it of mine){
+    if(it.k==='note'){const span=spanOf(it);if(span.length){noteSpans.set(it,span);const last=span[span.length-1];if(!noteAfter.has(last))noteAfter.set(last,[]);noteAfter.get(last).push(it);placed.add(it)}continue}
+    const l=lineOf(it);if(l){if(!byLine.has(l))byLine.set(l,[]);byLine.get(l).push(it);placed.add(it)}
+  }
+  for(const it of mine)if(!placed.has(it)){const card=annotation(it,true);if(it.k==='note'){card.querySelector('.ann-top').append(h('span','src',rangeLabel(it)))}body.append(card)}
+  const rowOf=new Map(),strips=[];
   if(hunks.length){
     for(const hk of hunks){
       const hunk=h('div','hunk');hunk.id=hk.id||'';hunk.append(h('div','hh',hk.header));
@@ -175,10 +201,17 @@ files.forEach((f,i)=>{
         const strongest=marks.length?marks.slice().sort((a,b)=>order[a.k]-order[b.k])[0].k:'';
         const row=h('div','ln '+l.kind+(strongest?' k-'+strongest:''));
         row.append(h('span','bar'),h('span','g',l.oldLine||''),h('span','g',l.newLine||''),h('span','mk',l.kind==='added'?'+':l.kind==='removed'?'−':' '),h('span','c',l.text));
-        hunk.append(row);
+        rowOf.set(l,row);hunk.append(row);
         for(const it of marks)hunk.append(annotation(it,false));
+        for(const it of noteAfter.get(l)||[])strips.push([it,hunk]);
       }
       body.append(hunk);
+    }
+    /* Strips are placed after their last explained line once every row exists. */
+    for(const [it,hunk] of strips){
+      const span=noteSpans.get(it),rows=span.map((l)=>rowOf.get(l));
+      rows.forEach((r,i)=>{r.classList.add('n-range');if(i===0)r.classList.add('n-first');if(i===rows.length-1)r.classList.add('n-last')});
+      rows[rows.length-1].after(noteStrip(it,rows));
     }
   }else if(f.diff){body.append(h('pre',null,f.diff))}
   else body.append(h('p','none','No textual diff available.'));
@@ -208,6 +241,9 @@ const foot=h('div','foot','Acknowledgements are saved in this browser only and a
 app.textContent='';
 app.append(top,wrap,foot);
 paintTop();paintQueue();paintFiles();syncTop();
+/* A deep link such as #ann-3 opens its note and scrolls to it once the page is built. */
+openNoteFromHash();
+if(location.hash.length>1)document.getElementById(location.hash.slice(1))?.scrollIntoView();
 addEventListener('scroll',paintThumb,{passive:true});
 addEventListener('resize',syncTop);
 document.fonts?.ready.then(syncTop);
