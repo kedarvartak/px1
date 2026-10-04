@@ -40,6 +40,12 @@ brand.append(h('span',null,'Review report'),h('span',null,report.repository||'')
 const range=h('span','range');
 range.append(h('b',null,short(report.head)),document.createTextNode(' ← '),h('b',null,short(report.base)),document.createTextNode(report.generatedAt?' · generated '+new Date(report.generatedAt).toISOString().replace('T',' ').slice(0,16)+' UTC':''));
 brand.append(range);
+const root=document.documentElement;
+const themeBtn=h('button','theme-btn');themeBtn.type='button';
+const paintTheme=()=>{const light=root.dataset.theme==='light';themeBtn.textContent=light?'Dark theme':'Light theme';themeBtn.setAttribute('aria-label','Switch to '+(light?'dark':'light')+' theme')};
+themeBtn.onclick=()=>{const next=root.dataset.theme==='light'?'dark':'light';root.dataset.theme=next;try{localStorage.setItem('px1:theme',next)}catch{}paintTheme()};
+paintTheme();
+brand.append(themeBtn);
 const headline=h('div','headline');
 const h1=h('h1');const verdict=h('div','verdict');
 headline.append(h1,verdict);

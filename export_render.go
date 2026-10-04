@@ -61,7 +61,7 @@ func renderStaticReviewHTML(report staticReviewReport) ([]byte, error) {
 	var page bytes.Buffer
 	page.WriteString(`<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Review report</title><style>
+<title>Review report</title><script>try{if(localStorage.getItem('px1:theme')==='light')document.documentElement.dataset.theme='light'}catch(e){}</script><style>
 `)
 	page.WriteString(fonts)
 	page.Write(css)
