@@ -137,3 +137,28 @@ func TestStaticReviewHTMLToleratesSnapshotWithoutAttention(t *testing.T) {
 		t.Fatal("page must render a report whose attention field is null")
 	}
 }
+
+func TestStaticReviewHTMLShipsNoteStrips(t *testing.T) {
+	body, err := renderStaticReviewHTML(staticReviewReport{Verification: verificationResponse{Checks: []verificationCheck{}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Notes explain a line range and open in place under its last line.
+	for _, want := range []string{"note-head", "note-body", "lineEnd", "aria-expanded"} {
+		if !strings.Contains(string(body), want) {
+			t.Errorf("report missing %q", want)
+		}
+	}
+}
+
+func TestStaticReviewHTMLHasNoLineHighlightBars(t *testing.T) {
+	body, err := renderStaticReviewHTML(staticReviewReport{Verification: verificationResponse{Checks: []verificationCheck{}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, banned := range []string{".bar{", "k-rule", "n-range", "n-hover"} {
+		if strings.Contains(string(body), banned) {
+			t.Errorf("report still styles diff lines with %q", banned)
+		}
+	}
+}
