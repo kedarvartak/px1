@@ -168,7 +168,7 @@ func TestStaticReviewHTMLShipsResizablePanel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"resize-handle", `"separator"`, "px1:rail-width", "--rail-w", "setPointerCapture", "dblclick"} {
+	for _, want := range []string{"resize-handle", "separator", "px1:rail-width", "--rail-w", "setPointerCapture", "dblclick"} {
 		if !strings.Contains(string(body), want) {
 			t.Errorf("report missing %q", want)
 		}
