@@ -50,6 +50,7 @@ alone does not prove a semantic violation.
 - Structured highlighted diffs with old/new line numbers
 - Contextual team-rule findings on added lines
 - Exact-revision GitHub check summaries
+- Explainable, model-free attention flags for high-review-risk changes
 - Optional, provider-neutral AI explanation chips
 - Browser-local finding acknowledgement scoped to the exact revision
 - Historical SHA report retention
@@ -130,7 +131,11 @@ can read its imported report.
 Start a review from the Review panel before assigning an agent. px1 records the
 task baseline, notices later edits, and includes files created or deleted after
 the task starts. Reviewers can inspect changes, leave comments, ask a configured
-provider to follow up, revert a hunk, and verify imported CI results.
+provider to follow up, revert a hunk, and verify imported CI results. A bounded
+local pass also calls out dependency, authentication, schema, configuration,
+test deletion, generated-code, permission, large-diff, and public-API changes.
+Every flag states the matching evidence, opens the diff, and can be dismissed
+for the current session; it never blocks approval or claims a change is unsafe.
 
 For remote use, keep px1 on a private network such as Tailscale or WireGuard:
 

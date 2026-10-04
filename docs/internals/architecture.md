@@ -84,6 +84,13 @@ The server is implemented in [`server.go`](../../server.go) using Go's standard 
 | `/api/lsp/start`      | `POST` | Rescans and starts language server after installation                   | JSON (`{ok: true}`)                        |
 | `/api/agent/job`      | `GET`  | Snapshot of an explicit review-provider job `?id=...`, or the most recently started when omitted | JSON job snapshot |
 | `/api/review/import`  | `POST` | Authenticated, size-limited import of a versioned GitHub PR snapshot; requires `PX1_IMPORT_TOKEN` | JSON (`{imported, path, target}`) |
+| `/api/review/attention` | `GET` | Runs bounded, deterministic high-review-risk heuristics against the active task baseline | JSON (`{flags, truncated}`) |
+| `/api/review/attention/dismiss` | `POST` | Dismisses one current attention flag for the active review session | JSON (`{flags, truncated}`) |
+
+Attention analysis reads at most 500 changed files, 512 KiB per file, and 8
+MiB of text in total, and returns at most 250 flags. It uses no model or remote
+API. Flag IDs derive from the rule, path, and evidence so dismissals remain
+stable inside the review session while changed evidence can be flagged again.
 
 ### Automatic external-change refresh
 

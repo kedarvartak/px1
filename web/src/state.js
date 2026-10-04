@@ -79,6 +79,7 @@ export const S = {
   reviewComments: [],
   reviewPins: [],
   reviewRuleHits: [],
+  reviewAttention: { flags: [], truncated: false },
   reviewRules: { rules: [] },
   reviewExplain: {},
   reviewChecks: { available: false, checks: [] },
