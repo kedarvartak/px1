@@ -47,6 +47,10 @@ func main() {
 		verbose      = flag.Bool("verbose", false, "log requests, searches, symbols, and agent prompts to terminal")
 		agentCmd     = flag.String("agent", "", "pin the local review provider (claude, gemini, cursor-agent, agy, opencode, codex, aider, goose, or a command template containing {prompt})")
 		noAgent      = flag.Bool("no-agent", false, "disable local review-provider actions")
+		allowPatch   = flag.Bool("allow-patch", false, "allow remote filesystem patches, reverts, and restores")
+		allowAgent   = flag.Bool("allow-agent", false, "allow remote review-provider and language-server execution")
+		allowChecks  = flag.Bool("allow-checks", false, "allow remote verification-command attempts")
+		remoteToken  = flag.String("remote-token", "", "bearer token required for remote patch, agent, and check actions (or set PX1_REMOTE_TOKEN)")
 	)
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "px1 %s - a code navigator\n\nusage: px1 [flags] [file or directory]\n\nflags:\n", version)
@@ -103,6 +107,14 @@ func main() {
 	ix := NewIndex(root)
 	lsp := newLSPManager(root, !*noLSP)
 	pxSrv := NewServer(ix, lsp)
+	token := *remoteToken
+	if token == "" {
+		token = os.Getenv("PX1_REMOTE_TOKEN")
+	}
+	pxSrv.SetAccessPolicy(*allowPatch, *allowAgent, *allowChecks, token)
+	if (*allowPatch || *allowAgent || *allowChecks) && token == "" {
+		uiStatus("warn", "remote", "capability flags are set but no token is configured; remote patch, agent, and checks stay refused", 0, os.Stderr)
+	}
 	var agent *agentManager
 	if !*noAgent {
 		agent, err = newAgentManager(root, *agentCmd, lsp)

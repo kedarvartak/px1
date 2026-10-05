@@ -4,9 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -255,26 +253,19 @@ func (t *tailBuffer) String() string {
 
 // ---------------------------------------------------------------- HTTP
 
-// localPost admits a request that changes the machine only when it is a POST
-// from px1's own page. Browsers send Origin on every POST, so a page from another
-// site cannot pass. Requiring the Host to be an IP address or localhost also
-// shuts out DNS rebinding, where an attacker's domain is pointed at this machine
-// and its Origin would otherwise match.
+// localPost admits non-capability state changes only from a loopback connection
+// to px1's own page. Remote access stays read-only unless an endpoint uses the
+// explicit capability gate instead.
 func localPost(w http.ResponseWriter, r *http.Request) bool {
 	if r.Method != http.MethodPost {
 		fail(w, http.StatusMethodNotAllowed, "POST only")
 		return false
 	}
-	host := r.Host
-	if h, _, err := net.SplitHostPort(host); err == nil {
-		host = h
-	}
-	host = strings.Trim(host, "[]")
-	if host != "localhost" && net.ParseIP(host) == nil {
-		fail(w, http.StatusForbidden, "open px1 by IP address or localhost to set up language servers")
+	if requestAccessClass(r) != accessLoopback {
+		fail(w, http.StatusForbidden, "remote access is read-only for this action")
 		return false
 	}
-	if o, err := url.Parse(r.Header.Get("Origin")); err != nil || o.Host != r.Host {
+	if !originMatches(r) {
 		fail(w, http.StatusForbidden, "request did not come from px1")
 		return false
 	}
@@ -291,7 +282,7 @@ func (s *Server) handleLSPSetup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleLSPInstall(w http.ResponseWriter, r *http.Request) {
-	if !localPost(w, r) {
+	if !s.permit(w, r, capAgent) {
 		return
 	}
 	q := r.URL.Query()
@@ -307,7 +298,7 @@ func (s *Server) handleLSPInstall(w http.ResponseWriter, r *http.Request) {
 // handleLSPStart finds servers installed since startup, clears earlier start
 // failures and starts the server for path, reporting where it has got to.
 func (s *Server) handleLSPStart(w http.ResponseWriter, r *http.Request) {
-	if !localPost(w, r) {
+	if !s.permit(w, r, capAgent) {
 		return
 	}
 	_, rel, ok := s.resolvePath(r.URL.Query().Get("path"))

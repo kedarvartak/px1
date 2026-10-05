@@ -55,6 +55,10 @@ type Server struct {
 	ruleMu      sync.Mutex
 	ruleSuggest map[int64]map[string]any
 
+	policy  accessPolicy
+	auditMu sync.Mutex
+	audit   []auditEntry
+
 	lastReq atomic.Int64 // unix nanos of the most recent request
 }
 
@@ -119,6 +123,7 @@ func NewServer(ix *Index, lsp *lspManager) *Server {
 	s.mux.HandleFunc("/api/worktrees", s.handleWorktrees)
 	s.mux.HandleFunc("/api/worktree/switch", s.handleWorktreeSwitch)
 	s.mux.HandleFunc("/api/settings", s.handleSettings)
+	s.mux.HandleFunc("/api/audit", s.handleAudit)
 	s.lastReq.Store(time.Now().UnixNano())
 	go s.scavenge()
 	return s
@@ -241,6 +246,7 @@ func (s *Server) handleMeta(w http.ResponseWriter, r *http.Request) {
 		"files":   s.ix.FileCount(),
 		"git":     gitAvailable(s.ix.Root()),
 		"version": version,
+		"policy":  s.policyView(r),
 	})
 }
 
@@ -293,6 +299,9 @@ func (s *Server) lspRespond(w http.ResponseWriter, rel string, hits []NavHit, er
 }
 
 func (s *Server) handleLSPDef(w http.ResponseWriter, r *http.Request) {
+	if !s.permitProcess(w, r) {
+		return
+	}
 	start := time.Now()
 	abs, rel, line, col, ok := s.lspPos(r)
 	if !ok {
@@ -315,6 +324,9 @@ func (s *Server) handleLSPDef(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleLSPRefs(w http.ResponseWriter, r *http.Request) {
+	if !s.permitProcess(w, r) {
+		return
+	}
 	start := time.Now()
 	abs, rel, line, col, ok := s.lspPos(r)
 	if !ok {
@@ -340,6 +352,9 @@ func (s *Server) handleLSPRefs(w http.ResponseWriter, r *http.Request) {
 // it expands that node into callers, or callees when dir=out. path always names
 // the file the trail started in, which picks the language server.
 func (s *Server) handleLSPCalls(w http.ResponseWriter, r *http.Request) {
+	if !s.permitProcess(w, r) {
+		return
+	}
 	start := time.Now()
 	abs, rel, line, col, ok := s.lspPos(r)
 	if !ok {
@@ -379,6 +394,9 @@ func (s *Server) handleLSPCalls(w http.ResponseWriter, r *http.Request) {
 // by the time the reader wants to hover or jump, and so the status indicator
 // reflects reality without anyone having to ask a question first.
 func (s *Server) handleLSPWarm(w http.ResponseWriter, r *http.Request) {
+	if !s.permitProcess(w, r) {
+		return
+	}
 	_, rel, ok := s.resolvePath(r.URL.Query().Get("path"))
 	if !ok {
 		fail(w, 400, "bad path")
@@ -399,6 +417,9 @@ func (s *Server) handleLSPWarm(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleLSPHover(w http.ResponseWriter, r *http.Request) {
+	if !s.permitProcess(w, r) {
+		return
+	}
 	abs, rel, line, col, ok := s.lspPos(r)
 	if !ok {
 		fail(w, 400, "bad path")
@@ -423,6 +444,9 @@ func (s *Server) handleLSPHover(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleLSPSymbols(w http.ResponseWriter, r *http.Request) {
+	if !s.permitProcess(w, r) {
+		return
+	}
 	abs, rel, ok := s.resolvePath(r.URL.Query().Get("path"))
 	if !ok {
 		fail(w, 400, "bad path")

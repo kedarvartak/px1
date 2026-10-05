@@ -3,11 +3,21 @@
   var $ = (s, r = document) => r.querySelector(s);
   var $$ = (s, r = document) => [...r.querySelectorAll(s)];
   var esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  var remoteToken = () => {
+    try {
+      return sessionStorage.getItem("px1.remoteToken") || "";
+    } catch {
+      return "";
+    }
+  };
   var request = async (method, path, params, opts = {}) => {
     const u = new URL(path, location.origin);
     for (const [k, v] of Object.entries(params || {}))
       if (v !== undefined && v !== "")
         u.searchParams.set(k, v);
+    const token = remoteToken();
+    if (token)
+      opts = { ...opts, headers: { ...opts.headers || {}, Authorization: "Bearer " + token } };
     const r = await fetch(u, { method, ...opts });
     const j = await r.json();
     if (j.error)
@@ -4764,6 +4774,39 @@ Switch worktree` : "Switch worktree" : S2.meta?.root || "";
   }
 
   // web/src/main.js
+  function showAccessPolicy(p) {
+    const el = $("#access-policy");
+    const form = $("#access-token");
+    if (!el || !p)
+      return;
+    const on = ["patch", "agent", "checks"].filter((k) => p[k]);
+    if (!p.remote)
+      el.textContent = "Local patch and agent access";
+    else if (p.needsToken)
+      el.textContent = "Remote writes stay off until PX1_REMOTE_TOKEN is set";
+    else if (!on.length)
+      el.textContent = "Remote read-only";
+    else
+      el.textContent = "Remote " + on.join(", ") + " need a token";
+    el.hidden = false;
+    if (form)
+      form.hidden = !p.tokenRequired;
+  }
+  function initAccessToken() {
+    const form = $("#access-token");
+    const input = $("#access-token-input");
+    if (!form || !input)
+      return;
+    try {
+      input.value = sessionStorage.getItem("px1.remoteToken") || "";
+    } catch {}
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      try {
+        sessionStorage.setItem("px1.remoteToken", input.value.trim());
+      } catch {}
+    });
+  }
   initRenderer();
   initTabs();
   initCursor();
@@ -4781,6 +4824,7 @@ Switch worktree` : "Switch worktree" : S2.meta?.root || "";
   initDiff();
   initSettings();
   initReviewQueue();
+  initAccessToken();
   (async function boot() {
     try {
       const wrapPref = localStorage.getItem("px1.wrap");
@@ -4792,6 +4836,7 @@ Switch worktree` : "Switch worktree" : S2.meta?.root || "";
     applyKeyLabels();
     measure();
     S2.meta = await api("/api/meta");
+    showAccessPolicy(S2.meta.policy);
     if (S2.meta.git) {
       const b = $("#btn-changed");
       if (b)

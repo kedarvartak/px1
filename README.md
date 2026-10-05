@@ -140,14 +140,32 @@ test deletion, generated-code, permission, large-diff, and public-API changes.
 Every flag states the matching evidence, opens the diff, and can be dismissed
 for the current session; it never blocks approval or claims a change is unsafe.
 
-For remote use, keep px1 on a private network such as Tailscale or WireGuard:
+For remote use, keep px1 on a private network such as Tailscale or WireGuard.
+A request is local only when its connected peer and HTTP host are both
+loopback. Everything else is read-only: it cannot change review state or
+settings, patch files, run an agent, or start a language server. Patch, agent,
+and check access are separate flags, and a remote flag does nothing
+until `-remote-token` or `PX1_REMOTE_TOKEN` is set. The browser asks for that
+token only when a remote capability is on. Loopback (`localhost` or `127.0.0.1`)
+keeps local patch and agent access without the token.
 
 ```bash
+# Private network, read-only. A LAN IP or hostname cannot mutate state or start processes.
 px1 -host 0.0.0.0 -port 7777 ~/work/repo
+
+# SSH tunnel. The browser talks to loopback, so this session has local write access.
+ssh -L 7777:127.0.0.1:7777 user@host
+px1 -host 127.0.0.1 -port 7777 ~/work/repo
+
+# Remote patch only. Agent execution and checks stay off.
+PX1_REMOTE_TOKEN='replace-with-a-random-secret' px1 -host 0.0.0.0 -allow-patch -port 7777 ~/work/repo
 ```
 
-Anyone who can reach the instance may read imported reports or invoke
-configured provider actions as you, so do not expose it publicly.
+Anyone who can open the URL can still read the workspace and imported reports.
+The token authorizes only the capabilities you enabled, for that browser
+session. Do not expose the server publicly. px1 does not execute verification
+commands; `-allow-checks` only permits an attempt, which is refused because CI
+results are imported instead.
 
 ## Performance
 

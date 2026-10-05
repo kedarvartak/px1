@@ -63,7 +63,10 @@ configuration out of the workspace metadata and the normal navigation path.
 ## Security
 
 Harness execution is arbitrary local code execution as the user running px1.
-Review actions remain local-only and use the same matching-origin and
-localhost/IP host guard as other command-executing endpoints. This is a
-browser-origin guard, not authentication; remote instances still belong on a
-trusted network.
+Local access requires both a loopback connection peer and loopback HTTP host,
+plus a matching browser origin. From every other connection it also requires
+`-allow-agent` and `Authorization: Bearer` matching
+`-remote-token` or `PX1_REMOTE_TOKEN`. `-allow-patch` and `-allow-checks` do
+not grant it. Remote instances still belong on a trusted network: the token
+limits who can execute a provider, and everyone who can open the URL can read
+the workspace.

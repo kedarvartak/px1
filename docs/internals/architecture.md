@@ -84,6 +84,7 @@ The server is implemented in [`server.go`](../../server.go) using Go's standard 
 | `/api/lsp/start`      | `POST` | Rescans and starts language server after installation                   | JSON (`{ok: true}`)                        |
 | `/api/agent/job`      | `GET`  | Snapshot of an explicit review-provider job `?id=...`, or the most recently started when omitted | JSON job snapshot |
 | `/api/review/import`  | `POST` | Authenticated, size-limited import of a versioned GitHub PR snapshot; requires `PX1_IMPORT_TOKEN` | JSON (`{imported, path, target}`) |
+| `/api/audit`          | `GET`  | Session log of allowed and refused patch, agent, and check decisions    | JSON (`{entries}`)                 |
 | `/api/review/attention` | `GET` | Runs bounded, deterministic high-review-risk heuristics against the active task baseline | JSON (`{flags, truncated}`) |
 | `/api/review/attention/dismiss` | `POST` | Dismisses one current attention flag for the active review session | JSON (`{flags, truncated}`) |
 
@@ -161,14 +162,17 @@ When navigating code via LSP Go-to-Definition, targets often reside outside the 
 - `/api/file` and `/api/raw` permit reading external files only if the exact path exists in `extAllowed`.
 - External paths can never be enumerated via `/api/tree` or searched via `/api/search`.
 
-### Origin Verification for Installers
+### Origin Verification and Remote Capabilities
 
-The `/api/lsp/install` and `/api/lsp/start` endpoints execute shell commands (e.g., `go install ...` or `npm install -g ...`), and explicit review actions can run a configured coding harness. To guard against cross-origin attacks (such as a malicious website triggering command execution via JavaScript fetch while px1 is running in the background):
+Filesystem edits (`patch`, revert, restore), process execution (review-provider actions and every explicit or lazy language-server start), and verification-command attempts are three separate capabilities. A request is local only when its connected peer and HTTP host are both loopback (`localhost`, `127.0.0.1`, `::1`); the client-controlled `Host` header alone never grants local access. Any other IP, hostname, or reverse-proxy name is read-only unless that one capability is enabled with `-allow-patch`, `-allow-agent`, or `-allow-checks`. Enabling one does not enable the others. A remote capability also requires `Authorization: Bearer` matching `-remote-token` or `PX1_REMOTE_TOKEN`; a flag without a token stays refused.
 
-1. The request method must be `POST`.
-1. The request `Origin` header must match the request `Host` header.
-1. The `Host` header is validated to ensure it is strictly an IP address (`127.0.0.1`, `[::1]`) or `localhost`. This prevents DNS-rebinding attacks.
-1. The executed command is never supplied by the client; it is looked up exclusively from the hard-coded internal `lspRegistry`, or from the configured review provider (only the review prompt comes from the review action).
+Mutating capability requests must be POSTs whose `Origin` matches `Host`. Read-shaped LSP requests are also agent-capability gated because they can lazily start a process; remote requests send the bearer token on those GETs. Other state-changing routes, such as settings and review comments, use `localPost` and are accepted only from a loopback peer to a loopback host with a matching origin. Forwarded headers are ignored unless a future explicit trusted-proxy policy is added.
+
+px1 does not execute verification commands. `POST /api/review/checks` passes the check capability gate and then returns that CI results are imported, not run. Successful and refused capability decisions are kept in an in-memory session log at `GET /api/audit` (loopback, or a remote request that presents the token). `/api/meta` includes the policy for the request connection so the UI can show local access or remote read-only.
+
+The executed command is never supplied by the client. Language-server installs come from `lspRegistry`. Review-provider actions use the configured provider; only the review prompt comes from the action.
+
+Anyone who can open the server can read the workspace. SSH local forwarding to `127.0.0.1` is loopback, so that browser has local write access. A LAN IP or Tailscale hostname does not.
 
 ### Self-Update Integrity
 

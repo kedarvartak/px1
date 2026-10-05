@@ -539,7 +539,7 @@ func (s *Server) handleRuleSuggest(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, res)
 		return
 	}
-	if !localPost(w, r) || !s.agentOrFail(w) {
+	if !s.permit(w, r, capAgent) || !s.agentOrFail(w) {
 		return
 	}
 	var req struct {
@@ -630,7 +630,7 @@ func (s *Server) handleReviewRuleHitDismiss(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *Server) handleReviewRuleHitsSend(w http.ResponseWriter, r *http.Request) {
-	if !localPost(w, r) || !s.agentOrFail(w) {
+	if !s.permit(w, r, capAgent) || !s.agentOrFail(w) {
 		return
 	}
 	rules, _ := s.rules.All()

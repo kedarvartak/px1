@@ -15,6 +15,7 @@ func pinPost(t *testing.T, s *Server, url string, body any) (int, map[string]any
 	t.Helper()
 	b, _ := json.Marshal(body)
 	req := httptest.NewRequest(http.MethodPost, url, bytes.NewReader(b))
+	req.RemoteAddr = "127.0.0.1:54321"
 	req.Host = "127.0.0.1:7777"
 	req.Header.Set("Origin", "http://127.0.0.1:7777")
 	rec := httptest.NewRecorder()
