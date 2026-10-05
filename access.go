@@ -147,6 +147,12 @@ func (s *Server) permitProcess(w http.ResponseWriter, r *http.Request) bool {
 		fail(w, http.StatusMethodNotAllowed, "GET only")
 		return false
 	}
+	// Local editor reads are routine and can be very frequent. They do not
+	// cross the remote capability boundary, so keep them out of the bounded
+	// security audit log while continuing to audit every remote attempt.
+	if requestAccessClass(r) == accessLoopback {
+		return true
+	}
 	return s.permitCapability(w, r, capAgent)
 }
 

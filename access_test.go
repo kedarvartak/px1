@@ -158,3 +158,18 @@ func TestAccessPolicyMatrix(t *testing.T) {
 		t.Fatalf("remote audit = %d", ar.Code)
 	}
 }
+
+func TestPermitProcessSkipsRoutineLocalAudit(t *testing.T) {
+	s := NewServer(NewIndex(t.TempDir()), nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/lsp/warm?path=main.go", nil)
+	req.RemoteAddr = "127.0.0.1:54321"
+	req.Host = "127.0.0.1:7777"
+	rec := httptest.NewRecorder()
+
+	if !s.permitProcess(rec, req) {
+		t.Fatalf("local process read denied: %d %s", rec.Code, rec.Body.String())
+	}
+	if len(s.audit) != 0 {
+		t.Fatalf("routine local process read added %d audit entries", len(s.audit))
+	}
+}
