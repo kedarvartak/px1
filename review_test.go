@@ -100,6 +100,113 @@ func TestReviewSessionRestoresTaskBaselineAndPersists(t *testing.T) {
 	}
 }
 
+func TestReviewSessionRejectsCorruptBaselineBeforeRestore(t *testing.T) {
+	isolateSettings(t)
+	root := t.TempDir()
+	path := filepath.Join(root, "config.txt")
+	if err := os.WriteFile(path, []byte("before\n"), 0o640); err != nil {
+		t.Fatal(err)
+	}
+	m := newReviewManager(root)
+	session, err := m.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("changed\n"), 0o640); err != nil {
+		t.Fatal(err)
+	}
+	snapshot := filepath.Join(m.sessionDir(session.ID), "files", "config.txt")
+	if err := os.WriteFile(snapshot, []byte("tampered\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.Restore(); err == nil || !strings.Contains(err.Error(), "corrupt") {
+		t.Fatalf("restore error = %v, want corrupt-baseline error", err)
+	}
+	if got, err := os.ReadFile(path); err != nil || string(got) != "changed\n" {
+		t.Fatalf("workspace changed after rejected restore: %q (%v)", got, err)
+	}
+}
+
+func TestReviewSessionQuarantinesCorruptActivePointerAndCanRestart(t *testing.T) {
+	isolateSettings(t)
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "main.go"), []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m := newReviewManager(root)
+	if err := os.MkdirAll(filepath.Dir(m.activePath()), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(m.activePath(), []byte("not-json"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	restarted := newReviewManager(root)
+	if active, _ := restarted.Active(); active != nil {
+		t.Fatalf("corrupt pointer restored an active session: %#v", active)
+	}
+	if _, err := restarted.Start(); err != nil {
+		t.Fatalf("could not start after pointer recovery: %v", err)
+	}
+	matches, err := filepath.Glob(m.activePath() + ".corrupt-*")
+	if err != nil || len(matches) != 1 {
+		t.Fatalf("quarantined pointers = %v, err=%v", matches, err)
+	}
+}
+
+func TestReviewSessionDeleteRemovesClosedBaseline(t *testing.T) {
+	isolateSettings(t)
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "main.go"), []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m := newReviewManager(root)
+	session, err := m.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Delete(session.ID); err == nil {
+		t.Fatal("deleted active session")
+	}
+	if _, err := m.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Delete(session.ID); err != nil {
+		t.Fatalf("delete closed session: %v", err)
+	}
+	if _, err := os.Stat(m.sessionDir(session.ID)); !os.IsNotExist(err) {
+		t.Fatalf("session directory still exists: %v", err)
+	}
+}
+
+func TestReviewSessionRestoreRejectsSymlinkedParent(t *testing.T) {
+	isolateSettings(t)
+	root := t.TempDir()
+	outside := t.TempDir()
+	inside := filepath.Join(root, "nested", "config.txt")
+	if err := os.MkdirAll(filepath.Dir(inside), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(inside, []byte("before\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m := newReviewManager(root)
+	if _, err := m.Start(); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.RemoveAll(filepath.Dir(inside)); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, filepath.Join(root, "nested")); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+	if _, err := m.Restore(); err == nil || !strings.Contains(err.Error(), "symlinked parent") {
+		t.Fatalf("restore error = %v, want symlink protection", err)
+	}
+	if _, err := os.Stat(filepath.Join(outside, "config.txt")); !os.IsNotExist(err) {
+		t.Fatalf("restore wrote through symlink: %v", err)
+	}
+}
+
 func TestReviewSessionHTTPUsesLocalPostGuard(t *testing.T) {
 	isolateSettings(t)
 	s, _ := newTestServer(t)

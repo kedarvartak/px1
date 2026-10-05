@@ -20,12 +20,17 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
 
-const reviewManifestVersion = 1
+const (
+	reviewManifestVersion  = 1
+	reviewMaxManifestFiles = 200000
+	reviewMaxSnapshotBytes = 512 << 20
+)
 
 type reviewFile struct {
 	Path string      `json:"path"`
@@ -132,19 +137,7 @@ func reviewStateRoot() string {
 
 func newReviewManager(root string) *reviewManager {
 	m := &reviewManager{root: root, state: reviewStateRoot()}
-	if m.state == "" {
-		return m
-	}
-	if b, err := os.ReadFile(m.activePath()); err == nil {
-		var pointer struct {
-			ID string `json:"id"`
-		}
-		if json.Unmarshal(b, &pointer) == nil && pointer.ID != "" {
-			if s, err := m.load(pointer.ID); err == nil && s.Root == root && s.ClosedAt == nil {
-				m.active = s
-			}
-		}
-	}
+	m.loadActive()
 	return m
 }
 
@@ -155,21 +148,7 @@ func (m *reviewManager) SetRoot(root string) {
 	defer m.mu.Unlock()
 	m.root = root
 	m.active = nil
-	if m.state == "" {
-		return
-	}
-	b, err := os.ReadFile(m.activePath())
-	if err != nil {
-		return
-	}
-	var pointer struct {
-		ID string `json:"id"`
-	}
-	if json.Unmarshal(b, &pointer) == nil && pointer.ID != "" {
-		if s, err := m.load(pointer.ID); err == nil && s.Root == root && s.ClosedAt == nil {
-			m.active = s
-		}
-	}
+	m.loadActive()
 }
 
 func (m *reviewManager) workspaceKey() string {
@@ -189,6 +168,9 @@ func (m *reviewManager) patchPath(id string) string {
 }
 
 func (m *reviewManager) load(id string) (*reviewSession, error) {
+	if !validReviewSessionID(id) {
+		return nil, errors.New("invalid review session id")
+	}
 	b, err := os.ReadFile(m.manifestPath(id))
 	if err != nil {
 		return nil, err
@@ -197,10 +179,99 @@ func (m *reviewManager) load(id string) (*reviewSession, error) {
 	if err := json.Unmarshal(b, &s); err != nil {
 		return nil, err
 	}
-	if s.Version != reviewManifestVersion || s.ID == "" {
-		return nil, errors.New("unsupported review session")
+	if err := validateReviewSession(&s); err != nil {
+		return nil, err
+	}
+	if s.ID != id {
+		return nil, errors.New("review session id does not match its manifest")
 	}
 	return &s, nil
+}
+
+func validReviewSessionID(id string) bool {
+	return id != "" && id != "." && id != ".." && filepath.Base(id) == id && !strings.ContainsAny(id, `/\\`)
+}
+
+func validReviewPath(rel string) bool {
+	if rel == "" || filepath.IsAbs(filepath.FromSlash(rel)) || strings.ContainsRune(rel, 0) {
+		return false
+	}
+	clean := filepath.ToSlash(filepath.Clean(filepath.FromSlash(rel)))
+	return clean == rel && clean != "." && clean != ".." && !strings.HasPrefix(clean, "../")
+}
+
+func validateReviewSession(s *reviewSession) error {
+	if s.Version != reviewManifestVersion || !validReviewSessionID(s.ID) || s.Root == "" || s.StartedAt.IsZero() {
+		return errors.New("unsupported review session manifest")
+	}
+	if len(s.Files) > reviewMaxManifestFiles || len(s.Dirs) > reviewMaxManifestFiles {
+		return errors.New("review session manifest is too large")
+	}
+	seenFiles := make(map[string]struct{}, len(s.Files))
+	var totalBytes int64
+	for _, f := range s.Files {
+		if !validReviewPath(f.Path) || f.Size < 0 {
+			return fmt.Errorf("invalid review snapshot file %q", f.Path)
+		}
+		if _, ok := seenFiles[f.Path]; ok {
+			return fmt.Errorf("duplicate review snapshot file %q", f.Path)
+		}
+		seenFiles[f.Path] = struct{}{}
+		if f.Size > reviewMaxSnapshotBytes-totalBytes {
+			return errors.New("review snapshot is too large")
+		}
+		totalBytes += f.Size
+		if len(f.Hash) != sha256.Size*2 {
+			return fmt.Errorf("invalid review snapshot hash for %q", f.Path)
+		}
+		if _, err := hex.DecodeString(f.Hash); err != nil {
+			return fmt.Errorf("invalid review snapshot hash for %q", f.Path)
+		}
+	}
+	seenDirs := make(map[string]struct{}, len(s.Dirs))
+	for _, d := range s.Dirs {
+		if !validReviewPath(d) {
+			return fmt.Errorf("invalid review snapshot directory %q", d)
+		}
+		if _, ok := seenDirs[d]; ok {
+			return fmt.Errorf("duplicate review snapshot directory %q", d)
+		}
+		seenDirs[d] = struct{}{}
+	}
+	return nil
+}
+
+func (m *reviewManager) loadActive() {
+	if m.state == "" {
+		return
+	}
+	b, err := os.ReadFile(m.activePath())
+	if err != nil {
+		return
+	}
+	var pointer struct {
+		ID string `json:"id"`
+	}
+	if err := json.Unmarshal(b, &pointer); err != nil || !validReviewSessionID(pointer.ID) {
+		m.quarantineActivePointer()
+		return
+	}
+	s, err := m.load(pointer.ID)
+	if err != nil || s.Root != m.root || s.ClosedAt != nil {
+		m.quarantineActivePointer()
+		return
+	}
+	m.active = s
+}
+
+// quarantineActivePointer preserves a damaged pointer for diagnosis while
+// allowing px1 to start a fresh session instead of getting stuck on restart.
+func (m *reviewManager) quarantineActivePointer() {
+	path := m.activePath()
+	quarantined := path + ".corrupt-" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	if err := os.Rename(path, quarantined); err != nil {
+		_ = os.Remove(path)
+	}
 }
 
 func writeAtomic(path string, b []byte, mode fs.FileMode) error {
@@ -443,6 +514,10 @@ func (m *reviewManager) start(baseRef, head string) (*reviewSession, error) {
 		return nil, err
 	}
 	s := &reviewSession{Version: reviewManifestVersion, ID: id, Root: m.root, StartedAt: time.Now().UTC(), Head: head, BaseRef: baseRef, Files: files, Dirs: dirs, Reviews: map[string]reviewDecision{}}
+	if err := validateReviewSession(s); err != nil {
+		os.RemoveAll(staging)
+		return nil, err
+	}
 	b, err := json.Marshal(s)
 	if err != nil {
 		os.RemoveAll(staging)
@@ -935,6 +1010,75 @@ func (m *reviewManager) UndoPatch(id string) (reviewPatch, error) {
 	return reviewPatch{}, errors.New("patch not found")
 }
 
+func reviewSnapshotPath(sessionDir, rel string) (string, error) {
+	if !validReviewPath(rel) {
+		return "", fmt.Errorf("invalid review snapshot path %q", rel)
+	}
+	return filepath.Join(sessionDir, "files", filepath.FromSlash(rel)), nil
+}
+
+// validateSnapshotFiles verifies every manifest entry before Restore mutates
+// the workspace. A damaged or hand-edited snapshot therefore fails closed and
+// leaves the user's current files untouched.
+func (m *reviewManager) validateSnapshotFiles(s *reviewSession) error {
+	if err := validateReviewSession(s); err != nil {
+		return err
+	}
+	for _, f := range s.Files {
+		path, err := reviewSnapshotPath(m.sessionDir(s.ID), f.Path)
+		if err != nil {
+			return err
+		}
+		info, err := os.Lstat(path)
+		if err != nil {
+			return fmt.Errorf("review snapshot file %q is unavailable: %w", f.Path, err)
+		}
+		if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() || info.Size() != f.Size {
+			return fmt.Errorf("review snapshot file %q does not match its manifest", f.Path)
+		}
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("read review snapshot file %q: %w", f.Path, err)
+		}
+		if hashBytes(b) != f.Hash {
+			return fmt.Errorf("review snapshot file %q failed integrity check", f.Path)
+		}
+	}
+	return nil
+}
+
+// ensureRestoreParent rejects symlinked parents. Without this check, a
+// workspace that changes a directory into a symlink could redirect a restore
+// outside the served root.
+func ensureRestoreParent(root, rel string) error {
+	clean := filepath.Clean(filepath.FromSlash(rel))
+	parent := filepath.Dir(clean)
+	if parent == "." {
+		return nil
+	}
+	cur := root
+	for _, part := range strings.Split(parent, string(filepath.Separator)) {
+		if part == "" || part == "." {
+			continue
+		}
+		cur = filepath.Join(cur, part)
+		info, err := os.Lstat(cur)
+		if os.IsNotExist(err) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			return fmt.Errorf("restore path has symlinked parent %q", filepath.ToSlash(filepath.Join(parent, part)))
+		}
+		if !info.IsDir() {
+			return fmt.Errorf("restore path has non-directory parent %q", filepath.ToSlash(filepath.Join(parent, part)))
+		}
+	}
+	return nil
+}
+
 func (m *reviewManager) Restore() (*reviewSession, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -942,9 +1086,15 @@ func (m *reviewManager) Restore() (*reviewSession, error) {
 		return nil, errors.New("no active review session")
 	}
 	s := m.active
+	if err := m.validateSnapshotFiles(s); err != nil {
+		return nil, fmt.Errorf("review baseline is corrupt: %w", err)
+	}
 	files := map[string]reviewFile{}
 	for _, f := range s.Files {
 		files[f.Path] = f
+		if err := ensureRestoreParent(m.root, f.Path); err != nil {
+			return nil, err
+		}
 	}
 	current, dirs, err := snapshotTree(m.root, "")
 	if err != nil {
@@ -1000,6 +1150,34 @@ func (m *reviewManager) Close() (*reviewSession, error) {
 	cp := *m.active
 	m.active = nil
 	return &cp, nil
+}
+
+// Delete removes a closed session and its immutable baseline. Active sessions
+// must be closed first so a cleanup action cannot erase the user's recovery
+// point while it is still in use.
+func (m *reviewManager) Delete(id string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if !validReviewSessionID(id) {
+		return errors.New("invalid review session id")
+	}
+	if m.active != nil && m.active.ID == id {
+		return errors.New("close the active review session before deleting it")
+	}
+	s, err := m.load(id)
+	if err != nil {
+		return err
+	}
+	if s.Root != m.root {
+		return errors.New("review session belongs to another workspace")
+	}
+	if s.ClosedAt == nil {
+		return errors.New("review session is still active")
+	}
+	if err := os.RemoveAll(m.sessionDir(id)); err != nil {
+		return fmt.Errorf("delete review session: %w", err)
+	}
+	return nil
 }
 
 // handleReviewSession returns the active session and the precise paths whose
@@ -1293,4 +1471,16 @@ func (s *Server) handleReviewClose(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, map[string]any{"closed": active})
+}
+
+func (s *Server) handleReviewDelete(w http.ResponseWriter, r *http.Request) {
+	if !localPost(w, r) {
+		return
+	}
+	id := strings.TrimSpace(r.URL.Query().Get("id"))
+	if err := s.review.Delete(id); err != nil {
+		fail(w, http.StatusConflict, err.Error())
+		return
+	}
+	writeJSON(w, map[string]any{"deleted": id})
 }

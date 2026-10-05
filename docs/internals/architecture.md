@@ -85,6 +85,11 @@ The server is implemented in [`server.go`](../../server.go) using Go's standard 
 | `/api/agent/job`      | `GET`  | Snapshot of an explicit review-provider job `?id=...`, or the most recently started when omitted | JSON job snapshot |
 | `/api/review/import`  | `POST` | Authenticated, size-limited import of a versioned GitHub PR snapshot; requires `PX1_IMPORT_TOKEN` | JSON (`{imported, path, target}`) |
 | `/api/audit`          | `GET`  | Session log of allowed and refused patch, agent, and check decisions    | JSON (`{entries}`)                 |
+| `/api/review/session` | `GET` | Reads the active local review session, changed paths, and review queue | JSON (`{active, changed, queue}`) |
+| `/api/review/session/start` | `POST` | Captures a repository-external task baseline | JSON (`{active, changed}`) |
+| `/api/review/session/restore` | `POST` | Restores the active session baseline after integrity and path checks | JSON (`{active, changed}`) |
+| `/api/review/session/close` | `POST` | Closes the active session while retaining its recoverable snapshot | JSON (`{closed}`) |
+| `/api/review/session/delete?id=:id` | `POST` | Deletes a closed session and its snapshot for explicit cleanup | JSON (`{deleted}`) |
 | `/api/review/attention` | `GET` | Runs bounded, deterministic high-review-risk heuristics against the active task baseline | JSON (`{flags, truncated}`) |
 | `/api/review/attention/dismiss` | `POST` | Dismisses one current attention flag for the active review session | JSON (`{flags, truncated}`) |
 
@@ -92,6 +97,20 @@ Attention analysis reads at most 500 changed files, 512 KiB per file, and 8
 MiB of text in total, and returns at most 250 flags. It uses no model or remote
 API. Flag IDs derive from the rule, path, and evidence so dismissals remain
 stable inside the review session while changed evidence can be flagged again.
+
+### Recoverable local review sessions
+
+The Review panel stores each task baseline outside the repository, keyed by a
+hash of the served workspace root. A session captures regular, non-ignored
+files and their modes, hashes, and sizes; symbolic links and special files are
+explicitly unsupported and are left untouched. A snapshot is limited to
+200,000 files and 512 MiB. Restore validates every manifest entry and content
+hash before changing the workspace, and refuses symlinked parents so a damaged
+or manipulated baseline cannot write outside the served root. Closed sessions
+remain available until the explicit delete endpoint removes their snapshot.
+If the active pointer or manifest is corrupt, px1 quarantines the pointer and
+allows a new session to be started while preserving the damaged file for
+diagnosis.
 
 ### Automatic external-change refresh
 
