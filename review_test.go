@@ -14,6 +14,7 @@ import (
 func reviewPost(t *testing.T, s *Server, path string) (int, map[string]any) {
 	t.Helper()
 	req := httptest.NewRequest(http.MethodPost, path, nil)
+	req.RemoteAddr = "127.0.0.1:54321"
 	req.Host = "127.0.0.1:7777"
 	req.Header.Set("Origin", "http://127.0.0.1:7777")
 	rec := httptest.NewRecorder()

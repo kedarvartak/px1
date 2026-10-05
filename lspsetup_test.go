@@ -12,19 +12,22 @@ import (
 // Only a POST from px1's own page, addressed by IP or localhost, may install.
 func TestLocalPost(t *testing.T) {
 	cases := []struct {
-		name, method, host, origin string
-		want                       bool
+		name, method, peer, host, origin string
+		want                             bool
 	}{
-		{"same origin", "POST", "127.0.0.1:7777", "http://127.0.0.1:7777", true},
-		{"localhost", "POST", "localhost:7777", "http://localhost:7777", true},
-		{"ipv6 loopback", "POST", "[::1]:7777", "http://[::1]:7777", true},
-		{"GET", "GET", "127.0.0.1:7777", "http://127.0.0.1:7777", false},
-		{"no origin", "POST", "127.0.0.1:7777", "", false},
-		{"other site", "POST", "127.0.0.1:7777", "https://evil.example", false},
-		{"dns rebinding", "POST", "evil.example:7777", "http://evil.example:7777", false},
+		{"same origin", "POST", "127.0.0.1:54321", "127.0.0.1:7777", "http://127.0.0.1:7777", true},
+		{"localhost", "POST", "127.0.0.1:54321", "localhost:7777", "http://localhost:7777", true},
+		{"ipv6 loopback", "POST", "[::1]:54321", "[::1]:7777", "http://[::1]:7777", true},
+		{"GET", "GET", "127.0.0.1:54321", "127.0.0.1:7777", "http://127.0.0.1:7777", false},
+		{"no origin", "POST", "127.0.0.1:54321", "127.0.0.1:7777", "", false},
+		{"other site", "POST", "127.0.0.1:54321", "127.0.0.1:7777", "https://evil.example", false},
+		{"dns rebinding", "POST", "10.1.2.3:54321", "evil.example:7777", "http://evil.example:7777", false},
+		{"remote IP", "POST", "10.1.2.3:54321", "10.1.2.4:7777", "http://10.1.2.4:7777", false},
+		{"spoofed localhost", "POST", "10.1.2.3:54321", "localhost:7777", "http://localhost:7777", false},
 	}
 	for _, c := range cases {
 		r := httptest.NewRequest(c.method, "/api/lsp/install", nil)
+		r.RemoteAddr = c.peer
 		r.Host = c.host
 		if c.origin != "" {
 			r.Header.Set("Origin", c.origin)

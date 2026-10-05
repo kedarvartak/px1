@@ -141,14 +141,16 @@ Every flag states the matching evidence, opens the diff, and can be dismissed
 for the current session; it never blocks approval or claims a change is unsafe.
 
 For remote use, keep px1 on a private network such as Tailscale or WireGuard.
-A host that is not loopback is read-only: it cannot patch files, run an agent,
-or run checks. Each of those is a separate flag, and a remote flag does nothing
+A request is local only when its connected peer and HTTP host are both
+loopback. Everything else is read-only: it cannot change review state or
+settings, patch files, run an agent, or start a language server. Patch, agent,
+and check access are separate flags, and a remote flag does nothing
 until `-remote-token` or `PX1_REMOTE_TOKEN` is set. The browser asks for that
 token only when a remote capability is on. Loopback (`localhost` or `127.0.0.1`)
 keeps local patch and agent access without the token.
 
 ```bash
-# Private network, read-only. A LAN IP or hostname cannot patch, run an agent, or run checks.
+# Private network, read-only. A LAN IP or hostname cannot mutate state or start processes.
 px1 -host 0.0.0.0 -port 7777 ~/work/repo
 
 # SSH tunnel. The browser talks to loopback, so this session has local write access.

@@ -39,6 +39,7 @@ func isolateSettings(t *testing.T) string {
 func agentPost(t *testing.T, s *Server, url string) (int, map[string]any) {
 	t.Helper()
 	req := httptest.NewRequest(http.MethodPost, url, nil)
+	req.RemoteAddr = "127.0.0.1:54321"
 	req.Host = "127.0.0.1:7777"
 	req.Header.Set("Origin", "http://127.0.0.1:7777")
 	rec := httptest.NewRecorder()
@@ -221,6 +222,7 @@ func TestLegacyAgentRoutesRemoved(t *testing.T) {
 		{http.MethodPost, "/api/agent/cancel"},
 	} {
 		req := httptest.NewRequest(tc.method, tc.path, nil)
+		req.RemoteAddr = "127.0.0.1:54321"
 		req.Host = "127.0.0.1:7777"
 		req.Header.Set("Origin", "http://127.0.0.1:7777")
 		rec := httptest.NewRecorder()

@@ -22,7 +22,6 @@ const (
 	accessIP       = "ip"
 	accessName     = "name"
 
-	// ponytail: session audit is a slice capped at auditMax, copied on overflow. A ring index is the upgrade if a long-lived server records more than this.
 	auditMax = 200
 )
 
@@ -60,7 +59,15 @@ func (p accessPolicy) enabled(cap string) bool {
 }
 
 func requestHost(r *http.Request) string {
-	host := r.Host
+	return networkHost(r.Host)
+}
+
+func requestPeer(r *http.Request) string {
+	return networkHost(r.RemoteAddr)
+}
+
+func networkHost(address string) string {
+	host := address
 	if h, _, err := net.SplitHostPort(host); err == nil {
 		host = h
 	}
@@ -81,9 +88,25 @@ func accessClass(host string) string {
 	return accessIP
 }
 
+// requestAccessClass grants loopback privileges only when both the HTTP
+// authority and the connected peer are loopback. Host is client-controlled;
+// trusting it alone lets a remote client impersonate localhost. Forwarded
+// headers are deliberately ignored until px1 has an explicit trusted-proxy
+// configuration.
+func requestAccessClass(r *http.Request) string {
+	hostClass := accessClass(requestHost(r))
+	if hostClass != accessLoopback {
+		return hostClass
+	}
+	if accessClass(requestPeer(r)) == accessLoopback {
+		return accessLoopback
+	}
+	return accessIP
+}
+
 func originMatches(r *http.Request) bool {
 	o, err := url.Parse(r.Header.Get("Origin"))
-	return err == nil && o.Host != "" && o.Host == r.Host
+	return err == nil && o.Host != "" && strings.EqualFold(o.Host, r.Host)
 }
 
 func bearerOK(r *http.Request, token string) bool {
@@ -102,7 +125,6 @@ func bearerOK(r *http.Request, token string) bool {
 // permit is the gate for filesystem edits, process execution, and check
 // execution. It fails closed and writes the response when it refuses.
 func (s *Server) permit(w http.ResponseWriter, r *http.Request, cap string) bool {
-	class := accessClass(requestHost(r))
 	if r.Method != http.MethodPost {
 		s.recordAudit(r, cap, false, "POST only")
 		fail(w, http.StatusMethodNotAllowed, "POST only")
@@ -113,7 +135,23 @@ func (s *Server) permit(w http.ResponseWriter, r *http.Request, cap string) bool
 		fail(w, http.StatusForbidden, "request did not come from px1")
 		return false
 	}
-	if class == accessLoopback {
+	return s.permitCapability(w, r, cap)
+}
+
+// permitProcess protects read-shaped LSP routes that may lazily start a
+// language-server process. Local readers keep the existing behavior; remote
+// readers need the independently enabled agent capability and its token.
+func (s *Server) permitProcess(w http.ResponseWriter, r *http.Request) bool {
+	if r.Method != http.MethodGet {
+		s.recordAudit(r, capAgent, false, "GET only")
+		fail(w, http.StatusMethodNotAllowed, "GET only")
+		return false
+	}
+	return s.permitCapability(w, r, capAgent)
+}
+
+func (s *Server) permitCapability(w http.ResponseWriter, r *http.Request, cap string) bool {
+	if requestAccessClass(r) == accessLoopback {
 		s.recordAudit(r, cap, true, "")
 		return true
 	}
@@ -147,7 +185,7 @@ func (s *Server) recordAudit(r *http.Request, action string, allowed bool, reaso
 		At:      time.Now().UTC().Format(time.RFC3339),
 		Action:  action,
 		Path:    r.URL.Path,
-		Access:  accessClass(requestHost(r)),
+		Access:  requestAccessClass(r),
 		Allowed: allowed,
 		Error:   reason,
 	})
@@ -157,7 +195,7 @@ func (s *Server) recordAudit(r *http.Request, action string, allowed bool, reaso
 }
 
 func (s *Server) policyView(r *http.Request) map[string]any {
-	class := accessClass(requestHost(r))
+	class := requestAccessClass(r)
 	remote := class != accessLoopback
 	flags := s.policy.allowPatch || s.policy.allowAgent || s.policy.allowChecks
 	authed := s.policy.token != ""
@@ -177,7 +215,7 @@ func (s *Server) handleAudit(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusMethodNotAllowed, "GET only")
 		return
 	}
-	if accessClass(requestHost(r)) != accessLoopback {
+	if requestAccessClass(r) != accessLoopback {
 		if s.policy.token == "" || !bearerOK(r, s.policy.token) {
 			fail(w, http.StatusUnauthorized, "remote audit log needs Authorization: Bearer <token>")
 			return

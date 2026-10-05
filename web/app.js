@@ -15,11 +15,9 @@
     for (const [k, v] of Object.entries(params || {}))
       if (v !== undefined && v !== "")
         u.searchParams.set(k, v);
-    if (method === "POST") {
-      const token = remoteToken();
-      if (token)
-        opts = { ...opts, headers: { ...(opts.headers || {}), Authorization: "Bearer " + token } };
-    }
+    const token = remoteToken();
+    if (token)
+      opts = { ...opts, headers: { ...opts.headers || {}, Authorization: "Bearer " + token } };
     const r = await fetch(u, { method, ...opts });
     const j = await r.json();
     if (j.error)
@@ -4776,21 +4774,6 @@ Switch worktree` : "Switch worktree" : S2.meta?.root || "";
   }
 
   // web/src/main.js
-  initRenderer();
-  initTabs();
-  initCursor();
-  initHover();
-  initSelectionBar();
-  initTree();
-  initSearch();
-  initOutline();
-  initPanels();
-  initInspector();
-  initCalls();
-  initFind();
-  initPalette();
-  initShortcuts();
-  initDiff();
   function showAccessPolicy(p) {
     const el = $("#access-policy");
     const form = $("#access-token");
@@ -4824,6 +4807,21 @@ Switch worktree` : "Switch worktree" : S2.meta?.root || "";
       } catch {}
     });
   }
+  initRenderer();
+  initTabs();
+  initCursor();
+  initHover();
+  initSelectionBar();
+  initTree();
+  initSearch();
+  initOutline();
+  initPanels();
+  initInspector();
+  initCalls();
+  initFind();
+  initPalette();
+  initShortcuts();
+  initDiff();
   initSettings();
   initReviewQueue();
   initAccessToken();

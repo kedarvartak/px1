@@ -97,6 +97,7 @@ func TestSettingsAPIEndpoints(t *testing.T) {
 	}
 	b, _ := json.Marshal(payload)
 	postReq := httptest.NewRequest(http.MethodPost, "/api/settings", bytes.NewReader(b))
+	postReq.RemoteAddr = "127.0.0.1:54321"
 	postReq.Host = "127.0.0.1:7777"
 	postReq.Header.Set("Origin", "http://127.0.0.1:7777")
 	postReq.Header.Set("Content-Type", "application/json")
@@ -120,6 +121,7 @@ func TestSettingsAPIEndpoints(t *testing.T) {
 	}
 	rb, _ := json.Marshal(rawPayload)
 	rawReq := httptest.NewRequest(http.MethodPost, "/api/settings", bytes.NewReader(rb))
+	rawReq.RemoteAddr = "127.0.0.1:54321"
 	rawReq.Host = "127.0.0.1:7777"
 	rawReq.Header.Set("Origin", "http://127.0.0.1:7777")
 	rawReq.Header.Set("Content-Type", "application/json")

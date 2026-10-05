@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -254,19 +253,16 @@ func (t *tailBuffer) String() string {
 
 // ---------------------------------------------------------------- HTTP
 
-// localPost admits a request that changes the machine only when it is a POST
-// from px1's own page. Browsers send Origin on every POST, so a page from another
-// site cannot pass. Requiring the Host to be an IP address or localhost also
-// shuts out DNS rebinding, where an attacker's domain is pointed at this machine
-// and its Origin would otherwise match.
+// localPost admits non-capability state changes only from a loopback connection
+// to px1's own page. Remote access stays read-only unless an endpoint uses the
+// explicit capability gate instead.
 func localPost(w http.ResponseWriter, r *http.Request) bool {
 	if r.Method != http.MethodPost {
 		fail(w, http.StatusMethodNotAllowed, "POST only")
 		return false
 	}
-	host := requestHost(r)
-	if host != "localhost" && net.ParseIP(host) == nil {
-		fail(w, http.StatusForbidden, "open px1 by IP address or localhost to set up language servers")
+	if requestAccessClass(r) != accessLoopback {
+		fail(w, http.StatusForbidden, "remote access is read-only for this action")
 		return false
 	}
 	if !originMatches(r) {

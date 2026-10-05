@@ -95,6 +95,7 @@ func TestWorktreeSwitchRepointsWorkspace(t *testing.T) {
 		t.Helper()
 		body, _ := json.Marshal(map[string]string{"path": path})
 		req := httptest.NewRequest(http.MethodPost, "/api/worktree/switch", bytes.NewReader(body))
+		req.RemoteAddr = "127.0.0.1:54321"
 		req.Host = "127.0.0.1:7777"
 		req.Header.Set("Origin", "http://127.0.0.1:7777")
 		rec := httptest.NewRecorder()
@@ -318,6 +319,7 @@ func TestSwitchingToAWorktreeStartsItsReview(t *testing.T) {
 
 	body, _ := json.Marshal(map[string]string{"path": wt})
 	req := httptest.NewRequest(http.MethodPost, "/api/worktree/switch", bytes.NewReader(body))
+	req.RemoteAddr = "127.0.0.1:54321"
 	req.Host = "127.0.0.1:7777"
 	req.Header.Set("Origin", "http://127.0.0.1:7777")
 	rec := httptest.NewRecorder()
