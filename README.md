@@ -123,11 +123,11 @@ to `POST /api/review/import`. Successful imports are available at the
 commit-pinned `/github/<owner>/<repo>/pull/<number>?sha=<head-sha>` route.
 
 Imports are size-limited, strictly validated, stored outside the repository,
-and immutable for a repository, PR, and head SHA. See the
+and immutable for a repository, PR, and head SHA. Set
+`PX1_REVIEW_LINK_SECRET` as a separate server-side secret to make the returned
+self-hosted review link HMAC-signed and reject unsigned links. See the
 [self-hosted import contract](docs/SELF_HOSTED_REVIEW_IMPORT.md) for the JSON
-shape and CI example. Until authenticated review links are implemented, keep
-this server on a trusted private network because anyone who has a review URL
-can read its imported report.
+shape and CI example. GitHub Pages links remain public static artifacts.
 
 ## Local review loop
 

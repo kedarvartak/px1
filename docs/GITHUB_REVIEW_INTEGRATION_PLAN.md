@@ -97,8 +97,8 @@ These pieces can be implemented and tested locally without external accounts:
    SHA validation. This is now implemented at `POST /api/review/import`: it
    requires `PX1_IMPORT_TOKEN`, rejects ambiguous or mismatched identities,
    stores immutable snapshots outside the checkout, and serves them from the
-   commit-pinned GitHub route. Read-link authentication remains the next
-   security slice.
+   commit-pinned GitHub route. When `PX1_REVIEW_LINK_SECRET` is configured,
+   returned self-hosted links are HMAC-signed and unsigned reads are rejected.
 5. Add a GitHub Action template that publishes or updates the sticky link when
    `PX1_REVIEW_BASE_URL` is configured. The first Pages-based workflow is now
    implemented in `.github/workflows/px1-review-report.yml`: it runs trusted
@@ -119,7 +119,10 @@ These pieces can be implemented and tested locally without external accounts:
 - Snapshot imports must validate repository, PR number, and full commit SHA.
 - Snapshot imports require a high-entropy `PX1_IMPORT_TOKEN`; identical
   deliveries are idempotent and existing commit identities cannot be replaced.
-- Review links should be authenticated or signed before exposing private code.
+- Self-hosted review links should use `PX1_REVIEW_LINK_SECRET`; rotate it to
+  revoke previously issued links. GitHub Pages links are public static
+  artifacts and should not be used for private repositories without repository
+  access controls.
 - API keys are server-side configuration only; the browser receives provider
   results, never secrets.
 - Comments and approvals must remain tied to the snapshot SHA and become stale

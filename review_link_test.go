@@ -77,6 +77,39 @@ func TestGitHubReviewRouteEmbedsImmutableTarget(t *testing.T) {
 	}
 }
 
+func TestGitHubReviewRouteRequiresValidSignatureWhenConfigured(t *testing.T) {
+	t.Setenv(reviewLinkSecretEnv, "review-link-secret-for-tests")
+	s, _ := newTestServer(t)
+	unsigned := "/github/acme/widgets/pull/42?sha=" + testReviewSHA
+	for _, tt := range []struct {
+		name string
+		url  string
+		code int
+	}{
+		{"missing signature", unsigned, http.StatusUnauthorized},
+		{"wrong signature", unsigned + "&sig=" + strings.Repeat("0", 64), http.StatusForbidden},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			r := httptest.NewRequest(http.MethodGet, tt.url, nil)
+			w := httptest.NewRecorder()
+			s.ServeHTTP(w, r)
+			if w.Code != tt.code {
+				t.Fatalf("status = %d, want %d; body=%s", w.Code, tt.code, w.Body.String())
+			}
+		})
+	}
+	target, err := parseGitHubReviewTarget("/github/acme/widgets/pull/42", url.Values{"sha": {testReviewSHA}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := httptest.NewRequest(http.MethodGet, reviewLinkPath(*target), nil)
+	w := httptest.NewRecorder()
+	s.ServeHTTP(w, r)
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), reviewTargetElementID) {
+		t.Fatalf("signed route status = %d, body = %s", w.Code, w.Body.String())
+	}
+}
+
 func TestGitHubReviewRouteRejectsInvalidRequests(t *testing.T) {
 	s, _ := newTestServer(t)
 	for _, tt := range []struct {

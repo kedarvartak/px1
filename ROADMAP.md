@@ -102,8 +102,10 @@ queue removes dead implementation residue around those smaller surfaces.
    link configuration, and deployment documentation for private repositories.
    Commit-pinned GitHub review links are strictly parsed and routed. The
    bearer-authenticated snapshot import endpoint now stores immutable reports
-   outside the checkout and serves them from those routes. Signed or
-   authenticated read links are the next slice.
+   outside the checkout and serves them from those routes. Self-hosted read
+   links can now be HMAC-signed with `PX1_REVIEW_LINK_SECRET`; rotating that
+   secret revokes previously issued links. GitHub Pages remains the public
+   static-artifact flow.
 4. Hosted GitHub App: add accounts, organizations, repository permissions, and
    webhook processing.
 5. Hosted snapshot storage, managed or bring-your-own LLM keys, quotas, and
