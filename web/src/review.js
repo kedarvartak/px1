@@ -1,4 +1,4 @@
-import { $, esc, S, api, apiPost } from './state.js';
+import { $, esc, S, api, apiPost, doc_ } from './state.js';
 import { openFile } from './tabs.js';
 import { reloadOpenTabs } from './tabs.js';
 import { drawTree, treeEl } from './tree.js';
@@ -49,6 +49,20 @@ function filterCount(items, filter) {
   if (filter === 'all') return items.length;
   if (filter === 'pending') return items.filter(pending).length;
   return items.filter(item => item.state === filter).length;
+}
+
+function pendingReviewItems() {
+  return filteredReviewItems(S.review?.queue?.items || []).filter(pending);
+}
+
+function reviewNavigationTarget(direction) {
+  const items = pendingReviewItems();
+  if (!items.length) return null;
+  const currentPath = doc_()?.path;
+  const current = items.findIndex(item => item.path === currentPath);
+  if (current < 0) return direction > 0 ? items[0] : items[items.length - 1];
+  const target = current + direction;
+  return target >= 0 && target < items.length ? items[target] : null;
 }
 
 export async function refreshReviewQueue() {
@@ -146,7 +160,8 @@ function drawReviewQueue() {
   const visibleItems = filteredReviewItems(items);
   const count = q?.total || items.length;
   const reviewed = q?.reviewed || 0;
-  const next = visibleItems.find(pending);
+  const previous = reviewNavigationTarget(-1);
+  const next = reviewNavigationTarget(1);
   const comments = (S.reviewComments || []).filter(c => c.status === 'open' && !c.stale);
   const checks = S.reviewChecks || { available: false, checks: [] };
   const results = checks.checks || [];
@@ -165,6 +180,7 @@ function drawReviewQueue() {
     : '<div class="review-check-empty">CI results appear here after GitHub Actions publishes .px1/verification.json.</div>';
   const emptyHint = items.length ? 'No changed files match this filter.' : 'No files have changed since this review began.';
   const nextLabel = next ? 'Next change →' : visibleItems.length ? 'All visible changes reviewed' : 'No matching changes';
+  const previousLabel = previous ? '← Previous change' : 'Previous change';
   queueEl.innerHTML = `<div class="review-summary"><div class="review-summary-text"><strong>Agent changes</strong><span>${reviewed} of ${count} reviewed${active.baseRef ? ' · since worktree creation' : ''}</span></div><button class="review-close" data-review-close title="Close review session">Close</button><div class="review-progress"><span style="width:${count ? Math.round(reviewed * 100 / count) : 0}%"></span></div></div>
     ${attentionMarkup()}
     ${ruleHitsMarkup()}
@@ -172,7 +188,7 @@ function drawReviewQueue() {
     ${rulesMarkup()}
     ${reviewFiltersMarkup(items)}
     <div class="review-list">${visibleItems.length ? visibleItems.map(itemMarkup).join('') : `<div class="hint">${emptyHint}</div>`}</div>
-    <div class="review-foot">${checkMarkup}${comments.length ? `<button class="review-feedback" data-review-feedback>Ask agent to address ${comments.length} comment${comments.length === 1 ? '' : 's'}</button>` : ''}${S.lastReviewPatch ? '<button class="review-undo" data-review-undo>Undo last patch</button>' : ''}<button class="review-next" data-review-next ${next ? '' : 'disabled'}>${nextLabel}</button></div>`;
+    <div class="review-foot">${checkMarkup}${comments.length ? `<button class="review-feedback" data-review-feedback>Ask agent to address ${comments.length} comment${comments.length === 1 ? '' : 's'}</button>` : ''}${S.lastReviewPatch ? '<button class="review-undo" data-review-undo>Undo last patch</button>' : ''}<div class="review-navigation"><button class="review-previous" data-review-previous ${previous ? '' : 'disabled'}>${previousLabel}</button><button class="review-next" data-review-next ${next ? '' : 'disabled'}>${nextLabel}</button></div><span class="review-navigation-hint">Alt+Shift+↑/↓ navigates pending changes</span></div>`;
 }
 
 async function start() {
@@ -194,8 +210,8 @@ async function mark(path) {
   } catch (e) { showToast('!', e.message); }
 }
 
-async function openNext() {
-  const item = filteredReviewItems(S.review?.queue?.items || []).find(pending);
+async function openReviewItem(direction) {
+  const item = reviewNavigationTarget(direction);
   if (!item) return;
   await openFile(item.path);
   await openReviewDiff(item.path);
@@ -573,7 +589,8 @@ export function initReviewQueue() {
     }
     const pinBtn = e.target.closest('[data-review-pin]');
     if (pinBtn) return openPin(pinBtn.dataset.reviewPin);
-    if (e.target.closest('[data-review-next]')) return openNext();
+    if (e.target.closest('[data-review-previous]')) return openReviewItem(-1);
+    if (e.target.closest('[data-review-next]')) return openReviewItem(1);
     const markBtn = e.target.closest('[data-review-mark]');
     if (markBtn) return mark(markBtn.dataset.reviewMark);
     const item = e.target.closest('[data-review-path]');
@@ -582,6 +599,12 @@ export function initReviewQueue() {
       await openReviewDiff(item.dataset.reviewPath);
     }
   });
+  addEventListener('keydown', e => {
+    if (!shown || e.defaultPrevented || e.ctrlKey || e.metaKey || !e.altKey || !e.shiftKey) return;
+    if (e.target?.tagName === 'INPUT' || e.target?.tagName === 'TEXTAREA') return;
+    if (e.key === 'ArrowUp') { e.preventDefault(); openReviewItem(-1); }
+    if (e.key === 'ArrowDown') { e.preventDefault(); openReviewItem(1); }
+  }, { capture: true });
   $('#review-comment-cancel')?.addEventListener('click', closeComment);
   $('#review-comment-save')?.addEventListener('click', saveComment);
   $('#review-comment-rule')?.addEventListener('click', async () => {

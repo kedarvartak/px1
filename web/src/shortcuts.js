@@ -27,6 +27,7 @@ export const SHORTCUTS = [
   [['Mod+Shift+F'], 'Search in files'], [['Mod+F'], 'Find in file'],
   [['Mod+G'], 'Go to line'], [['Mod+D'], 'Toggle diff view (git)'], [['Alt+Z'], 'Toggle word wrap'],
   [['Enter', 'Shift+Enter'], 'Next / previous match'],
+  [['Alt+Shift+↑', 'Alt+Shift+↓'], 'Previous / next pending review change'],
   [['F12', 'Mod+Click'], 'Go to definition'], [['Shift+F12'], 'Find all references'],
   [['Alt+Shift+H'], 'Call trail (callers / callees)'],
   [['Mod+J'], 'Toggle right inspector (Symbols/Refs)'],
