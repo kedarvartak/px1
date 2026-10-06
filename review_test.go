@@ -354,6 +354,53 @@ func TestReviewCommentsPersistAndReportStaleAnchors(t *testing.T) {
 	}
 }
 
+func TestReviewCommentsAgentTracksDispatchLifecycle(t *testing.T) {
+	isolateSettings(t)
+	root := t.TempDir()
+	path := filepath.Join(root, "handler.go")
+	if err := os.WriteFile(path, []byte("package main\nfunc handler() {}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s := agentServer(t, root, writeHarness(t, "sleep 0.15\n"))
+	if _, err := s.review.Start(); err != nil {
+		t.Fatal(err)
+	}
+	comment, err := s.review.AddComment("handler.go", 2, 2, "Use the shared retry helper.")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	code, body := agentPost(t, s, "/api/review/comments/agent")
+	if code != http.StatusOK || body["id"] == nil {
+		t.Fatalf("dispatch = %d %#v", code, body)
+	}
+	comments, err := s.review.Comments()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if comments[0].Status != "sent" && comments[0].Status != "agent-attempted" {
+		t.Fatalf("dispatch status = %q, want sent or agent-attempted", comments[0].Status)
+	}
+
+	job := waitIdle(t, s)
+	if job.Error != "" {
+		t.Fatalf("agent failed: %s", job.Error)
+	}
+	comments, err = s.review.Comments()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(comments) != 1 || comments[0].ID != comment.ID || comments[0].Status != "agent-attempted" {
+		t.Fatalf("completed comments = %#v, want agent-attempted comment", comments)
+	}
+
+	// A completed dispatch is not sent twice unless the reviewer explicitly
+	// reopens the comment.
+	if code, _ := agentPost(t, s, "/api/review/comments/agent"); code != http.StatusConflict {
+		t.Fatalf("second dispatch = %d, want 409", code)
+	}
+}
+
 func TestReviewPatchRequiresPreviewHashAndSupportsUndo(t *testing.T) {
 	isolateSettings(t)
 	root := t.TempDir()

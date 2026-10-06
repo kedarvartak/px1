@@ -834,6 +834,54 @@ func (m *reviewManager) SetCommentStatus(id, status string) (reviewComment, erro
 	return reviewComment{}, errors.New("comment not found")
 }
 
+// transitionCommentStatuses updates a batch only when every comment is still
+// in the expected state. This keeps a second browser tab, or a stale agent
+// callback, from silently moving a comment backwards in its lifecycle.
+func (m *reviewManager) transitionCommentStatuses(ids []string, from, to string) error {
+	if len(ids) == 0 {
+		return errors.New("no review comments")
+	}
+	if !validCommentStatus(from) || !validCommentStatus(to) {
+		return errors.New("invalid comment status transition")
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.active == nil {
+		return errors.New("no active review session")
+	}
+	seen := make(map[string]bool, len(ids))
+	positions := make([]int, 0, len(ids))
+	for _, id := range ids {
+		if id == "" || seen[id] {
+			return errors.New("invalid review comment ids")
+		}
+		seen[id] = true
+		found := -1
+		for i := range m.active.Comments {
+			if m.active.Comments[i].ID == id {
+				found = i
+				break
+			}
+		}
+		if found < 0 {
+			return errors.New("comment not found")
+		}
+		if m.active.Comments[found].Status != from {
+			return fmt.Errorf("comment %s is %s, want %s", id, m.active.Comments[found].Status, from)
+		}
+		positions = append(positions, found)
+	}
+	now := time.Now().UTC()
+	for _, i := range positions {
+		m.active.Comments[i].Status = to
+		m.active.Comments[i].UpdatedAt = now
+	}
+	if err := m.saveLocked(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (m *reviewManager) Comments() ([]reviewCommentView, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -1298,8 +1346,24 @@ func (s *Server) handleReviewCommentsAgent(w http.ResponseWriter, r *http.Reques
 		fail(w, 400, "bad comment path")
 		return
 	}
-	job, err := s.agent.Start(abs, rel, anchor.LineStart, anchor.LineEnd, reviewFeedbackInstruction(ready))
+	ids := make([]string, len(ready))
+	for i, c := range ready {
+		ids[i] = c.ID
+	}
+	if err := s.review.transitionCommentStatuses(ids, "open", "sent"); err != nil {
+		fail(w, 409, err.Error())
+		return
+	}
+	job, err := s.agent.StartWithDone(abs, rel, anchor.LineStart, anchor.LineEnd, reviewFeedbackInstruction(ready), func(_ string, _ error) {
+		// An attempted run is terminal for this dispatch even when the harness
+		// fails. The reviewer can reopen a comment explicitly after inspecting
+		// the resulting job log and workspace.
+		_ = s.review.transitionCommentStatuses(ids, "sent", "agent-attempted")
+	})
 	if err != nil {
+		// Nothing ran, so the comments remain actionable instead of getting
+		// stranded in a state that implies the agent saw them.
+		_ = s.review.transitionCommentStatuses(ids, "sent", "open")
 		code := 400
 		if errors.Is(err, errAgentBusy) {
 			code = http.StatusConflict
