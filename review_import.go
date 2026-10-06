@@ -208,7 +208,10 @@ func (s *Server) handleReviewImport(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, map[string]any{
 		"imported": created,
-		"path":     fmt.Sprintf("/github/%s/%s/pull/%d?sha=%s", imported.Owner, imported.Repository, imported.PullRequest, imported.Head),
+		"path": reviewLinkPath(githubReviewTarget{
+			Provider: "github", Owner: imported.Owner, Repository: imported.Repository,
+			PullRequest: imported.PullRequest, Head: imported.Head,
+		}),
 		"target": githubReviewTarget{
 			Provider: "github", Owner: imported.Owner, Repository: imported.Repository,
 			PullRequest: imported.PullRequest, Head: imported.Head,

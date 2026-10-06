@@ -98,6 +98,41 @@ func TestReviewSnapshotImportPersistsAndServesPinnedReport(t *testing.T) {
 	}
 }
 
+func TestReviewSnapshotImportReturnsSignedReadLink(t *testing.T) {
+	t.Setenv(reviewLinkSecretEnv, "review-link-secret-for-tests")
+	s := newImportTestServer(t)
+	payload, err := json.Marshal(testReviewImport())
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := sendReviewImport(t, s, payload, testImportToken)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("import status = %d, body = %s", w.Code, w.Body.String())
+	}
+	var response struct {
+		Path string `json:"path"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(response.Path, "&sig=") {
+		t.Fatalf("import returned unsigned link: %q", response.Path)
+	}
+	r := httptest.NewRequest(http.MethodGet, response.Path, nil)
+	w = httptest.NewRecorder()
+	s.ServeHTTP(w, r)
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "Review report") {
+		t.Fatalf("signed imported link status = %d, body = %s", w.Code, w.Body.String())
+	}
+	unsigned := strings.Split(response.Path, "&sig=")[0]
+	r = httptest.NewRequest(http.MethodGet, unsigned, nil)
+	w = httptest.NewRecorder()
+	s.ServeHTTP(w, r)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("unsigned imported link status = %d, want 401", w.Code)
+	}
+}
+
 func TestReviewSnapshotImportRequiresConfiguredBearerToken(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	payload, err := json.Marshal(testReviewImport())
