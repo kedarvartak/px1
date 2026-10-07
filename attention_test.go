@@ -2,10 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/fs"
-	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -91,45 +87,5 @@ func TestDetectReviewAttentionCapsOutput(t *testing.T) {
 	got := detectReviewAttention(candidates, nil)
 	if len(got.Flags) != attentionMaxFlags || !got.Truncated {
 		t.Fatalf("bounded result = %d flags, truncated=%v", len(got.Flags), got.Truncated)
-	}
-}
-
-func TestReviewAttentionHTTPAndSessionDismissal(t *testing.T) {
-	isolateSettings(t)
-	s, root := newTestServer(t)
-	if code, body := reviewPost(t, s, "/api/review/session/start"); code != http.StatusOK {
-		t.Fatalf("start = %d %#v", code, body)
-	}
-	if err := os.WriteFile(filepath.Join(root, "package.json"), []byte("{}\n"), fs.FileMode(0o644)); err != nil {
-		t.Fatal(err)
-	}
-	code, body := get(t, s, "/api/review/attention")
-	if code != http.StatusOK {
-		t.Fatalf("attention = %d %#v", code, body)
-	}
-	flags, ok := body["flags"].([]any)
-	if !ok || len(flags) != 1 {
-		t.Fatalf("flags = %#v", body["flags"])
-	}
-	flag, ok := flags[0].(map[string]any)
-	if !ok || flag["rule"] != "dependency" {
-		t.Fatalf("flag = %#v", flags[0])
-	}
-	id, _ := flag["id"].(string)
-	code, body = reviewPost(t, s, "/api/review/attention/dismiss?id="+id)
-	if code != http.StatusOK {
-		t.Fatalf("dismiss = %d %#v", code, body)
-	}
-	if flags, ok := body["flags"].([]any); !ok || len(flags) != 0 {
-		t.Fatalf("flags after dismiss = %#v", body["flags"])
-	}
-
-	restarted := NewServer(NewIndex(root), nil)
-	code, body = get(t, restarted, "/api/review/attention")
-	if code != http.StatusOK {
-		t.Fatalf("attention after restart = %d %#v", code, body)
-	}
-	if flags, ok := body["flags"].([]any); !ok || len(flags) != 0 {
-		t.Fatalf("dismissal did not persist: %#v", body["flags"])
 	}
 }

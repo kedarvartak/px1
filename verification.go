@@ -2,20 +2,15 @@ package main
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"net/url"
-	"os"
-	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 )
 
-// verificationCheck is a result published by CI. px1 only displays these
-// results; it never executes the command that produced them.
+// Verification data is imported from GitHub Actions and tied to the exact PR
+// head. The report generator never runs repository commands.
 type verificationCheck struct {
 	Name       string     `json:"name"`
 	Status     string     `json:"status"`
@@ -32,11 +27,6 @@ type verificationReport struct {
 	Checks   []verificationCheck `json:"checks"`
 }
 
-type verificationManager struct {
-	mu   sync.RWMutex
-	root string
-}
-
 type verificationResponse struct {
 	Available bool                `json:"available"`
 	Source    string              `json:"source,omitempty"`
@@ -44,54 +34,6 @@ type verificationResponse struct {
 	URL       string              `json:"url,omitempty"`
 	Checks    []verificationCheck `json:"checks"`
 	Error     string              `json:"error,omitempty"`
-}
-
-// SetRoot points the reader at another checkout.
-func (m *verificationManager) SetRoot(root string) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.root = root
-}
-
-func newVerificationManager(root string) *verificationManager {
-	return &verificationManager{root: root}
-}
-
-// Load reads the small file written by the CI integration. Keeping this as a
-// file contract makes the first integration self-hostable: a GitHub Action can
-// write the report into the checkout before px1 opens it.
-func (m *verificationManager) Load(head string) (*verificationResponse, error) {
-	m.mu.RLock()
-	root := m.root
-	m.mu.RUnlock()
-
-	path := filepath.Join(root, ".px1", "verification.json")
-	b, err := os.ReadFile(path)
-	if errors.Is(err, os.ErrNotExist) {
-		return &verificationResponse{Available: false, Checks: []verificationCheck{}}, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	var report verificationReport
-	if err := json.Unmarshal(b, &report); err != nil {
-		return &verificationResponse{
-			Available: false,
-			Checks:    []verificationCheck{},
-			Error:     fmt.Sprintf("invalid %s: %v", filepath.ToSlash(filepath.Join(".px1", "verification.json")), err),
-		}, nil
-	}
-	if err := validateVerificationReport(report, head); err != nil {
-		return &verificationResponse{Available: false, Revision: report.Revision, URL: report.URL, Checks: []verificationCheck{}, Error: err.Error()}, nil
-	}
-	return &verificationResponse{
-		Available: true,
-		Source:    report.Source,
-		Revision:  report.Revision,
-		URL:       report.URL,
-		Checks:    nonNilChecks(report.Checks),
-	}, nil
 }
 
 func nonNilChecks(checks []verificationCheck) []verificationCheck {
@@ -109,7 +51,7 @@ func validateVerificationReport(report verificationReport, head string) error {
 		return errors.New("verification report has an invalid revision")
 	}
 	if head == "" {
-		return errors.New("verification report cannot be matched without an active git revision")
+		return errors.New("verification report cannot be matched without a revision")
 	}
 	if report.Revision != head {
 		return fmt.Errorf("verification report is for %s, but this review is for %s", shortRevision(report.Revision), shortRevision(head))
@@ -162,32 +104,4 @@ func shortRevision(revision string) string {
 		return revision[:8]
 	}
 	return revision
-}
-
-func (s *Server) handleReviewChecks(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		// Reading imported CI is not execution. A POST would run a check, and
-		// px1 does not do that; the capability gate still refuses a remote caller
-		// who was not explicitly allowed to try.
-		if !s.permit(w, r, capChecks) {
-			return
-		}
-		fail(w, http.StatusNotImplemented, "px1 does not execute verification commands; it only displays imported CI results")
-		return
-	}
-	if r.Method != http.MethodGet {
-		fail(w, http.StatusMethodNotAllowed, "GET only")
-		return
-	}
-	active, _ := s.review.Active()
-	if active == nil {
-		writeJSON(w, &verificationResponse{Available: false, Checks: []verificationCheck{}})
-		return
-	}
-	report, err := s.verify.Load(active.Head)
-	if err != nil {
-		fail(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	writeJSON(w, report)
 }

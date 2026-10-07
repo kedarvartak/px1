@@ -1,4 +1,4 @@
-.PHONY: all build web test dist npm publish clean help
+.PHONY: all build test dist npm publish clean help
 
 VERSION ?= $(shell cat VERSION 2>/dev/null | tr -d ' \r\n')
 # Support 'make publish 0.2.0' where target argument is passed as next goal
@@ -22,26 +22,21 @@ all: build
 help:
 	@echo "px1 make targets:"
 	@echo "  make build             - build px1 binary for current platform"
-	@echo "  make web               - bundle web assets (JS/CSS/themes)"
 	@echo "  make test              - run go test suite"
 	@echo "  make dist              - compile cross-platform binaries into dist/"
 	@echo "  make npm               - lay out the npm packages in dist-npm/ (needs dist/)"
 	@echo "  make publish <version> - bump VERSION, commit, tag, and build dist binaries"
 	@echo "  make clean             - remove build artifacts"
 
-web:
-	@echo "Bundling web assets..."
-	@node ./scripts/build-web.js
-
-build: web
+build:
 	@echo "Building px1 for local system..."
 	go build -trimpath -ldflags="$(LDFLAGS)" -o px1 .
 	@echo "Built ./px1 ($$(du -h px1 | cut -f1))"
 
-test: web
+test:
 	go test -v ./...
 
-dist: web
+dist:
 	@./build.sh
 
 npm: dist
@@ -54,7 +49,7 @@ publish:
 	fi
 	@echo "==> Preparing release v$(CLEAN_VERSION) (previous: $$(cat VERSION))"
 	@echo "$(CLEAN_VERSION)" > VERSION
-	@echo "==> Bundling web assets and building dist binaries..."
+	@echo "==> Building report-generator binaries..."
 	@./build.sh
 	@echo "==> Updating git repository..."
 	@git add VERSION

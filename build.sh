@@ -6,9 +6,6 @@ VERSION=$(cat VERSION | tr -d ' \r\n')
 OUT=${OUT:-dist}
 LDFLAGS="-s -w"
 
-# Bundle frontend web assets
-./scripts/build-web.js
-
 TARGETS="
 linux/amd64 linux/arm64 linux/arm linux/386 linux/riscv64
 darwin/amd64 darwin/arm64
