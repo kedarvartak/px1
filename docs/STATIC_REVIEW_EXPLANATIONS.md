@@ -1,9 +1,9 @@
 # Static review explanations
 
 px1 can add short, expandable AI explanation chips to a static PR review
-report. The explanation generator is intentionally separate from px1: a local
-script, CI job, or future provider integration writes JSON, and `export-review`
-validates and renders it.
+report. The explanation generator is intentionally separate from the renderer:
+an optional CI provider step writes JSON, and `export-review` validates and
+renders it.
 
 ```json
 {
@@ -22,7 +22,8 @@ validates and renders it.
 }
 ```
 
-Generate the file after the PR head commit exists, then pass it explicitly:
+Generate the file in GitHub Actions after the PR head commit exists, then pass
+it explicitly to the px1 Action or report command:
 
 ```bash
 px1 export-review \
@@ -38,6 +39,7 @@ file; IDs must be unique; and line ranges, titles, summaries, and item counts
 are bounded. Explanation text is handled as untrusted data and inserted into
 the report with DOM text nodes, not HTML.
 
-The JSON contract is provider-neutral. px1 does not call an LLM or require an
-API key during export. Explanations are review aids and may be wrong; reviewers
-should confirm them against the diff and CI evidence.
+The JSON contract is provider-neutral. Provider credentials stay in GitHub
+Actions secrets and are never written to the report. Explanations are review
+aids and may be wrong; reviewers should confirm them against the diff and CI
+evidence.
