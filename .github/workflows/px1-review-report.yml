@@ -97,8 +97,10 @@ jobs:
             fs.writeFileSync(process.env.VERIFICATION_FILE, `${JSON.stringify(report, null, 2)}\n`);
 
       - name: Restore historical review reports
-        shell: bash
-        run: scripts/review-report-history.sh restore site
+        uses: ./history
+        with:
+          mode: restore
+          site: site
 
       - name: Export commit-pinned report
         uses: ./
@@ -110,8 +112,10 @@ jobs:
           out: site/reviews/${{ env.HEAD_SHA }}
 
       - name: Preserve historical review reports
-        shell: bash
-        run: scripts/review-report-history.sh publish site
+        uses: ./history
+        with:
+          mode: publish
+          site: site
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5

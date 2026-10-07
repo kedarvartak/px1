@@ -28,3 +28,20 @@ func TestArtifactActionKeepsRevisionInputsExplicit(t *testing.T) {
 		t.Fatal("the reusable action must receive explicit revisions from its caller")
 	}
 }
+
+func TestArtifactHistoryActionUsesValidatedHistoryScript(t *testing.T) {
+	body, err := os.ReadFile("history/action.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	for _, want := range []string{
+		"PX1_HISTORY_MODE: ${{ inputs.mode }}",
+		"PX1_REVIEW_HISTORY_BRANCH: ${{ inputs.branch }}",
+		`"$PX1_HISTORY_MODE" "$PX1_HISTORY_SITE"`,
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("history/action.yml missing %q", want)
+		}
+	}
+}
