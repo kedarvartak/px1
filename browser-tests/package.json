@@ -1,0 +1,11 @@
+{
+  "name": "px1-report-quality",
+  "private": true,
+  "scripts": {
+    "test": "node --test report.test.mjs"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.10.2",
+    "playwright": "1.55.1"
+  }
+}

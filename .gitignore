@@ -17,6 +17,7 @@ Thumbs.db
 px1
 site/
 .px1-review/
+browser-tests/node_modules/
 
 # Logs
 *.log
