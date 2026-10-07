@@ -25,8 +25,12 @@ var hunkHeader = regexp.MustCompile(`^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@`)
 
 type reviewRule struct {
 	ID        string     `json:"id"`
+	Title     string     `json:"title,omitempty"`
+	Why       string     `json:"why,omitempty"`
+	Severity  string     `json:"severity,omitempty"`
 	Pattern   string     `json:"pattern"`
 	Glob      string     `json:"glob,omitempty"`
+	Globs     []string   `json:"globs,omitempty"`
 	Message   string     `json:"message"`
 	Enabled   bool       `json:"enabled"`
 	Source    string     `json:"source"`
@@ -38,17 +42,31 @@ type reviewRule struct {
 }
 
 type ruleHit struct {
-	Key     string `json:"key"`
-	RuleID  string `json:"ruleId"`
-	Message string `json:"message"`
-	Source  string `json:"source"`
-	Origin  string `json:"origin,omitempty"`
-	Path    string `json:"path"`
-	Line    int    `json:"line"`
-	Text    string `json:"text"`
+	Key      string `json:"key"`
+	RuleID   string `json:"ruleId"`
+	Message  string `json:"message"`
+	Title    string `json:"title,omitempty"`
+	Why      string `json:"why,omitempty"`
+	Severity string `json:"severity,omitempty"`
+	Source   string `json:"source"`
+	Origin   string `json:"origin,omitempty"`
+	Path     string `json:"path"`
+	Line     int    `json:"line"`
+	Text     string `json:"text"`
 }
 
 type ruleInput struct {
+	ID          string   `json:"id"`
+	Title       string   `json:"title"`
+	Description string   `json:"description"`
+	Severity    string   `json:"severity"`
+	Languages   []string `json:"languages"`
+	Globs       []string `json:"globs"`
+	Match       struct {
+		Kind    string `json:"kind"`
+		Pattern string `json:"pattern"`
+	} `json:"match"`
+	Why     string `json:"why"`
 	Pattern string `json:"pattern"`
 	Glob    string `json:"glob"`
 	Message string `json:"message"`
@@ -86,6 +104,26 @@ func globRegexp(glob string) (*regexp.Regexp, error) {
 }
 
 func validateRule(in ruleInput) (ruleInput, error) {
+	in.ID = strings.TrimSpace(in.ID)
+	in.Title = clip(in.Title, ruleMessageMax)
+	in.Description = clip(in.Description, ruleMessageMax)
+	in.Why = clip(in.Why, ruleMessageMax)
+	in.Severity = strings.ToLower(strings.TrimSpace(in.Severity))
+	in.Match.Kind = strings.ToLower(strings.TrimSpace(in.Match.Kind))
+	in.Match.Pattern = strings.TrimSpace(in.Match.Pattern)
+	if in.Match.Pattern != "" {
+		if in.Pattern != "" {
+			return in, errors.New("use pattern or match, not both")
+		}
+		in.Pattern = in.Match.Pattern
+		if in.Match.Kind == "text" {
+			in.Pattern = regexp.QuoteMeta(in.Pattern)
+		} else if in.Match.Kind != "regex" {
+			return in, errors.New("match.kind must be regex or text")
+		}
+	} else if in.Match.Kind != "" {
+		return in, errors.New("match.pattern is required")
+	}
 	in.Pattern = strings.TrimSpace(in.Pattern)
 	in.Glob = strings.TrimSpace(in.Glob)
 	in.Message = clip(in.Message, ruleMessageMax)
@@ -109,23 +147,69 @@ func validateRule(in ruleInput) (ruleInput, error) {
 	if in.Message == "" {
 		return in, errors.New("rule needs a message")
 	}
+	if in.ID != "" {
+		validID := regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]{0,79}$`)
+		if !validID.MatchString(in.ID) {
+			return in, errors.New("id must contain only letters, numbers, dot, underscore, or dash")
+		}
+	}
+	if in.Severity == "" {
+		in.Severity = "warning"
+	}
+	if in.Severity != "info" && in.Severity != "warning" && in.Severity != "error" {
+		return in, errors.New("severity must be info, warning, or error")
+	}
+	if in.Title == "" {
+		in.Title = in.Message
+	}
+	if in.Why == "" {
+		in.Why = in.Description
+	}
+	if len(in.Globs) == 0 && in.Glob != "" {
+		in.Globs = []string{in.Glob}
+	}
+	if len(in.Globs) > 20 {
+		return in, errors.New("globs must contain at most 20 entries")
+	}
+	for i := range in.Globs {
+		in.Globs[i] = strings.TrimSpace(in.Globs[i])
+		if len(in.Globs[i]) > ruleGlobMax {
+			return in, fmt.Errorf("globs[%d] must be at most %d bytes", i, ruleGlobMax)
+		}
+		if _, err := globRegexp(in.Globs[i]); err != nil {
+			return in, fmt.Errorf("globs[%d]: %w", i, err)
+		}
+	}
 	return in, nil
 }
 
 func parseTeamRules(b []byte) ([]reviewRule, error) {
 	var file struct {
-		Rules []ruleInput `json:"rules"`
+		Version int         `json:"version"`
+		Rules   []ruleInput `json:"rules"`
 	}
 	if err := json.Unmarshal(b, &file); err != nil {
 		return nil, fmt.Errorf("%s: %w", ruleTeamFile, err)
 	}
+	if file.Version != 0 && file.Version != 1 {
+		return nil, fmt.Errorf("%s: unsupported version %d", ruleTeamFile, file.Version)
+	}
 	out := make([]reviewRule, 0, len(file.Rules))
+	seen := map[string]bool{}
 	for i, in := range file.Rules {
 		valid, err := validateRule(in)
 		if err != nil {
 			return out, fmt.Errorf("%s rule %d: %w", ruleTeamFile, i+1, err)
 		}
-		out = append(out, reviewRule{ID: "team-" + strconv.Itoa(i+1), Pattern: valid.Pattern, Glob: valid.Glob, Message: valid.Message, Origin: valid.Origin, Enabled: true, Source: "team"})
+		id := valid.ID
+		if id == "" {
+			id = "team-" + strconv.Itoa(i+1)
+		}
+		if seen[id] {
+			return out, fmt.Errorf("%s rule %d: duplicate id %q", ruleTeamFile, i+1, id)
+		}
+		seen[id] = true
+		out = append(out, reviewRule{ID: id, Title: valid.Title, Why: valid.Why, Severity: valid.Severity, Pattern: valid.Pattern, Glob: valid.Glob, Globs: valid.Globs, Message: valid.Message, Origin: valid.Origin, Enabled: true, Source: "team"})
 	}
 	return out, nil
 }
