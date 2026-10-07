@@ -27,7 +27,7 @@ accounts, and a managed SaaS are outside the product.
 1. **Automated explanations in Actions.** Add an optional provider step that
    writes the existing commit-pinned explanation contract. Keep reports fully
    functional without a key.
-2. **Semantic team rules.** ✅ Let teams express focused rules in plain language,
+2. **Semantic team rules.** Let teams express focused rules in plain language,
    while showing evidence and uncertainty rather than pretending every match is
    a proven defect.
 3. **Better review blocks.** Group related hunks across files when they belong
