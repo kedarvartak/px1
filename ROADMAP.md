@@ -32,7 +32,7 @@ accounts, and a managed SaaS are outside the product.
    a proven defect.
 3. **Better review blocks.** Group related hunks across files when they belong
    to one behavioral change.
-4. **Report quality gates.** Add fixture-driven browser tests, accessibility
+4. **Report quality gates.** ✅ Add fixture-driven browser tests, accessibility
    checks, and large-diff performance limits.
 5. **Action releases.** Publish immutable version tags and document safe upgrade
    practices for consuming repositories.

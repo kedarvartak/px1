@@ -1,0 +1,38 @@
+name: report quality
+
+on:
+  pull_request:
+    paths:
+      - '**.go'
+      - 'static_report/**'
+      - 'browser-tests/**'
+      - '.github/workflows/report-quality.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: browser-tests/package-lock.json
+      - name: Install browser test dependencies
+        working-directory: browser-tests
+        run: npm ci
+      - name: Install Chromium
+        working-directory: browser-tests
+        run: npx playwright install --with-deps chromium
+      - name: Run report browser quality gates
+        working-directory: browser-tests
+        run: npm test
