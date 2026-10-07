@@ -74,3 +74,31 @@ func TestStaticReviewHTMLRendersStructuredDiffAndFallback(t *testing.T) {
 		}
 	}
 }
+
+func TestRelatedReviewBlocksGroupSharedBehaviorAcrossFiles(t *testing.T) {
+	files := []staticReviewFile{
+		{Path: "src/routes/orders.ts", Hunks: []staticReviewHunk{{Lines: []staticReviewDiffLine{{Kind: "added", Text: "return exportOrders(account, filter)"}}}}},
+		{Path: "src/services/orders.ts", Hunks: []staticReviewHunk{{Lines: []staticReviewDiffLine{{Kind: "added", Text: "export function exportOrders(account, filter)"}}}}},
+		{Path: "src/health.ts", Hunks: []staticReviewHunk{{Lines: []staticReviewDiffLine{{Kind: "added", Text: "return healthy"}}}}},
+	}
+	blocks := relatedReviewBlocks(files)
+	if len(blocks) != 1 {
+		t.Fatalf("blocks = %#v", blocks)
+	}
+	if len(blocks[0].Paths) != 2 || blocks[0].Paths[0] != "src/routes/orders.ts" || blocks[0].Paths[1] != "src/services/orders.ts" {
+		t.Fatalf("grouped paths = %#v", blocks[0].Paths)
+	}
+	if blocks[0].ID == "" || !strings.Contains(strings.ToLower(blocks[0].Title), "orders") {
+		t.Fatalf("block identity = %#v", blocks[0])
+	}
+}
+
+func TestRelatedReviewBlocksDoNotGroupOnOneGenericCodeToken(t *testing.T) {
+	files := []staticReviewFile{
+		{Path: "src/users.ts", Hunks: []staticReviewHunk{{Lines: []staticReviewDiffLine{{Kind: "added", Text: "validate profile"}}}}},
+		{Path: "src/billing.ts", Hunks: []staticReviewHunk{{Lines: []staticReviewDiffLine{{Kind: "added", Text: "validate invoice"}}}}},
+	}
+	if blocks := relatedReviewBlocks(files); len(blocks) != 0 || blocks == nil {
+		t.Fatalf("blocks = %#v", blocks)
+	}
+}
