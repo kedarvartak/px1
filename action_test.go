@@ -45,3 +45,22 @@ func TestArtifactHistoryActionUsesValidatedHistoryScript(t *testing.T) {
 		}
 	}
 }
+
+func TestActionReleaseKeepsImmutableAndMajorTagsSeparate(t *testing.T) {
+	body, err := os.ReadFile(".github/workflows/release-actions.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	for _, want := range []string{
+		`^v[1-9][0-9]*\.[0-9]+\.[0-9]+$`,
+		`immutable tag ${RELEASE_VERSION} already exists`,
+		`git push origin "refs/tags/${RELEASE_TAG}"`,
+		`git push --force origin "refs/tags/${MAJOR_TAG}"`,
+		`gh release create "$RELEASE_TAG" --verify-tag`,
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("release workflow missing %q", want)
+		}
+	}
+}
