@@ -1,9 +1,34 @@
 # Static review explanations
 
 px1 can add short, expandable AI explanation chips to a static PR review
-report. The explanation generator is intentionally separate from the renderer:
-an optional CI provider step writes JSON, and `export-review` validates and
-renders it.
+report. You can let the reusable Action generate them with OpenAI, or provide
+the same provider-neutral JSON from another generator. In both cases,
+`export-review` validates the commit-pinned file before rendering it.
+
+## Generate explanations in the px1 Action
+
+Set an exact model name and expose `OPENAI_API_KEY` from a GitHub Actions
+secret. The key remains in the workflow environment: it is not an Action input
+and is never written to the report.
+
+```yaml
+- name: Generate px1 review artifact
+  uses: kedarvartak/px1@v1
+  with:
+    base: ${{ github.event.pull_request.base.sha }}
+    head: ${{ github.event.pull_request.head.sha }}
+    explanation-model: your-model-name
+  env:
+    OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+```
+
+The generator sends only the bounded Git diff to the Responses API, requests a
+strict JSON schema, and refuses incomplete, malformed, stale, or out-of-scope
+output. It never checks out or executes pull-request code. If no model is set,
+the Action works without an API key and produces the normal diff-and-rules
+artifact.
+
+## Bring your own explanation file
 
 ```json
 {
@@ -22,8 +47,8 @@ renders it.
 }
 ```
 
-Generate the file in GitHub Actions after the PR head commit exists, then pass
-it explicitly to the px1 Action or report command:
+Generate this file after the PR head commit exists, then pass it explicitly to
+the px1 Action or report command:
 
 ```bash
 px1 export-review \
