@@ -1,15 +1,10 @@
-dist/
-dist-npm/
-*.tgz
-bench-repos/
-px0
 *.test
 *.prof
 
 # Go
 *.out
 
-# IDE/Editor
+# IDE/editor
 .vscode/
 .idea/
 *.swp
@@ -18,9 +13,10 @@ px0
 .DS_Store
 Thumbs.db
 
-# Build artifacts
-build/
+# Local report/build artifacts
+px1
+site/
+.px1-review/
 
 # Logs
 *.log
-px0
