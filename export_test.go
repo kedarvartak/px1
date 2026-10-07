@@ -97,14 +97,14 @@ func TestGenerateStaticReviewUsesPinnedCommits(t *testing.T) {
 		t.Fatalf("verification = %#v", report.Verification)
 	}
 
-	// A mutable worktree change must not change the report's rules or diff.
+	// A mutable checkout change must not change the report's rules or diff.
 	writeExportTestFile(t, root, ".px1/rules.json", `{"rules":[{"pattern":"\\bfetch\\(","glob":"*.ts","message":"Changed after commit"}]}`)
 	again, err := generateStaticReview(root, base, head)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if again.RuleHits[0].Message != "Use apiClient, not fetch" {
-		t.Fatalf("worktree rule leaked into export: %#v", again.RuleHits)
+		t.Fatalf("checkout rule leaked into export: %#v", again.RuleHits)
 	}
 
 	out := t.TempDir()

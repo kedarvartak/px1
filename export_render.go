@@ -75,9 +75,8 @@ func renderStaticReviewHTML(report staticReviewReport) ([]byte, error) {
 	return page.Bytes(), nil
 }
 
-// staticAttention runs the same attention rules as the local review session
-// against the content of two commits, so a published report flags what the
-// live review would.
+// staticAttention evaluates deterministic risk signals against the exact two
+// commits represented by the published report.
 func staticAttention(root, base, head string) ([]reviewAttentionFlag, error) {
 	out, err := exec.Command("git", "-C", root, "diff", "--raw", "--no-abbrev", "--find-renames", "-z", base, head, "--").Output()
 	if err != nil {

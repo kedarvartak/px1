@@ -4,11 +4,8 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"io/fs"
-	"net/http"
-	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -48,114 +45,6 @@ type attentionCandidate struct {
 }
 
 var publicAPIAddedLine = regexp.MustCompile(`(?i)(HandleFunc\s*\(|\.(get|post|put|patch|delete)\s*\(|@(app|router)\.(get|post|put|patch|delete)\b|\bexport\s+(async\s+)?(function|class|const|let|var)\b|^\s*func\s+[A-Z][A-Za-z0-9_]*\s*\()`)
-
-func (m *reviewManager) Attention() (reviewAttention, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.active == nil {
-		return reviewAttention{}, errors.New("no active review session")
-	}
-	current, _, err := snapshotTree(m.root, "")
-	if err != nil {
-		return reviewAttention{}, err
-	}
-	baseline := make(map[string]reviewFile, len(m.active.Files))
-	now := make(map[string]reviewFile, len(current))
-	for _, file := range m.active.Files {
-		baseline[file.Path] = file
-	}
-	for _, file := range current {
-		now[file.Path] = file
-	}
-	paths := make([]string, 0)
-	for path, old := range baseline {
-		if next, ok := now[path]; !ok || old.Hash != next.Hash || old.Mode != next.Mode {
-			paths = append(paths, path)
-		}
-	}
-	for path := range now {
-		if _, ok := baseline[path]; !ok {
-			paths = append(paths, path)
-		}
-	}
-	sort.Strings(paths)
-	truncated := len(paths) > attentionMaxFiles
-	if truncated {
-		paths = paths[:attentionMaxFiles]
-	}
-	candidates := make([]attentionCandidate, 0, len(paths))
-	remaining := int64(attentionMaxContentBytes)
-	contentTruncated := false
-	baselineRoot := filepath.Join(m.sessionDir(m.active.ID), "files")
-	for _, path := range paths {
-		old, hadOld := baseline[path]
-		next, hasNext := now[path]
-		candidate := attentionCandidate{Path: path, Deleted: !hasNext}
-		if hadOld {
-			candidate.BaselineMode = old.Mode
-		}
-		if hasNext {
-			candidate.CurrentMode = next.Mode
-		}
-		bytesNeeded := old.Size + next.Size
-		if old.Size <= attentionMaxFileBytes && next.Size <= attentionMaxFileBytes && bytesNeeded <= remaining {
-			var readErr error
-			if hadOld {
-				candidate.Baseline, readErr = os.ReadFile(filepath.Join(baselineRoot, filepath.FromSlash(path)))
-			}
-			if readErr == nil && hasNext {
-				candidate.Current, readErr = os.ReadFile(filepath.Join(m.root, filepath.FromSlash(path)))
-			}
-			if readErr == nil && !containsNUL(candidate.Baseline) && !containsNUL(candidate.Current) {
-				candidate.ContentAvailable = true
-				remaining -= bytesNeeded
-			}
-		} else {
-			contentTruncated = true
-		}
-		candidates = append(candidates, candidate)
-	}
-	dismissed := make(map[string]bool, len(m.active.DismissedAttention))
-	for _, id := range m.active.DismissedAttention {
-		dismissed[id] = true
-	}
-	attention := detectReviewAttention(candidates, dismissed)
-	attention.Truncated = attention.Truncated || truncated || contentTruncated
-	return attention, nil
-}
-
-func (m *reviewManager) DismissAttention(id string) (reviewAttention, error) {
-	id = strings.TrimSpace(id)
-	if id == "" {
-		return reviewAttention{}, errors.New("attention flag id is required")
-	}
-	current, err := m.Attention()
-	if err != nil {
-		return reviewAttention{}, err
-	}
-	found := false
-	for _, flag := range current.Flags {
-		if flag.ID == id {
-			found = true
-			break
-		}
-	}
-	if !found {
-		return reviewAttention{}, errors.New("attention flag is no longer current")
-	}
-	m.mu.Lock()
-	if m.active == nil {
-		m.mu.Unlock()
-		return reviewAttention{}, errors.New("no active review session")
-	}
-	m.active.DismissedAttention = append(m.active.DismissedAttention, id)
-	if err := m.saveLocked(); err != nil {
-		m.mu.Unlock()
-		return reviewAttention{}, err
-	}
-	m.mu.Unlock()
-	return m.Attention()
-}
 
 func detectReviewAttention(candidates []attentionCandidate, dismissed map[string]bool) reviewAttention {
 	flags := make([]reviewAttentionFlag, 0)
@@ -301,29 +190,4 @@ func isTestFile(path, base string) bool {
 
 func isGeneratedFile(path, base string) bool {
 	return strings.Contains(path, "/generated/") || strings.HasPrefix(path, "generated/") || strings.Contains(base, ".generated.") || strings.Contains(base, ".gen.") || strings.HasSuffix(base, ".pb.go") || strings.HasSuffix(base, "_generated.go")
-}
-
-func (s *Server) handleReviewAttention(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		fail(w, http.StatusMethodNotAllowed, "GET only")
-		return
-	}
-	attention, err := s.review.Attention()
-	if err != nil {
-		fail(w, http.StatusConflict, err.Error())
-		return
-	}
-	writeJSON(w, attention)
-}
-
-func (s *Server) handleReviewAttentionDismiss(w http.ResponseWriter, r *http.Request) {
-	if !localPost(w, r) {
-		return
-	}
-	attention, err := s.review.DismissAttention(r.URL.Query().Get("id"))
-	if err != nil {
-		fail(w, http.StatusConflict, err.Error())
-		return
-	}
-	writeJSON(w, attention)
 }
