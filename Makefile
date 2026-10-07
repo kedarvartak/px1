@@ -1,67 +1,12 @@
-.PHONY: all build test dist npm publish clean help
-
-VERSION ?= $(shell cat VERSION 2>/dev/null | tr -d ' \r\n')
-# Support 'make publish 0.2.0' where target argument is passed as next goal
-VERSION_ARG := $(filter-out publish,$(MAKECMDGOALS))
-ifeq ($(strip $(VERSION_ARG)),)
-  TARGET_VERSION := $(VERSION)
-else
-  TARGET_VERSION := $(strip $(VERSION_ARG))
-  # Treat extra goal as no-op so make doesn't attempt to build it
-  %:
-	@:
-endif
-
-# Clean leading 'v' from version string if present
-CLEAN_VERSION := $(patsubst v%,%,$(TARGET_VERSION))
-
-LDFLAGS := -s -w
+.PHONY: all build test clean
 
 all: build
 
-help:
-	@echo "px1 make targets:"
-	@echo "  make build             - build px1 binary for current platform"
-	@echo "  make test              - run go test suite"
-	@echo "  make dist              - compile cross-platform binaries into dist/"
-	@echo "  make npm               - lay out the npm packages in dist-npm/ (needs dist/)"
-	@echo "  make publish <version> - bump VERSION, commit, tag, and build dist binaries"
-	@echo "  make clean             - remove build artifacts"
-
 build:
-	@echo "Building px1 for local system..."
-	go build -trimpath -ldflags="$(LDFLAGS)" -o px1 .
-	@echo "Built ./px1 ($$(du -h px1 | cut -f1))"
+	go build -trimpath -ldflags="-s -w" -o px1 .
 
 test:
-	go test -v ./...
-
-dist:
-	@./build.sh
-
-npm: dist
-	@node ./scripts/build-npm.js
-
-publish:
-	@if [ -z "$(CLEAN_VERSION)" ]; then \
-		echo "Error: Version cannot be empty. Usage: make publish <version> (e.g. make publish 0.2.0)"; \
-		exit 1; \
-	fi
-	@echo "==> Preparing release v$(CLEAN_VERSION) (previous: $$(cat VERSION))"
-	@echo "$(CLEAN_VERSION)" > VERSION
-	@echo "==> Building report-generator binaries..."
-	@./build.sh
-	@echo "==> Updating git repository..."
-	@git add VERSION
-	@git commit -m "Release v$(CLEAN_VERSION)" || true
-	@git tag -fa "v$(CLEAN_VERSION)" -m "Release v$(CLEAN_VERSION)"
-	@echo ""
-	@echo "✓ Successfully prepared release v$(CLEAN_VERSION) and updated dist/!"
-	@echo "Tag v$(CLEAN_VERSION) has been created."
-	@echo ""
-	@echo "To publish to GitHub and trigger release workflow, run:"
-	@echo "  git push origin master --tags"
+	go test ./...
 
 clean:
-	rm -f px1
-	rm -rf dist/ dist-npm/
+	go clean

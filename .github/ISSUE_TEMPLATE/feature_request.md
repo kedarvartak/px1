@@ -14,7 +14,7 @@ assignees: ""
 
 ### Proposed Solution
 
-<!-- How should this feature work? Describe the desired behavior, flag, or UI change. -->
+<!-- How should this improve the generated report or GitHub Actions flow? -->
 
 ### Why This Is Important & Potential Impact
 

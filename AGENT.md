@@ -1,13 +1,15 @@
-# Operational Guidelines for AI Agents
+# Agent guidance
 
-All operational instructions, architectural tenets, documentation maintenance requirements, and codebase mappings for AI coding agents have been consolidated under the [`docs/agents/`](docs/agents/README.md) directory.
+px1 has one product flow: GitHub Actions generates a commit-pinned static
+review artifact, GitHub Pages serves it, and a PR comment links to it.
 
-## Quick Reference
+Keep changes inside that boundary. Do not reintroduce a local server, workspace
+browser, mutable review sessions, agent editing, self-hosted imports, accounts,
+or hosted application state.
 
-- Comprehensive Guidelines: See [`docs/agents/README.md`](docs/agents/README.md) for:
-  1. Product direction: PR review reports with diffs, concise explanations beside code blocks, and repository-defined team rules. See [the product vision](docs/PRODUCT_VISION.md).
-  1. Mandatory Documentation Maintenance Matrix: Protocols for keeping documentation in sync whenever code is changed.
-  1. Pre-Commit Verification Checklist: Test suites, web bundling, and architecture synchronization.
-  1. Frontend Architecture & Code Map: Section index of `web/index.html` and ES module catalog of `web/src/`.
-- Internal Architecture Documentation: See [`docs/internals/README.md`](docs/internals/README.md) for deep-dive technical write-ups covering server lifecycle, indexing, fuzzy matching, search, syntax highlighting, DOM virtualization, and LSP.
-- Pull requests: Every agent-authored PR must use the repository template in [`.github/pull_request_template.md`](.github/pull_request_template.md).
+Every product change should preserve explicit base/head identity, avoid
+executing PR code, and keep approval in GitHub. Update the README, product
+vision, roadmap, contracts, and fixture tests when behavior changes.
+
+Before opening a PR, run `go test ./...`, `go test -race ./...`, `go vet ./...`,
+and generate one report from two commits.

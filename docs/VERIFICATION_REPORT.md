@@ -1,10 +1,7 @@
-# CI verification report
+# GitHub Actions verification input
 
-px1 does not run project commands from the review service. A CI job can make
-its results available to a local px1 checkout by writing
-`.px1/verification.json` before the checkout is opened for review.
-
-The report is intentionally small and commit-pinned:
+The px1 workflow collects check runs for the exact pull-request head and writes
+a small JSON input for the report generator:
 
 ```json
 {
@@ -22,13 +19,10 @@ The report is intentionally small and commit-pinned:
 }
 ```
 
-`source` must be `github-actions`, `revision` must be the full 40-character
-commit SHA of the active review, and every link must use HTTPS. Check statuses
-are `queued`, `running`, `passed`, `failed`, or `cancelled`. `startedAt` and
-`finishedAt` may be included as RFC 3339 timestamps.
+`source` must be `github-actions`. `revision` must be the full report-head SHA.
+Links must use HTTPS, check names must be unique, and statuses are `queued`,
+`running`, `passed`, `failed`, or `cancelled`. Optional timestamps use RFC 3339.
 
-The report is read-only in px1. A missing report leaves the review queue
-usable with an empty CI section; malformed reports or reports for another
-commit are shown as unavailable rather than being treated as evidence. The
-next GitHub integration slice will generate this file from the Action API and
-attach the commit-pinned px1 link to the PR.
+The generator rejects stale identity and untrusted URLs. Invalid verification
+data is shown as unavailable and is never treated as passing evidence. px1
+displays results; it does not execute project tests or PR code.

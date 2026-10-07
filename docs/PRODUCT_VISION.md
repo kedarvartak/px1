@@ -1,63 +1,51 @@
-# px1: a clearer way to review a PR
+# Product vision
 
-Agents can produce code faster than people can review it. px1 helps the reviewer
-understand a PR and check it against the team's expectations. The main product
-is an HTML review report linked from the GitHub PR.
+Agents can write pull requests faster than people can confidently review them.
+px1 gives the reviewer a compact artifact that explains what changed and where
+the team should pay attention.
 
-## The experience we are building
+## The product
 
-An agent opens a PR. A GitHub Action reads the changes and repository rules,
-generates a report, and adds a link to the PR. The reviewer sees:
+When a pull request opens or changes, GitHub Actions generates a static report
+for that exact head commit. GitHub Pages hosts it and a sticky PR comment links
+to it. The report combines:
 
-- **Diffs:** what was added, removed, or changed.
-- **Highlighted blocks:** related changes grouped into readable pieces.
-- **AI explanation chips:** small labels beside blocks that open concise
-  explanations of what changed and why it matters. They should identify
-  uncertainty rather than invent the author's intent.
-- **Rule findings:** the team rule, the offending code, and a short explanation.
-- **CI results:** available tests and checks for the reviewed commit.
+- readable, structured diffs;
+- concise explanation chips beside changed blocks;
+- repository-defined team-rule findings with evidence;
+- exact-revision CI results; and
+- transparent attention signals for changes with wider impact.
 
-Approval and requests for changes remain in GitHub. Generating a report does
-not mean the code is correct or approved.
+The reviewer uses that context and then approves or requests changes in GitHub.
+px1 does not make the decision for them.
 
-## Example
+## Team policy belongs in the repository
 
-A team says, “Use ternaries for simple conditional assignments.” A PR adds an
-if/else that assigns one of two values. The intended report highlights that
-block and explains: “This assigns a value based on a condition. Your team asks
-for a ternary in this case.” A separate AI chip explains what the value affects.
+Teams store rules in `.px1/rules.json`. Rules are versioned and reviewed with
+the code, so a finding can always show which policy produced it. The current
+implementation uses patterns and file globs. The longer-term goal is narrowly
+scoped semantic rules written in ordinary language, with evidence and explicit
+uncertainty.
 
-The rule belongs to the team. px1 should distinguish that convention from a
-bug, and avoid flagging unrelated uses of `if` under this example rule.
+## AI is optional context
 
-## Rules live with the code
+Model-generated explanations should clarify mechanics, dependencies, and
+review impact. They must not invent author intent or label code safe. Provider
+keys stay in GitHub Actions secrets; only validated, commit-pinned output enters
+the static report.
 
-The file is `.px1/rules.json` at the repository root. Keeping it in Git makes
-rule changes reviewable alongside code changes. The goal is to support rules
-expressed in the team's own words.
+Without a model, px1 still provides diffs, rules, CI evidence, and deterministic
+attention signals.
 
-The current report implementation requires regex patterns and optional file
-globs alongside readable messages. It checks added lines. Arbitrary
-plain-language rules, multi-line reasoning, and semantic checks need more work.
+## Product boundary
 
-## Delivery and status
+px1 is not:
 
-The first path uses GitHub Actions to generate a static report, GitHub Pages
-to serve it, and a PR comment to link to it. No px1 SaaS is required. AI
-explanations need a configured provider; diffs and pattern matching do not.
+- a local IDE or code browser;
+- an agent editor or task runner;
+- a mutable review-session service;
+- a self-hosted web application;
+- a replacement for GitHub comments or approvals; or
+- a px1-operated SaaS.
 
-Report export, contextual findings, explanation chips, structured highlighted
-diffs, exact-revision CI evidence, GitHub Pages publishing, sticky PR links,
-and historical SHA retention are implemented on the default branch. A
-self-hosted server can also accept a bearer-authenticated, immutable snapshot
-and serve it from a commit-pinned GitHub review route. Authenticated reviewer
-links and automated explanation generation remain planned.
-
-## Priorities
-
-Make the report easy to open, the changes easy to understand, and the findings
-easy to verify against the code. Measure progress by whether reviewers can
-understand the PR and spot rule violations with less back-and-forth.
-
-Local navigation and the CLI support development and testing. The main product
-promise is a useful review artifact attached to the PR.
+The product is the artifact attached to the PR.
