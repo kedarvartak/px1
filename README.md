@@ -81,10 +81,12 @@ a team convention, not a claim that the code is unsafe.
 
 ## Optional explanations
 
-The generator accepts commit-pinned explanation JSON through
-`explanations-file`. This keeps model credentials and generation inside CI;
-the published page receives only validated explanation text. Reports remain
-useful when no model or API key is configured.
+Set `explanation-model` on the px1 Action and provide `OPENAI_API_KEY` through
+a GitHub Actions secret to generate explanation chips automatically. You can
+also bring provider-neutral, commit-pinned JSON through `explanations-file`.
+Model credentials and generation stay inside CI; the published page receives
+only validated explanation text. Reports remain useful when no model or API
+key is configured.
 
 See [the explanation contract](docs/STATIC_REVIEW_EXPLANATIONS.md) and
 [verification contract](docs/VERIFICATION_REPORT.md).

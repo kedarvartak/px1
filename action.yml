@@ -25,6 +25,14 @@ inputs:
     description: Optional commit-pinned explanation JSON file.
     required: false
     default: ''
+  explanation-model:
+    description: Optional OpenAI model used to generate explanations. Requires OPENAI_API_KEY in the caller environment.
+    required: false
+    default: ''
+  explanation-endpoint:
+    description: Responses API endpoint used when explanation-model is set.
+    required: false
+    default: https://api.openai.com/v1/responses
 
 runs:
   using: composite
@@ -44,8 +52,28 @@ runs:
         PX1_OUT: ${{ inputs.out }}
         PX1_VERIFICATION_FILE: ${{ inputs.verification-file }}
         PX1_EXPLANATIONS_FILE: ${{ inputs.explanations-file }}
+        PX1_EXPLANATION_MODEL: ${{ inputs.explanation-model }}
+        PX1_EXPLANATION_ENDPOINT: ${{ inputs.explanation-endpoint }}
       run: |
         set -euo pipefail
+        if [[ -n "$PX1_EXPLANATIONS_FILE" && -n "$PX1_EXPLANATION_MODEL" ]]; then
+          echo "px1: use explanations-file or explanation-model, not both" >&2
+          exit 2
+        fi
+        if [[ -n "$PX1_EXPLANATION_MODEL" ]]; then
+          if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+            echo "px1: explanation-model requires OPENAI_API_KEY" >&2
+            exit 2
+          fi
+          PX1_EXPLANATIONS_FILE="${RUNNER_TEMP:-/tmp}/px1-explanations-${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-0}.json"
+          (cd "$GITHUB_ACTION_PATH" && go run . generate-explanations \
+            --base "$PX1_BASE" \
+            --head "$PX1_HEAD" \
+            --root "$PX1_ROOT" \
+            --out "$PX1_EXPLANATIONS_FILE" \
+            --model "$PX1_EXPLANATION_MODEL" \
+            --endpoint "$PX1_EXPLANATION_ENDPOINT")
+        fi
         args=(
           export-review
           --base "$PX1_BASE"

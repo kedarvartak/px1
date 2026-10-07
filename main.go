@@ -14,6 +14,12 @@ var rawVersion string
 var version = strings.TrimSpace(rawVersion)
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "generate-explanations" {
+		if err := runGenerateExplanations(os.Args[2:]); err != nil {
+			fatal(err)
+		}
+		return
+	}
 	if len(os.Args) > 1 && os.Args[1] == "export-review" {
 		if err := runExportReview(os.Args[2:]); err != nil {
 			fatal(err)
@@ -25,7 +31,7 @@ func main() {
 		return
 	}
 	fmt.Fprintf(os.Stderr, "px1 %s - generate a commit-pinned PR review artifact\n\n", version)
-	fmt.Fprintln(os.Stderr, "usage: px1 export-review --base <commit> [--head <commit>] [--root <repo>] [--out <dir>]")
+	fmt.Fprintln(os.Stderr, "usage: px1 <export-review|generate-explanations> [options]")
 	os.Exit(2)
 }
 

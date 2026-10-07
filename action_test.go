@@ -19,6 +19,9 @@ func TestArtifactActionKeepsRevisionInputsExplicit(t *testing.T) {
 		"--head \"$PX1_HEAD\"",
 		"go run . \"${args[@]}\"",
 		"test -s \"$PX1_OUT/index.html\"",
+		"PX1_EXPLANATION_MODEL: ${{ inputs.explanation-model }}",
+		"generate-explanations",
+		"OPENAI_API_KEY",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("action.yml missing %q", want)
@@ -26,6 +29,9 @@ func TestArtifactActionKeepsRevisionInputsExplicit(t *testing.T) {
 	}
 	if strings.Contains(text, "github.event.pull_request") {
 		t.Fatal("the reusable action must receive explicit revisions from its caller")
+	}
+	if strings.Contains(text, "openai-api-key") {
+		t.Fatal("API keys must come from the caller environment, not action inputs")
 	}
 }
 
