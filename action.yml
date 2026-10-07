@@ -1,0 +1,67 @@
+name: px1 PR review artifact
+description: Generate a commit-pinned px1 review report from two Git revisions.
+author: px1
+
+inputs:
+  base:
+    description: Full base commit SHA.
+    required: true
+  head:
+    description: Full pull-request head commit SHA.
+    required: true
+  root:
+    description: Repository checkout to inspect.
+    required: false
+    default: ${{ github.workspace }}
+  out:
+    description: Directory where the static report is written.
+    required: false
+    default: .px1-review
+  verification-file:
+    description: Optional exact-revision verification JSON file.
+    required: false
+    default: ''
+  explanations-file:
+    description: Optional commit-pinned explanation JSON file.
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: ${{ github.action_path }}/go.mod
+        cache: false
+
+    - name: Generate px1 review artifact
+      shell: bash
+      env:
+        PX1_BASE: ${{ inputs.base }}
+        PX1_HEAD: ${{ inputs.head }}
+        PX1_ROOT: ${{ inputs.root }}
+        PX1_OUT: ${{ inputs.out }}
+        PX1_VERIFICATION_FILE: ${{ inputs.verification-file }}
+        PX1_EXPLANATIONS_FILE: ${{ inputs.explanations-file }}
+      run: |
+        set -euo pipefail
+        args=(
+          export-review
+          --base "$PX1_BASE"
+          --head "$PX1_HEAD"
+          --root "$PX1_ROOT"
+          --out "$PX1_OUT"
+        )
+        if [[ -n "$PX1_VERIFICATION_FILE" ]]; then
+          args+=(--verification-file "$PX1_VERIFICATION_FILE")
+        fi
+        if [[ -n "$PX1_EXPLANATIONS_FILE" ]]; then
+          args+=(--explanations-file "$PX1_EXPLANATIONS_FILE")
+        fi
+        (cd "$GITHUB_ACTION_PATH" && go run . "${args[@]}")
+        test -s "$PX1_OUT/index.html"
+
+branding:
+  icon: eye
+  color: orange
