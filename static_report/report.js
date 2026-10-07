@@ -2,6 +2,7 @@
 const report=JSON.parse(document.getElementById('report-data').textContent);
 const app=document.getElementById('app');
 const files=Array.isArray(report.files)?report.files:[];
+const blocks=Array.isArray(report.blocks)?report.blocks:[];
 const ruleHits=Array.isArray(report.ruleHits)?report.ruleHits:[];
 const attention=Array.isArray(report.attention)?report.attention:[];
 const explanations=Array.isArray(report.explanations)?report.explanations:[];
@@ -90,6 +91,14 @@ function paintTop(){
 
 /* ---- rail ---- */
 const rail=h('aside','rail');rail.setAttribute('aria-label','Review navigation');
+const blocksSec=h('section');const blocksHead=h('h2','eyebrow','Change groups ');blocksHead.append(h('span','count',blocks.length));
+const blockList=h('ul','queue');
+for(const block of blocks){
+  const li=h('li'),a=h('a','qitem');a.href='#'+block.id;
+  a.append(h('div','row',block.title),h('span','w',block.paths.length+' related files'));
+  li.append(a);blockList.append(li);
+}
+if(blocks.length){blocksSec.append(blocksHead,blockList);rail.append(blocksSec)}
 const queueSec=h('section');const queueHead=h('h2','eyebrow','Review queue ');const queueCount=h('span','count');queueHead.append(queueCount);
 const queue=h('ul','queue');queueSec.append(queueHead,queue);
 const filesSec=h('section');const filesHead=h('h2','eyebrow','Files ');
@@ -171,9 +180,12 @@ const openNoteFromHash=()=>{const el=location.hash.length>1?document.getElementB
 addEventListener('hashchange',openNoteFromHash);
 
 const main=h('main','main');
+const renderedGroups=new Set();
 files.forEach((f,i)=>{
   const sec=h('section','fsec');sec.id='f'+i;
   const head=h('div','fhead');
+  const group=blocks.find((block)=>block.paths.includes(f.path));
+  if(group&&!renderedGroups.has(group.id)){const anchor=h('span');anchor.id=group.id;main.append(anchor);renderedGroups.add(group.id)}
   head.append(h('span','path',f.path),h('span','eyebrow',STATUS[f.status]||f.status),h('span','spacer'),h('span','mono muted','+'+stats[i].a+' −'+stats[i].d));
   sec.append(head);
   const body=h('div','fbody');

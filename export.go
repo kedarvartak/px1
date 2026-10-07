@@ -27,6 +27,7 @@ type staticReviewReport struct {
 	Head         string              `json:"head"`
 	GeneratedAt  time.Time           `json:"generatedAt"`
 	Files        []staticReviewFile  `json:"files"`
+	Blocks       []staticReviewBlock `json:"blocks"`
 	RuleHits     []staticReviewHit   `json:"ruleHits"`
 	Explanations []staticExplanation `json:"explanations"`
 	// Attention lists the risk signals px1 raises on the diff itself, such as
@@ -205,6 +206,7 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi
 		Head:         headSHA,
 		GeneratedAt:  time.Now().UTC(),
 		Files:        files,
+		Blocks:       relatedReviewBlocks(files),
 		RuleHits:     staticHits,
 		Explanations: explanations,
 		Attention:    flags,
