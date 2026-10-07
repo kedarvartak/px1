@@ -75,9 +75,29 @@ Rules live at `.px1/rules.json` and change through normal code review:
 }
 ```
 
-Current rules match added lines using Go regular expressions and optional file
-globs. A finding shows the rule, matching line, and nearby diff context. It is
-a team convention, not a claim that the code is unsafe.
+For rules that need clearer reviewer context, use the versioned format:
+
+```json
+{
+  "version": 1,
+  "rules": [
+    {
+      "id": "no-console",
+      "title": "Use the shared logger",
+      "description": "Shared logging applies the team's redaction policy.",
+      "severity": "error",
+      "globs": ["src/**/*.ts", "src/**/*.tsx"],
+      "match": { "kind": "text", "pattern": "console.log(" },
+      "message": "Replace direct console output with the shared logger."
+    }
+  ]
+}
+```
+
+Rules support literal `text` and Go-compatible `regex` matches across one or
+more file globs. A finding shows the team-owned title, reason, severity,
+matching line, and nearby diff context. The compact format remains supported.
+A finding is a team convention, not a claim that the code is unsafe.
 
 ## Optional explanations
 

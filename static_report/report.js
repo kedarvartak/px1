@@ -26,7 +26,7 @@ const persist=()=>{try{localStorage.setItem(ackKey,JSON.stringify([...ack].sort(
 const items=[];
 const fileIndex=new Map(files.map((f,i)=>[f.path,i]));
 const add=(it)=>{if(fileIndex.has(it.path)){it.fi=fileIndex.get(it.path);it.id='ann-'+items.length;items.push(it)}};
-for(const hit of ruleHits)add({k:'rule',ackId:hit.key,path:hit.path,line:hit.line,title:hit.message,why:'Team rule '+hit.ruleId+(hit.origin?' ('+hit.origin+')':'')+'.',ev:hit.text,src:hit.source});
+for(const hit of ruleHits)add({k:'rule',ackId:hit.key,path:hit.path,line:hit.line,title:hit.title||hit.message,why:(hit.why?hit.why+' · ':'')+(hit.severity?hit.severity+' · ':'')+'Team rule '+hit.ruleId+(hit.origin?' ('+hit.origin+')':'')+'.',ev:hit.text,src:hit.source});
 for(const flag of attention)add({k:'attn',ackId:flag.id,path:flag.path,line:flag.line||0,title:flag.title,why:flag.reason,ev:flag.evidence,src:'rule '+flag.rule});
 for(const ex of explanations)add({k:'note',path:ex.path,line:ex.lineStart,lineEnd:Math.max(ex.lineEnd||0,ex.lineStart),title:ex.title,why:ex.summary,src:'AI explanation'});
 const needsDecision=(it)=>it.k!=='note'&&!ack.has(it.ackId);

@@ -57,15 +57,18 @@ type staticReviewDiffLine struct {
 }
 
 type staticReviewHit struct {
-	Key     string                    `json:"key"`
-	RuleID  string                    `json:"ruleId"`
-	Message string                    `json:"message"`
-	Source  string                    `json:"source"`
-	Origin  string                    `json:"origin,omitempty"`
-	Path    string                    `json:"path"`
-	Line    int                       `json:"line"`
-	Text    string                    `json:"text"`
-	Context []staticReviewContextLine `json:"context,omitempty"`
+	Key      string                    `json:"key"`
+	RuleID   string                    `json:"ruleId"`
+	Message  string                    `json:"message"`
+	Title    string                    `json:"title,omitempty"`
+	Why      string                    `json:"why,omitempty"`
+	Severity string                    `json:"severity,omitempty"`
+	Source   string                    `json:"source"`
+	Origin   string                    `json:"origin,omitempty"`
+	Path     string                    `json:"path"`
+	Line     int                       `json:"line"`
+	Text     string                    `json:"text"`
+	Context  []staticReviewContextLine `json:"context,omitempty"`
 }
 
 type staticReviewContextLine struct {
@@ -420,14 +423,17 @@ func addStaticReviewContexts(hits []ruleHit, diff string) []staticReviewHit {
 	out := make([]staticReviewHit, 0, len(hits))
 	for _, hit := range hits {
 		staticHit := staticReviewHit{
-			Key:     hit.Key,
-			RuleID:  hit.RuleID,
-			Message: hit.Message,
-			Source:  hit.Source,
-			Origin:  hit.Origin,
-			Path:    hit.Path,
-			Line:    hit.Line,
-			Text:    hit.Text,
+			Key:      hit.Key,
+			RuleID:   hit.RuleID,
+			Message:  hit.Message,
+			Title:    hit.Title,
+			Why:      hit.Why,
+			Severity: hit.Severity,
+			Source:   hit.Source,
+			Origin:   hit.Origin,
+			Path:     hit.Path,
+			Line:     hit.Line,
+			Text:     hit.Text,
 		}
 		for _, block := range blocks[hit.Path] {
 			target := -1
@@ -507,9 +513,9 @@ func staticContextBlocksByPath(diff string) map[string][]staticReviewContextBloc
 
 func matchStaticRuleAdditions(rules []reviewRule, additions map[string]map[int]string) ([]ruleHit, error) {
 	type compiledRule struct {
-		rule reviewRule
-		re   *regexp.Regexp
-		glob *regexp.Regexp
+		rule  reviewRule
+		re    *regexp.Regexp
+		globs []*regexp.Regexp
 	}
 	active := make([]compiledRule, 0, len(rules))
 	for _, rule := range rules {
@@ -520,11 +526,21 @@ func matchStaticRuleAdditions(rules []reviewRule, additions map[string]map[int]s
 		if err != nil {
 			continue
 		}
-		glob, err := globRegexp(rule.Glob)
-		if err != nil {
-			continue
+		patterns := rule.Globs
+		if len(patterns) == 0 && rule.Glob != "" {
+			patterns = []string{rule.Glob}
 		}
-		active = append(active, compiledRule{rule: rule, re: re, glob: glob})
+		globs := make([]*regexp.Regexp, 0, len(patterns))
+		for _, pattern := range patterns {
+			glob, err := globRegexp(pattern)
+			if err != nil {
+				continue
+			}
+			if glob != nil {
+				globs = append(globs, glob)
+			}
+		}
+		active = append(active, compiledRule{rule: rule, re: re, globs: globs})
 	}
 	paths := make([]string, 0, len(additions))
 	for p := range additions {
@@ -534,7 +550,7 @@ func matchStaticRuleAdditions(rules []reviewRule, additions map[string]map[int]s
 	hits := make([]ruleHit, 0)
 	for _, p := range paths {
 		for _, c := range active {
-			if c.glob != nil && !c.glob.MatchString(p) && !c.glob.MatchString(filepath.Base(p)) {
+			if len(c.globs) > 0 && !matchesAnyGlob(c.globs, p) {
 				continue
 			}
 			lines := make([]int, 0, len(additions[p]))
@@ -553,7 +569,7 @@ func matchStaticRuleAdditions(rules []reviewRule, additions map[string]map[int]s
 					continue
 				}
 				perKey[key]++
-				hits = append(hits, ruleHit{Key: key, RuleID: c.rule.ID, Message: c.rule.Message, Source: c.rule.Source, Origin: c.rule.Origin, Path: p, Line: line, Text: clip(text, 300)})
+				hits = append(hits, ruleHit{Key: key, RuleID: c.rule.ID, Message: c.rule.Message, Title: c.rule.Title, Why: c.rule.Why, Severity: c.rule.Severity, Source: c.rule.Source, Origin: c.rule.Origin, Path: p, Line: line, Text: clip(text, 300)})
 				if len(hits) >= ruleMaxHits {
 					return hits, nil
 				}
@@ -561,6 +577,15 @@ func matchStaticRuleAdditions(rules []reviewRule, additions map[string]map[int]s
 		}
 	}
 	return hits, nil
+}
+
+func matchesAnyGlob(globs []*regexp.Regexp, path string) bool {
+	for _, glob := range globs {
+		if glob.MatchString(path) || glob.MatchString(filepath.Base(path)) {
+			return true
+		}
+	}
+	return false
 }
 
 func writeStaticReviewReport(outDir string, report staticReviewReport) error {
