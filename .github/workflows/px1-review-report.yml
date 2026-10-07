@@ -97,25 +97,25 @@ jobs:
             fs.writeFileSync(process.env.VERIFICATION_FILE, `${JSON.stringify(report, null, 2)}\n`);
 
       - name: Restore historical review reports
-        shell: bash
-        run: scripts/review-report-history.sh restore site
+        uses: ./history
+        with:
+          mode: restore
+          site: site
 
       - name: Export commit-pinned report
-        shell: bash
-        run: |
-          set -euo pipefail
-          report_dir="site/reviews/${HEAD_SHA}"
-          go run . export-review \
-            --root . \
-            --base "$BASE_SHA" \
-            --head "$HEAD_SHA" \
-            --verification-file .px1/verification.json \
-            --out "$report_dir"
-          test -s "$report_dir/index.html"
+        uses: ./
+        with:
+          root: .
+          base: ${{ env.BASE_SHA }}
+          head: ${{ env.HEAD_SHA }}
+          verification-file: .px1/verification.json
+          out: site/reviews/${{ env.HEAD_SHA }}
 
       - name: Preserve historical review reports
-        shell: bash
-        run: scripts/review-report-history.sh publish site
+        uses: ./history
+        with:
+          mode: publish
+          site: site
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5

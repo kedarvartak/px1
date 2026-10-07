@@ -1,0 +1,33 @@
+name: px1 review artifact history
+description: Restore or publish immutable px1 reports on a generated-only branch.
+
+inputs:
+  mode:
+    description: Either restore or publish.
+    required: true
+  site:
+    description: Directory containing reviews/<head-sha>/index.html.
+    required: false
+    default: site
+  branch:
+    description: Generated-only branch used to retain old report links.
+    required: false
+    default: px1-review-reports
+
+runs:
+  using: composite
+  steps:
+    - name: Manage immutable report history
+      shell: bash
+      env:
+        PX1_HISTORY_MODE: ${{ inputs.mode }}
+        PX1_HISTORY_SITE: ${{ inputs.site }}
+        PX1_REVIEW_HISTORY_BRANCH: ${{ inputs.branch }}
+      run: |
+        set -euo pipefail
+        "$GITHUB_ACTION_PATH/../scripts/review-report-history.sh" \
+          "$PX1_HISTORY_MODE" "$PX1_HISTORY_SITE"
+
+branding:
+  icon: archive
+  color: orange
