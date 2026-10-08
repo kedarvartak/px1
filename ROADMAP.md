@@ -21,21 +21,36 @@ accounts, and a managed SaaS are outside the product.
 - [x] GitHub Pages deployment and sticky PR comment
 - [x] Reusable report and history Actions
 - [x] Removal of the local server and workspace application
+- [x] Optional AI explanations generated in Actions with strict JSON output
+- [x] AI input exclusion globs for sensitive repository paths
+- [x] Rich team rules with severity, rationale, literal matching, and block matching
+- [x] Cross-file change groups and large-report search
+- [x] Machine-readable `review.json` alongside the reviewer HTML
+- [x] Browser rendering, accessibility, and large-diff performance gates
+- [x] `validate-rules` CLI for repository policy checks
+- [x] Immutable release workflow for the `v1` Action tag
 
 ## Next priorities
 
-1. **Automated explanations in Actions.** Add an optional provider step that
-   writes the existing commit-pinned explanation contract. Keep reports fully
-   functional without a key.
-2. **Semantic team rules.** Let teams express focused rules in plain language,
-   while showing evidence and uncertainty rather than pretending every match is
-   a proven defect.
-3. **Better review blocks.** Group related hunks across files when they belong
-   to one behavioral change.
-4. **Report quality gates.** Add fixture-driven browser tests, accessibility
-   checks, and large-diff performance limits.
-5. **Action releases.** Publish immutable version tags and document safe upgrade
-   practices for consuming repositories.
+1. **Reviewer feedback export.** Let reviewers export local acknowledgements and
+   notes as Markdown or JSON that can be pasted into the GitHub PR. Keep the
+   report static; do not introduce a backend or pretend browser-local state is
+   shared.
+2. **Explainable affected-file hints.** Add deterministic import, test, config,
+   and dependency evidence for nearby files without mixing suggestions into the
+   mandatory changed-file queue.
+3. **PR summary improvements.** Add concise finding counts, rule highlights,
+   verification state, and the commit-pinned artifact link to the sticky comment.
+4. **Privacy and integrity hardening.** Add optional redaction checks, artifact
+   checksums, and clearer warnings before publishing reports or sending diffs to
+   an external model.
+5. **Rule analysis depth.** Extend block rules with safe language-aware
+   structural checks while keeping deterministic text fallbacks and bounded
+   performance.
+
+The old local review sessions, agent editing, verification commands, activity
+feeds, and external-agent issues were retired with the local application and
+are no longer active roadmap work.
 
 ## Product constraints
 
