@@ -179,3 +179,19 @@ func TestStaticReviewHTMLShipsResizablePanel(t *testing.T) {
 		}
 	}
 }
+
+func TestStaticReviewHTMLShipsAffectedFileHints(t *testing.T) {
+	report := staticReviewReport{
+		AffectedFiles: []staticAffectedFile{{Path: "src/service.test.ts", Evidence: []staticAffectedEvidence{{Kind: "test", ChangedPath: "src/service.ts", Detail: "test imports the changed file"}}}},
+		Verification:  verificationResponse{Checks: []verificationCheck{}},
+	}
+	body, err := renderStaticReviewHTML(report)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"Affected file hints", "affectedFiles", "test imports the changed file", "src/service.test.ts"} {
+		if !strings.Contains(string(body), want) {
+			t.Errorf("report missing %q", want)
+		}
+	}
+}

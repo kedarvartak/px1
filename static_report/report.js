@@ -3,6 +3,7 @@ const report=JSON.parse(document.getElementById('report-data').textContent);
 const app=document.getElementById('app');
 const files=Array.isArray(report.files)?report.files:[];
 const blocks=Array.isArray(report.blocks)?report.blocks:[];
+const affectedFiles=Array.isArray(report.affectedFiles)?report.affectedFiles:[];
 const ruleHits=Array.isArray(report.ruleHits)?report.ruleHits:[];
 const attention=Array.isArray(report.attention)?report.attention:[];
 const explanations=Array.isArray(report.explanations)?report.explanations:[];
@@ -99,6 +100,16 @@ for(const block of blocks){
   li.append(a);blockList.append(li);
 }
 if(blocks.length){blocksSec.append(blocksHead,blockList);rail.append(blocksSec)}
+const affectedSec=h('section');const affectedHead=h('h2','eyebrow','Affected file hints ');affectedHead.append(h('span','count',affectedFiles.length));
+const affectedList=h('ul','affected-list');
+for(const file of affectedFiles){
+  const li=h('li','affected-file');li.append(h('code',null,file.path));
+  for(const evidence of Array.isArray(file.evidence)?file.evidence:[]){
+    const reason=h('span','affected-reason');reason.append(h('b',null,evidence.kind),document.createTextNode(' · '+evidence.detail+' ('+evidence.changedPath+')'));li.append(reason);
+  }
+  affectedList.append(li);
+}
+if(affectedFiles.length){affectedSec.append(affectedHead,affectedList);rail.append(affectedSec)}
 const queueSec=h('section');const queueHead=h('h2','eyebrow','Review queue ');const queueCount=h('span','count');queueHead.append(queueCount);
 const queue=h('ul','queue');queueSec.append(queueHead,queue);
 const filesSec=h('section');const filesHead=h('h2','eyebrow','Files ');
