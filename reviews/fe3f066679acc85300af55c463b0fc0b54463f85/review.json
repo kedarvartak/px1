@@ -1,0 +1,2326 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "efcc7679e607af1dd8ecfd5fc1a991bc25afe36c",
+  "head": "fe3f066679acc85300af55c463b0fc0b54463f85",
+  "generatedAt": "2026-10-08T17:04:11.983566949Z",
+  "files": [
+    {
+      "path": "README.md",
+      "status": "M",
+      "diff": "diff --git a/README.md b/README.md\nindex ef99878..e9ce568 100644\n--- a/README.md\n+++ b/README.md\n@@ -18,6 +18,7 @@ in GitHub.\n \n - Structured, line-numbered diffs grouped into reviewable blocks\n - Cross-file change groups that connect related routes, services, tests, and schemas\n+- Explainable hints for unchanged importers, tests, configuration, and dependency files\n - Fast file-and-code search for large pull requests\n - Repository-specific findings from `.px1/rules.json`\n - Exact-commit GitHub check results\n@@ -45,6 +46,9 @@ A sticky PR comment links the reviewer to it\n \n The workflow checks out trusted base-branch code and fetches the PR head only\n as Git objects. px1 inspects the diff; it does not execute code from the PR.\n+Affected-file hints are deterministic navigation evidence from the pinned head\n+commit. They are shown separately from changed files and never become required\n+review items.\n \n ## Set up px1\n \n",
+      "hunks": [
+        {
+          "id": "diff-6a4be91491032dc2",
+          "header": "@@ -18,6 +18,7 @@ in GitHub.",
+          "lines": [
+            {
+              "oldLine": 18,
+              "newLine": 18,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 19,
+              "newLine": 19,
+              "kind": "context",
+              "text": "- Structured, line-numbered diffs grouped into reviewable blocks"
+            },
+            {
+              "oldLine": 20,
+              "newLine": 20,
+              "kind": "context",
+              "text": "- Cross-file change groups that connect related routes, services, tests, and schemas"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "- Explainable hints for unchanged importers, tests, configuration, and dependency files"
+            },
+            {
+              "oldLine": 21,
+              "newLine": 22,
+              "kind": "context",
+              "text": "- Fast file-and-code search for large pull requests"
+            },
+            {
+              "oldLine": 22,
+              "newLine": 23,
+              "kind": "context",
+              "text": "- Repository-specific findings from `.px1/rules.json`"
+            },
+            {
+              "oldLine": 23,
+              "newLine": 24,
+              "kind": "context",
+              "text": "- Exact-commit GitHub check results"
+            }
+          ]
+        },
+        {
+          "id": "diff-ad0125fbb232ce31",
+          "header": "@@ -45,6 +46,9 @@ A sticky PR comment links the reviewer to it",
+          "lines": [
+            {
+              "oldLine": 45,
+              "newLine": 46,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 46,
+              "newLine": 47,
+              "kind": "context",
+              "text": "The workflow checks out trusted base-branch code and fetches the PR head only"
+            },
+            {
+              "oldLine": 47,
+              "newLine": 48,
+              "kind": "context",
+              "text": "as Git objects. px1 inspects the diff; it does not execute code from the PR."
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "Affected-file hints are deterministic navigation evidence from the pinned head"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "commit. They are shown separately from changed files and never become required"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "review items."
+            },
+            {
+              "oldLine": 48,
+              "newLine": 52,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 49,
+              "newLine": 53,
+              "kind": "context",
+              "text": "## Set up px1"
+            },
+            {
+              "oldLine": 50,
+              "newLine": 54,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "affected_files.go",
+      "status": "A",
+      "diff": "diff --git a/affected_files.go b/affected_files.go\nnew file mode 100644\nindex 0000000..a27a222\n--- /dev/null\n+++ b/affected_files.go\n@@ -0,0 +1,218 @@\n+package main\n+\n+import (\n+\t\"fmt\"\n+\t\"os/exec\"\n+\t\"path\"\n+\t\"regexp\"\n+\t\"sort\"\n+\t\"strings\"\n+)\n+\n+const (\n+\taffectedMaxFiles      = 2000\n+\taffectedMaxFileBytes  = 256 \u003c\u003c 10\n+\taffectedMaxTotalBytes = 8 \u003c\u003c 20\n+\taffectedMaxHints      = 100\n+)\n+\n+type staticAffectedFile struct {\n+\tPath     string                   `json:\"path\"`\n+\tEvidence []staticAffectedEvidence `json:\"evidence\"`\n+}\n+\n+type staticAffectedEvidence struct {\n+\tKind        string `json:\"kind\"` // import, test, config, or dependency\n+\tChangedPath string `json:\"changedPath\"`\n+\tDetail      string `json:\"detail\"`\n+}\n+\n+var importReference = regexp.MustCompile(`(?m)(?:\\bfrom\\s+|\\brequire\\s*\\(\\s*|\\bimport\\s+(?:[^\\n]*?\\s+from\\s+)?)[\"']([^\"']+)[\"']`)\n+\n+// affectedFileHints finds unchanged files that may deserve a follow-up look.\n+// It reads bounded blobs from the pinned head commit and never executes them.\n+func affectedFileHints(root, head string, changedFiles []staticReviewFile) ([]staticAffectedFile, error) {\n+\tchanged := make(map[string]bool, len(changedFiles))\n+\tchangedPaths := make([]string, 0, len(changedFiles))\n+\tfor _, file := range changedFiles {\n+\t\tchanged[file.Path] = true\n+\t\tchangedPaths = append(changedPaths, file.Path)\n+\t}\n+\tsort.Strings(changedPaths)\n+\n+\tout, err := exec.Command(\"git\", \"-C\", root, \"ls-tree\", \"-r\", \"--name-only\", \"-z\", head).Output()\n+\tif err != nil {\n+\t\treturn nil, fmt.Errorf(\"list files for affected-file hints: %w\", err)\n+\t}\n+\tpaths := strings.Split(strings.TrimRight(string(out), \"\\x00\"), \"\\x00\")\n+\tif len(paths) \u003e affectedMaxFiles {\n+\t\tpaths = paths[:affectedMaxFiles]\n+\t}\n+\n+\tbyPath := map[string][]staticAffectedEvidence{}\n+\tadd := func(candidate string, evidence staticAffectedEvidence) {\n+\t\tif candidate == \"\" || changed[candidate] || len(byPath) \u003e= affectedMaxHints \u0026\u0026 byPath[candidate] == nil {\n+\t\t\treturn\n+\t\t}\n+\t\tif len(byPath[candidate]) \u003e= 8 {\n+\t\t\treturn\n+\t\t}\n+\t\tfor _, existing := range byPath[candidate] {\n+\t\t\tif existing.Kind == evidence.Kind \u0026\u0026 existing.ChangedPath == evidence.ChangedPath \u0026\u0026 existing.Detail == evidence.Detail {\n+\t\t\t\treturn\n+\t\t\t}\n+\t\t}\n+\t\tbyPath[candidate] = append(byPath[candidate], evidence)\n+\t}\n+\n+\tremaining := int64(affectedMaxTotalBytes)\n+\tfor _, candidate := range paths {\n+\t\tif candidate == \"\" {\n+\t\t\tcontinue\n+\t\t}\n+\t\tcandidate = path.Clean(candidate)\n+\t\tif changed[candidate] {\n+\t\t\tcontinue\n+\t\t}\n+\t\tfor _, changedPath := range changedPaths {\n+\t\t\tif isTestPath(candidate) \u0026\u0026 companionStem(candidate) == companionStem(changedPath) {\n+\t\t\t\tadd(candidate, staticAffectedEvidence{Kind: \"test\", ChangedPath: changedPath, Detail: \"test filename matches the changed source file\"})\n+\t\t\t}\n+\t\t\tif isProjectConfig(candidate) \u0026\u0026 pathIsAncestor(path.Dir(candidate), changedPath) {\n+\t\t\t\tadd(candidate, staticAffectedEvidence{Kind: \"config\", ChangedPath: changedPath, Detail: \"configuration file applies to the changed file's directory\"})\n+\t\t\t}\n+\t\t\tif dependencyPair(changedPath, candidate) {\n+\t\t\t\tadd(candidate, staticAffectedEvidence{Kind: \"dependency\", ChangedPath: changedPath, Detail: \"dependency manifest and lockfile should stay in sync\"})\n+\t\t\t}\n+\t\t}\n+\n+\t\tcontent, ok, readErr := affectedBlob(root, head, candidate, \u0026remaining)\n+\t\tif readErr != nil {\n+\t\t\treturn nil, readErr\n+\t\t}\n+\t\tif !ok {\n+\t\t\tcontinue\n+\t\t}\n+\t\tfor _, changedPath := range changedPaths {\n+\t\t\tif importsChangedPath(candidate, string(content), changedPath) {\n+\t\t\t\tkind := \"import\"\n+\t\t\t\tdetail := \"imports the changed file\"\n+\t\t\t\tif isTestPath(candidate) {\n+\t\t\t\t\tkind, detail = \"test\", \"test imports the changed file\"\n+\t\t\t\t}\n+\t\t\t\tadd(candidate, staticAffectedEvidence{Kind: kind, ChangedPath: changedPath, Detail: detail})\n+\t\t\t}\n+\t\t}\n+\t}\n+\n+\thints := make([]staticAffectedFile, 0, len(byPath))\n+\tfor candidate, evidence := range byPath {\n+\t\tsort.Slice(evidence, func(i, j int) bool {\n+\t\t\tif evidence[i].Kind != evidence[j].Kind {\n+\t\t\t\treturn evidence[i].Kind \u003c evidence[j].Kind\n+\t\t\t}\n+\t\t\treturn evidence[i].ChangedPath \u003c evidence[j].ChangedPath\n+\t\t})\n+\t\thints = append(hints, staticAffectedFile{Path: candidate, Evidence: evidence})\n+\t}\n+\tsort.Slice(hints, func(i, j int) bool { return hints[i].Path \u003c hints[j].Path })\n+\tif hints == nil {\n+\t\treturn []staticAffectedFile{}, nil\n+\t}\n+\treturn hints, nil\n+}\n+\n+func affectedBlob(root, head, file string, remaining *int64) ([]byte, bool, error) {\n+\tsize, err := gitBlobSize(root, head, file)\n+\tif err != nil {\n+\t\treturn nil, false, err\n+\t}\n+\tif size \u003e affectedMaxFileBytes || size \u003e *remaining {\n+\t\treturn nil, false, nil\n+\t}\n+\tb, found, err := gitFileAtCommit(root, head, file)\n+\tif err != nil || !found {\n+\t\treturn nil, false, err\n+\t}\n+\tif containsNUL(b) {\n+\t\treturn nil, false, nil\n+\t}\n+\t*remaining -= size\n+\treturn b, true, nil\n+}\n+\n+func gitBlobSize(root, rev, file string) (int64, error) {\n+\tout, err := exec.Command(\"git\", \"-C\", root, \"cat-file\", \"-s\", rev+\":\"+file).Output()\n+\tif err != nil {\n+\t\treturn 0, fmt.Errorf(\"size of %s at %s: %w\", file, shortRevision(rev), err)\n+\t}\n+\tvar size int64\n+\tif _, err := fmt.Sscan(strings.TrimSpace(string(out)), \u0026size); err != nil {\n+\t\treturn 0, fmt.Errorf(\"parse size of %s: %w\", file, err)\n+\t}\n+\treturn size, nil\n+}\n+\n+func importsChangedPath(importer, content, changed string) bool {\n+\tchangedNoExt := strings.TrimSuffix(changed, path.Ext(changed))\n+\tchangedNoExt = strings.TrimSuffix(changedNoExt, \"/index\")\n+\tchangedDir := path.Dir(changed)\n+\tfor _, match := range importReference.FindAllStringSubmatch(content, -1) {\n+\t\tspec := strings.TrimSuffix(match[1], path.Ext(match[1]))\n+\t\tvar target string\n+\t\tif strings.HasPrefix(spec, \".\") {\n+\t\t\ttarget = path.Clean(path.Join(path.Dir(importer), spec))\n+\t\t} else {\n+\t\t\ttarget = strings.TrimPrefix(strings.ReplaceAll(spec, \".\", \"/\"), \"/\")\n+\t\t}\n+\t\ttarget = strings.TrimSuffix(target, \"/index\")\n+\t\tif target == changedNoExt || (changedDir != \".\" \u0026\u0026 strings.HasSuffix(target, \"/\"+changedDir)) {\n+\t\t\treturn true\n+\t\t}\n+\t}\n+\treturn false\n+}\n+\n+func isTestPath(file string) bool {\n+\tbase := strings.ToLower(path.Base(file))\n+\treturn strings.Contains(base, \".test.\") || strings.Contains(base, \".spec.\") || strings.HasSuffix(strings.TrimSuffix(base, path.Ext(base)), \"_test\") || strings.Contains(strings.ToLower(file), \"/test/\") || strings.Contains(strings.ToLower(file), \"/tests/\")\n+}\n+\n+func companionStem(file string) string {\n+\tbase := strings.ToLower(strings.TrimSuffix(path.Base(file), path.Ext(file)))\n+\tfor _, suffix := range []string{\".test\", \".spec\", \"_test\", \"-test\"} {\n+\t\tbase = strings.TrimSuffix(base, suffix)\n+\t}\n+\treturn base\n+}\n+\n+func isProjectConfig(file string) bool {\n+\tbase := strings.ToLower(path.Base(file))\n+\treturn strings.HasPrefix(base, \"tsconfig\") || strings.HasPrefix(base, \".eslintrc\") || strings.HasPrefix(base, \"vite.config.\") || strings.HasPrefix(base, \"webpack.config.\") || base == \"dockerfile\" || base == \"compose.yml\" || base == \"compose.yaml\"\n+}\n+\n+func pathIsAncestor(dir, file string) bool {\n+\treturn dir == \".\" || file == dir || strings.HasPrefix(file, strings.TrimSuffix(dir, \"/\")+\"/\")\n+}\n+\n+func dependencyPair(changed, candidate string) bool {\n+\tpairs := map[string][]string{\n+\t\t\"package.json\":   {\"package-lock.json\", \"npm-shrinkwrap.json\", \"yarn.lock\", \"pnpm-lock.yaml\"},\n+\t\t\"go.mod\":         {\"go.sum\"},\n+\t\t\"Cargo.toml\":     {\"Cargo.lock\"},\n+\t\t\"pyproject.toml\": {\"poetry.lock\", \"uv.lock\"},\n+\t\t\"Gemfile\":        {\"Gemfile.lock\"},\n+\t}\n+\tchangedBase, candidateBase := path.Base(changed), path.Base(candidate)\n+\tif path.Dir(changed) != path.Dir(candidate) {\n+\t\treturn false\n+\t}\n+\tfor manifest, locks := range pairs {\n+\t\tfor _, lock := range locks {\n+\t\t\tif changedBase == manifest \u0026\u0026 candidateBase == lock || changedBase == lock \u0026\u0026 candidateBase == manifest {\n+\t\t\t\treturn true\n+\t\t\t}\n+\t\t}\n+\t}\n+\treturn false\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-2c8720bbff3ef66f",
+          "header": "@@ -0,0 +1,218 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package main"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"os/exec\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"path\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"regexp\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"sort\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "const ("
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\taffectedMaxFiles      = 2000"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\taffectedMaxFileBytes  = 256 \u003c\u003c 10"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\taffectedMaxTotalBytes = 8 \u003c\u003c 20"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\taffectedMaxHints      = 100"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "type staticAffectedFile struct {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tPath     string                   `json:\"path\"`"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tEvidence []staticAffectedEvidence `json:\"evidence\"`"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "type staticAffectedEvidence struct {"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tKind        string `json:\"kind\"` // import, test, config, or dependency"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tChangedPath string `json:\"changedPath\"`"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tDetail      string `json:\"detail\"`"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "var importReference = regexp.MustCompile(`(?m)(?:\\bfrom\\s+|\\brequire\\s*\\(\\s*|\\bimport\\s+(?:[^\\n]*?\\s+from\\s+)?)[\"']([^\"']+)[\"']`)"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "// affectedFileHints finds unchanged files that may deserve a follow-up look."
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "// It reads bounded blobs from the pinned head commit and never executes them."
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "func affectedFileHints(root, head string, changedFiles []staticReviewFile) ([]staticAffectedFile, error) {"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tchanged := make(map[string]bool, len(changedFiles))"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tchangedPaths := make([]string, 0, len(changedFiles))"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\tfor _, file := range changedFiles {"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\t\tchanged[file.Path] = true"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t\tchangedPaths = append(changedPaths, file.Path)"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\tsort.Strings(changedPaths)"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tout, err := exec.Command(\"git\", \"-C\", root, \"ls-tree\", \"-r\", \"--name-only\", \"-z\", head).Output()"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t\treturn nil, fmt.Errorf(\"list files for affected-file hints: %w\", err)"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\tpaths := strings.Split(strings.TrimRight(string(out), \"\\x00\"), \"\\x00\")"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\tif len(paths) \u003e affectedMaxFiles {"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\tpaths = paths[:affectedMaxFiles]"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\tbyPath := map[string][]staticAffectedEvidence{}"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\tadd := func(candidate string, evidence staticAffectedEvidence) {"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\tif candidate == \"\" || changed[candidate] || len(byPath) \u003e= affectedMaxHints \u0026\u0026 byPath[candidate] == nil {"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t\t\treturn"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\tif len(byPath[candidate]) \u003e= 8 {"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t\t\treturn"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t\tfor _, existing := range byPath[candidate] {"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t\t\tif existing.Kind == evidence.Kind \u0026\u0026 existing.ChangedPath == evidence.ChangedPath \u0026\u0026 existing.Detail == evidence.Detail {"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t\t\t\treturn"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t\tbyPath[candidate] = append(byPath[candidate], evidence)"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\tremaining := int64(affectedMaxTotalBytes)"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\tfor _, candidate := range paths {"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\tif candidate == \"\" {"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\tcandidate = path.Clean(candidate)"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t\tif changed[candidate] {"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t\tfor _, changedPath := range changedPaths {"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t\t\tif isTestPath(candidate) \u0026\u0026 companionStem(candidate) == companionStem(changedPath) {"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\t\t\t\tadd(candidate, staticAffectedEvidence{Kind: \"test\", ChangedPath: changedPath, Detail: \"test filename matches the changed source file\"})"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\t\t\tif isProjectConfig(candidate) \u0026\u0026 pathIsAncestor(path.Dir(candidate), changedPath) {"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\t\t\t\tadd(candidate, staticAffectedEvidence{Kind: \"config\", ChangedPath: changedPath, Detail: \"configuration file applies to the changed file's directory\"})"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\t\t\tif dependencyPair(changedPath, candidate) {"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\t\t\t\tadd(candidate, staticAffectedEvidence{Kind: \"dependency\", ChangedPath: changedPath, Detail: \"dependency manifest and lockfile should stay in sync\"})"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\t\tcontent, ok, readErr := affectedBlob(root, head, candidate, \u0026remaining)"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t\tif readErr != nil {"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t\t\treturn nil, readErr"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\t\tif !ok {"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\t\tfor _, changedPath := range changedPaths {"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t\t\tif importsChangedPath(candidate, string(content), changedPath) {"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t\t\t\tkind := \"import\""
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\t\t\t\tdetail := \"imports the changed file\""
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\t\t\t\tif isTestPath(candidate) {"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\t\t\t\t\tkind, detail = \"test\", \"test imports the changed file\""
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\t\t\t\t}"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t\t\t\tadd(candidate, staticAffectedEvidence{Kind: kind, ChangedPath: changedPath, Detail: detail})"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\thints := make([]staticAffectedFile, 0, len(byPath))"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\tfor candidate, evidence := range byPath {"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\t\tsort.Slice(evidence, func(i, j int) bool {"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\t\t\tif evidence[i].Kind != evidence[j].Kind {"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\t\t\t\treturn evidence[i].Kind \u003c evidence[j].Kind"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "\t\t\treturn evidence[i].ChangedPath \u003c evidence[j].ChangedPath"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "\t\t})"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "\t\thints = append(hints, staticAffectedFile{Path: candidate, Evidence: evidence})"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\tsort.Slice(hints, func(i, j int) bool { return hints[i].Path \u003c hints[j].Path })"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\tif hints == nil {"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\t\treturn []staticAffectedFile{}, nil"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\treturn hints, nil"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "func affectedBlob(root, head, file string, remaining *int64) ([]byte, bool, error) {"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\tsize, err := gitBlobSize(root, head, file)"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\t\treturn nil, false, err"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\tif size \u003e affectedMaxFileBytes || size \u003e *remaining {"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\t\treturn nil, false, nil"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\tb, found, err := gitFileAtCommit(root, head, file)"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\tif err != nil || !found {"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\t\treturn nil, false, err"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\tif containsNUL(b) {"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\t\treturn nil, false, nil"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "\t*remaining -= size"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "\treturn b, true, nil"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "func gitBlobSize(root, rev, file string) (int64, error) {"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\tout, err := exec.Command(\"git\", \"-C\", root, \"cat-file\", \"-s\", rev+\":\"+file).Output()"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "\t\treturn 0, fmt.Errorf(\"size of %s at %s: %w\", file, shortRevision(rev), err)"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "\tvar size int64"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "\tif _, err := fmt.Sscan(strings.TrimSpace(string(out)), \u0026size); err != nil {"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "\t\treturn 0, fmt.Errorf(\"parse size of %s: %w\", file, err)"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "\treturn size, nil"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "func importsChangedPath(importer, content, changed string) bool {"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "\tchangedNoExt := strings.TrimSuffix(changed, path.Ext(changed))"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "\tchangedNoExt = strings.TrimSuffix(changedNoExt, \"/index\")"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "\tchangedDir := path.Dir(changed)"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "\tfor _, match := range importReference.FindAllStringSubmatch(content, -1) {"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "\t\tspec := strings.TrimSuffix(match[1], path.Ext(match[1]))"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "\t\tvar target string"
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "\t\tif strings.HasPrefix(spec, \".\") {"
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "\t\t\ttarget = path.Clean(path.Join(path.Dir(importer), spec))"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": "\t\t} else {"
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "\t\t\ttarget = strings.TrimPrefix(strings.ReplaceAll(spec, \".\", \"/\"), \"/\")"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": "\t\ttarget = strings.TrimSuffix(target, \"/index\")"
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "\t\tif target == changedNoExt || (changedDir != \".\" \u0026\u0026 strings.HasSuffix(target, \"/\"+changedDir)) {"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "\t\t\treturn true"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "\treturn false"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "func isTestPath(file string) bool {"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": "\tbase := strings.ToLower(path.Base(file))"
+            },
+            {
+              "newLine": 178,
+              "kind": "added",
+              "text": "\treturn strings.Contains(base, \".test.\") || strings.Contains(base, \".spec.\") || strings.HasSuffix(strings.TrimSuffix(base, path.Ext(base)), \"_test\") || strings.Contains(strings.ToLower(file), \"/test/\") || strings.Contains(strings.ToLower(file), \"/tests/\")"
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 180,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": "func companionStem(file string) string {"
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": "\tbase := strings.ToLower(strings.TrimSuffix(path.Base(file), path.Ext(file)))"
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": "\tfor _, suffix := range []string{\".test\", \".spec\", \"_test\", \"-test\"} {"
+            },
+            {
+              "newLine": 184,
+              "kind": "added",
+              "text": "\t\tbase = strings.TrimSuffix(base, suffix)"
+            },
+            {
+              "newLine": 185,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 186,
+              "kind": "added",
+              "text": "\treturn base"
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "func isProjectConfig(file string) bool {"
+            },
+            {
+              "newLine": 190,
+              "kind": "added",
+              "text": "\tbase := strings.ToLower(path.Base(file))"
+            },
+            {
+              "newLine": 191,
+              "kind": "added",
+              "text": "\treturn strings.HasPrefix(base, \"tsconfig\") || strings.HasPrefix(base, \".eslintrc\") || strings.HasPrefix(base, \"vite.config.\") || strings.HasPrefix(base, \"webpack.config.\") || base == \"dockerfile\" || base == \"compose.yml\" || base == \"compose.yaml\""
+            },
+            {
+              "newLine": 192,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 193,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 194,
+              "kind": "added",
+              "text": "func pathIsAncestor(dir, file string) bool {"
+            },
+            {
+              "newLine": 195,
+              "kind": "added",
+              "text": "\treturn dir == \".\" || file == dir || strings.HasPrefix(file, strings.TrimSuffix(dir, \"/\")+\"/\")"
+            },
+            {
+              "newLine": 196,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 197,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 198,
+              "kind": "added",
+              "text": "func dependencyPair(changed, candidate string) bool {"
+            },
+            {
+              "newLine": 199,
+              "kind": "added",
+              "text": "\tpairs := map[string][]string{"
+            },
+            {
+              "newLine": 200,
+              "kind": "added",
+              "text": "\t\t\"package.json\":   {\"package-lock.json\", \"npm-shrinkwrap.json\", \"yarn.lock\", \"pnpm-lock.yaml\"},"
+            },
+            {
+              "newLine": 201,
+              "kind": "added",
+              "text": "\t\t\"go.mod\":         {\"go.sum\"},"
+            },
+            {
+              "newLine": 202,
+              "kind": "added",
+              "text": "\t\t\"Cargo.toml\":     {\"Cargo.lock\"},"
+            },
+            {
+              "newLine": 203,
+              "kind": "added",
+              "text": "\t\t\"pyproject.toml\": {\"poetry.lock\", \"uv.lock\"},"
+            },
+            {
+              "newLine": 204,
+              "kind": "added",
+              "text": "\t\t\"Gemfile\":        {\"Gemfile.lock\"},"
+            },
+            {
+              "newLine": 205,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 206,
+              "kind": "added",
+              "text": "\tchangedBase, candidateBase := path.Base(changed), path.Base(candidate)"
+            },
+            {
+              "newLine": 207,
+              "kind": "added",
+              "text": "\tif path.Dir(changed) != path.Dir(candidate) {"
+            },
+            {
+              "newLine": 208,
+              "kind": "added",
+              "text": "\t\treturn false"
+            },
+            {
+              "newLine": 209,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 210,
+              "kind": "added",
+              "text": "\tfor manifest, locks := range pairs {"
+            },
+            {
+              "newLine": 211,
+              "kind": "added",
+              "text": "\t\tfor _, lock := range locks {"
+            },
+            {
+              "newLine": 212,
+              "kind": "added",
+              "text": "\t\t\tif changedBase == manifest \u0026\u0026 candidateBase == lock || changedBase == lock \u0026\u0026 candidateBase == manifest {"
+            },
+            {
+              "newLine": 213,
+              "kind": "added",
+              "text": "\t\t\t\treturn true"
+            },
+            {
+              "newLine": 214,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 215,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 216,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 217,
+              "kind": "added",
+              "text": "\treturn false"
+            },
+            {
+              "newLine": 218,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "affected_files_test.go",
+      "status": "A",
+      "diff": "diff --git a/affected_files_test.go b/affected_files_test.go\nnew file mode 100644\nindex 0000000..93f15c3\n--- /dev/null\n+++ b/affected_files_test.go\n@@ -0,0 +1,72 @@\n+package main\n+\n+import (\n+\t\"strings\"\n+\t\"testing\"\n+)\n+\n+func TestAffectedFileHintsExplainImportsTestsConfigAndDependencies(t *testing.T) {\n+\troot := t.TempDir()\n+\trunGitTest(t, root, \"init\")\n+\trunGitTest(t, root, \"config\", \"user.email\", \"test@example.com\")\n+\trunGitTest(t, root, \"config\", \"user.name\", \"test\")\n+\twriteExportTestFile(t, root, \"src/service.ts\", \"export const value = 1;\\n\")\n+\twriteExportTestFile(t, root, \"src/controller.ts\", \"import { value } from './service';\\n\")\n+\twriteExportTestFile(t, root, \"src/service.test.ts\", \"import { value } from './service';\\n\")\n+\twriteExportTestFile(t, root, \"tsconfig.json\", \"{}\\n\")\n+\twriteExportTestFile(t, root, \"package.json\", \"{\\\"dependencies\\\":{}}\\n\")\n+\twriteExportTestFile(t, root, \"package-lock.json\", \"{\\\"lockfileVersion\\\":3}\\n\")\n+\trunGitTest(t, root, \"add\", \".\")\n+\trunGitTest(t, root, \"commit\", \"-m\", \"base\")\n+\tbase := strings.TrimSpace(runGitTest(t, root, \"rev-parse\", \"HEAD\"))\n+\n+\twriteExportTestFile(t, root, \"src/service.ts\", \"export const value = 2;\\n\")\n+\twriteExportTestFile(t, root, \"package.json\", \"{\\\"dependencies\\\":{\\\"demo\\\":\\\"1\\\"}}\\n\")\n+\trunGitTest(t, root, \"commit\", \"-am\", \"head\")\n+\thead := strings.TrimSpace(runGitTest(t, root, \"rev-parse\", \"HEAD\"))\n+\n+\treport, err := generateStaticReview(root, base, head)\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tgot := map[string]map[string]bool{}\n+\tfor _, hint := range report.AffectedFiles {\n+\t\tgot[hint.Path] = map[string]bool{}\n+\t\tfor _, evidence := range hint.Evidence {\n+\t\t\tgot[hint.Path][evidence.Kind] = true\n+\t\t\tif evidence.ChangedPath == \"\" || evidence.Detail == \"\" {\n+\t\t\t\tt.Fatalf(\"unexplained evidence: %#v\", evidence)\n+\t\t\t}\n+\t\t}\n+\t}\n+\tfor file, kind := range map[string]string{\n+\t\t\"src/controller.ts\":   \"import\",\n+\t\t\"src/service.test.ts\": \"test\",\n+\t\t\"tsconfig.json\":       \"config\",\n+\t\t\"package-lock.json\":   \"dependency\",\n+\t} {\n+\t\tif !got[file][kind] {\n+\t\t\tt.Errorf(\"missing %s evidence for %s in %#v\", kind, file, got)\n+\t\t}\n+\t}\n+\tif _, exists := got[\"src/service.ts\"]; exists {\n+\t\tt.Fatal(\"changed files must not appear as affected-file hints\")\n+\t}\n+}\n+\n+func TestAffectedFileHintsAreEmptyNotNull(t *testing.T) {\n+\troot := t.TempDir()\n+\trunGitTest(t, root, \"init\")\n+\trunGitTest(t, root, \"config\", \"user.email\", \"test@example.com\")\n+\trunGitTest(t, root, \"config\", \"user.name\", \"test\")\n+\twriteExportTestFile(t, root, \"notes.txt\", \"one\\n\")\n+\trunGitTest(t, root, \"add\", \".\")\n+\trunGitTest(t, root, \"commit\", \"-m\", \"base\")\n+\twriteExportTestFile(t, root, \"notes.txt\", \"two\\n\")\n+\trunGitTest(t, root, \"commit\", \"-am\", \"head\")\n+\thead := strings.TrimSpace(runGitTest(t, root, \"rev-parse\", \"HEAD\"))\n+\thints, err := affectedFileHints(root, head, []staticReviewFile{{Path: \"notes.txt\"}})\n+\tif err != nil || hints == nil || len(hints) != 0 {\n+\t\tt.Fatalf(\"hints = %#v, err = %v\", hints, err)\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-a9b28e13813fcbd7",
+          "header": "@@ -0,0 +1,72 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package main"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "func TestAffectedFileHintsExplainImportsTestsConfigAndDependencies(t *testing.T) {"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\troot := t.TempDir()"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"init\")"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"config\", \"user.email\", \"test@example.com\")"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"config\", \"user.name\", \"test\")"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\twriteExportTestFile(t, root, \"src/service.ts\", \"export const value = 1;\\n\")"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\twriteExportTestFile(t, root, \"src/controller.ts\", \"import { value } from './service';\\n\")"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\twriteExportTestFile(t, root, \"src/service.test.ts\", \"import { value } from './service';\\n\")"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\twriteExportTestFile(t, root, \"tsconfig.json\", \"{}\\n\")"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\twriteExportTestFile(t, root, \"package.json\", \"{\\\"dependencies\\\":{}}\\n\")"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\twriteExportTestFile(t, root, \"package-lock.json\", \"{\\\"lockfileVersion\\\":3}\\n\")"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"add\", \".\")"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"commit\", \"-m\", \"base\")"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tbase := strings.TrimSpace(runGitTest(t, root, \"rev-parse\", \"HEAD\"))"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\twriteExportTestFile(t, root, \"src/service.ts\", \"export const value = 2;\\n\")"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\twriteExportTestFile(t, root, \"package.json\", \"{\\\"dependencies\\\":{\\\"demo\\\":\\\"1\\\"}}\\n\")"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"commit\", \"-am\", \"head\")"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\thead := strings.TrimSpace(runGitTest(t, root, \"rev-parse\", \"HEAD\"))"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\treport, err := generateStaticReview(root, base, head)"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tgot := map[string]map[string]bool{}"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tfor _, hint := range report.AffectedFiles {"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t\tgot[hint.Path] = map[string]bool{}"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t\tfor _, evidence := range hint.Evidence {"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t\t\tgot[hint.Path][evidence.Kind] = true"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t\t\tif evidence.ChangedPath == \"\" || evidence.Detail == \"\" {"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\t\t\t\tt.Fatalf(\"unexplained evidence: %#v\", evidence)"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tfor file, kind := range map[string]string{"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t\t\"src/controller.ts\":   \"import\","
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t\t\"src/service.test.ts\": \"test\","
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t\t\"tsconfig.json\":       \"config\","
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t\t\"package-lock.json\":   \"dependency\","
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t} {"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\tif !got[file][kind] {"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"missing %s evidence for %s in %#v\", kind, file, got)"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\tif _, exists := got[\"src/service.ts\"]; exists {"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"changed files must not appear as affected-file hints\")"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "func TestAffectedFileHintsAreEmptyNotNull(t *testing.T) {"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\troot := t.TempDir()"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"init\")"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"config\", \"user.email\", \"test@example.com\")"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"config\", \"user.name\", \"test\")"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\twriteExportTestFile(t, root, \"notes.txt\", \"one\\n\")"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"add\", \".\")"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"commit\", \"-m\", \"base\")"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\twriteExportTestFile(t, root, \"notes.txt\", \"two\\n\")"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"commit\", \"-am\", \"head\")"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\thead := strings.TrimSpace(runGitTest(t, root, \"rev-parse\", \"HEAD\"))"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\thints, err := affectedFileHints(root, head, []staticReviewFile{{Path: \"notes.txt\"}})"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\tif err != nil || hints == nil || len(hints) != 0 {"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"hints = %#v, err = %v\", hints, err)"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "export.go",
+      "status": "M",
+      "diff": "diff --git a/export.go b/export.go\nindex 66bf2e9..71f1afc 100644\n--- a/export.go\n+++ b/export.go\n@@ -21,15 +21,16 @@ import (\n // published page cannot silently drift when a pull request receives another\n // commit.\n type staticReviewReport struct {\n-\tVersion      int                 `json:\"version\"`\n-\tRepository   string              `json:\"repository\"`\n-\tBase         string              `json:\"base\"`\n-\tHead         string              `json:\"head\"`\n-\tGeneratedAt  time.Time           `json:\"generatedAt\"`\n-\tFiles        []staticReviewFile  `json:\"files\"`\n-\tBlocks       []staticReviewBlock `json:\"blocks\"`\n-\tRuleHits     []staticReviewHit   `json:\"ruleHits\"`\n-\tExplanations []staticExplanation `json:\"explanations\"`\n+\tVersion       int                  `json:\"version\"`\n+\tRepository    string               `json:\"repository\"`\n+\tBase          string               `json:\"base\"`\n+\tHead          string               `json:\"head\"`\n+\tGeneratedAt   time.Time            `json:\"generatedAt\"`\n+\tFiles         []staticReviewFile   `json:\"files\"`\n+\tBlocks        []staticReviewBlock  `json:\"blocks\"`\n+\tAffectedFiles []staticAffectedFile `json:\"affectedFiles\"`\n+\tRuleHits      []staticReviewHit    `json:\"ruleHits\"`\n+\tExplanations  []staticExplanation  `json:\"explanations\"`\n \t// Attention lists the risk signals px1 raises on the diff itself, such as\n \t// workflow permission changes or new public API. Snapshots written before\n \t// the field existed decode to nil, and the page renders that as none.\n@@ -202,18 +203,23 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi\n \tif err != nil {\n \t\treturn staticReviewReport{}, err\n \t}\n+\taffected, err := affectedFileHints(root, headSHA, files)\n+\tif err != nil {\n+\t\treturn staticReviewReport{}, err\n+\t}\n \treturn staticReviewReport{\n-\t\tVersion:      1,\n-\t\tRepository:   filepath.Base(root),\n-\t\tBase:         baseSHA,\n-\t\tHead:         headSHA,\n-\t\tGeneratedAt:  time.Now().UTC(),\n-\t\tFiles:        files,\n-\t\tBlocks:       relatedReviewBlocks(files),\n-\t\tRuleHits:     staticHits,\n-\t\tExplanations: explanations,\n-\t\tAttention:    flags,\n-\t\tVerification: verification,\n+\t\tVersion:       1,\n+\t\tRepository:    filepath.Base(root),\n+\t\tBase:          baseSHA,\n+\t\tHead:          headSHA,\n+\t\tGeneratedAt:   time.Now().UTC(),\n+\t\tFiles:         files,\n+\t\tBlocks:        relatedReviewBlocks(files),\n+\t\tAffectedFiles: affected,\n+\t\tRuleHits:      staticHits,\n+\t\tExplanations:  explanations,\n+\t\tAttention:     flags,\n+\t\tVerification:  verification,\n \t}, nil\n }\n \n",
+      "hunks": [
+        {
+          "id": "diff-a0d630e7e686e42f",
+          "header": "@@ -21,15 +21,16 @@ import (",
+          "lines": [
+            {
+              "oldLine": 21,
+              "newLine": 21,
+              "kind": "context",
+              "text": "// published page cannot silently drift when a pull request receives another"
+            },
+            {
+              "oldLine": 22,
+              "newLine": 22,
+              "kind": "context",
+              "text": "// commit."
+            },
+            {
+              "oldLine": 23,
+              "newLine": 23,
+              "kind": "context",
+              "text": "type staticReviewReport struct {"
+            },
+            {
+              "oldLine": 24,
+              "kind": "removed",
+              "text": "\tVersion      int                 `json:\"version\"`"
+            },
+            {
+              "oldLine": 25,
+              "kind": "removed",
+              "text": "\tRepository   string              `json:\"repository\"`"
+            },
+            {
+              "oldLine": 26,
+              "kind": "removed",
+              "text": "\tBase         string              `json:\"base\"`"
+            },
+            {
+              "oldLine": 27,
+              "kind": "removed",
+              "text": "\tHead         string              `json:\"head\"`"
+            },
+            {
+              "oldLine": 28,
+              "kind": "removed",
+              "text": "\tGeneratedAt  time.Time           `json:\"generatedAt\"`"
+            },
+            {
+              "oldLine": 29,
+              "kind": "removed",
+              "text": "\tFiles        []staticReviewFile  `json:\"files\"`"
+            },
+            {
+              "oldLine": 30,
+              "kind": "removed",
+              "text": "\tBlocks       []staticReviewBlock `json:\"blocks\"`"
+            },
+            {
+              "oldLine": 31,
+              "kind": "removed",
+              "text": "\tRuleHits     []staticReviewHit   `json:\"ruleHits\"`"
+            },
+            {
+              "oldLine": 32,
+              "kind": "removed",
+              "text": "\tExplanations []staticExplanation `json:\"explanations\"`"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tVersion       int                  `json:\"version\"`"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tRepository    string               `json:\"repository\"`"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tBase          string               `json:\"base\"`"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tHead          string               `json:\"head\"`"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tGeneratedAt   time.Time            `json:\"generatedAt\"`"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tFiles         []staticReviewFile   `json:\"files\"`"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tBlocks        []staticReviewBlock  `json:\"blocks\"`"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tAffectedFiles []staticAffectedFile `json:\"affectedFiles\"`"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tRuleHits      []staticReviewHit    `json:\"ruleHits\"`"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tExplanations  []staticExplanation  `json:\"explanations\"`"
+            },
+            {
+              "oldLine": 33,
+              "newLine": 34,
+              "kind": "context",
+              "text": "\t// Attention lists the risk signals px1 raises on the diff itself, such as"
+            },
+            {
+              "oldLine": 34,
+              "newLine": 35,
+              "kind": "context",
+              "text": "\t// workflow permission changes or new public API. Snapshots written before"
+            },
+            {
+              "oldLine": 35,
+              "newLine": 36,
+              "kind": "context",
+              "text": "\t// the field existed decode to nil, and the page renders that as none."
+            }
+          ]
+        },
+        {
+          "id": "diff-16910edb681a513b",
+          "header": "@@ -202,18 +203,23 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi",
+          "lines": [
+            {
+              "oldLine": 202,
+              "newLine": 203,
+              "kind": "context",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 203,
+              "newLine": 204,
+              "kind": "context",
+              "text": "\t\treturn staticReviewReport{}, err"
+            },
+            {
+              "oldLine": 204,
+              "newLine": 205,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "newLine": 206,
+              "kind": "added",
+              "text": "\taffected, err := affectedFileHints(root, headSHA, files)"
+            },
+            {
+              "newLine": 207,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 208,
+              "kind": "added",
+              "text": "\t\treturn staticReviewReport{}, err"
+            },
+            {
+              "newLine": 209,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 205,
+              "newLine": 210,
+              "kind": "context",
+              "text": "\treturn staticReviewReport{"
+            },
+            {
+              "oldLine": 206,
+              "kind": "removed",
+              "text": "\t\tVersion:      1,"
+            },
+            {
+              "oldLine": 207,
+              "kind": "removed",
+              "text": "\t\tRepository:   filepath.Base(root),"
+            },
+            {
+              "oldLine": 208,
+              "kind": "removed",
+              "text": "\t\tBase:         baseSHA,"
+            },
+            {
+              "oldLine": 209,
+              "kind": "removed",
+              "text": "\t\tHead:         headSHA,"
+            },
+            {
+              "oldLine": 210,
+              "kind": "removed",
+              "text": "\t\tGeneratedAt:  time.Now().UTC(),"
+            },
+            {
+              "oldLine": 211,
+              "kind": "removed",
+              "text": "\t\tFiles:        files,"
+            },
+            {
+              "oldLine": 212,
+              "kind": "removed",
+              "text": "\t\tBlocks:       relatedReviewBlocks(files),"
+            },
+            {
+              "oldLine": 213,
+              "kind": "removed",
+              "text": "\t\tRuleHits:     staticHits,"
+            },
+            {
+              "oldLine": 214,
+              "kind": "removed",
+              "text": "\t\tExplanations: explanations,"
+            },
+            {
+              "oldLine": 215,
+              "kind": "removed",
+              "text": "\t\tAttention:    flags,"
+            },
+            {
+              "oldLine": 216,
+              "kind": "removed",
+              "text": "\t\tVerification: verification,"
+            },
+            {
+              "newLine": 211,
+              "kind": "added",
+              "text": "\t\tVersion:       1,"
+            },
+            {
+              "newLine": 212,
+              "kind": "added",
+              "text": "\t\tRepository:    filepath.Base(root),"
+            },
+            {
+              "newLine": 213,
+              "kind": "added",
+              "text": "\t\tBase:          baseSHA,"
+            },
+            {
+              "newLine": 214,
+              "kind": "added",
+              "text": "\t\tHead:          headSHA,"
+            },
+            {
+              "newLine": 215,
+              "kind": "added",
+              "text": "\t\tGeneratedAt:   time.Now().UTC(),"
+            },
+            {
+              "newLine": 216,
+              "kind": "added",
+              "text": "\t\tFiles:         files,"
+            },
+            {
+              "newLine": 217,
+              "kind": "added",
+              "text": "\t\tBlocks:        relatedReviewBlocks(files),"
+            },
+            {
+              "newLine": 218,
+              "kind": "added",
+              "text": "\t\tAffectedFiles: affected,"
+            },
+            {
+              "newLine": 219,
+              "kind": "added",
+              "text": "\t\tRuleHits:      staticHits,"
+            },
+            {
+              "newLine": 220,
+              "kind": "added",
+              "text": "\t\tExplanations:  explanations,"
+            },
+            {
+              "newLine": 221,
+              "kind": "added",
+              "text": "\t\tAttention:     flags,"
+            },
+            {
+              "newLine": 222,
+              "kind": "added",
+              "text": "\t\tVerification:  verification,"
+            },
+            {
+              "oldLine": 217,
+              "newLine": 223,
+              "kind": "context",
+              "text": "\t}, nil"
+            },
+            {
+              "oldLine": 218,
+              "newLine": 224,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 219,
+              "newLine": 225,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "export_render_test.go",
+      "status": "M",
+      "diff": "diff --git a/export_render_test.go b/export_render_test.go\nindex 06abc90..0dac83f 100644\n--- a/export_render_test.go\n+++ b/export_render_test.go\n@@ -179,3 +179,19 @@ func TestStaticReviewHTMLShipsResizablePanel(t *testing.T) {\n \t\t}\n \t}\n }\n+\n+func TestStaticReviewHTMLShipsAffectedFileHints(t *testing.T) {\n+\treport := staticReviewReport{\n+\t\tAffectedFiles: []staticAffectedFile{{Path: \"src/service.test.ts\", Evidence: []staticAffectedEvidence{{Kind: \"test\", ChangedPath: \"src/service.ts\", Detail: \"test imports the changed file\"}}}},\n+\t\tVerification:  verificationResponse{Checks: []verificationCheck{}},\n+\t}\n+\tbody, err := renderStaticReviewHTML(report)\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tfor _, want := range []string{\"Affected file hints\", \"affectedFiles\", \"test imports the changed file\", \"src/service.test.ts\"} {\n+\t\tif !strings.Contains(string(body), want) {\n+\t\t\tt.Errorf(\"report missing %q\", want)\n+\t\t}\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-1016f74e12781925",
+          "header": "@@ -179,3 +179,19 @@ func TestStaticReviewHTMLShipsResizablePanel(t *testing.T) {",
+          "lines": [
+            {
+              "oldLine": 179,
+              "newLine": 179,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 180,
+              "newLine": 180,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 181,
+              "newLine": 181,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": "func TestStaticReviewHTMLShipsAffectedFileHints(t *testing.T) {"
+            },
+            {
+              "newLine": 184,
+              "kind": "added",
+              "text": "\treport := staticReviewReport{"
+            },
+            {
+              "newLine": 185,
+              "kind": "added",
+              "text": "\t\tAffectedFiles: []staticAffectedFile{{Path: \"src/service.test.ts\", Evidence: []staticAffectedEvidence{{Kind: \"test\", ChangedPath: \"src/service.ts\", Detail: \"test imports the changed file\"}}}},"
+            },
+            {
+              "newLine": 186,
+              "kind": "added",
+              "text": "\t\tVerification:  verificationResponse{Checks: []verificationCheck{}},"
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": "\tbody, err := renderStaticReviewHTML(report)"
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 190,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 191,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 192,
+              "kind": "added",
+              "text": "\tfor _, want := range []string{\"Affected file hints\", \"affectedFiles\", \"test imports the changed file\", \"src/service.test.ts\"} {"
+            },
+            {
+              "newLine": 193,
+              "kind": "added",
+              "text": "\t\tif !strings.Contains(string(body), want) {"
+            },
+            {
+              "newLine": 194,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"report missing %q\", want)"
+            },
+            {
+              "newLine": 195,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 196,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 197,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "static_report/report.css",
+      "status": "M",
+      "diff": "diff --git a/static_report/report.css b/static_report/report.css\nindex cc555cb..4093c98 100644\n--- a/static_report/report.css\n+++ b/static_report/report.css\n@@ -81,6 +81,12 @@ body.resizing{cursor:col-resize;user-select:none}\n .rail h2 .count{font:400 var(--fs-fine) var(--sans);letter-spacing:0;text-transform:none;color:var(--faint)}\n .rail .empty{margin:0;color:var(--faint);font-size:var(--fs-small)}\n .queue{list-style:none;margin:0;padding:0}\n+.affected-list{list-style:none;margin:0;padding:0}\n+.affected-file{display:grid;gap:3px;padding:7px 0;border-top:1px solid var(--line)}\n+.affected-file:first-child{border-top:0;padding-top:2px}\n+.affected-file code{overflow-wrap:anywhere}\n+.affected-reason{color:var(--faint);font-size:var(--fs-fine);line-height:1.35}\n+.affected-reason b{color:var(--dim);font-weight:500;text-transform:capitalize}\n .qitem{display:grid;gap:2px;text-decoration:none;color:inherit;padding:8px 0;border-top:1px solid var(--line)}\n .queue li:first-child .qitem{border-top:0;padding-top:2px}\n .qitem .row{display:flex;gap:8px;align-items:center}\n",
+      "hunks": [
+        {
+          "id": "diff-bc75201ddefc6fa0",
+          "header": "@@ -81,6 +81,12 @@ body.resizing{cursor:col-resize;user-select:none}",
+          "lines": [
+            {
+              "oldLine": 81,
+              "newLine": 81,
+              "kind": "context",
+              "text": ".rail h2 .count{font:400 var(--fs-fine) var(--sans);letter-spacing:0;text-transform:none;color:var(--faint)}"
+            },
+            {
+              "oldLine": 82,
+              "newLine": 82,
+              "kind": "context",
+              "text": ".rail .empty{margin:0;color:var(--faint);font-size:var(--fs-small)}"
+            },
+            {
+              "oldLine": 83,
+              "newLine": 83,
+              "kind": "context",
+              "text": ".queue{list-style:none;margin:0;padding:0}"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": ".affected-list{list-style:none;margin:0;padding:0}"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": ".affected-file{display:grid;gap:3px;padding:7px 0;border-top:1px solid var(--line)}"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": ".affected-file:first-child{border-top:0;padding-top:2px}"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": ".affected-file code{overflow-wrap:anywhere}"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": ".affected-reason{color:var(--faint);font-size:var(--fs-fine);line-height:1.35}"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": ".affected-reason b{color:var(--dim);font-weight:500;text-transform:capitalize}"
+            },
+            {
+              "oldLine": 84,
+              "newLine": 90,
+              "kind": "context",
+              "text": ".qitem{display:grid;gap:2px;text-decoration:none;color:inherit;padding:8px 0;border-top:1px solid var(--line)}"
+            },
+            {
+              "oldLine": 85,
+              "newLine": 91,
+              "kind": "context",
+              "text": ".queue li:first-child .qitem{border-top:0;padding-top:2px}"
+            },
+            {
+              "oldLine": 86,
+              "newLine": 92,
+              "kind": "context",
+              "text": ".qitem .row{display:flex;gap:8px;align-items:center}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "static_report/report.js",
+      "status": "M",
+      "diff": "diff --git a/static_report/report.js b/static_report/report.js\nindex 5ab8815..d2e16c3 100644\n--- a/static_report/report.js\n+++ b/static_report/report.js\n@@ -3,6 +3,7 @@ const report=JSON.parse(document.getElementById('report-data').textContent);\n const app=document.getElementById('app');\n const files=Array.isArray(report.files)?report.files:[];\n const blocks=Array.isArray(report.blocks)?report.blocks:[];\n+const affectedFiles=Array.isArray(report.affectedFiles)?report.affectedFiles:[];\n const ruleHits=Array.isArray(report.ruleHits)?report.ruleHits:[];\n const attention=Array.isArray(report.attention)?report.attention:[];\n const explanations=Array.isArray(report.explanations)?report.explanations:[];\n@@ -99,6 +100,16 @@ for(const block of blocks){\n   li.append(a);blockList.append(li);\n }\n if(blocks.length){blocksSec.append(blocksHead,blockList);rail.append(blocksSec)}\n+const affectedSec=h('section');const affectedHead=h('h2','eyebrow','Affected file hints ');affectedHead.append(h('span','count',affectedFiles.length));\n+const affectedList=h('ul','affected-list');\n+for(const file of affectedFiles){\n+  const li=h('li','affected-file');li.append(h('code',null,file.path));\n+  for(const evidence of Array.isArray(file.evidence)?file.evidence:[]){\n+    const reason=h('span','affected-reason');reason.append(h('b',null,evidence.kind),document.createTextNode(' · '+evidence.detail+' ('+evidence.changedPath+')'));li.append(reason);\n+  }\n+  affectedList.append(li);\n+}\n+if(affectedFiles.length){affectedSec.append(affectedHead,affectedList);rail.append(affectedSec)}\n const queueSec=h('section');const queueHead=h('h2','eyebrow','Review queue ');const queueCount=h('span','count');queueHead.append(queueCount);\n const queue=h('ul','queue');queueSec.append(queueHead,queue);\n const filesSec=h('section');const filesHead=h('h2','eyebrow','Files ');\n",
+      "hunks": [
+        {
+          "id": "diff-5394d2857f7cda3d",
+          "header": "@@ -3,6 +3,7 @@ const report=JSON.parse(document.getElementById('report-data').textContent);",
+          "lines": [
+            {
+              "oldLine": 3,
+              "newLine": 3,
+              "kind": "context",
+              "text": "const app=document.getElementById('app');"
+            },
+            {
+              "oldLine": 4,
+              "newLine": 4,
+              "kind": "context",
+              "text": "const files=Array.isArray(report.files)?report.files:[];"
+            },
+            {
+              "oldLine": 5,
+              "newLine": 5,
+              "kind": "context",
+              "text": "const blocks=Array.isArray(report.blocks)?report.blocks:[];"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "const affectedFiles=Array.isArray(report.affectedFiles)?report.affectedFiles:[];"
+            },
+            {
+              "oldLine": 6,
+              "newLine": 7,
+              "kind": "context",
+              "text": "const ruleHits=Array.isArray(report.ruleHits)?report.ruleHits:[];"
+            },
+            {
+              "oldLine": 7,
+              "newLine": 8,
+              "kind": "context",
+              "text": "const attention=Array.isArray(report.attention)?report.attention:[];"
+            },
+            {
+              "oldLine": 8,
+              "newLine": 9,
+              "kind": "context",
+              "text": "const explanations=Array.isArray(report.explanations)?report.explanations:[];"
+            }
+          ]
+        },
+        {
+          "id": "diff-c6d966263ad626be",
+          "header": "@@ -99,6 +100,16 @@ for(const block of blocks){",
+          "lines": [
+            {
+              "oldLine": 99,
+              "newLine": 100,
+              "kind": "context",
+              "text": "  li.append(a);blockList.append(li);"
+            },
+            {
+              "oldLine": 100,
+              "newLine": 101,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 101,
+              "newLine": 102,
+              "kind": "context",
+              "text": "if(blocks.length){blocksSec.append(blocksHead,blockList);rail.append(blocksSec)}"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "const affectedSec=h('section');const affectedHead=h('h2','eyebrow','Affected file hints ');affectedHead.append(h('span','count',affectedFiles.length));"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "const affectedList=h('ul','affected-list');"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "for(const file of affectedFiles){"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "  const li=h('li','affected-file');li.append(h('code',null,file.path));"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "  for(const evidence of Array.isArray(file.evidence)?file.evidence:[]){"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "    const reason=h('span','affected-reason');reason.append(h('b',null,evidence.kind),document.createTextNode(' · '+evidence.detail+' ('+evidence.changedPath+')'));li.append(reason);"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "  }"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "  affectedList.append(li);"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "if(affectedFiles.length){affectedSec.append(affectedHead,affectedList);rail.append(affectedSec)}"
+            },
+            {
+              "oldLine": 102,
+              "newLine": 113,
+              "kind": "context",
+              "text": "const queueSec=h('section');const queueHead=h('h2','eyebrow','Review queue ');const queueCount=h('span','count');queueHead.append(queueCount);"
+            },
+            {
+              "oldLine": 103,
+              "newLine": 114,
+              "kind": "context",
+              "text": "const queue=h('ul','queue');queueSec.append(queueHead,queue);"
+            },
+            {
+              "oldLine": 104,
+              "newLine": 115,
+              "kind": "context",
+              "text": "const filesSec=h('section');const filesHead=h('h2','eyebrow','Files ');"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-e80be66b18610960",
+      "title": "Affected changes",
+      "summary": "7 related files share the \"affected\" change signal.",
+      "paths": [
+        "README.md",
+        "affected_files.go",
+        "affected_files_test.go",
+        "export.go",
+        "export_render_test.go",
+        "static_report/report.css",
+        "static_report/report.js"
+      ]
+    }
+  ],
+  "ruleHits": [],
+  "explanations": [],
+  "attention": [
+    {
+      "id": "attention-98c4c478b5fb19d1",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "affected_files.go",
+      "line": 34,
+      "evidence": "func affectedFileHints(root, head string, changedFiles []staticReviewFile) ([]staticAffectedFile, error) {"
+    },
+    {
+      "id": "attention-39eb183a85b7a5cf",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "affected_files_test.go",
+      "line": 8,
+      "evidence": "func TestAffectedFileHintsExplainImportsTestsConfigAndDependencies(t *testing.T) {"
+    },
+    {
+      "id": "attention-0c42221abab332b9",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "export_render_test.go",
+      "line": 183,
+      "evidence": "func TestStaticReviewHTMLShipsAffectedFileHints(t *testing.T) {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "fe3f066679acc85300af55c463b0fc0b54463f85",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/37813539334",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/37813539334/job/113436502226",
+        "startedAt": "2026-10-08T17:03:44Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/37813538460/job/113436214477",
+        "startedAt": "2026-10-08T17:03:02Z"
+      }
+    ]
+  }
+}
