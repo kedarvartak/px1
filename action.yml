@@ -89,6 +89,7 @@ runs:
         fi
         (cd "$GITHUB_ACTION_PATH" && go run . "${args[@]}")
         test -s "$PX1_OUT/index.html"
+        test -s "$PX1_OUT/review.json"
 
 branding:
   icon: eye

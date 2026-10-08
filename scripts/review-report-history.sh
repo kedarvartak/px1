@@ -32,7 +32,7 @@ validate_history_tree() {
     mode="${metadata%% *}"
     metadata="${metadata#* }"
     type="${metadata%% *}"
-    if [[ "$mode" != "100644" || "$type" != "blob" || ! "$path" =~ ^reviews/[0-9a-f]{40}/index\.html$ ]]; then
+    if [[ "$mode" != "100644" || "$type" != "blob" || ! "$path" =~ ^reviews/[0-9a-f]{40}/(index\.html|review\.json)$ ]]; then
       echo "refusing unexpected history entry: $path" >&2
       exit 1
     fi
@@ -48,7 +48,7 @@ validate_site() {
   while IFS= read -r -d '' file; do
     found=true
     relative="${file#"$site_abs"/}"
-    if [[ ! "$relative" =~ ^reviews/[0-9a-f]{40}/index\.html$ ]]; then
+    if [[ ! "$relative" =~ ^reviews/[0-9a-f]{40}/(index\.html|review\.json)$ ]]; then
       echo "refusing unexpected site entry: $relative" >&2
       exit 1
     fi

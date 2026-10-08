@@ -126,6 +126,17 @@ func TestGenerateStaticReviewUsesPinnedCommits(t *testing.T) {
 	if snapshot.Version != 1 || snapshot.Base != base || snapshot.Head != head || len(snapshot.Files) != len(report.Files) {
 		t.Fatalf("snapshot JSON lost report identity: %#v", snapshot)
 	}
+	reviewBytes, err := os.ReadFile(filepath.Join(out, "review.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var reviewData staticReviewReport
+	if err := json.Unmarshal(reviewBytes, &reviewData); err != nil {
+		t.Fatal(err)
+	}
+	if reviewData.Head != head || len(reviewData.RuleHits) != 1 || len(reviewData.Files) != len(report.Files) {
+		t.Fatalf("machine-readable report lost review data: %#v", reviewData)
+	}
 	b, err := os.ReadFile(filepath.Join(out, "index.html"))
 	if err != nil {
 		t.Fatal(err)
