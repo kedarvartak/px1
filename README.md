@@ -28,6 +28,7 @@ in GitHub.
 - A report URL pinned to the PR head SHA
 - Machine-readable `review.json` for agents and repository automation
 - Historical report links that remain valid after the PR changes
+- Browser-local reviewer notes and acknowledgements exportable as Markdown or JSON
 
 ## How it works
 
@@ -138,6 +139,11 @@ See [the explanation contract](docs/STATIC_REVIEW_EXPLANATIONS.md) and
 - The reviewer UI is one static HTML file and makes no network requests.
 - GitHub Pages reports are public unless the repository's Pages configuration
   provides access control. Do not publish sensitive private code publicly.
+
+Reviewer notes and acknowledgements remain in browser storage, scoped to the
+repository and full head SHA. Use the report's **Export Markdown** or **Export
+JSON** controls to download feedback for pasting into GitHub; px1 never uploads
+that feedback or presents it as shared state.
 
 ## Development
 
