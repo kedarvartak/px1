@@ -100,6 +100,16 @@ more file globs. A finding shows the team-owned title, reason, severity,
 matching line, and nearby diff context. The compact format remains supported.
 A finding is a team convention, not a claim that the code is unsafe.
 
+Validate the policy before opening a PR or in repository CI:
+
+```bash
+go run . validate-rules --file .px1/rules.json
+go run . validate-rules --file .px1/rules.json --json
+```
+
+Invalid patterns, globs, severities, duplicate IDs, and unsupported schema
+versions fail with a non-zero exit status and a rule-specific message.
+
 ## Optional explanations
 
 Set `explanation-model` on the px1 Action and provide `OPENAI_API_KEY` through
