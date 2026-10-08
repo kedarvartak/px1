@@ -1,0 +1,289 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "ba49e688c1b8f55d01b72f5a63dbbc008a055f84",
+  "head": "b69b0939e820e40063fedd175154fc580467a927",
+  "generatedAt": "2026-10-08T16:51:39.989830055Z",
+  "files": [
+    {
+      "path": "ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/ROADMAP.md b/ROADMAP.md\nindex 7765ea4..39acb8c 100644\n--- a/ROADMAP.md\n+++ b/ROADMAP.md\n@@ -21,21 +21,36 @@ accounts, and a managed SaaS are outside the product.\n - [x] GitHub Pages deployment and sticky PR comment\n - [x] Reusable report and history Actions\n - [x] Removal of the local server and workspace application\n+- [x] Optional AI explanations generated in Actions with strict JSON output\n+- [x] AI input exclusion globs for sensitive repository paths\n+- [x] Rich team rules with severity, rationale, literal matching, and block matching\n+- [x] Cross-file change groups and large-report search\n+- [x] Machine-readable `review.json` alongside the reviewer HTML\n+- [x] Browser rendering, accessibility, and large-diff performance gates\n+- [x] `validate-rules` CLI for repository policy checks\n+- [x] Immutable release workflow for the `v1` Action tag\n \n ## Next priorities\n \n-1. **Automated explanations in Actions.** Add an optional provider step that\n-   writes the existing commit-pinned explanation contract. Keep reports fully\n-   functional without a key.\n-2. **Semantic team rules.** Let teams express focused rules in plain language,\n-   while showing evidence and uncertainty rather than pretending every match is\n-   a proven defect.\n-3. **Better review blocks.** Group related hunks across files when they belong\n-   to one behavioral change.\n-4. **Report quality gates.** Add fixture-driven browser tests, accessibility\n-   checks, and large-diff performance limits.\n-5. **Action releases.** Publish immutable version tags and document safe upgrade\n-   practices for consuming repositories.\n+1. **Reviewer feedback export.** Let reviewers export local acknowledgements and\n+   notes as Markdown or JSON that can be pasted into the GitHub PR. Keep the\n+   report static; do not introduce a backend or pretend browser-local state is\n+   shared.\n+2. **Explainable affected-file hints.** Add deterministic import, test, config,\n+   and dependency evidence for nearby files without mixing suggestions into the\n+   mandatory changed-file queue.\n+3. **PR summary improvements.** Add concise finding counts, rule highlights,\n+   verification state, and the commit-pinned artifact link to the sticky comment.\n+4. **Privacy and integrity hardening.** Add optional redaction checks, artifact\n+   checksums, and clearer warnings before publishing reports or sending diffs to\n+   an external model.\n+5. **Rule analysis depth.** Extend block rules with safe language-aware\n+   structural checks while keeping deterministic text fallbacks and bounded\n+   performance.\n+\n+The old local review sessions, agent editing, verification commands, activity\n+feeds, and external-agent issues were retired with the local application and\n+are no longer active roadmap work.\n \n ## Product constraints\n \n",
+      "hunks": [
+        {
+          "id": "diff-324447ddbd8d80e4",
+          "header": "@@ -21,21 +21,36 @@ accounts, and a managed SaaS are outside the product.",
+          "lines": [
+            {
+              "oldLine": 21,
+              "newLine": 21,
+              "kind": "context",
+              "text": "- [x] GitHub Pages deployment and sticky PR comment"
+            },
+            {
+              "oldLine": 22,
+              "newLine": 22,
+              "kind": "context",
+              "text": "- [x] Reusable report and history Actions"
+            },
+            {
+              "oldLine": 23,
+              "newLine": 23,
+              "kind": "context",
+              "text": "- [x] Removal of the local server and workspace application"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "- [x] Optional AI explanations generated in Actions with strict JSON output"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "- [x] AI input exclusion globs for sensitive repository paths"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "- [x] Rich team rules with severity, rationale, literal matching, and block matching"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "- [x] Cross-file change groups and large-report search"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "- [x] Machine-readable `review.json` alongside the reviewer HTML"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "- [x] Browser rendering, accessibility, and large-diff performance gates"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "- [x] `validate-rules` CLI for repository policy checks"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "- [x] Immutable release workflow for the `v1` Action tag"
+            },
+            {
+              "oldLine": 24,
+              "newLine": 32,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 25,
+              "newLine": 33,
+              "kind": "context",
+              "text": "## Next priorities"
+            },
+            {
+              "oldLine": 26,
+              "newLine": 34,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 27,
+              "kind": "removed",
+              "text": "1. **Automated explanations in Actions.** Add an optional provider step that"
+            },
+            {
+              "oldLine": 28,
+              "kind": "removed",
+              "text": "   writes the existing commit-pinned explanation contract. Keep reports fully"
+            },
+            {
+              "oldLine": 29,
+              "kind": "removed",
+              "text": "   functional without a key."
+            },
+            {
+              "oldLine": 30,
+              "kind": "removed",
+              "text": "2. **Semantic team rules.** Let teams express focused rules in plain language,"
+            },
+            {
+              "oldLine": 31,
+              "kind": "removed",
+              "text": "   while showing evidence and uncertainty rather than pretending every match is"
+            },
+            {
+              "oldLine": 32,
+              "kind": "removed",
+              "text": "   a proven defect."
+            },
+            {
+              "oldLine": 33,
+              "kind": "removed",
+              "text": "3. **Better review blocks.** Group related hunks across files when they belong"
+            },
+            {
+              "oldLine": 34,
+              "kind": "removed",
+              "text": "   to one behavioral change."
+            },
+            {
+              "oldLine": 35,
+              "kind": "removed",
+              "text": "4. **Report quality gates.** Add fixture-driven browser tests, accessibility"
+            },
+            {
+              "oldLine": 36,
+              "kind": "removed",
+              "text": "   checks, and large-diff performance limits."
+            },
+            {
+              "oldLine": 37,
+              "kind": "removed",
+              "text": "5. **Action releases.** Publish immutable version tags and document safe upgrade"
+            },
+            {
+              "oldLine": 38,
+              "kind": "removed",
+              "text": "   practices for consuming repositories."
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "1. **Reviewer feedback export.** Let reviewers export local acknowledgements and"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "   notes as Markdown or JSON that can be pasted into the GitHub PR. Keep the"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "   report static; do not introduce a backend or pretend browser-local state is"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "   shared."
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "2. **Explainable affected-file hints.** Add deterministic import, test, config,"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "   and dependency evidence for nearby files without mixing suggestions into the"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "   mandatory changed-file queue."
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "3. **PR summary improvements.** Add concise finding counts, rule highlights,"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "   verification state, and the commit-pinned artifact link to the sticky comment."
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "4. **Privacy and integrity hardening.** Add optional redaction checks, artifact"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "   checksums, and clearer warnings before publishing reports or sending diffs to"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "   an external model."
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "5. **Rule analysis depth.** Extend block rules with safe language-aware"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "   structural checks while keeping deterministic text fallbacks and bounded"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "   performance."
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "The old local review sessions, agent editing, verification commands, activity"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "feeds, and external-agent issues were retired with the local application and"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "are no longer active roadmap work."
+            },
+            {
+              "oldLine": 39,
+              "newLine": 54,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 40,
+              "newLine": 55,
+              "kind": "context",
+              "text": "## Product constraints"
+            },
+            {
+              "oldLine": 41,
+              "newLine": 56,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [],
+  "ruleHits": [],
+  "explanations": [],
+  "attention": [],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "b69b0939e820e40063fedd175154fc580467a927",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/37812006705",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/37812006705/job/113430979164",
+        "startedAt": "2026-10-08T16:51:16Z"
+      }
+    ]
+  }
+}
