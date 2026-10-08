@@ -28,6 +28,7 @@ type reviewRule struct {
 	Title     string     `json:"title,omitempty"`
 	Why       string     `json:"why,omitempty"`
 	Severity  string     `json:"severity,omitempty"`
+	MatchKind string     `json:"matchKind,omitempty"`
 	Pattern   string     `json:"pattern"`
 	Glob      string     `json:"glob,omitempty"`
 	Globs     []string   `json:"globs,omitempty"`
@@ -116,10 +117,10 @@ func validateRule(in ruleInput) (ruleInput, error) {
 			return in, errors.New("use pattern or match, not both")
 		}
 		in.Pattern = in.Match.Pattern
-		if in.Match.Kind == "text" {
+		if in.Match.Kind == "text" || in.Match.Kind == "block-text" {
 			in.Pattern = regexp.QuoteMeta(in.Pattern)
-		} else if in.Match.Kind != "regex" {
-			return in, errors.New("match.kind must be regex or text")
+		} else if in.Match.Kind != "regex" && in.Match.Kind != "block-regex" {
+			return in, errors.New("match.kind must be regex, text, block-regex, or block-text")
 		}
 	} else if in.Match.Kind != "" {
 		return in, errors.New("match.pattern is required")
@@ -155,6 +156,9 @@ func validateRule(in ruleInput) (ruleInput, error) {
 	}
 	if in.Severity == "" {
 		in.Severity = "warning"
+	}
+	if in.Match.Kind == "" {
+		in.Match.Kind = "regex"
 	}
 	if in.Severity != "info" && in.Severity != "warning" && in.Severity != "error" {
 		return in, errors.New("severity must be info, warning, or error")
@@ -209,7 +213,7 @@ func parseTeamRules(b []byte) ([]reviewRule, error) {
 			return out, fmt.Errorf("%s rule %d: duplicate id %q", ruleTeamFile, i+1, id)
 		}
 		seen[id] = true
-		out = append(out, reviewRule{ID: id, Title: valid.Title, Why: valid.Why, Severity: valid.Severity, Pattern: valid.Pattern, Glob: valid.Glob, Globs: valid.Globs, Message: valid.Message, Origin: valid.Origin, Enabled: true, Source: "team"})
+		out = append(out, reviewRule{ID: id, Title: valid.Title, Why: valid.Why, Severity: valid.Severity, MatchKind: valid.Match.Kind, Pattern: valid.Pattern, Glob: valid.Glob, Globs: valid.Globs, Message: valid.Message, Origin: valid.Origin, Enabled: true, Source: "team"})
 	}
 	return out, nil
 }

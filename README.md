@@ -96,7 +96,10 @@ For rules that need clearer reviewer context, use the versioned format:
 ```
 
 Rules support literal `text` and Go-compatible `regex` matches across one or
-more file globs. A finding shows the team-owned title, reason, severity,
+more file globs. `block-text` and `block-regex` inspect contiguous added lines,
+so a rule can describe a small multi-line construct such as a simple `if/else`
+value choice without matching unrelated lines elsewhere in the file. A finding
+shows the team-owned title, reason, severity,
 matching line, and nearby diff context. The compact format remains supported.
 A finding is a team convention, not a claim that the code is unsafe.
 
