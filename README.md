@@ -25,6 +25,7 @@ in GitHub.
   public APIs
 - Optional AI explanation chips generated in CI
 - A report URL pinned to the PR head SHA
+- Machine-readable `review.json` for agents and repository automation
 - Historical report links that remain valid after the PR changes
 
 ## How it works
@@ -34,7 +35,7 @@ PR opened or updated
         ↓
 GitHub Action reads the base and head commits
         ↓
-px1 generates reviews/<head-sha>/index.html
+px1 generates reviews/<head-sha>/index.html and review.json
         ↓
 GitHub Pages publishes the report
         ↓
@@ -118,8 +119,8 @@ See [the explanation contract](docs/STATIC_REVIEW_EXPLANATIONS.md) and
 - The supplied workflow never checks out or executes the PR head.
 - Verification and explanation inputs must match the report head SHA.
 - Historical storage accepts only regular
-  `reviews/<40-character-sha>/index.html` files.
-- The report is one static HTML file and makes no network requests.
+  `reviews/<40-character-sha>/index.html` and `review.json` files.
+- The reviewer UI is one static HTML file and makes no network requests.
 - GitHub Pages reports are public unless the repository's Pages configuration
   provides access control. Do not publish sensitive private code publicly.
 

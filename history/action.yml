@@ -6,7 +6,7 @@ inputs:
     description: Either restore or publish.
     required: true
   site:
-    description: Directory containing reviews/<head-sha>/index.html.
+    description: Directory containing reviews/<head-sha>/index.html and review.json.
     required: false
     default: site
   branch:

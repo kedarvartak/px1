@@ -66,6 +66,9 @@ func writeHistoryReport(t *testing.T, root, revision, content string) {
 	if err := os.WriteFile(filepath.Join(dir, "index.html"), []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.WriteFile(filepath.Join(dir, "review.json"), []byte(`{"content":"`+content+`"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func assertHistoryReport(t *testing.T, root, revision, want string) {
@@ -76,6 +79,13 @@ func assertHistoryReport(t *testing.T, root, revision, want string) {
 	}
 	if string(body) != want {
 		t.Fatalf("report %s = %q, want %q", revision, body, want)
+	}
+	data, err := os.ReadFile(filepath.Join(root, "reviews", revision, "review.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), want) {
+		t.Fatalf("review data %s = %q, want content %q", revision, data, want)
 	}
 }
 

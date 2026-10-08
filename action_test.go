@@ -19,6 +19,7 @@ func TestArtifactActionKeepsRevisionInputsExplicit(t *testing.T) {
 		"--head \"$PX1_HEAD\"",
 		"go run . \"${args[@]}\"",
 		"test -s \"$PX1_OUT/index.html\"",
+		"test -s \"$PX1_OUT/review.json\"",
 		"PX1_EXPLANATION_MODEL: ${{ inputs.explanation-model }}",
 		"generate-explanations",
 		"OPENAI_API_KEY",

@@ -591,15 +591,22 @@ func matchesAnyGlob(globs []*regexp.Regexp, path string) bool {
 }
 
 func writeStaticReviewReport(outDir string, report staticReviewReport) error {
-	b, err := renderStaticReviewHTML(report)
+	html, err := renderStaticReviewHTML(report)
 	if err != nil {
 		return err
+	}
+	data, err := json.MarshalIndent(report, "", "  ")
+	if err != nil {
+		return fmt.Errorf("encode machine-readable report: %w", err)
 	}
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		return fmt.Errorf("create output directory: %w", err)
 	}
-	if err := os.WriteFile(filepath.Join(outDir, "index.html"), b, 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(outDir, "index.html"), html, 0o644); err != nil {
 		return fmt.Errorf("write static report: %w", err)
+	}
+	if err := os.WriteFile(filepath.Join(outDir, "review.json"), append(data, '\n'), 0o644); err != nil {
+		return fmt.Errorf("write machine-readable report: %w", err)
 	}
 	return nil
 }
