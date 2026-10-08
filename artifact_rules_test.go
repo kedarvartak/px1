@@ -70,3 +70,35 @@ func TestArtifactRulesRejectDuplicateIDsAndUnsupportedVersions(t *testing.T) {
 		}
 	}
 }
+
+func TestArtifactRulesMatchChangedBlocksAcrossLines(t *testing.T) {
+	rules, err := parseTeamRules([]byte(`{
+  "version": 1,
+  "rules": [{
+    "id": "simple-if-else",
+    "title": "Prefer a conditional expression",
+    "severity": "warning",
+    "globs": ["src/**/*.ts"],
+    "match": {"kind": "block-regex", "pattern": "(?s)if\\s*\\(.*\\).*else"},
+    "message": "A short value choice can usually use a ternary."
+  }]
+}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	additions := map[string]map[int]string{
+		"src/price.ts": {10: "if (member) {", 11: "  price = discount", 12: "} else {", 13: "  price = standard", 14: "}"},
+	}
+	hits, err := matchStaticRuleAdditions(rules, additions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(hits) != 1 || hits[0].Line != 10 || !strings.Contains(hits[0].Text, "else") {
+		t.Fatalf("block hits = %#v", hits)
+	}
+	additions["src/price.ts"][20] = "if (unrelated) return"
+	hits, err = matchStaticRuleAdditions(rules, additions)
+	if err != nil || len(hits) != 1 {
+		t.Fatalf("separate changed ranges must not be combined: hits=%#v err=%v", hits, err)
+	}
+}

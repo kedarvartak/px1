@@ -560,6 +560,27 @@ func matchStaticRuleAdditions(rules []reviewRule, additions map[string]map[int]s
 				lines = append(lines, line)
 			}
 			sort.Ints(lines)
+			if strings.HasPrefix(c.rule.MatchKind, "block-") {
+				for _, block := range contiguousAddedBlocks(lines) {
+					texts := make([]string, 0, len(block))
+					for _, line := range block {
+						texts = append(texts, additions[p][line])
+					}
+					joined := strings.Join(texts, "\n")
+					match := c.re.FindStringIndex(joined)
+					if match == nil {
+						continue
+					}
+					lineOffset := strings.Count(joined[:match[0]], "\n")
+					line := block[lineOffset]
+					key := ruleHitKey(c.rule.ID, p, joined)
+					hits = append(hits, newRuleHit(c.rule, key, p, line, clip(joined, 300)))
+					if len(hits) >= ruleMaxHits {
+						return hits, nil
+					}
+				}
+				continue
+			}
 			perKey := map[string]int{}
 			for _, line := range lines {
 				text := additions[p][line]
@@ -571,7 +592,7 @@ func matchStaticRuleAdditions(rules []reviewRule, additions map[string]map[int]s
 					continue
 				}
 				perKey[key]++
-				hits = append(hits, ruleHit{Key: key, RuleID: c.rule.ID, Message: c.rule.Message, Title: c.rule.Title, Why: c.rule.Why, Severity: c.rule.Severity, Source: c.rule.Source, Origin: c.rule.Origin, Path: p, Line: line, Text: clip(text, 300)})
+				hits = append(hits, newRuleHit(c.rule, key, p, line, clip(text, 300)))
 				if len(hits) >= ruleMaxHits {
 					return hits, nil
 				}
@@ -579,6 +600,22 @@ func matchStaticRuleAdditions(rules []reviewRule, additions map[string]map[int]s
 		}
 	}
 	return hits, nil
+}
+
+func contiguousAddedBlocks(lines []int) [][]int {
+	blocks := [][]int{}
+	for _, line := range lines {
+		if len(blocks) == 0 || line > blocks[len(blocks)-1][len(blocks[len(blocks)-1])-1]+1 {
+			blocks = append(blocks, []int{line})
+			continue
+		}
+		blocks[len(blocks)-1] = append(blocks[len(blocks)-1], line)
+	}
+	return blocks
+}
+
+func newRuleHit(rule reviewRule, key, path string, line int, text string) ruleHit {
+	return ruleHit{Key: key, RuleID: rule.ID, Message: rule.Message, Title: rule.Title, Why: rule.Why, Severity: rule.Severity, Source: rule.Source, Origin: rule.Origin, Path: path, Line: line, Text: text}
 }
 
 func matchesAnyGlob(globs []*regexp.Regexp, path string) bool {
