@@ -73,3 +73,22 @@ func TestActionReleaseKeepsImmutableAndMajorTagsSeparate(t *testing.T) {
 		}
 	}
 }
+
+func TestReviewWorkflowGeneratesStructuredStickyComment(t *testing.T) {
+	body, err := os.ReadFile(".github/workflows/px1-review-report.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	for _, want := range []string{
+		"go run . summary-comment",
+		`--review-file "site/reviews/${HEAD_SHA}/review.json"`,
+		`--artifact-url "$report_url"`,
+		"fs.readFileSync(process.env.COMMENT_FILE, 'utf8')",
+		"body.startsWith(marker)",
+	} {
+		if !strings.Contains(text, want) {
+			t.Errorf("review workflow missing %q", want)
+		}
+	}
+}

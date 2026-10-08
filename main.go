@@ -14,6 +14,12 @@ var rawVersion string
 var version = strings.TrimSpace(rawVersion)
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "summary-comment" {
+		if err := runSummaryComment(os.Args[2:], os.Stdout); err != nil {
+			fatal(err)
+		}
+		return
+	}
 	if len(os.Args) > 1 && os.Args[1] == "validate-rules" {
 		if err := runValidateRules(os.Args[2:], os.Stdout); err != nil {
 			fatal(err)
@@ -37,7 +43,7 @@ func main() {
 		return
 	}
 	fmt.Fprintf(os.Stderr, "px1 %s - generate a commit-pinned PR review artifact\n\n", version)
-	fmt.Fprintln(os.Stderr, "usage: px1 <export-review|generate-explanations|validate-rules> [options]")
+	fmt.Fprintln(os.Stderr, "usage: px1 <export-review|generate-explanations|summary-comment|validate-rules> [options]")
 	os.Exit(2)
 }
 

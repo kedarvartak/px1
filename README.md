@@ -61,6 +61,8 @@ https://<owner>.github.io/<repository>/reviews/<head-sha>/
 ```
 
 and creates or updates one marked px1 comment on the PR.
+The comment summarizes finding counts, the highest-priority team rules, exact
+verification state, and the commit-pinned artifact link.
 
 ## Team rules
 
