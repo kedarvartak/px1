@@ -105,9 +105,12 @@ const filesSec=h('section');const filesHead=h('h2','eyebrow','Files ');
 const seg=h('span','seg');seg.setAttribute('role','group');seg.setAttribute('aria-label','File filter');
 const fAll=h('button',null,'All '+files.length),fFlag=h('button',null,'Flagged');
 fAll.type=fFlag.type='button';seg.append(fAll,fFlag);filesHead.append(seg);
+const search=h('input','file-search');search.type='search';search.placeholder='Search files and changed code';search.setAttribute('aria-label','Search files and changed code');
 const fileList=h('ul','files');filesSec.append(filesHead,fileList);
+filesSec.insertBefore(search,fileList);
 rail.append(queueSec,filesSec);
 let flaggedOnly=false;
+let searchQuery='';
 
 const order={rule:0,attn:1,note:2};
 function paintQueue(){
@@ -122,6 +125,8 @@ function paintQueue(){
   });
 }
 const stats=files.map((f)=>{let a=0,d=0;for(const hk of f.hunks||[])for(const l of hk.lines||[]){if(l.kind==='added')a++;else if(l.kind==='removed')d++}return{a,d}});
+const searchable=files.map((f,i)=>[f.path,...(f.hunks||[]).flatMap((hk)=>(hk.lines||[]).map((l)=>l.text)),...items.filter((x)=>x.fi===i).flatMap((x)=>[x.title,x.why,x.ev])].join('\n').toLowerCase());
+const fileVisible=(f,i)=>{if(flaggedOnly&&!items.some((x)=>x.fi===i))return false;return !searchQuery||searchable[i].includes(searchQuery)};
 function paintFiles(){
   fileList.textContent='';
   fAll.setAttribute('aria-pressed',String(!flaggedOnly));fFlag.setAttribute('aria-pressed',String(flaggedOnly));
@@ -129,7 +134,7 @@ function paintFiles(){
   fFlag.textContent='Flagged '+flaggedCount;
   files.forEach((f,i)=>{
     const mine=items.filter((x)=>x.fi===i);
-    if(flaggedOnly&&!mine.length)return;
+    if(!fileVisible(f,i))return;
     const li=h('li'),link=h('a','file');link.href='#f'+i;
     const parts=f.path.split('/'),base=parts.pop(),p=h('span','p');
     if(parts.length)p.append(h('span',null,parts.join('/')+'/'));
@@ -140,8 +145,10 @@ function paintFiles(){
     li.append(link);fileList.append(li);
   });
 }
-fAll.onclick=()=>{flaggedOnly=false;paintFiles()};
-fFlag.onclick=()=>{flaggedOnly=true;paintFiles()};
+const paintMainFilter=()=>document.querySelectorAll('.fsec').forEach((sec)=>{const i=Number(sec.dataset.fileIndex);sec.hidden=!fileVisible(files[i],i)});
+fAll.onclick=()=>{flaggedOnly=false;paintFiles();paintMainFilter()};
+fFlag.onclick=()=>{flaggedOnly=true;paintFiles();paintMainFilter()};
+search.addEventListener('input',()=>{searchQuery=search.value.trim().toLowerCase();paintFiles();paintMainFilter()});
 
 /* ---- diff ---- */
 function annotation(it,fileLevel){
@@ -182,7 +189,7 @@ addEventListener('hashchange',openNoteFromHash);
 const main=h('main','main');
 const renderedGroups=new Set();
 files.forEach((f,i)=>{
-  const sec=h('section','fsec');sec.id='f'+i;
+  const sec=h('section','fsec');sec.id='f'+i;sec.dataset.fileIndex=String(i);
   const head=h('div','fhead');
   const group=blocks.find((block)=>block.paths.includes(f.path));
   if(group&&!renderedGroups.has(group.id)){const anchor=h('span');anchor.id=group.id;main.append(anchor);renderedGroups.add(group.id)}
