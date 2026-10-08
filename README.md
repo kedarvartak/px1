@@ -18,6 +18,7 @@ in GitHub.
 
 - Structured, line-numbered diffs grouped into reviewable blocks
 - Cross-file change groups that connect related routes, services, tests, and schemas
+- Fast file-and-code search for large pull requests
 - Repository-specific findings from `.px1/rules.json`
 - Exact-commit GitHub check results
 - Deterministic attention signals for dependencies, authentication, schemas,
