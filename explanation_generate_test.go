@@ -77,3 +77,19 @@ func TestBoundedDiffCapsProviderInput(t *testing.T) {
 		t.Fatalf("bounded diff too large: %d", len(bounded))
 	}
 }
+
+func TestFilterExplanationDiffOmitsExcludedFiles(t *testing.T) {
+	diff := "diff --git a/src/app.go b/src/app.go\n--- a/src/app.go\n+++ b/src/app.go\n@@ -1 +1 @@\n-old\n+new\n" +
+		"diff --git a/config/private.env b/config/private.env\n--- a/config/private.env\n+++ b/config/private.env\n@@ -1 +1 @@\n-old-secret\n+new-secret\n"
+	filtered, err := filterExplanationDiff(diff, []string{"config/**", "**/*.pem"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(filtered, "src/app.go") || strings.Contains(filtered, "private.env") || strings.Contains(filtered, "new-secret") {
+		t.Fatalf("filtered diff = %q", filtered)
+	}
+	paths := explanationDiffPaths(filtered)
+	if len(paths) != 1 || paths[0] != "src/app.go" {
+		t.Fatalf("included paths = %#v", paths)
+	}
+}

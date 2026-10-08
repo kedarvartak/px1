@@ -107,7 +107,8 @@ a GitHub Actions secret to generate explanation chips automatically. You can
 also bring provider-neutral, commit-pinned JSON through `explanations-file`.
 Model credentials and generation stay inside CI; the published page receives
 only validated explanation text. Reports remain useful when no model or API
-key is configured.
+key is configured. Teams can exclude sensitive paths from model input with
+`explanation-exclude-globs` while keeping those changes visible in the report.
 
 See [the explanation contract](docs/STATIC_REVIEW_EXPLANATIONS.md) and
 [verification contract](docs/VERIFICATION_REPORT.md).

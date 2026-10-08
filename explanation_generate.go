@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -30,6 +31,18 @@ type explanationGenerator struct {
 
 type generatedExplanationPayload struct {
 	Explanations []staticExplanation `json:"explanations"`
+}
+
+type repeatedStringFlag []string
+
+func (values *repeatedStringFlag) String() string { return strings.Join(*values, ",") }
+func (values *repeatedStringFlag) Set(value string) error {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return errors.New("exclude glob cannot be empty")
+	}
+	*values = append(*values, value)
+	return nil
 }
 
 type responsesAPIResponse struct {
@@ -56,6 +69,8 @@ func runGenerateExplanations(args []string) error {
 	out := fs.String("out", "px1-explanations.json", "explanation JSON output path")
 	model := fs.String("model", "", "OpenAI model (required)")
 	endpoint := fs.String("endpoint", defaultResponsesEndpoint, "Responses API endpoint")
+	var excludeGlobs repeatedStringFlag
+	fs.Var(&excludeGlobs, "exclude-glob", "repository-relative glob excluded from model input (repeatable)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -70,7 +85,7 @@ func runGenerateExplanations(args []string) error {
 	if err != nil {
 		return fmt.Errorf("resolve root: %w", err)
 	}
-	file, err := generateExplanations(context.Background(), repoRoot, *base, *head, explanationGenerator{
+	file, err := generateExplanationsWithExclusions(context.Background(), repoRoot, *base, *head, excludeGlobs, explanationGenerator{
 		client: &http.Client{Timeout: 90 * time.Second}, endpoint: strings.TrimSpace(*endpoint), apiKey: apiKey, model: strings.TrimSpace(*model),
 	})
 	if err != nil {
@@ -84,6 +99,10 @@ func runGenerateExplanations(args []string) error {
 }
 
 func generateExplanations(ctx context.Context, root, base, head string, generator explanationGenerator) (staticExplanationFile, error) {
+	return generateExplanationsWithExclusions(ctx, root, base, head, nil, generator)
+}
+
+func generateExplanationsWithExclusions(ctx context.Context, root, base, head string, excludeGlobs []string, generator explanationGenerator) (staticExplanationFile, error) {
 	baseSHA, err := resolveCommit(root, base)
 	if err != nil {
 		return staticExplanationFile{}, err
@@ -96,17 +115,18 @@ func generateExplanations(ctx context.Context, root, base, head string, generato
 	if err != nil {
 		return staticExplanationFile{}, err
 	}
-	files, err := parseStaticReviewFiles(root, baseSHA, headSHA, diff)
+	diff, err = filterExplanationDiff(diff, excludeGlobs)
 	if err != nil {
 		return staticExplanationFile{}, err
 	}
 	result := staticExplanationFile{Version: 1, Revision: headSHA, Explanations: []staticExplanation{}}
-	if len(files) == 0 {
+	paths := explanationDiffPaths(diff)
+	if len(paths) == 0 {
 		return result, nil
 	}
-	changed := make(map[string]bool, len(files))
-	for _, file := range files {
-		changed[file.Path] = true
+	changed := make(map[string]bool, len(paths))
+	for _, path := range paths {
+		changed[path] = true
 	}
 	payload, err := generator.request(ctx, boundedDiff(diff))
 	if err != nil {
@@ -118,6 +138,51 @@ func generateExplanations(ctx context.Context, root, base, head string, generato
 	}
 	result.Explanations = validated
 	return result, nil
+}
+
+func explanationDiffPaths(diff string) []string {
+	seen := map[string]bool{}
+	paths := []string{}
+	for _, raw := range strings.Split(diff, "diff --git ") {
+		if strings.TrimSpace(raw) == "" {
+			continue
+		}
+		path := staticDiffPath("diff --git " + raw)
+		if path != "" && !seen[path] {
+			seen[path] = true
+			paths = append(paths, path)
+		}
+	}
+	return paths
+}
+
+func filterExplanationDiff(diff string, excludeGlobs []string) (string, error) {
+	if len(excludeGlobs) == 0 {
+		return diff, nil
+	}
+	compiled := make([]*regexp.Regexp, 0, len(excludeGlobs))
+	for _, pattern := range excludeGlobs {
+		glob, err := globRegexp(pattern)
+		if err != nil {
+			return "", fmt.Errorf("exclude glob %q: %w", pattern, err)
+		}
+		if glob != nil {
+			compiled = append(compiled, glob)
+		}
+	}
+	var kept strings.Builder
+	for _, raw := range strings.Split(diff, "diff --git ") {
+		if strings.TrimSpace(raw) == "" {
+			continue
+		}
+		block := "diff --git " + raw
+		path := staticDiffPath(block)
+		if path != "" && matchesAnyGlob(compiled, path) {
+			continue
+		}
+		kept.WriteString(block)
+	}
+	return kept.String(), nil
 }
 
 func boundedDiff(diff string) string {
