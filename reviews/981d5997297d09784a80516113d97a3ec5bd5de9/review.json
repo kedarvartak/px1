@@ -1,0 +1,844 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "efcc7679e607af1dd8ecfd5fc1a991bc25afe36c",
+  "head": "981d5997297d09784a80516113d97a3ec5bd5de9",
+  "generatedAt": "2026-10-08T17:00:52.476353263Z",
+  "files": [
+    {
+      "path": "README.md",
+      "status": "M",
+      "diff": "diff --git a/README.md b/README.md\nindex ef99878..228fe00 100644\n--- a/README.md\n+++ b/README.md\n@@ -28,6 +28,7 @@ in GitHub.\n - A report URL pinned to the PR head SHA\n - Machine-readable `review.json` for agents and repository automation\n - Historical report links that remain valid after the PR changes\n+- Browser-local reviewer notes and acknowledgements exportable as Markdown or JSON\n \n ## How it works\n \n@@ -139,6 +140,11 @@ See [the explanation contract](docs/STATIC_REVIEW_EXPLANATIONS.md) and\n - GitHub Pages reports are public unless the repository's Pages configuration\n   provides access control. Do not publish sensitive private code publicly.\n \n+Reviewer notes and acknowledgements remain in browser storage, scoped to the\n+repository and full head SHA. Use the report's **Export Markdown** or **Export\n+JSON** controls to download feedback for pasting into GitHub; px1 never uploads\n+that feedback or presents it as shared state.\n+\n ## Development\n \n ```bash\n",
+      "hunks": [
+        {
+          "id": "diff-e3854f001232c2d1",
+          "header": "@@ -28,6 +28,7 @@ in GitHub.",
+          "lines": [
+            {
+              "oldLine": 28,
+              "newLine": 28,
+              "kind": "context",
+              "text": "- A report URL pinned to the PR head SHA"
+            },
+            {
+              "oldLine": 29,
+              "newLine": 29,
+              "kind": "context",
+              "text": "- Machine-readable `review.json` for agents and repository automation"
+            },
+            {
+              "oldLine": 30,
+              "newLine": 30,
+              "kind": "context",
+              "text": "- Historical report links that remain valid after the PR changes"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "- Browser-local reviewer notes and acknowledgements exportable as Markdown or JSON"
+            },
+            {
+              "oldLine": 31,
+              "newLine": 32,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 32,
+              "newLine": 33,
+              "kind": "context",
+              "text": "## How it works"
+            },
+            {
+              "oldLine": 33,
+              "newLine": 34,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        },
+        {
+          "id": "diff-26e4868bddd134a2",
+          "header": "@@ -139,6 +140,11 @@ See [the explanation contract](docs/STATIC_REVIEW_EXPLANATIONS.md) and",
+          "lines": [
+            {
+              "oldLine": 139,
+              "newLine": 140,
+              "kind": "context",
+              "text": "- GitHub Pages reports are public unless the repository's Pages configuration"
+            },
+            {
+              "oldLine": 140,
+              "newLine": 141,
+              "kind": "context",
+              "text": "  provides access control. Do not publish sensitive private code publicly."
+            },
+            {
+              "oldLine": 141,
+              "newLine": 142,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "Reviewer notes and acknowledgements remain in browser storage, scoped to the"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "repository and full head SHA. Use the report's **Export Markdown** or **Export"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "JSON** controls to download feedback for pasting into GitHub; px1 never uploads"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "that feedback or presents it as shared state."
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 142,
+              "newLine": 148,
+              "kind": "context",
+              "text": "## Development"
+            },
+            {
+              "oldLine": 143,
+              "newLine": 149,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 144,
+              "newLine": 150,
+              "kind": "context",
+              "text": "```bash"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "browser-tests/report.test.mjs",
+      "status": "M",
+      "diff": "diff --git a/browser-tests/report.test.mjs b/browser-tests/report.test.mjs\nindex 9d00e2d..88686a8 100644\n--- a/browser-tests/report.test.mjs\n+++ b/browser-tests/report.test.mjs\n@@ -92,3 +92,33 @@ test('search narrows both navigation and visible diffs',async()=\u003e{\n   assert.match(await page.locator('.fsec:visible .path').textContent(),/orders\\.ts/);\n   await page.close();\n });\n+\n+test('reviewer feedback exports browser-local notes and acknowledgements',async()=\u003e{\n+  const page=await browser.newPage();\n+  await page.setContent(reportHTML,{waitUntil:'load'});\n+  await page.getByRole('button',{name:'Acknowledge'}).first().click();\n+  await page.getByRole('textbox',{name:'Reviewer notes'}).fill('Ready after the logging follow-up.');\n+  await page.evaluate(()=\u003e{\n+    window.__feedbackExports=[];\n+    URL.createObjectURL=(blob)=\u003e{blob.text().then((text)=\u003ewindow.__feedbackExports.push(text));return 'blob:px1-test'};\n+    URL.revokeObjectURL=()=\u003e{};\n+    HTMLAnchorElement.prototype.click=()=\u003e{};\n+  });\n+\n+  await page.getByRole('button',{name:'Export JSON'}).click();\n+  await page.waitForFunction(()=\u003ewindow.__feedbackExports.length===1);\n+  const json=await page.evaluate(()=\u003ewindow.__feedbackExports[0]);\n+  const data=JSON.parse(json);\n+  assert.equal(data.note,'Ready after the logging follow-up.');\n+  assert.equal(data.head,git('rev-parse','HEAD'));\n+  assert.equal(data.acknowledgements.length,1);\n+  assert.match(data.acknowledgements[0].path,/orders\\.ts/);\n+\n+  await page.getByRole('button',{name:'Export Markdown'}).click();\n+  await page.waitForFunction(()=\u003ewindow.__feedbackExports.length===2);\n+  const markdown=await page.evaluate(()=\u003ewindow.__feedbackExports[1]);\n+  assert.match(markdown,/## px1 reviewer feedback/);\n+  assert.match(markdown,/Ready after the logging follow-up/);\n+  assert.match(markdown,/- \\[x\\] .+ — `src\\/orders\\.ts/);\n+  await page.close();\n+});\n",
+      "hunks": [
+        {
+          "id": "diff-012b7432b76f9c7d",
+          "header": "@@ -92,3 +92,33 @@ test('search narrows both navigation and visible diffs',async()=\u003e{",
+          "lines": [
+            {
+              "oldLine": 92,
+              "newLine": 92,
+              "kind": "context",
+              "text": "  assert.match(await page.locator('.fsec:visible .path').textContent(),/orders\\.ts/);"
+            },
+            {
+              "oldLine": 93,
+              "newLine": 93,
+              "kind": "context",
+              "text": "  await page.close();"
+            },
+            {
+              "oldLine": 94,
+              "newLine": 94,
+              "kind": "context",
+              "text": "});"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "test('reviewer feedback exports browser-local notes and acknowledgements',async()=\u003e{"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "  const page=await browser.newPage();"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "  await page.setContent(reportHTML,{waitUntil:'load'});"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "  await page.getByRole('button',{name:'Acknowledge'}).first().click();"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "  await page.getByRole('textbox',{name:'Reviewer notes'}).fill('Ready after the logging follow-up.');"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "  await page.evaluate(()=\u003e{"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "    window.__feedbackExports=[];"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "    URL.createObjectURL=(blob)=\u003e{blob.text().then((text)=\u003ewindow.__feedbackExports.push(text));return 'blob:px1-test'};"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "    URL.revokeObjectURL=()=\u003e{};"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "    HTMLAnchorElement.prototype.click=()=\u003e{};"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "  });"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "  await page.getByRole('button',{name:'Export JSON'}).click();"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "  await page.waitForFunction(()=\u003ewindow.__feedbackExports.length===1);"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "  const json=await page.evaluate(()=\u003ewindow.__feedbackExports[0]);"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "  const data=JSON.parse(json);"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "  assert.equal(data.note,'Ready after the logging follow-up.');"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "  assert.equal(data.head,git('rev-parse','HEAD'));"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "  assert.equal(data.acknowledgements.length,1);"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "  assert.match(data.acknowledgements[0].path,/orders\\.ts/);"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "  await page.getByRole('button',{name:'Export Markdown'}).click();"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "  await page.waitForFunction(()=\u003ewindow.__feedbackExports.length===2);"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "  const markdown=await page.evaluate(()=\u003ewindow.__feedbackExports[1]);"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "  assert.match(markdown,/## px1 reviewer feedback/);"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "  assert.match(markdown,/Ready after the logging follow-up/);"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "  assert.match(markdown,/- \\[x\\] .+ — `src\\/orders\\.ts/);"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "  await page.close();"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "});"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "export_render_test.go",
+      "status": "M",
+      "diff": "diff --git a/export_render_test.go b/export_render_test.go\nindex 06abc90..c010c3f 100644\n--- a/export_render_test.go\n+++ b/export_render_test.go\n@@ -179,3 +179,15 @@ func TestStaticReviewHTMLShipsResizablePanel(t *testing.T) {\n \t\t}\n \t}\n }\n+\n+func TestStaticReviewHTMLShipsReviewerFeedbackExport(t *testing.T) {\n+\tbody, err := renderStaticReviewHTML(staticReviewReport{Verification: verificationResponse{Checks: []verificationCheck{}}})\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tfor _, want := range []string{\"Reviewer feedback\", \"Export Markdown\", \"Export JSON\", \"px1:note:\", \"acknowledgements\", \"createObjectURL\"} {\n+\t\tif !strings.Contains(string(body), want) {\n+\t\t\tt.Errorf(\"report missing %q\", want)\n+\t\t}\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-053520962ee9ebba",
+          "header": "@@ -179,3 +179,15 @@ func TestStaticReviewHTMLShipsResizablePanel(t *testing.T) {",
+          "lines": [
+            {
+              "oldLine": 179,
+              "newLine": 179,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 180,
+              "newLine": 180,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 181,
+              "newLine": 181,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": "func TestStaticReviewHTMLShipsReviewerFeedbackExport(t *testing.T) {"
+            },
+            {
+              "newLine": 184,
+              "kind": "added",
+              "text": "\tbody, err := renderStaticReviewHTML(staticReviewReport{Verification: verificationResponse{Checks: []verificationCheck{}}})"
+            },
+            {
+              "newLine": 185,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 186,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": "\tfor _, want := range []string{\"Reviewer feedback\", \"Export Markdown\", \"Export JSON\", \"px1:note:\", \"acknowledgements\", \"createObjectURL\"} {"
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "\t\tif !strings.Contains(string(body), want) {"
+            },
+            {
+              "newLine": 190,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"report missing %q\", want)"
+            },
+            {
+              "newLine": 191,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 192,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 193,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "static_report/report.css",
+      "status": "M",
+      "diff": "diff --git a/static_report/report.css b/static_report/report.css\nindex cc555cb..fd43a32 100644\n--- a/static_report/report.css\n+++ b/static_report/report.css\n@@ -80,6 +80,10 @@ body.resizing{cursor:col-resize;user-select:none}\n .rail h2{margin:0 0 8px;display:flex;justify-content:space-between;align-items:center}\n .rail h2 .count{font:400 var(--fs-fine) var(--sans);letter-spacing:0;text-transform:none;color:var(--faint)}\n .rail .empty{margin:0;color:var(--faint);font-size:var(--fs-small)}\n+.feedback-note{display:block;width:100%;resize:vertical;min-height:78px;padding:8px 9px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--canvas);color:var(--ink);font:var(--fs-small)/1.45 var(--sans)}\n+.feedback-note::placeholder{color:var(--faint)}\n+.feedback-hint{margin:6px 0 9px;color:var(--faint);font-size:var(--fs-fine)}\n+.feedback-actions{display:flex;flex-wrap:wrap;gap:6px}\n .queue{list-style:none;margin:0;padding:0}\n .qitem{display:grid;gap:2px;text-decoration:none;color:inherit;padding:8px 0;border-top:1px solid var(--line)}\n .queue li:first-child .qitem{border-top:0;padding-top:2px}\n",
+      "hunks": [
+        {
+          "id": "diff-3b1e49a7f053fe0e",
+          "header": "@@ -80,6 +80,10 @@ body.resizing{cursor:col-resize;user-select:none}",
+          "lines": [
+            {
+              "oldLine": 80,
+              "newLine": 80,
+              "kind": "context",
+              "text": ".rail h2{margin:0 0 8px;display:flex;justify-content:space-between;align-items:center}"
+            },
+            {
+              "oldLine": 81,
+              "newLine": 81,
+              "kind": "context",
+              "text": ".rail h2 .count{font:400 var(--fs-fine) var(--sans);letter-spacing:0;text-transform:none;color:var(--faint)}"
+            },
+            {
+              "oldLine": 82,
+              "newLine": 82,
+              "kind": "context",
+              "text": ".rail .empty{margin:0;color:var(--faint);font-size:var(--fs-small)}"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": ".feedback-note{display:block;width:100%;resize:vertical;min-height:78px;padding:8px 9px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--canvas);color:var(--ink);font:var(--fs-small)/1.45 var(--sans)}"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": ".feedback-note::placeholder{color:var(--faint)}"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": ".feedback-hint{margin:6px 0 9px;color:var(--faint);font-size:var(--fs-fine)}"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": ".feedback-actions{display:flex;flex-wrap:wrap;gap:6px}"
+            },
+            {
+              "oldLine": 83,
+              "newLine": 87,
+              "kind": "context",
+              "text": ".queue{list-style:none;margin:0;padding:0}"
+            },
+            {
+              "oldLine": 84,
+              "newLine": 88,
+              "kind": "context",
+              "text": ".qitem{display:grid;gap:2px;text-decoration:none;color:inherit;padding:8px 0;border-top:1px solid var(--line)}"
+            },
+            {
+              "oldLine": 85,
+              "newLine": 89,
+              "kind": "context",
+              "text": ".queue li:first-child .qitem{border-top:0;padding-top:2px}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "static_report/report.js",
+      "status": "M",
+      "diff": "diff --git a/static_report/report.js b/static_report/report.js\nindex 5ab8815..8d9ec87 100644\n--- a/static_report/report.js\n+++ b/static_report/report.js\n@@ -19,9 +19,13 @@ const chipFor=(k)=\u003eh('span','chip '+CHIP[k],KIND[k]);\n /* Acknowledgements live in this browser only. The key predates the redesign;\n    keeping it means earlier acknowledgements still apply. */\n const ackKey='px1:ack:'+report.repository+':'+report.head;\n+const noteKey='px1:note:'+report.repository+':'+report.head;\n let ack=new Set();\n try{const saved=JSON.parse(localStorage.getItem(ackKey)||'[]');if(Array.isArray(saved))ack=new Set(saved.filter((k)=\u003etypeof k==='string'))}catch{}\n const persist=()=\u003e{try{localStorage.setItem(ackKey,JSON.stringify([...ack].sort()))}catch{}};\n+let reviewerNote='';\n+try{reviewerNote=localStorage.getItem(noteKey)||''}catch{}\n+const persistNote=()=\u003e{try{localStorage.setItem(noteKey,reviewerNote)}catch{}};\n \n /* One list of everything worth a reader's attention, anchored to a file. */\n const items=[];\n@@ -108,7 +112,17 @@ fAll.type=fFlag.type='button';seg.append(fAll,fFlag);filesHead.append(seg);\n const search=h('input','file-search');search.type='search';search.placeholder='Search files and changed code';search.setAttribute('aria-label','Search files and changed code');\n const fileList=h('ul','files');filesSec.append(filesHead,fileList);\n filesSec.insertBefore(search,fileList);\n-rail.append(queueSec,filesSec);\n+const feedbackSec=h('section','feedback');\n+const feedbackHead=h('h2','eyebrow','Reviewer feedback');\n+const feedbackNote=h('textarea','feedback-note');feedbackNote.rows=4;feedbackNote.maxLength=10000;\n+feedbackNote.placeholder='Add notes to include in the export';feedbackNote.setAttribute('aria-label','Reviewer notes');feedbackNote.value=reviewerNote;\n+feedbackNote.addEventListener('input',()=\u003e{reviewerNote=feedbackNote.value;persistNote()});\n+const feedbackHint=h('p','feedback-hint','Saved only in this browser for this commit.');\n+const feedbackActions=h('div','feedback-actions');\n+const mdExport=h('button','btn','Export Markdown'),jsonExport=h('button','btn','Export JSON');\n+mdExport.type=jsonExport.type='button';\n+feedbackActions.append(mdExport,jsonExport);feedbackSec.append(feedbackHead,feedbackNote,feedbackHint,feedbackActions);\n+rail.append(queueSec,filesSec,feedbackSec);\n let flaggedOnly=false;\n let searchQuery='';\n \n@@ -124,6 +138,25 @@ function paintQueue(){\n     const li=h('li');li.append(a);queue.append(li);\n   });\n }\n+const acknowledgedItems=()=\u003eitems.filter((it)=\u003eit.k!=='note'\u0026\u0026ack.has(it.ackId)).map((it)=\u003e({\n+  id:it.ackId,kind:it.k,path:it.path,line:it.line||0,title:it.title\n+}));\n+const feedbackData=()=\u003e({version:1,repository:report.repository||'',base:report.base||'',head:report.head||'',exportedAt:new Date().toISOString(),note:reviewerNote,acknowledgements:acknowledgedItems()});\n+const markdownText=(value)=\u003eString(value).replace(/[\\\\[\\]_*\u003c\u003e]/g,'\\\\$\u0026').replace(/`/g,\"'\");\n+const markdownFeedback=()=\u003e{\n+  const data=feedbackData(),out=['## px1 reviewer feedback','',`Commit: \\`${data.head}\\``,''];\n+  if(data.note.trim())out.push('### Notes','',data.note.trim(),'');\n+  out.push('### Acknowledgements','');\n+  if(!data.acknowledgements.length)out.push('_None._');\n+  else for(const item of data.acknowledgements)out.push(`- [x] ${markdownText(item.title)} — \\`${markdownText(item.path)}${item.line?':'+item.line:''}\\``);\n+  return out.join('\\n')+'\\n';\n+};\n+const downloadFeedback=(name,type,body)=\u003e{\n+  const url=URL.createObjectURL(new Blob([body],{type}));\n+  const a=h('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=\u003eURL.revokeObjectURL(url),30000);\n+};\n+mdExport.onclick=()=\u003edownloadFeedback(`px1-feedback-${short(report.head)}.md`,'text/markdown;charset=utf-8',markdownFeedback());\n+jsonExport.onclick=()=\u003edownloadFeedback(`px1-feedback-${short(report.head)}.json`,'application/json;charset=utf-8',JSON.stringify(feedbackData(),null,2)+'\\n');\n const stats=files.map((f)=\u003e{let a=0,d=0;for(const hk of f.hunks||[])for(const l of hk.lines||[]){if(l.kind==='added')a++;else if(l.kind==='removed')d++}return{a,d}});\n const searchable=files.map((f,i)=\u003e[f.path,...(f.hunks||[]).flatMap((hk)=\u003e(hk.lines||[]).map((l)=\u003el.text)),...items.filter((x)=\u003ex.fi===i).flatMap((x)=\u003e[x.title,x.why,x.ev])].join('\\n').toLowerCase());\n const fileVisible=(f,i)=\u003e{if(flaggedOnly\u0026\u0026!items.some((x)=\u003ex.fi===i))return false;return !searchQuery||searchable[i].includes(searchQuery)};\n",
+      "hunks": [
+        {
+          "id": "diff-52bcd78189156230",
+          "header": "@@ -19,9 +19,13 @@ const chipFor=(k)=\u003eh('span','chip '+CHIP[k],KIND[k]);",
+          "lines": [
+            {
+              "oldLine": 19,
+              "newLine": 19,
+              "kind": "context",
+              "text": "/* Acknowledgements live in this browser only. The key predates the redesign;"
+            },
+            {
+              "oldLine": 20,
+              "newLine": 20,
+              "kind": "context",
+              "text": "   keeping it means earlier acknowledgements still apply. */"
+            },
+            {
+              "oldLine": 21,
+              "newLine": 21,
+              "kind": "context",
+              "text": "const ackKey='px1:ack:'+report.repository+':'+report.head;"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "const noteKey='px1:note:'+report.repository+':'+report.head;"
+            },
+            {
+              "oldLine": 22,
+              "newLine": 23,
+              "kind": "context",
+              "text": "let ack=new Set();"
+            },
+            {
+              "oldLine": 23,
+              "newLine": 24,
+              "kind": "context",
+              "text": "try{const saved=JSON.parse(localStorage.getItem(ackKey)||'[]');if(Array.isArray(saved))ack=new Set(saved.filter((k)=\u003etypeof k==='string'))}catch{}"
+            },
+            {
+              "oldLine": 24,
+              "newLine": 25,
+              "kind": "context",
+              "text": "const persist=()=\u003e{try{localStorage.setItem(ackKey,JSON.stringify([...ack].sort()))}catch{}};"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "let reviewerNote='';"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "try{reviewerNote=localStorage.getItem(noteKey)||''}catch{}"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "const persistNote=()=\u003e{try{localStorage.setItem(noteKey,reviewerNote)}catch{}};"
+            },
+            {
+              "oldLine": 25,
+              "newLine": 29,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 26,
+              "newLine": 30,
+              "kind": "context",
+              "text": "/* One list of everything worth a reader's attention, anchored to a file. */"
+            },
+            {
+              "oldLine": 27,
+              "newLine": 31,
+              "kind": "context",
+              "text": "const items=[];"
+            }
+          ]
+        },
+        {
+          "id": "diff-fd771ecf542330c8",
+          "header": "@@ -108,7 +112,17 @@ fAll.type=fFlag.type='button';seg.append(fAll,fFlag);filesHead.append(seg);",
+          "lines": [
+            {
+              "oldLine": 108,
+              "newLine": 112,
+              "kind": "context",
+              "text": "const search=h('input','file-search');search.type='search';search.placeholder='Search files and changed code';search.setAttribute('aria-label','Search files and changed code');"
+            },
+            {
+              "oldLine": 109,
+              "newLine": 113,
+              "kind": "context",
+              "text": "const fileList=h('ul','files');filesSec.append(filesHead,fileList);"
+            },
+            {
+              "oldLine": 110,
+              "newLine": 114,
+              "kind": "context",
+              "text": "filesSec.insertBefore(search,fileList);"
+            },
+            {
+              "oldLine": 111,
+              "kind": "removed",
+              "text": "rail.append(queueSec,filesSec);"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "const feedbackSec=h('section','feedback');"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "const feedbackHead=h('h2','eyebrow','Reviewer feedback');"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "const feedbackNote=h('textarea','feedback-note');feedbackNote.rows=4;feedbackNote.maxLength=10000;"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "feedbackNote.placeholder='Add notes to include in the export';feedbackNote.setAttribute('aria-label','Reviewer notes');feedbackNote.value=reviewerNote;"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "feedbackNote.addEventListener('input',()=\u003e{reviewerNote=feedbackNote.value;persistNote()});"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "const feedbackHint=h('p','feedback-hint','Saved only in this browser for this commit.');"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "const feedbackActions=h('div','feedback-actions');"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "const mdExport=h('button','btn','Export Markdown'),jsonExport=h('button','btn','Export JSON');"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "mdExport.type=jsonExport.type='button';"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "feedbackActions.append(mdExport,jsonExport);feedbackSec.append(feedbackHead,feedbackNote,feedbackHint,feedbackActions);"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "rail.append(queueSec,filesSec,feedbackSec);"
+            },
+            {
+              "oldLine": 112,
+              "newLine": 126,
+              "kind": "context",
+              "text": "let flaggedOnly=false;"
+            },
+            {
+              "oldLine": 113,
+              "newLine": 127,
+              "kind": "context",
+              "text": "let searchQuery='';"
+            },
+            {
+              "oldLine": 114,
+              "newLine": 128,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        },
+        {
+          "id": "diff-9e12cbbfe0707981",
+          "header": "@@ -124,6 +138,25 @@ function paintQueue(){",
+          "lines": [
+            {
+              "oldLine": 124,
+              "newLine": 138,
+              "kind": "context",
+              "text": "    const li=h('li');li.append(a);queue.append(li);"
+            },
+            {
+              "oldLine": 125,
+              "newLine": 139,
+              "kind": "context",
+              "text": "  });"
+            },
+            {
+              "oldLine": 126,
+              "newLine": 140,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "const acknowledgedItems=()=\u003eitems.filter((it)=\u003eit.k!=='note'\u0026\u0026ack.has(it.ackId)).map((it)=\u003e({"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "  id:it.ackId,kind:it.k,path:it.path,line:it.line||0,title:it.title"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "}));"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "const feedbackData=()=\u003e({version:1,repository:report.repository||'',base:report.base||'',head:report.head||'',exportedAt:new Date().toISOString(),note:reviewerNote,acknowledgements:acknowledgedItems()});"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "const markdownText=(value)=\u003eString(value).replace(/[\\\\[\\]_*\u003c\u003e]/g,'\\\\$\u0026').replace(/`/g,\"'\");"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "const markdownFeedback=()=\u003e{"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "  const data=feedbackData(),out=['## px1 reviewer feedback','',`Commit: \\`${data.head}\\``,''];"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "  if(data.note.trim())out.push('### Notes','',data.note.trim(),'');"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "  out.push('### Acknowledgements','');"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "  if(!data.acknowledgements.length)out.push('_None._');"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "  else for(const item of data.acknowledgements)out.push(`- [x] ${markdownText(item.title)} — \\`${markdownText(item.path)}${item.line?':'+item.line:''}\\``);"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "  return out.join('\\n')+'\\n';"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "};"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "const downloadFeedback=(name,type,body)=\u003e{"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "  const url=URL.createObjectURL(new Blob([body],{type}));"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "  const a=h('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=\u003eURL.revokeObjectURL(url),30000);"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "};"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "mdExport.onclick=()=\u003edownloadFeedback(`px1-feedback-${short(report.head)}.md`,'text/markdown;charset=utf-8',markdownFeedback());"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "jsonExport.onclick=()=\u003edownloadFeedback(`px1-feedback-${short(report.head)}.json`,'application/json;charset=utf-8',JSON.stringify(feedbackData(),null,2)+'\\n');"
+            },
+            {
+              "oldLine": 127,
+              "newLine": 160,
+              "kind": "context",
+              "text": "const stats=files.map((f)=\u003e{let a=0,d=0;for(const hk of f.hunks||[])for(const l of hk.lines||[]){if(l.kind==='added')a++;else if(l.kind==='removed')d++}return{a,d}});"
+            },
+            {
+              "oldLine": 128,
+              "newLine": 161,
+              "kind": "context",
+              "text": "const searchable=files.map((f,i)=\u003e[f.path,...(f.hunks||[]).flatMap((hk)=\u003e(hk.lines||[]).map((l)=\u003el.text)),...items.filter((x)=\u003ex.fi===i).flatMap((x)=\u003e[x.title,x.why,x.ev])].join('\\n').toLowerCase());"
+            },
+            {
+              "oldLine": 129,
+              "newLine": 162,
+              "kind": "context",
+              "text": "const fileVisible=(f,i)=\u003e{if(flaggedOnly\u0026\u0026!items.some((x)=\u003ex.fi===i))return false;return !searchQuery||searchable[i].includes(searchQuery)};"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-4171eb7071d7eeb6",
+      "title": "Report changes",
+      "summary": "5 related files share the \"report\" change signal.",
+      "paths": [
+        "README.md",
+        "browser-tests/report.test.mjs",
+        "export_render_test.go",
+        "static_report/report.css",
+        "static_report/report.js"
+      ]
+    }
+  ],
+  "ruleHits": [],
+  "explanations": [],
+  "attention": [
+    {
+      "id": "attention-5b6b6a184f73d3b4",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "export_render_test.go",
+      "line": 183,
+      "evidence": "func TestStaticReviewHTMLShipsReviewerFeedbackExport(t *testing.T) {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "981d5997297d09784a80516113d97a3ec5bd5de9",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/37813201035",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/37813201035/job/113435063291",
+        "startedAt": "2026-10-08T17:00:30Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/37813200432/job/113435056698",
+        "startedAt": "2026-10-08T17:00:27Z"
+      }
+    ]
+  }
+}
