@@ -18,15 +18,24 @@ and is never written to the report.
     base: ${{ github.event.pull_request.base.sha }}
     head: ${{ github.event.pull_request.head.sha }}
     explanation-model: your-model-name
+    explanation-exclude-globs: |
+      config/private/**
+      **/*.pem
   env:
     OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 ```
 
-The generator sends only the bounded Git diff to the Responses API, requests a
-strict JSON schema, and refuses incomplete, malformed, stale, or out-of-scope
-output. It never checks out or executes pull-request code. If no model is set,
+The generator sends only the bounded, non-excluded Git diff to the Responses
+API, requests a strict JSON schema, sets `store: false`, and refuses incomplete,
+malformed, stale, or out-of-scope output. Use `explanation-exclude-globs` for
+paths your team does not want sent to the model. It never checks out or executes
+pull-request code. If no model is set,
 the Action works without an API key and produces the normal diff-and-rules
 artifact.
+
+The exclusion affects only AI input. Excluded files still appear in the local
+static report, rules, and deterministic attention signals. Review the API
+provider's current data controls before enabling explanations for private code.
 
 ## Bring your own explanation file
 

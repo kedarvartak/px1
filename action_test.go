@@ -23,6 +23,8 @@ func TestArtifactActionKeepsRevisionInputsExplicit(t *testing.T) {
 		"PX1_EXPLANATION_MODEL: ${{ inputs.explanation-model }}",
 		"generate-explanations",
 		"OPENAI_API_KEY",
+		"PX1_EXPLANATION_EXCLUDE_GLOBS: ${{ inputs.explanation-exclude-globs }}",
+		"--exclude-glob \"$pattern\"",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("action.yml missing %q", want)
