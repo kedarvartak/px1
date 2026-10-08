@@ -93,3 +93,15 @@ func TestFilterExplanationDiffOmitsExcludedFiles(t *testing.T) {
 		t.Fatalf("included paths = %#v", paths)
 	}
 }
+
+func TestFilterExplanationDiffOmitsBinaryAndRenameOnlyFiles(t *testing.T) {
+	diff := "diff --git a/assets/private.png b/assets/private.png\nnew file mode 100644\nBinary files /dev/null and b/assets/private.png differ\n" +
+		"diff --git a/docs/private.md b/docs/public.md\nsimilarity index 100%\nrename from docs/private.md\nrename to docs/public.md\n"
+	filtered, err := filterExplanationDiff(diff, []string{"assets/**", "docs/**"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if filtered != "" {
+		t.Fatalf("filtered diff retained excluded metadata: %q", filtered)
+	}
+}

@@ -147,13 +147,27 @@ func explanationDiffPaths(diff string) []string {
 		if strings.TrimSpace(raw) == "" {
 			continue
 		}
-		path := staticDiffPath("diff --git " + raw)
+		path := explanationDiffBlockPath("diff --git " + raw)
 		if path != "" && !seen[path] {
 			seen[path] = true
 			paths = append(paths, path)
 		}
 	}
 	return paths
+}
+
+func explanationDiffBlockPath(block string) string {
+	if path := staticDiffPath(block); path != "" {
+		return path
+	}
+	// Binary and rename-only patches may not have ---/+++ headers. The diff
+	// header still gives us the destination path, which must be excluded too.
+	line := strings.SplitN(block, "\n", 2)[0]
+	fields := strings.Fields(line)
+	if len(fields) >= 4 && fields[0] == "diff" && fields[1] == "--git" {
+		return filepath.ToSlash(strings.TrimPrefix(fields[len(fields)-1], "b/"))
+	}
+	return ""
 }
 
 func filterExplanationDiff(diff string, excludeGlobs []string) (string, error) {
@@ -176,7 +190,7 @@ func filterExplanationDiff(diff string, excludeGlobs []string) (string, error) {
 			continue
 		}
 		block := "diff --git " + raw
-		path := staticDiffPath(block)
+		path := explanationDiffBlockPath(block)
 		if path != "" && matchesAnyGlob(compiled, path) {
 			continue
 		}
