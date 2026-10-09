@@ -1,8 +1,9 @@
 # Contributing to px1
 
-px1 generates a static review artifact for GitHub pull requests. Changes should
-help a reviewer understand a diff, verify a team rule, or trust the artifact's
-identity and delivery.
+px1 helps developers understand the code their agents wrote before merging.
+Changes should help a reviewer inspect behavior, challenge incorrect findings,
+examine unflagged changes, or understand the limits of the evidence. The static
+review artifact delivers that workflow.
 
 Before proposing work, read [the product vision](docs/PRODUCT_VISION.md). Local
 editors, local review sessions, self-hosted services, and SaaS features are out

@@ -1,14 +1,21 @@
 <div align="center">
   <img src="assets/px1-eclipse-orbital-banner.png" alt="px1" width="100%">
-  <h1>Understand the PR before you approve it</h1>
+  <h1>Understand the code your agent wrote before you merge it</h1>
 </div>
 
-px1 turns every GitHub pull request into a commit-pinned review artifact.
+px1 helps developers who delegate coding to agents inspect and understand the
+code they are about to merge.
 
-Push a PR. GitHub Actions generates a static report, publishes it through
-GitHub Pages, and adds one link to the PR. The reviewer opens that link to see
-readable diffs, concise explanations, CI context, risk signals, and violations
-of rules stored in the repository.
+The problem that started px1 was approving PRs based on AI reviews without
+reading the code. When an agent writes the implementation and another AI
+reviews it, the developer can miss both an incorrect finding and a real bug
+that nobody flagged.
+
+Push a PR. px1 gives you readable diffs, explanations beside the code, and
+explicit progress through every changed file. Automated findings and CI results
+provide evidence while you build your own understanding. GitHub Actions
+generates the static report for exact base and head commits; GitHub Pages
+publishes it and a PR comment links to it.
 
 px1 does not host a SaaS, start a local application, edit code, or replace
 GitHub review decisions. It creates context; approval and change requests stay
@@ -16,6 +23,8 @@ in GitHub.
 
 ## What reviewers get
 
+- Explicit file states: unreviewed, reviewed, or needs follow-up
+- Next-unreviewed navigation that includes code with no automated findings
 - Structured, line-numbered diffs grouped into reviewable blocks
 - Cross-file change groups that connect related routes, services, tests, and schemas
 - Fast file-and-code search for large pull requests
@@ -28,6 +37,22 @@ in GitHub.
 - A report URL pinned to the PR head SHA
 - Machine-readable `review.json` for agents and repository automation
 - Historical report links that remain valid after the PR changes
+
+## Review the code, including changes nobody flagged
+
+Open the report and follow **Next unreviewed file**. Inspect the diff and mark
+each file **Reviewed** or **Needs follow-up**; reopen it as **Unreviewed** at any
+time. The headline tracks these explicit marks separately from finding
+acknowledgements. Acknowledging a finding never marks its file reviewed.
+
+Progress stays in your browser for the repository and exact base/head comparison.
+A new comparison starts fresh. Scrolling does not mark anything reviewed, and
+your marks do not prove correctness or submit a GitHub approval. If browser
+storage is unavailable, the report says progress lasts only on the page.
+
+px1 works alongside existing coding agents and AI reviewers. Its focus is the
+human's understanding and decisions; AI explanations are optional. Confirm the
+current PR revision in GitHub before submitting your review.
 
 ## How it works
 
