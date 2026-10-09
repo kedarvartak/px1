@@ -4,6 +4,7 @@ const app=document.getElementById('app');
 const files=Array.isArray(report.files)?report.files:[];
 const blocks=Array.isArray(report.blocks)?report.blocks:[];
 const affectedFiles=Array.isArray(report.affectedFiles)?report.affectedFiles:[];
+const affectedAnalysis=report.affectedAnalysis||null;
 const ruleHits=Array.isArray(report.ruleHits)?report.ruleHits:[];
 const attention=Array.isArray(report.attention)?report.attention:[];
 const explanations=Array.isArray(report.explanations)?report.explanations:[];
@@ -109,7 +110,15 @@ for(const file of affectedFiles){
   }
   affectedList.append(li);
 }
-if(affectedFiles.length){affectedSec.append(affectedHead,affectedList);rail.append(affectedSec)}
+if(affectedFiles.length||affectedAnalysis?.truncated){
+  affectedSec.append(affectedHead,affectedList);
+  if(affectedAnalysis){
+    const coverage=h('p','affected-coverage',(affectedAnalysis.truncated?'Limited analysis: ':'Analysis: ')+affectedAnalysis.filesScanned+' of '+affectedAnalysis.candidatePaths+' unchanged candidate files read.');
+    affectedSec.append(coverage);
+    if(affectedAnalysis.truncated)for(const limit of affectedAnalysis.limits||[])affectedSec.append(h('p','affected-limit',limit+'.'));
+  }
+  rail.append(affectedSec);
+}
 const queueSec=h('section');const queueHead=h('h2','eyebrow','Review queue ');const queueCount=h('span','count');queueHead.append(queueCount);
 const queue=h('ul','queue');queueSec.append(queueHead,queue);
 const filesSec=h('section');const filesHead=h('h2','eyebrow','Files ');

@@ -21,17 +21,26 @@ type staticAffectedFile struct {
 	Evidence []staticAffectedEvidence `json:"evidence"`
 }
 
+type staticAffectedAnalysis struct {
+	RepositoryPaths int      `json:"repositoryPaths"`
+	CandidatePaths  int      `json:"candidatePaths"`
+	FilesScanned    int      `json:"filesScanned"`
+	BytesScanned    int64    `json:"bytesScanned"`
+	Truncated       bool     `json:"truncated"`
+	Limits          []string `json:"limits"`
+}
+
 type staticAffectedEvidence struct {
 	Kind        string `json:"kind"` // import, test, config, or dependency
 	ChangedPath string `json:"changedPath"`
 	Detail      string `json:"detail"`
 }
 
-var importReference = regexp.MustCompile(`(?m)(?:\bfrom\s+|\brequire\s*\(\s*|\bimport\s+(?:[^\n]*?\s+from\s+)?)["']([^"']+)["']`)
+var importReference = regexp.MustCompile(`^(?:import\s+(?:[^;]*?\s+from\s+)?|export\s+[^;]*?\s+from\s+|(?:const|let|var)\s+[^=]+?=\s*require\s*\(\s*|require\s*\(\s*)["']([^"']+)["']`)
 
 // affectedFileHints finds unchanged files that may deserve a follow-up look.
 // It reads bounded blobs from the pinned head commit and never executes them.
-func affectedFileHints(root, head string, changedFiles []staticReviewFile) ([]staticAffectedFile, error) {
+func affectedFileHints(root, head string, changedFiles []staticReviewFile) ([]staticAffectedFile, staticAffectedAnalysis, error) {
 	changed := make(map[string]bool, len(changedFiles))
 	changedPaths := make([]string, 0, len(changedFiles))
 	for _, file := range changedFiles {
@@ -42,19 +51,32 @@ func affectedFileHints(root, head string, changedFiles []staticReviewFile) ([]st
 
 	out, err := exec.Command("git", "-C", root, "ls-tree", "-r", "--name-only", "-z", head).Output()
 	if err != nil {
-		return nil, fmt.Errorf("list files for affected-file hints: %w", err)
+		return nil, staticAffectedAnalysis{}, fmt.Errorf("list files for affected-file hints: %w", err)
 	}
 	paths := strings.Split(strings.TrimRight(string(out), "\x00"), "\x00")
+	if len(paths) == 1 && paths[0] == "" {
+		paths = nil
+	}
+	analysis := staticAffectedAnalysis{RepositoryPaths: len(paths), Limits: []string{}}
 	if len(paths) > affectedMaxFiles {
+		analysis.Truncated = true
+		analysis.Limits = append(analysis.Limits, fmt.Sprintf("repository scan limited to the first %d paths", affectedMaxFiles))
 		paths = paths[:affectedMaxFiles]
 	}
 
 	byPath := map[string][]staticAffectedEvidence{}
+	hintsLimited := false
+	evidenceLimited := false
 	add := func(candidate string, evidence staticAffectedEvidence) {
-		if candidate == "" || changed[candidate] || len(byPath) >= affectedMaxHints && byPath[candidate] == nil {
+		if candidate == "" || changed[candidate] {
+			return
+		}
+		if len(byPath) >= affectedMaxHints && byPath[candidate] == nil {
+			hintsLimited = true
 			return
 		}
 		if len(byPath[candidate]) >= 8 {
+			evidenceLimited = true
 			return
 		}
 		for _, existing := range byPath[candidate] {
@@ -66,6 +88,7 @@ func affectedFileHints(root, head string, changedFiles []staticReviewFile) ([]st
 	}
 
 	remaining := int64(affectedMaxTotalBytes)
+	skippedContent := 0
 	for _, candidate := range paths {
 		if candidate == "" {
 			continue
@@ -79,22 +102,32 @@ func affectedFileHints(root, head string, changedFiles []staticReviewFile) ([]st
 				add(candidate, staticAffectedEvidence{Kind: "test", ChangedPath: changedPath, Detail: "test filename matches the changed source file"})
 			}
 			if isProjectConfig(candidate) && pathIsAncestor(path.Dir(candidate), changedPath) {
-				add(candidate, staticAffectedEvidence{Kind: "config", ChangedPath: changedPath, Detail: "configuration file applies to the changed file's directory"})
+				add(candidate, staticAffectedEvidence{Kind: "config", ChangedPath: changedPath, Detail: "configuration file is in an ancestor directory of the changed file"})
 			}
 			if dependencyPair(changedPath, candidate) {
-				add(candidate, staticAffectedEvidence{Kind: "dependency", ChangedPath: changedPath, Detail: "dependency manifest and lockfile should stay in sync"})
+				add(candidate, staticAffectedEvidence{Kind: "dependency", ChangedPath: changedPath, Detail: "dependency manifest and lockfile are paired in the same directory"})
 			}
 		}
-
-		content, ok, readErr := affectedBlob(root, head, candidate, &remaining)
-		if readErr != nil {
-			return nil, readErr
-		}
-		if !ok {
+		if !supportsImportHints(candidate) {
 			continue
 		}
+		analysis.CandidatePaths++
+
+		content, ok, reason, readErr := affectedBlob(root, head, candidate, &remaining)
+		if readErr != nil {
+			return nil, staticAffectedAnalysis{}, readErr
+		}
+		if !ok {
+			if reason != "" {
+				skippedContent++
+			}
+			continue
+		}
+		analysis.FilesScanned++
+		analysis.BytesScanned += int64(len(content))
+		targets := importTargets(candidate, string(content))
 		for _, changedPath := range changedPaths {
-			if importsChangedPath(candidate, string(content), changedPath) {
+			if targetsChangedPath(targets, changedPath) {
 				kind := "import"
 				detail := "imports the changed file"
 				if isTestPath(candidate) {
@@ -103,6 +136,18 @@ func affectedFileHints(root, head string, changedFiles []staticReviewFile) ([]st
 				add(candidate, staticAffectedEvidence{Kind: kind, ChangedPath: changedPath, Detail: detail})
 			}
 		}
+	}
+	if skippedContent > 0 {
+		analysis.Truncated = true
+		analysis.Limits = append(analysis.Limits, fmt.Sprintf("content unavailable for %d candidate paths because of binary or byte limits", skippedContent))
+	}
+	if hintsLimited {
+		analysis.Truncated = true
+		analysis.Limits = append(analysis.Limits, fmt.Sprintf("hint output limited to %d files", affectedMaxHints))
+	}
+	if evidenceLimited {
+		analysis.Truncated = true
+		analysis.Limits = append(analysis.Limits, "evidence output limited to 8 relationships per hinted file")
 	}
 
 	hints := make([]staticAffectedFile, 0, len(byPath))
@@ -117,28 +162,28 @@ func affectedFileHints(root, head string, changedFiles []staticReviewFile) ([]st
 	}
 	sort.Slice(hints, func(i, j int) bool { return hints[i].Path < hints[j].Path })
 	if hints == nil {
-		return []staticAffectedFile{}, nil
+		return []staticAffectedFile{}, analysis, nil
 	}
-	return hints, nil
+	return hints, analysis, nil
 }
 
-func affectedBlob(root, head, file string, remaining *int64) ([]byte, bool, error) {
+func affectedBlob(root, head, file string, remaining *int64) ([]byte, bool, string, error) {
 	size, err := gitBlobSize(root, head, file)
 	if err != nil {
-		return nil, false, err
+		return nil, false, "", err
 	}
 	if size > affectedMaxFileBytes || size > *remaining {
-		return nil, false, nil
+		return nil, false, "byte limit", nil
 	}
 	b, found, err := gitFileAtCommit(root, head, file)
 	if err != nil || !found {
-		return nil, false, err
+		return nil, false, "", err
 	}
 	if containsNUL(b) {
-		return nil, false, nil
+		return nil, false, "binary", nil
 	}
 	*remaining -= size
-	return b, true, nil
+	return b, true, "", nil
 }
 
 func gitBlobSize(root, rev, file string) (int64, error) {
@@ -153,11 +198,13 @@ func gitBlobSize(root, rev, file string) (int64, error) {
 	return size, nil
 }
 
-func importsChangedPath(importer, content, changed string) bool {
-	changedNoExt := strings.TrimSuffix(changed, path.Ext(changed))
-	changedNoExt = strings.TrimSuffix(changedNoExt, "/index")
-	changedDir := path.Dir(changed)
-	for _, match := range importReference.FindAllStringSubmatch(content, -1) {
+func importTargets(importer, content string) []string {
+	targets := make([]string, 0)
+	for _, line := range strings.Split(content, "\n") {
+		match := importReference.FindStringSubmatch(strings.TrimSpace(line))
+		if match == nil {
+			continue
+		}
 		spec := strings.TrimSuffix(match[1], path.Ext(match[1]))
 		var target string
 		if strings.HasPrefix(spec, ".") {
@@ -166,7 +213,25 @@ func importsChangedPath(importer, content, changed string) bool {
 			target = strings.TrimPrefix(strings.ReplaceAll(spec, ".", "/"), "/")
 		}
 		target = strings.TrimSuffix(target, "/index")
-		if target == changedNoExt || (changedDir != "." && strings.HasSuffix(target, "/"+changedDir)) {
+		targets = append(targets, target)
+	}
+	return targets
+}
+
+func supportsImportHints(file string) bool {
+	switch strings.ToLower(path.Ext(file)) {
+	case ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts":
+		return true
+	default:
+		return false
+	}
+}
+
+func targetsChangedPath(targets []string, changed string) bool {
+	changedNoExt := strings.TrimSuffix(changed, path.Ext(changed))
+	changedNoExt = strings.TrimSuffix(changedNoExt, "/index")
+	for _, target := range targets {
+		if target == changedNoExt {
 			return true
 		}
 	}
@@ -188,7 +253,9 @@ func companionStem(file string) string {
 
 func isProjectConfig(file string) bool {
 	base := strings.ToLower(path.Base(file))
-	return strings.HasPrefix(base, "tsconfig") || strings.HasPrefix(base, ".eslintrc") || strings.HasPrefix(base, "vite.config.") || strings.HasPrefix(base, "webpack.config.") || base == "dockerfile" || base == "compose.yml" || base == "compose.yaml"
+	return base == "tsconfig.json" || strings.HasPrefix(base, "tsconfig.") && strings.HasSuffix(base, ".json") ||
+		base == ".eslintrc" || strings.HasPrefix(base, ".eslintrc.") || strings.HasPrefix(base, "vite.config.") ||
+		strings.HasPrefix(base, "webpack.config.") || base == "dockerfile" || base == "compose.yml" || base == "compose.yaml"
 }
 
 func pathIsAncestor(dir, file string) bool {
