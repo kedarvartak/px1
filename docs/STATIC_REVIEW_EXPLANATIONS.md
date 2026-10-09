@@ -1,5 +1,9 @@
 # Static review explanations
 
+Explanations help a human understand agent-written code before merging. They
+should lead the reviewer back to inspectable code, and never mark a file
+reviewed or imply that an unmentioned change is safe.
+
 px1 can add short, expandable AI explanation chips to a static PR review
 report. You can let the reusable Action generate them with OpenAI, or provide
 the same provider-neutral JSON from another generator. In both cases,

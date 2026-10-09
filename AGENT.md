@@ -1,5 +1,10 @@
 # Agent guidance
 
+px1 helps developers understand the code their agents wrote before merging.
+Prioritize human inspection and decisions, including code without findings.
+Keep file-review progress independent of automated finding acknowledgements;
+neither is proof of correctness or a GitHub approval.
+
 px1 has one product flow: GitHub Actions generates a commit-pinned static
 review artifact, GitHub Pages serves it, and a PR comment links to it.
 

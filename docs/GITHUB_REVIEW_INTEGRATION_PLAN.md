@@ -1,5 +1,8 @@
 # GitHub review artifact architecture
 
+px1 helps developers understand the code their agents wrote before merging.
+This architecture delivers inspectable code and evidence for that human review.
+
 ## Supported flow
 
 px1 supports one delivery path:
@@ -52,6 +55,20 @@ signals, verification results, and optional explanations.
 - Reviewer acknowledgement is browser-local progress, not approval.
 
 GitHub remains the authority for comments, requested changes, and approval.
+
+## Human review progress contract
+
+Every changed file has one explicit state: `unreviewed`, `reviewed`, or
+`follow-up`. States are browser-local entries under `px1:file-review:` followed
+by the JSON-encoded repository/base/head tuple. Only recognized states for paths
+in the current report are restored. Changing either revision starts a fresh
+comparison; generated HTML and `review.json` are never modified by review.
+
+Finding acknowledgements remain independent. Neither scrolling nor clearing
+findings marks a file reviewed. Next-unreviewed navigation includes unflagged
+files and clears search and flag filters to reveal its destination. A storage
+failure leaves progress usable in memory and displays its temporary nature.
+Review declarations are not attestations of comprehension or shared approvals.
 
 ## Deliberately unsupported
 

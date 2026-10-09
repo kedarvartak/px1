@@ -36,7 +36,7 @@ func main() {
 		fmt.Printf("px1 %s (%s/%s)\n", version, runtime.GOOS, runtime.GOARCH)
 		return
 	}
-	fmt.Fprintf(os.Stderr, "px1 %s - generate a commit-pinned PR review artifact\n\n", version)
+	fmt.Fprintf(os.Stderr, "px1 %s - understand the code your agent wrote before you merge it\n\n", version)
 	fmt.Fprintln(os.Stderr, "usage: px1 <export-review|generate-explanations|validate-rules> [options]")
 	os.Exit(2)
 }

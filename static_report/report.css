@@ -143,6 +143,10 @@ body.resizing{cursor:col-resize;user-select:none}
 .btn{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:2px 10px;font-size:var(--fs-small);font-weight:500}
 .btn:hover{border-color:var(--edge)}
 .btn[aria-pressed="true"]{color:var(--ok)}
+.btn:disabled{cursor:default;opacity:.5}
+.review-summary{margin:0 0 8px;font-size:var(--fs-small)}
+.review-hint{margin:8px 0 0;color:var(--dim);font-size:var(--fs-fine)}
+.review-state{max-width:100%;background:var(--canvas);color:var(--ink);border:1px solid var(--edge);border-radius:var(--r-md);padding:4px 8px;font:var(--fs-small) var(--sans)}
 
 .spine{position:sticky;top:var(--top-h,140px);height:calc(100vh - var(--top-h,140px) - 20px);border-radius:var(--r-sm);background:var(--well);overflow:hidden}
 .spine a{position:absolute;left:0;right:0;height:4px}

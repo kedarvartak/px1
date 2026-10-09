@@ -23,6 +23,24 @@ let ack=new Set();
 try{const saved=JSON.parse(localStorage.getItem(ackKey)||'[]');if(Array.isArray(saved))ack=new Set(saved.filter((k)=>typeof k==='string'))}catch{}
 const persist=()=>{try{localStorage.setItem(ackKey,JSON.stringify([...ack].sort()))}catch{}};
 
+/* Explicit human declarations are independent of automated findings. Include
+   both revisions: a different comparison must start a fresh review. */
+const reviewKey='px1:file-review:'+JSON.stringify([report.repository,report.base,report.head]);
+const reviewStates=new Map();
+const validPaths=new Set(files.map((f)=>f.path));
+let reviewStorageAvailable=true;
+try{
+  const saved=JSON.parse(localStorage.getItem(reviewKey)||'[]');
+  if(Array.isArray(saved))for(const entry of saved){
+    if(Array.isArray(entry)&&entry.length===2&&validPaths.has(entry[0])&&['reviewed','follow-up'].includes(entry[1]))reviewStates.set(entry[0],entry[1]);
+  }
+}catch{reviewStorageAvailable=false}
+const reviewState=(path)=>reviewStates.get(path)||'unreviewed';
+const persistReview=()=>{
+  try{localStorage.setItem(reviewKey,JSON.stringify([...reviewStates]));reviewStorageAvailable=true}
+  catch{reviewStorageAvailable=false}
+};
+
 /* One list of everything worth a reader's attention, anchored to a file. */
 const items=[];
 const fileIndex=new Map(files.map((f,i)=>[f.path,i]));
@@ -74,9 +92,11 @@ function paintTop(){
   const pending=checks.filter((c)=>c.status==='running'||c.status==='queued').length;
   const parts=[];
   h1.textContent='';
-  if(o.length)h1.textContent=plural(o.length,'place')+(o.length===1?' needs':' need')+' a decision';
-  else h1.textContent='Nothing open';
-  if(failing)h1.textContent+=(o.length?', and ':', but ')+plural(failing,'check')+(failing===1?' is':' are')+' failing';
+  const reviewed=files.filter((f)=>reviewState(f.path)==='reviewed').length;
+  const followUp=files.filter((f)=>reviewState(f.path)==='follow-up').length;
+  h1.textContent=files.length?reviewed+' of '+plural(files.length,'file')+' marked reviewed':'No changed files';
+  if(followUp)h1.textContent+=' · '+followUp+' need follow-up';
+  if(failing)h1.textContent+=' · '+plural(failing,'check')+' failing';
   verdict.textContent='';
   verdict.append(h('span','chip '+(rules?'chip-danger':''),plural(rules,'rule finding')));
   verdict.append(h('span','chip '+(attn?'chip-attention':''),plural(attn,'attention flag')));
@@ -99,7 +119,13 @@ for(const block of blocks){
   li.append(a);blockList.append(li);
 }
 if(blocks.length){blocksSec.append(blocksHead,blockList);rail.append(blocksSec)}
-const queueSec=h('section');const queueHead=h('h2','eyebrow','Review queue ');const queueCount=h('span','count');queueHead.append(queueCount);
+const progressSec=h('section','review-progress');
+progressSec.append(h('h2','eyebrow','Your code review'));
+const progressSummary=h('p','review-summary');progressSummary.setAttribute('role','status');
+const nextUnreviewed=h('button','btn','Next unreviewed file');nextUnreviewed.type='button';
+const progressHint=h('p','review-hint');
+progressSec.append(progressSummary,nextUnreviewed,progressHint);rail.append(progressSec);
+const queueSec=h('section');const queueHead=h('h2','eyebrow','Automated findings ');const queueCount=h('span','count');queueHead.append(queueCount);
 const queue=h('ul','queue');queueSec.append(queueHead,queue);
 const filesSec=h('section');const filesHead=h('h2','eyebrow','Files ');
 const seg=h('span','seg');seg.setAttribute('role','group');seg.setAttribute('aria-label','File filter');
@@ -116,7 +142,7 @@ const order={rule:0,attn:1,note:2};
 function paintQueue(){
   queue.textContent='';
   queueCount.textContent=open().length+' open';
-  if(!items.length){queue.append(h('p','empty','Nothing to review beyond the diff.'));return}
+  if(!items.length){queue.append(h('p','empty',files.length?'No automated findings. Changed code still needs your review.':'No automated findings.'));return}
   [...items].sort((a,b)=>order[a.k]-order[b.k]).forEach((it)=>{
     const a=h('a','qitem'+(it.k!=='note'&&ack.has(it.ackId)?' done':''));a.href='#'+it.id;
     const row=h('div','row');row.append(chipFor(it.k),h('span','t',it.title));
@@ -141,7 +167,8 @@ function paintFiles(){
     p.append(h('b',null,base));
     const m=h('span','m');
     for(const [kind,cls] of [['rule','r'],['attn','a'],['note','n']]){const n=mine.filter((x)=>x.k===kind).length;if(n)m.append(h('i','mark '+cls,n))}
-    link.append(p,m,h('span','delta','+'+stats[i].a+' −'+stats[i].d+' · '+(STATUS[f.status]||f.status)));
+    const stateLabel={unreviewed:'Unreviewed',reviewed:'Reviewed','follow-up':'Needs follow-up'}[reviewState(f.path)];
+    link.append(p,m,h('span','delta','+'+stats[i].a+' −'+stats[i].d+' · '+(STATUS[f.status]||f.status)+' · '+stateLabel));
     li.append(link);fileList.append(li);
   });
 }
@@ -149,6 +176,24 @@ const paintMainFilter=()=>document.querySelectorAll('.fsec').forEach((sec)=>{con
 fAll.onclick=()=>{flaggedOnly=false;paintFiles();paintMainFilter()};
 fFlag.onclick=()=>{flaggedOnly=true;paintFiles();paintMainFilter()};
 search.addEventListener('input',()=>{searchQuery=search.value.trim().toLowerCase();paintFiles();paintMainFilter()});
+let lastReviewIndex=-1;
+function paintProgress(){
+  const unread=files.filter((f)=>reviewState(f.path)==='unreviewed').length;
+  const followUp=files.filter((f)=>reviewState(f.path)==='follow-up').length;
+  progressSummary.textContent=unread+' unreviewed · '+followUp+' need follow-up';
+  nextUnreviewed.disabled=unread===0;
+  progressHint.textContent=(reviewStorageAvailable?'Saved in this browser for this comparison.':'Browser storage unavailable; progress lasts only on this page.')+' Your marks record review progress, not approval or proof of correctness.';
+}
+nextUnreviewed.onclick=()=>{
+  for(let offset=1;offset<=files.length;offset++){
+    const i=(lastReviewIndex+offset)%files.length;
+    if(reviewState(files[i].path)!=='unreviewed')continue;
+    lastReviewIndex=i;
+    flaggedOnly=false;searchQuery='';search.value='';paintFiles();paintMainFilter();
+    const section=document.getElementById('f'+i);section.focus({preventScroll:true});section.scrollIntoView();
+    break;
+  }
+};
 
 /* ---- diff ---- */
 function annotation(it,fileLevel){
@@ -189,11 +234,21 @@ addEventListener('hashchange',openNoteFromHash);
 const main=h('main','main');
 const renderedGroups=new Set();
 files.forEach((f,i)=>{
-  const sec=h('section','fsec');sec.id='f'+i;sec.dataset.fileIndex=String(i);
+  const sec=h('section','fsec');sec.id='f'+i;sec.dataset.fileIndex=String(i);sec.tabIndex=-1;sec.setAttribute('aria-label',f.path);
   const head=h('div','fhead');
   const group=blocks.find((block)=>block.paths.includes(f.path));
   if(group&&!renderedGroups.has(group.id)){const anchor=h('span');anchor.id=group.id;main.append(anchor);renderedGroups.add(group.id)}
   head.append(h('span','path',f.path),h('span','eyebrow',STATUS[f.status]||f.status),h('span','spacer'),h('span','mono muted','+'+stats[i].a+' −'+stats[i].d));
+  const state=h('select','review-state');state.setAttribute('aria-label','Review status for '+f.path);
+  for(const [value,label] of [['unreviewed','Unreviewed'],['reviewed','Reviewed'],['follow-up','Needs follow-up']]){
+    const option=h('option',null,label);option.value=value;state.append(option);
+  }
+  state.value=reviewState(f.path);
+  state.onchange=()=>{
+    if(state.value==='unreviewed')reviewStates.delete(f.path);else reviewStates.set(f.path,state.value);
+    lastReviewIndex=i;persistReview();paintTop();paintFiles();paintProgress();syncTop();
+  };
+  head.append(state);
   sec.append(head);
   const body=h('div','fbody');
   const mine=items.filter((x)=>x.fi===i);
@@ -293,11 +348,11 @@ handle.addEventListener('keydown',(e)=>{
   e.preventDefault();setRailWidth(next,true);settle();
 });
 addEventListener('resize',()=>setRailWidth(parseFloat(wrap.style.getPropertyValue('--rail-w'))||savedWidth,false));
-const foot=h('div','foot','Acknowledgements are saved in this browser only and apply to commit '+short(report.head)+'.');
+const foot=h('div','foot','File review progress and finding acknowledgements are independent and browser-local. This report is a snapshot of commit '+short(report.head)+'. Confirm the current PR revision before approving in GitHub.');
 app.textContent='';
 app.append(top,wrap,foot);
 setRailWidth(savedWidth,false);
-paintTop();paintQueue();paintFiles();syncTop();
+paintTop();paintQueue();paintFiles();paintProgress();syncTop();
 /* A deep link such as #ann-3 opens its note and scrolls to it once the page is built. */
 openNoteFromHash();
 if(location.hash.length>1)document.getElementById(location.hash.slice(1))?.scrollIntoView();
