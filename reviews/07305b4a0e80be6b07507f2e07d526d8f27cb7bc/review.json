@@ -1,0 +1,3243 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "efcc7679e607af1dd8ecfd5fc1a991bc25afe36c",
+  "head": "07305b4a0e80be6b07507f2e07d526d8f27cb7bc",
+  "generatedAt": "2026-10-09T10:43:45.350391442Z",
+  "files": [
+    {
+      "path": ".github/ISSUE_TEMPLATE/feature_request.md",
+      "status": "M",
+      "diff": "diff --git a/.github/ISSUE_TEMPLATE/feature_request.md b/.github/ISSUE_TEMPLATE/feature_request.md\nindex 9b2c2cf..482144a 100644\n--- a/.github/ISSUE_TEMPLATE/feature_request.md\n+++ b/.github/ISSUE_TEMPLATE/feature_request.md\n@@ -1,6 +1,6 @@\n ---\n name: Feature Request\n-about: Help reviewers understand PR changes and team-rule findings in px1 reports\n+about: Help developers understand agent-written code and make informed review decisions\n title: \"[FEATURE] \"\n labels: [\"enhancement\"]\n assignees: \"\"\n",
+      "hunks": [
+        {
+          "id": "diff-6756de289030ee55",
+          "header": "@@ -1,6 +1,6 @@",
+          "lines": [
+            {
+              "oldLine": 1,
+              "newLine": 1,
+              "kind": "context",
+              "text": "---"
+            },
+            {
+              "oldLine": 2,
+              "newLine": 2,
+              "kind": "context",
+              "text": "name: Feature Request"
+            },
+            {
+              "oldLine": 3,
+              "kind": "removed",
+              "text": "about: Help reviewers understand PR changes and team-rule findings in px1 reports"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "about: Help developers understand agent-written code and make informed review decisions"
+            },
+            {
+              "oldLine": 4,
+              "newLine": 4,
+              "kind": "context",
+              "text": "title: \"[FEATURE] \""
+            },
+            {
+              "oldLine": 5,
+              "newLine": 5,
+              "kind": "context",
+              "text": "labels: [\"enhancement\"]"
+            },
+            {
+              "oldLine": 6,
+              "newLine": 6,
+              "kind": "context",
+              "text": "assignees: \"\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "AGENT.md",
+      "status": "M",
+      "diff": "diff --git a/AGENT.md b/AGENT.md\nindex ad286f4..e52318b 100644\n--- a/AGENT.md\n+++ b/AGENT.md\n@@ -1,5 +1,10 @@\n # Agent guidance\n \n+px1 helps developers understand the code their agents wrote before merging.\n+Prioritize human inspection and decisions, including code without findings.\n+Keep file-review progress independent of automated finding acknowledgements;\n+neither is proof of correctness or a GitHub approval.\n+\n px1 has one product flow: GitHub Actions generates a commit-pinned static\n review artifact, GitHub Pages serves it, and a PR comment links to it.\n \n",
+      "hunks": [
+        {
+          "id": "diff-c24869a1cd635aec",
+          "header": "@@ -1,5 +1,10 @@",
+          "lines": [
+            {
+              "oldLine": 1,
+              "newLine": 1,
+              "kind": "context",
+              "text": "# Agent guidance"
+            },
+            {
+              "oldLine": 2,
+              "newLine": 2,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "px1 helps developers understand the code their agents wrote before merging."
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "Prioritize human inspection and decisions, including code without findings."
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "Keep file-review progress independent of automated finding acknowledgements;"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "neither is proof of correctness or a GitHub approval."
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 3,
+              "newLine": 8,
+              "kind": "context",
+              "text": "px1 has one product flow: GitHub Actions generates a commit-pinned static"
+            },
+            {
+              "oldLine": 4,
+              "newLine": 9,
+              "kind": "context",
+              "text": "review artifact, GitHub Pages serves it, and a PR comment links to it."
+            },
+            {
+              "oldLine": 5,
+              "newLine": 10,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "status": "M",
+      "diff": "diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md\nindex 38d5781..2b83880 100644\n--- a/CONTRIBUTING.md\n+++ b/CONTRIBUTING.md\n@@ -1,8 +1,9 @@\n # Contributing to px1\n \n-px1 generates a static review artifact for GitHub pull requests. Changes should\n-help a reviewer understand a diff, verify a team rule, or trust the artifact's\n-identity and delivery.\n+px1 helps developers understand the code their agents wrote before merging.\n+Changes should help a reviewer inspect behavior, challenge incorrect findings,\n+examine unflagged changes, or understand the limits of the evidence. The static\n+review artifact delivers that workflow.\n \n Before proposing work, read [the product vision](docs/PRODUCT_VISION.md). Local\n editors, local review sessions, self-hosted services, and SaaS features are out\n",
+      "hunks": [
+        {
+          "id": "diff-58c8d342727bd32f",
+          "header": "@@ -1,8 +1,9 @@",
+          "lines": [
+            {
+              "oldLine": 1,
+              "newLine": 1,
+              "kind": "context",
+              "text": "# Contributing to px1"
+            },
+            {
+              "oldLine": 2,
+              "newLine": 2,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 3,
+              "kind": "removed",
+              "text": "px1 generates a static review artifact for GitHub pull requests. Changes should"
+            },
+            {
+              "oldLine": 4,
+              "kind": "removed",
+              "text": "help a reviewer understand a diff, verify a team rule, or trust the artifact's"
+            },
+            {
+              "oldLine": 5,
+              "kind": "removed",
+              "text": "identity and delivery."
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "px1 helps developers understand the code their agents wrote before merging."
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "Changes should help a reviewer inspect behavior, challenge incorrect findings,"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "examine unflagged changes, or understand the limits of the evidence. The static"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "review artifact delivers that workflow."
+            },
+            {
+              "oldLine": 6,
+              "newLine": 7,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 7,
+              "newLine": 8,
+              "kind": "context",
+              "text": "Before proposing work, read [the product vision](docs/PRODUCT_VISION.md). Local"
+            },
+            {
+              "oldLine": 8,
+              "newLine": 9,
+              "kind": "context",
+              "text": "editors, local review sessions, self-hosted services, and SaaS features are out"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "README.md",
+      "status": "M",
+      "diff": "diff --git a/README.md b/README.md\nindex ef99878..c08ea1b 100644\n--- a/README.md\n+++ b/README.md\n@@ -1,14 +1,21 @@\n \u003cdiv align=\"center\"\u003e\n   \u003cimg src=\"assets/px1-eclipse-orbital-banner.png\" alt=\"px1\" width=\"100%\"\u003e\n-  \u003ch1\u003eUnderstand the PR before you approve it\u003c/h1\u003e\n+  \u003ch1\u003eUnderstand the code your agent wrote before you merge it\u003c/h1\u003e\n \u003c/div\u003e\n \n-px1 turns every GitHub pull request into a commit-pinned review artifact.\n+px1 helps developers who delegate coding to agents inspect and understand the\n+code they are about to merge.\n \n-Push a PR. GitHub Actions generates a static report, publishes it through\n-GitHub Pages, and adds one link to the PR. The reviewer opens that link to see\n-readable diffs, concise explanations, CI context, risk signals, and violations\n-of rules stored in the repository.\n+The problem that started px1 was approving PRs based on AI reviews without\n+reading the code. When an agent writes the implementation and another AI\n+reviews it, the developer can miss both an incorrect finding and a real bug\n+that nobody flagged.\n+\n+Push a PR. px1 gives you readable diffs, explanations beside the code, and\n+explicit progress through every changed file. Automated findings and CI results\n+provide evidence while you build your own understanding. GitHub Actions\n+generates the static report for exact base and head commits; GitHub Pages\n+publishes it and a PR comment links to it.\n \n px1 does not host a SaaS, start a local application, edit code, or replace\n GitHub review decisions. It creates context; approval and change requests stay\n@@ -16,6 +23,8 @@ in GitHub.\n \n ## What reviewers get\n \n+- Explicit file states: unreviewed, reviewed, or needs follow-up\n+- Next-unreviewed navigation that includes code with no automated findings\n - Structured, line-numbered diffs grouped into reviewable blocks\n - Cross-file change groups that connect related routes, services, tests, and schemas\n - Fast file-and-code search for large pull requests\n@@ -29,6 +38,22 @@ in GitHub.\n - Machine-readable `review.json` for agents and repository automation\n - Historical report links that remain valid after the PR changes\n \n+## Review the code, including changes nobody flagged\n+\n+Open the report and follow **Next unreviewed file**. Inspect the diff and mark\n+each file **Reviewed** or **Needs follow-up**; reopen it as **Unreviewed** at any\n+time. The headline tracks these explicit marks separately from finding\n+acknowledgements. Acknowledging a finding never marks its file reviewed.\n+\n+Progress stays in your browser for the repository and exact base/head comparison.\n+A new comparison starts fresh. Scrolling does not mark anything reviewed, and\n+your marks do not prove correctness or submit a GitHub approval. If browser\n+storage is unavailable, the report says progress lasts only on the page.\n+\n+px1 works alongside existing coding agents and AI reviewers. Its focus is the\n+human's understanding and decisions; AI explanations are optional. Confirm the\n+current PR revision in GitHub before submitting your review.\n+\n ## How it works\n \n ```text\n",
+      "hunks": [
+        {
+          "id": "diff-f43b7d1ebc992d37",
+          "header": "@@ -1,14 +1,21 @@",
+          "lines": [
+            {
+              "oldLine": 1,
+              "newLine": 1,
+              "kind": "context",
+              "text": "\u003cdiv align=\"center\"\u003e"
+            },
+            {
+              "oldLine": 2,
+              "newLine": 2,
+              "kind": "context",
+              "text": "  \u003cimg src=\"assets/px1-eclipse-orbital-banner.png\" alt=\"px1\" width=\"100%\"\u003e"
+            },
+            {
+              "oldLine": 3,
+              "kind": "removed",
+              "text": "  \u003ch1\u003eUnderstand the PR before you approve it\u003c/h1\u003e"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "  \u003ch1\u003eUnderstand the code your agent wrote before you merge it\u003c/h1\u003e"
+            },
+            {
+              "oldLine": 4,
+              "newLine": 4,
+              "kind": "context",
+              "text": "\u003c/div\u003e"
+            },
+            {
+              "oldLine": 5,
+              "newLine": 5,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 6,
+              "kind": "removed",
+              "text": "px1 turns every GitHub pull request into a commit-pinned review artifact."
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "px1 helps developers who delegate coding to agents inspect and understand the"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "code they are about to merge."
+            },
+            {
+              "oldLine": 7,
+              "newLine": 8,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 8,
+              "kind": "removed",
+              "text": "Push a PR. GitHub Actions generates a static report, publishes it through"
+            },
+            {
+              "oldLine": 9,
+              "kind": "removed",
+              "text": "GitHub Pages, and adds one link to the PR. The reviewer opens that link to see"
+            },
+            {
+              "oldLine": 10,
+              "kind": "removed",
+              "text": "readable diffs, concise explanations, CI context, risk signals, and violations"
+            },
+            {
+              "oldLine": 11,
+              "kind": "removed",
+              "text": "of rules stored in the repository."
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "The problem that started px1 was approving PRs based on AI reviews without"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "reading the code. When an agent writes the implementation and another AI"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "reviews it, the developer can miss both an incorrect finding and a real bug"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "that nobody flagged."
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "Push a PR. px1 gives you readable diffs, explanations beside the code, and"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "explicit progress through every changed file. Automated findings and CI results"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "provide evidence while you build your own understanding. GitHub Actions"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "generates the static report for exact base and head commits; GitHub Pages"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "publishes it and a PR comment links to it."
+            },
+            {
+              "oldLine": 12,
+              "newLine": 19,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 13,
+              "newLine": 20,
+              "kind": "context",
+              "text": "px1 does not host a SaaS, start a local application, edit code, or replace"
+            },
+            {
+              "oldLine": 14,
+              "newLine": 21,
+              "kind": "context",
+              "text": "GitHub review decisions. It creates context; approval and change requests stay"
+            }
+          ]
+        },
+        {
+          "id": "diff-5e240595e5a4938f",
+          "header": "@@ -16,6 +23,8 @@ in GitHub.",
+          "lines": [
+            {
+              "oldLine": 16,
+              "newLine": 23,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 17,
+              "newLine": 24,
+              "kind": "context",
+              "text": "## What reviewers get"
+            },
+            {
+              "oldLine": 18,
+              "newLine": 25,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "- Explicit file states: unreviewed, reviewed, or needs follow-up"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "- Next-unreviewed navigation that includes code with no automated findings"
+            },
+            {
+              "oldLine": 19,
+              "newLine": 28,
+              "kind": "context",
+              "text": "- Structured, line-numbered diffs grouped into reviewable blocks"
+            },
+            {
+              "oldLine": 20,
+              "newLine": 29,
+              "kind": "context",
+              "text": "- Cross-file change groups that connect related routes, services, tests, and schemas"
+            },
+            {
+              "oldLine": 21,
+              "newLine": 30,
+              "kind": "context",
+              "text": "- Fast file-and-code search for large pull requests"
+            }
+          ]
+        },
+        {
+          "id": "diff-4b3fd84dc13501a7",
+          "header": "@@ -29,6 +38,22 @@ in GitHub.",
+          "lines": [
+            {
+              "oldLine": 29,
+              "newLine": 38,
+              "kind": "context",
+              "text": "- Machine-readable `review.json` for agents and repository automation"
+            },
+            {
+              "oldLine": 30,
+              "newLine": 39,
+              "kind": "context",
+              "text": "- Historical report links that remain valid after the PR changes"
+            },
+            {
+              "oldLine": 31,
+              "newLine": 40,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "## Review the code, including changes nobody flagged"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "Open the report and follow **Next unreviewed file**. Inspect the diff and mark"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "each file **Reviewed** or **Needs follow-up**; reopen it as **Unreviewed** at any"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "time. The headline tracks these explicit marks separately from finding"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "acknowledgements. Acknowledging a finding never marks its file reviewed."
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "Progress stays in your browser for the repository and exact base/head comparison."
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "A new comparison starts fresh. Scrolling does not mark anything reviewed, and"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "your marks do not prove correctness or submit a GitHub approval. If browser"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "storage is unavailable, the report says progress lasts only on the page."
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "px1 works alongside existing coding agents and AI reviewers. Its focus is the"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "human's understanding and decisions; AI explanations are optional. Confirm the"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "current PR revision in GitHub before submitting your review."
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 32,
+              "newLine": 57,
+              "kind": "context",
+              "text": "## How it works"
+            },
+            {
+              "oldLine": 33,
+              "newLine": 58,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 34,
+              "newLine": 59,
+              "kind": "context",
+              "text": "```text"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/ROADMAP.md b/ROADMAP.md\nindex 39acb8c..122e7ee 100644\n--- a/ROADMAP.md\n+++ b/ROADMAP.md\n@@ -1,5 +1,12 @@\n # px1 roadmap\n \n+Understand the code your agent wrote before you merge it.\n+\n+Our public-launch priority is meaningful human inspection after delegating\n+coding to an agent. Acknowledging AI findings is insufficient: reviewers need\n+to challenge incorrect findings and inspect code with no findings. The roadmap\n+prioritizes that outcome over expanding automated detection.\n+\n px1 has one product flow:\n \n ```text\n@@ -30,23 +37,64 @@ accounts, and a managed SaaS are outside the product.\n - [x] `validate-rules` CLI for repository policy checks\n - [x] Immutable release workflow for the `v1` Action tag\n \n-## Next priorities\n-\n-1. **Reviewer feedback export.** Let reviewers export local acknowledgements and\n-   notes as Markdown or JSON that can be pasted into the GitHub PR. Keep the\n-   report static; do not introduce a backend or pretend browser-local state is\n-   shared.\n-2. **Explainable affected-file hints.** Add deterministic import, test, config,\n-   and dependency evidence for nearby files without mixing suggestions into the\n-   mandatory changed-file queue.\n-3. **PR summary improvements.** Add concise finding counts, rule highlights,\n-   verification state, and the commit-pinned artifact link to the sticky comment.\n-4. **Privacy and integrity hardening.** Add optional redaction checks, artifact\n-   checksums, and clearer warnings before publishing reports or sending diffs to\n-   an external model.\n-5. **Rule analysis depth.** Extend block rules with safe language-aware\n-   structural checks while keeping deterministic text fallbacks and bounded\n-   performance.\n+## Public v1 launch priorities\n+\n+The existing `v1` Action tag identifies a release; this checklist governs the\n+broader public product launch. It does not imply every item is already shipped.\n+\n+1. [x] **Explicit human review progress (implemented in this change).** Every\n+   changed file has unreviewed, reviewed, and needs-follow-up states, including\n+   files with no findings. Next-unreviewed navigation works across filters.\n+   Headline progress is independent of finding acknowledgements. Marks are\n+   deliberate, browser-local declarations scoped to repository/base/head;\n+   scrolling never marks code reviewed, and marks never imply approval.\n+2. [ ] **Behavioral understanding beside the code.** Explain important behavior\n+   changes with concrete inspection questions and links to the relevant diff,\n+   tests, or related files. Distinguish observed evidence from inferred intent.\n+   Start with a small useful set, without requiring general-purpose chat.\n+3. [ ] **Transparent evidence and limitations.** Separate human review progress,\n+   automated analysis, AI explanations, and CI results. Surface skipped and\n+   truncated analysis, missing verification, and the revision represented by\n+   each source. An empty findings list must not imply safety. A static snapshot\n+   must not claim to know the current live PR head.\n+4. [ ] **Safe private-code delivery and publication.** Provide an access-appropriate\n+   delivery path, such as downloadable Actions artifacts, before positioning\n+   px1 for private repositories. Public Pages publication must be deliberate.\n+   Add redaction checks, clear model-transfer warnings, and checksums; redaction\n+   is not access control and checksums alone do not prove authorship.\n+5. [ ] **Demonstrate and measure the original problem.** Demo one misleading\n+   automated finding and one meaningful unflagged problem, showing the evidence\n+   a person uses to decide. Run a pilot with roughly 5–10 agent-heavy developers\n+   on comparable changes. Compare comprehension, correct decisions, and time\n+   against their existing workflow. Click counts alone are not a success metric.\n+\n+## Supporting work already proposed\n+\n+- **Reviewer feedback export — [PR #134](https://github.com/kedarvartak/px1/pull/134).**\n+  Export local notes and acknowledgements as Markdown or JSON. Follow up by\n+  including file-review progress and unresolved follow-ups; keep the distinction\n+  between local declarations and shared GitHub review explicit.\n+- **Explainable affected-file hints — [PR #135](https://github.com/kedarvartak/px1/pull/135).**\n+  Keep suggestions separate from changed files, verify the evidence, and make\n+  related code inspectable. Suggestions alone do not establish impact.\n+- **PR summary improvements — [PR #136](https://github.com/kedarvartak/px1/pull/136).**\n+  Summarize findings and verification with the artifact link. Keep the comment\n+  an invitation to inspect code, avoiding approval-like conclusions.\n+\n+## After launch\n+\n+- **Rule analysis depth.** Safe language-aware structural checks beyond text and\n+  block matching, with bounded performance and explicit limitations. Advance\n+  this only for a concrete reviewer or pilot need; it is not a launch gate.\n+- **Review workflow refinement.** Improve explanations, context navigation, and\n+  feedback handoff using pilot evidence about comprehension and decisions.\n+\n+## Positioning and success\n+\n+AI plus human review is an established category, not an exclusive moat. px1's\n+focus is a portable, optional-AI workflow that helps people understand changes\n+from their existing agents. A durable advantage must come from demonstrated\n+review outcomes and repeated use. See [the product vision](docs/PRODUCT_VISION.md).\n \n The old local review sessions, agent editing, verification commands, activity\n feeds, and external-agent issues were retired with the local application and\n",
+      "hunks": [
+        {
+          "id": "diff-d30046b632184ad0",
+          "header": "@@ -1,5 +1,12 @@",
+          "lines": [
+            {
+              "oldLine": 1,
+              "newLine": 1,
+              "kind": "context",
+              "text": "# px1 roadmap"
+            },
+            {
+              "oldLine": 2,
+              "newLine": 2,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "Understand the code your agent wrote before you merge it."
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "Our public-launch priority is meaningful human inspection after delegating"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "coding to an agent. Acknowledging AI findings is insufficient: reviewers need"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "to challenge incorrect findings and inspect code with no findings. The roadmap"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "prioritizes that outcome over expanding automated detection."
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 3,
+              "newLine": 10,
+              "kind": "context",
+              "text": "px1 has one product flow:"
+            },
+            {
+              "oldLine": 4,
+              "newLine": 11,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 5,
+              "newLine": 12,
+              "kind": "context",
+              "text": "```text"
+            }
+          ]
+        },
+        {
+          "id": "diff-4d5bd0a46249e480",
+          "header": "@@ -30,23 +37,64 @@ accounts, and a managed SaaS are outside the product.",
+          "lines": [
+            {
+              "oldLine": 30,
+              "newLine": 37,
+              "kind": "context",
+              "text": "- [x] `validate-rules` CLI for repository policy checks"
+            },
+            {
+              "oldLine": 31,
+              "newLine": 38,
+              "kind": "context",
+              "text": "- [x] Immutable release workflow for the `v1` Action tag"
+            },
+            {
+              "oldLine": 32,
+              "newLine": 39,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 33,
+              "kind": "removed",
+              "text": "## Next priorities"
+            },
+            {
+              "oldLine": 34,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 35,
+              "kind": "removed",
+              "text": "1. **Reviewer feedback export.** Let reviewers export local acknowledgements and"
+            },
+            {
+              "oldLine": 36,
+              "kind": "removed",
+              "text": "   notes as Markdown or JSON that can be pasted into the GitHub PR. Keep the"
+            },
+            {
+              "oldLine": 37,
+              "kind": "removed",
+              "text": "   report static; do not introduce a backend or pretend browser-local state is"
+            },
+            {
+              "oldLine": 38,
+              "kind": "removed",
+              "text": "   shared."
+            },
+            {
+              "oldLine": 39,
+              "kind": "removed",
+              "text": "2. **Explainable affected-file hints.** Add deterministic import, test, config,"
+            },
+            {
+              "oldLine": 40,
+              "kind": "removed",
+              "text": "   and dependency evidence for nearby files without mixing suggestions into the"
+            },
+            {
+              "oldLine": 41,
+              "kind": "removed",
+              "text": "   mandatory changed-file queue."
+            },
+            {
+              "oldLine": 42,
+              "kind": "removed",
+              "text": "3. **PR summary improvements.** Add concise finding counts, rule highlights,"
+            },
+            {
+              "oldLine": 43,
+              "kind": "removed",
+              "text": "   verification state, and the commit-pinned artifact link to the sticky comment."
+            },
+            {
+              "oldLine": 44,
+              "kind": "removed",
+              "text": "4. **Privacy and integrity hardening.** Add optional redaction checks, artifact"
+            },
+            {
+              "oldLine": 45,
+              "kind": "removed",
+              "text": "   checksums, and clearer warnings before publishing reports or sending diffs to"
+            },
+            {
+              "oldLine": 46,
+              "kind": "removed",
+              "text": "   an external model."
+            },
+            {
+              "oldLine": 47,
+              "kind": "removed",
+              "text": "5. **Rule analysis depth.** Extend block rules with safe language-aware"
+            },
+            {
+              "oldLine": 48,
+              "kind": "removed",
+              "text": "   structural checks while keeping deterministic text fallbacks and bounded"
+            },
+            {
+              "oldLine": 49,
+              "kind": "removed",
+              "text": "   performance."
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "## Public v1 launch priorities"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "The existing `v1` Action tag identifies a release; this checklist governs the"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "broader public product launch. It does not imply every item is already shipped."
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "1. [x] **Explicit human review progress (implemented in this change).** Every"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "   changed file has unreviewed, reviewed, and needs-follow-up states, including"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "   files with no findings. Next-unreviewed navigation works across filters."
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "   Headline progress is independent of finding acknowledgements. Marks are"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "   deliberate, browser-local declarations scoped to repository/base/head;"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "   scrolling never marks code reviewed, and marks never imply approval."
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "2. [ ] **Behavioral understanding beside the code.** Explain important behavior"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "   changes with concrete inspection questions and links to the relevant diff,"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "   tests, or related files. Distinguish observed evidence from inferred intent."
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "   Start with a small useful set, without requiring general-purpose chat."
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "3. [ ] **Transparent evidence and limitations.** Separate human review progress,"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "   automated analysis, AI explanations, and CI results. Surface skipped and"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "   truncated analysis, missing verification, and the revision represented by"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "   each source. An empty findings list must not imply safety. A static snapshot"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "   must not claim to know the current live PR head."
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "4. [ ] **Safe private-code delivery and publication.** Provide an access-appropriate"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "   delivery path, such as downloadable Actions artifacts, before positioning"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "   px1 for private repositories. Public Pages publication must be deliberate."
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "   Add redaction checks, clear model-transfer warnings, and checksums; redaction"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "   is not access control and checksums alone do not prove authorship."
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "5. [ ] **Demonstrate and measure the original problem.** Demo one misleading"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "   automated finding and one meaningful unflagged problem, showing the evidence"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "   a person uses to decide. Run a pilot with roughly 5–10 agent-heavy developers"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "   on comparable changes. Compare comprehension, correct decisions, and time"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "   against their existing workflow. Click counts alone are not a success metric."
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "## Supporting work already proposed"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "- **Reviewer feedback export — [PR #134](https://github.com/kedarvartak/px1/pull/134).**"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "  Export local notes and acknowledgements as Markdown or JSON. Follow up by"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "  including file-review progress and unresolved follow-ups; keep the distinction"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "  between local declarations and shared GitHub review explicit."
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "- **Explainable affected-file hints — [PR #135](https://github.com/kedarvartak/px1/pull/135).**"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "  Keep suggestions separate from changed files, verify the evidence, and make"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "  related code inspectable. Suggestions alone do not establish impact."
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "- **PR summary improvements — [PR #136](https://github.com/kedarvartak/px1/pull/136).**"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "  Summarize findings and verification with the artifact link. Keep the comment"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "  an invitation to inspect code, avoiding approval-like conclusions."
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "## After launch"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "- **Rule analysis depth.** Safe language-aware structural checks beyond text and"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "  block matching, with bounded performance and explicit limitations. Advance"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "  this only for a concrete reviewer or pilot need; it is not a launch gate."
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "- **Review workflow refinement.** Improve explanations, context navigation, and"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "  feedback handoff using pilot evidence about comprehension and decisions."
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "## Positioning and success"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "AI plus human review is an established category, not an exclusive moat. px1's"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "focus is a portable, optional-AI workflow that helps people understand changes"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "from their existing agents. A durable advantage must come from demonstrated"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "review outcomes and repeated use. See [the product vision](docs/PRODUCT_VISION.md)."
+            },
+            {
+              "oldLine": 50,
+              "newLine": 98,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 51,
+              "newLine": 99,
+              "kind": "context",
+              "text": "The old local review sessions, agent editing, verification commands, activity"
+            },
+            {
+              "oldLine": 52,
+              "newLine": 100,
+              "kind": "context",
+              "text": "feeds, and external-agent issues were retired with the local application and"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "action.yml",
+      "status": "M",
+      "diff": "diff --git a/action.yml b/action.yml\nindex 8de5e84..b30f986 100644\n--- a/action.yml\n+++ b/action.yml\n@@ -1,5 +1,5 @@\n name: px1 PR review artifact\n-description: Generate a commit-pinned px1 review report from two Git revisions.\n+description: Understand the code your agent wrote before you merge it, with a static report for human review.\n author: px1\n \n inputs:\n",
+      "hunks": [
+        {
+          "id": "diff-f7e7d0608232631f",
+          "header": "@@ -1,5 +1,5 @@",
+          "lines": [
+            {
+              "oldLine": 1,
+              "newLine": 1,
+              "kind": "context",
+              "text": "name: px1 PR review artifact"
+            },
+            {
+              "oldLine": 2,
+              "kind": "removed",
+              "text": "description: Generate a commit-pinned px1 review report from two Git revisions."
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "description: Understand the code your agent wrote before you merge it, with a static report for human review."
+            },
+            {
+              "oldLine": 3,
+              "newLine": 3,
+              "kind": "context",
+              "text": "author: px1"
+            },
+            {
+              "oldLine": 4,
+              "newLine": 4,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 5,
+              "newLine": 5,
+              "kind": "context",
+              "text": "inputs:"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "browser-tests/report.test.mjs",
+      "status": "M",
+      "diff": "diff --git a/browser-tests/report.test.mjs b/browser-tests/report.test.mjs\nindex 9d00e2d..b91b5b8 100644\n--- a/browser-tests/report.test.mjs\n+++ b/browser-tests/report.test.mjs\n@@ -92,3 +92,85 @@ test('search narrows both navigation and visible diffs',async()=\u003e{\n   assert.match(await page.locator('.fsec:visible .path').textContent(),/orders\\.ts/);\n   await page.close();\n });\n+\n+function reportVariant(update){\n+  return reportHTML.replace(/(\u003cscript type=\"application\\/json\" id=\"report-data\"\u003e)([\\s\\S]*?)(\u003c\\/script\u003e)/,(_,start,json,end)=\u003e{\n+    const data=JSON.parse(json);update(data);\n+    return start+JSON.stringify(data).replace(/\u003c/g,'\\\\u003c')+end;\n+  });\n+}\n+\n+test('human review includes unflagged files and stays independent of findings',async()=\u003e{\n+  const page=await browser.newPage();\n+  await page.setContent(reportHTML);\n+  assert.match(await page.locator('h1').textContent(),/^0 of 2 files marked reviewed/);\n+  // Acknowledging every generated finding must never complete the code review.\n+  await page.locator('.ann .act').evaluateAll((buttons)=\u003ebuttons.forEach((button)=\u003ebutton.click()));\n+  assert.match(await page.locator('h1').textContent(),/^0 of 2 files marked reviewed/);\n+  assert.equal(await page.locator('.queue .qitem:not(.done)').count(),0);\n+  await page.getByRole('button',{name:/^Flagged \\d+$/}).click();\n+  await page.getByRole('searchbox').fill('order-2499');\n+  await page.getByRole('button',{name:'Next unreviewed file'}).click();\n+  assert.equal(await page.getByRole('searchbox').inputValue(),'');\n+  assert.equal(await page.locator('.fsec:visible').count(),2);\n+  assert.equal(await page.evaluate(()=\u003edocument.activeElement.getAttribute('aria-label')),'README.md');\n+  const readme=page.getByRole('combobox',{name:'Review status for README.md',exact:true});\n+  await readme.selectOption('reviewed');\n+  assert.match(await page.locator('h1').textContent(),/^1 of 2 files marked reviewed/);\n+  await page.getByRole('button',{name:'Next unreviewed file'}).click();\n+  assert.equal(await page.evaluate(()=\u003edocument.activeElement.getAttribute('aria-label')),'src/orders.ts');\n+  await page.getByRole('combobox',{name:'Review status for src/orders.ts',exact:true}).selectOption('follow-up');\n+  assert.match(await page.locator('h1').textContent(),/1 of 2 files marked reviewed · 1 need follow-up/);\n+  assert.equal(await page.getByRole('button',{name:'Next unreviewed file'}).isDisabled(),true);\n+  await readme.selectOption('unreviewed');\n+  assert.equal(await page.getByRole('button',{name:'Next unreviewed file'}).isEnabled(),true);\n+  await page.close();\n+});\n+\n+test('a report with no findings still starts with every file unreviewed',async()=\u003e{\n+  const page=await browser.newPage();\n+  await page.setContent(reportVariant((data)=\u003e{data.ruleHits=[];data.attention=[];data.explanations=[]}));\n+  assert.match(await page.locator('h1').textContent(),/^0 of 2 files marked reviewed/);\n+  assert.equal(await page.getByText('No automated findings. Changed code still needs your review.',{exact:true}).count(),1);\n+  await page.locator('.fsec').last().scrollIntoViewIfNeeded();\n+  assert.match(await page.locator('h1').textContent(),/^0 of 2 files marked reviewed/);\n+  await page.close();\n+});\n+\n+test('file review persists only for the same repository and revision pair',async()=\u003e{\n+  const context=await browser.newContext();\n+  const page=await context.newPage();\n+  let currentHTML=reportHTML;\n+  await page.route('https://px1.test/**',(route)=\u003eroute.fulfill({contentType:'text/html',body:currentHTML}));\n+  await page.goto('https://px1.test/report');\n+  const state=()=\u003epage.getByRole('combobox',{name:'Review status for README.md',exact:true});\n+  await state().selectOption('reviewed');\n+  await page.reload();\n+  assert.equal(await state().inputValue(),'reviewed');\n+  for(const field of ['repository','base','head']){\n+    currentHTML=reportVariant((data)=\u003e{data[field]+='-different'});\n+    await page.reload();\n+    assert.equal(await state().inputValue(),'unreviewed',field+' must isolate progress');\n+  }\n+  currentHTML=reportHTML;await page.reload();\n+  assert.equal(await state().inputValue(),'reviewed');\n+  await context.close();\n+});\n+\n+test('invalid stored states are ignored and storage failure keeps review usable',async()=\u003e{\n+  const context=await browser.newContext();\n+  const page=await context.newPage();\n+  await page.route('https://px1.test/**',(route)=\u003eroute.fulfill({contentType:'text/html',body:reportHTML}));\n+  await page.goto('https://px1.test/report');\n+  await page.evaluate(()=\u003e{\n+    const data=JSON.parse(document.getElementById('report-data').textContent);\n+    localStorage.setItem('px1:file-review:'+JSON.stringify([data.repository,data.base,data.head]),JSON.stringify([['README.md','approved'],['missing.ts','reviewed'],null]));\n+  });\n+  await page.reload();\n+  assert.match(await page.locator('h1').textContent(),/^0 of 2 files marked reviewed/);\n+  await page.evaluate(()=\u003e{Storage.prototype.setItem=()=\u003e{throw new Error('storage disabled')}});\n+  await page.getByRole('combobox',{name:'Review status for README.md',exact:true}).selectOption('reviewed');\n+  assert.match(await page.locator('h1').textContent(),/^1 of 2 files marked reviewed/);\n+  assert.match(await page.locator('.review-hint').textContent(),/storage unavailable; progress lasts only on this page/);\n+  await context.close();\n+});\n",
+      "hunks": [
+        {
+          "id": "diff-6c6958d551c182d4",
+          "header": "@@ -92,3 +92,85 @@ test('search narrows both navigation and visible diffs',async()=\u003e{",
+          "lines": [
+            {
+              "oldLine": 92,
+              "newLine": 92,
+              "kind": "context",
+              "text": "  assert.match(await page.locator('.fsec:visible .path').textContent(),/orders\\.ts/);"
+            },
+            {
+              "oldLine": 93,
+              "newLine": 93,
+              "kind": "context",
+              "text": "  await page.close();"
+            },
+            {
+              "oldLine": 94,
+              "newLine": 94,
+              "kind": "context",
+              "text": "});"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "function reportVariant(update){"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "  return reportHTML.replace(/(\u003cscript type=\"application\\/json\" id=\"report-data\"\u003e)([\\s\\S]*?)(\u003c\\/script\u003e)/,(_,start,json,end)=\u003e{"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "    const data=JSON.parse(json);update(data);"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "    return start+JSON.stringify(data).replace(/\u003c/g,'\\\\u003c')+end;"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "  });"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "test('human review includes unflagged files and stays independent of findings',async()=\u003e{"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "  const page=await browser.newPage();"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "  await page.setContent(reportHTML);"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "  assert.match(await page.locator('h1').textContent(),/^0 of 2 files marked reviewed/);"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "  // Acknowledging every generated finding must never complete the code review."
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "  await page.locator('.ann .act').evaluateAll((buttons)=\u003ebuttons.forEach((button)=\u003ebutton.click()));"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "  assert.match(await page.locator('h1').textContent(),/^0 of 2 files marked reviewed/);"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "  assert.equal(await page.locator('.queue .qitem:not(.done)').count(),0);"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "  await page.getByRole('button',{name:/^Flagged \\d+$/}).click();"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "  await page.getByRole('searchbox').fill('order-2499');"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "  await page.getByRole('button',{name:'Next unreviewed file'}).click();"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "  assert.equal(await page.getByRole('searchbox').inputValue(),'');"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "  assert.equal(await page.locator('.fsec:visible').count(),2);"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "  assert.equal(await page.evaluate(()=\u003edocument.activeElement.getAttribute('aria-label')),'README.md');"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "  const readme=page.getByRole('combobox',{name:'Review status for README.md',exact:true});"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "  await readme.selectOption('reviewed');"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "  assert.match(await page.locator('h1').textContent(),/^1 of 2 files marked reviewed/);"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "  await page.getByRole('button',{name:'Next unreviewed file'}).click();"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "  assert.equal(await page.evaluate(()=\u003edocument.activeElement.getAttribute('aria-label')),'src/orders.ts');"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "  await page.getByRole('combobox',{name:'Review status for src/orders.ts',exact:true}).selectOption('follow-up');"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "  assert.match(await page.locator('h1').textContent(),/1 of 2 files marked reviewed · 1 need follow-up/);"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "  assert.equal(await page.getByRole('button',{name:'Next unreviewed file'}).isDisabled(),true);"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "  await readme.selectOption('unreviewed');"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "  assert.equal(await page.getByRole('button',{name:'Next unreviewed file'}).isEnabled(),true);"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "  await page.close();"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "});"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "test('a report with no findings still starts with every file unreviewed',async()=\u003e{"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "  const page=await browser.newPage();"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "  await page.setContent(reportVariant((data)=\u003e{data.ruleHits=[];data.attention=[];data.explanations=[]}));"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "  assert.match(await page.locator('h1').textContent(),/^0 of 2 files marked reviewed/);"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "  assert.equal(await page.getByText('No automated findings. Changed code still needs your review.',{exact:true}).count(),1);"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "  await page.locator('.fsec').last().scrollIntoViewIfNeeded();"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "  assert.match(await page.locator('h1').textContent(),/^0 of 2 files marked reviewed/);"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "  await page.close();"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "});"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "test('file review persists only for the same repository and revision pair',async()=\u003e{"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "  const context=await browser.newContext();"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "  const page=await context.newPage();"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "  let currentHTML=reportHTML;"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "  await page.route('https://px1.test/**',(route)=\u003eroute.fulfill({contentType:'text/html',body:currentHTML}));"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "  await page.goto('https://px1.test/report');"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "  const state=()=\u003epage.getByRole('combobox',{name:'Review status for README.md',exact:true});"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "  await state().selectOption('reviewed');"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "  await page.reload();"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "  assert.equal(await state().inputValue(),'reviewed');"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "  for(const field of ['repository','base','head']){"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "    currentHTML=reportVariant((data)=\u003e{data[field]+='-different'});"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "    await page.reload();"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "    assert.equal(await state().inputValue(),'unreviewed',field+' must isolate progress');"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "  }"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "  currentHTML=reportHTML;await page.reload();"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "  assert.equal(await state().inputValue(),'reviewed');"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "  await context.close();"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "});"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "test('invalid stored states are ignored and storage failure keeps review usable',async()=\u003e{"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "  const context=await browser.newContext();"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "  const page=await context.newPage();"
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "  await page.route('https://px1.test/**',(route)=\u003eroute.fulfill({contentType:'text/html',body:reportHTML}));"
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "  await page.goto('https://px1.test/report');"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": "  await page.evaluate(()=\u003e{"
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "    const data=JSON.parse(document.getElementById('report-data').textContent);"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": "    localStorage.setItem('px1:file-review:'+JSON.stringify([data.repository,data.base,data.head]),JSON.stringify([['README.md','approved'],['missing.ts','reviewed'],null]));"
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": "  });"
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "  await page.reload();"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "  assert.match(await page.locator('h1').textContent(),/^0 of 2 files marked reviewed/);"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "  await page.evaluate(()=\u003e{Storage.prototype.setItem=()=\u003e{throw new Error('storage disabled')}});"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "  await page.getByRole('combobox',{name:'Review status for README.md',exact:true}).selectOption('reviewed');"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "  assert.match(await page.locator('h1').textContent(),/^1 of 2 files marked reviewed/);"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "  assert.match(await page.locator('.review-hint').textContent(),/storage unavailable; progress lasts only on this page/);"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "  await context.close();"
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "});"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/GITHUB_REVIEW_INTEGRATION_PLAN.md",
+      "status": "M",
+      "diff": "diff --git a/docs/GITHUB_REVIEW_INTEGRATION_PLAN.md b/docs/GITHUB_REVIEW_INTEGRATION_PLAN.md\nindex a279e47..77a4d1f 100644\n--- a/docs/GITHUB_REVIEW_INTEGRATION_PLAN.md\n+++ b/docs/GITHUB_REVIEW_INTEGRATION_PLAN.md\n@@ -1,5 +1,8 @@\n # GitHub review artifact architecture\n \n+px1 helps developers understand the code their agents wrote before merging.\n+This architecture delivers inspectable code and evidence for that human review.\n+\n ## Supported flow\n \n px1 supports one delivery path:\n@@ -53,6 +56,20 @@ signals, verification results, and optional explanations.\n \n GitHub remains the authority for comments, requested changes, and approval.\n \n+## Human review progress contract\n+\n+Every changed file has one explicit state: `unreviewed`, `reviewed`, or\n+`follow-up`. States are browser-local entries under `px1:file-review:` followed\n+by the JSON-encoded repository/base/head tuple. Only recognized states for paths\n+in the current report are restored. Changing either revision starts a fresh\n+comparison; generated HTML and `review.json` are never modified by review.\n+\n+Finding acknowledgements remain independent. Neither scrolling nor clearing\n+findings marks a file reviewed. Next-unreviewed navigation includes unflagged\n+files and clears search and flag filters to reveal its destination. A storage\n+failure leaves progress usable in memory and displays its temporary nature.\n+Review declarations are not attestations of comprehension or shared approvals.\n+\n ## Deliberately unsupported\n \n - Local workspace servers\n",
+      "hunks": [
+        {
+          "id": "diff-1f31970148c5afcf",
+          "header": "@@ -1,5 +1,8 @@",
+          "lines": [
+            {
+              "oldLine": 1,
+              "newLine": 1,
+              "kind": "context",
+              "text": "# GitHub review artifact architecture"
+            },
+            {
+              "oldLine": 2,
+              "newLine": 2,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "px1 helps developers understand the code their agents wrote before merging."
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "This architecture delivers inspectable code and evidence for that human review."
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 3,
+              "newLine": 6,
+              "kind": "context",
+              "text": "## Supported flow"
+            },
+            {
+              "oldLine": 4,
+              "newLine": 7,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 5,
+              "newLine": 8,
+              "kind": "context",
+              "text": "px1 supports one delivery path:"
+            }
+          ]
+        },
+        {
+          "id": "diff-d087119145e039b8",
+          "header": "@@ -53,6 +56,20 @@ signals, verification results, and optional explanations.",
+          "lines": [
+            {
+              "oldLine": 53,
+              "newLine": 56,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 54,
+              "newLine": 57,
+              "kind": "context",
+              "text": "GitHub remains the authority for comments, requested changes, and approval."
+            },
+            {
+              "oldLine": 55,
+              "newLine": 58,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "## Human review progress contract"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "Every changed file has one explicit state: `unreviewed`, `reviewed`, or"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "`follow-up`. States are browser-local entries under `px1:file-review:` followed"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "by the JSON-encoded repository/base/head tuple. Only recognized states for paths"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "in the current report are restored. Changing either revision starts a fresh"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "comparison; generated HTML and `review.json` are never modified by review."
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "Finding acknowledgements remain independent. Neither scrolling nor clearing"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "findings marks a file reviewed. Next-unreviewed navigation includes unflagged"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "files and clears search and flag filters to reveal its destination. A storage"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "failure leaves progress usable in memory and displays its temporary nature."
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "Review declarations are not attestations of comprehension or shared approvals."
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 56,
+              "newLine": 73,
+              "kind": "context",
+              "text": "## Deliberately unsupported"
+            },
+            {
+              "oldLine": 57,
+              "newLine": 74,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 58,
+              "newLine": 75,
+              "kind": "context",
+              "text": "- Local workspace servers"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/PRODUCT_VISION.md",
+      "status": "M",
+      "diff": "diff --git a/docs/PRODUCT_VISION.md b/docs/PRODUCT_VISION.md\nindex 704bdf3..fb20388 100644\n--- a/docs/PRODUCT_VISION.md\n+++ b/docs/PRODUCT_VISION.md\n@@ -1,8 +1,32 @@\n # Product vision\n \n-Agents can write pull requests faster than people can confidently review them.\n-px1 gives the reviewer a compact artifact that explains what changed and where\n-the team should pay attention.\n+Understand the code your agent wrote before you merge it.\n+\n+px1 began with a specific failure: delegating coding to a CLI agent, then\n+approving its PR based on another AI's review without reading the code. False\n+positives require enough context to challenge a finding. False negatives\n+require inspecting changes the automated reviewer never mentioned.\n+\n+px1 helps developers regain enough understanding to take responsibility for\n+what they merge. The primary audience is developers who delegate implementation\n+to coding agents and want a practical human review habit.\n+\n+## Differentiation and the moat we aim to build\n+\n+AI plus human review, readable diffs, and summaries are established competitor\n+capabilities. We do not claim those features are exclusive to px1. Our focus is\n+a comprehension workflow combining explicit human review progress, inspectable\n+evidence, portable artifacts, optional AI, and compatibility with existing\n+coding agents and reviewers.\n+\n+The instrument-panel analogy guides the design: show what changed, what evidence\n+is available, and what the human still needs to inspect. Never turn an empty\n+findings list into a claim that review is complete.\n+\n+A durable advantage must be earned through measured improvements in human\n+understanding and decisions, repeated use, and insight into where agent-written\n+changes confuse reviewers. Feature counts and acknowledgement clicks alone do\n+not establish that advantage.\n \n ## The product\n \n@@ -11,6 +35,7 @@ for that exact head commit. GitHub Pages hosts it and a sticky PR comment links\n to it. The report combines:\n \n - readable, structured diffs;\n+- explicit file-review states independent of automated findings;\n - concise explanation chips beside changed blocks;\n - repository-defined team-rule findings with evidence;\n - exact-revision CI results; and\n@@ -19,6 +44,21 @@ to it. The report combines:\n The reviewer uses that context and then approves or requests changes in GitHub.\n px1 does not make the decision for them.\n \n+Every changed file starts unreviewed, including files without findings. Reviewers\n+explicitly mark files reviewed or needing follow-up, with next-unreviewed\n+navigation. Progress is browser-local and scoped to repository, base, and head;\n+it records a declaration, not verified comprehension. Finding acknowledgements\n+never complete the human review. The report remains a snapshot; approval\n+requires checking the current PR in GitHub.\n+\n+## Public launch priorities\n+\n+After explicit review progress, prioritize behavioral explanations linked to\n+code and tests, visible analysis limitations, safe private-code delivery, and a\n+demo plus pilot measuring comprehension and review decisions. These are planned\n+work, not claims about current coverage. Deeper structural rules follow once a\n+concrete reviewer need justifies them. See the roadmap for status.\n+\n ## Team policy belongs in the repository\n \n Teams store rules in `.px1/rules.json`. Rules are versioned and reviewed with\n",
+      "hunks": [
+        {
+          "id": "diff-f61b43d98c84a821",
+          "header": "@@ -1,8 +1,32 @@",
+          "lines": [
+            {
+              "oldLine": 1,
+              "newLine": 1,
+              "kind": "context",
+              "text": "# Product vision"
+            },
+            {
+              "oldLine": 2,
+              "newLine": 2,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 3,
+              "kind": "removed",
+              "text": "Agents can write pull requests faster than people can confidently review them."
+            },
+            {
+              "oldLine": 4,
+              "kind": "removed",
+              "text": "px1 gives the reviewer a compact artifact that explains what changed and where"
+            },
+            {
+              "oldLine": 5,
+              "kind": "removed",
+              "text": "the team should pay attention."
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "Understand the code your agent wrote before you merge it."
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "px1 began with a specific failure: delegating coding to a CLI agent, then"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "approving its PR based on another AI's review without reading the code. False"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "positives require enough context to challenge a finding. False negatives"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "require inspecting changes the automated reviewer never mentioned."
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "px1 helps developers regain enough understanding to take responsibility for"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "what they merge. The primary audience is developers who delegate implementation"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "to coding agents and want a practical human review habit."
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "## Differentiation and the moat we aim to build"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "AI plus human review, readable diffs, and summaries are established competitor"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "capabilities. We do not claim those features are exclusive to px1. Our focus is"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "a comprehension workflow combining explicit human review progress, inspectable"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "evidence, portable artifacts, optional AI, and compatibility with existing"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "coding agents and reviewers."
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "The instrument-panel analogy guides the design: show what changed, what evidence"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "is available, and what the human still needs to inspect. Never turn an empty"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "findings list into a claim that review is complete."
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "A durable advantage must be earned through measured improvements in human"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "understanding and decisions, repeated use, and insight into where agent-written"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "changes confuse reviewers. Feature counts and acknowledgement clicks alone do"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "not establish that advantage."
+            },
+            {
+              "oldLine": 6,
+              "newLine": 30,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 7,
+              "newLine": 31,
+              "kind": "context",
+              "text": "## The product"
+            },
+            {
+              "oldLine": 8,
+              "newLine": 32,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        },
+        {
+          "id": "diff-8cb85e888458f6ef",
+          "header": "@@ -11,6 +35,7 @@ for that exact head commit. GitHub Pages hosts it and a sticky PR comment links",
+          "lines": [
+            {
+              "oldLine": 11,
+              "newLine": 35,
+              "kind": "context",
+              "text": "to it. The report combines:"
+            },
+            {
+              "oldLine": 12,
+              "newLine": 36,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 13,
+              "newLine": 37,
+              "kind": "context",
+              "text": "- readable, structured diffs;"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "- explicit file-review states independent of automated findings;"
+            },
+            {
+              "oldLine": 14,
+              "newLine": 39,
+              "kind": "context",
+              "text": "- concise explanation chips beside changed blocks;"
+            },
+            {
+              "oldLine": 15,
+              "newLine": 40,
+              "kind": "context",
+              "text": "- repository-defined team-rule findings with evidence;"
+            },
+            {
+              "oldLine": 16,
+              "newLine": 41,
+              "kind": "context",
+              "text": "- exact-revision CI results; and"
+            }
+          ]
+        },
+        {
+          "id": "diff-2ae46f86a5067d1f",
+          "header": "@@ -19,6 +44,21 @@ to it. The report combines:",
+          "lines": [
+            {
+              "oldLine": 19,
+              "newLine": 44,
+              "kind": "context",
+              "text": "The reviewer uses that context and then approves or requests changes in GitHub."
+            },
+            {
+              "oldLine": 20,
+              "newLine": 45,
+              "kind": "context",
+              "text": "px1 does not make the decision for them."
+            },
+            {
+              "oldLine": 21,
+              "newLine": 46,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "Every changed file starts unreviewed, including files without findings. Reviewers"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "explicitly mark files reviewed or needing follow-up, with next-unreviewed"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "navigation. Progress is browser-local and scoped to repository, base, and head;"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "it records a declaration, not verified comprehension. Finding acknowledgements"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "never complete the human review. The report remains a snapshot; approval"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "requires checking the current PR in GitHub."
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "## Public launch priorities"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "After explicit review progress, prioritize behavioral explanations linked to"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "code and tests, visible analysis limitations, safe private-code delivery, and a"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "demo plus pilot measuring comprehension and review decisions. These are planned"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "work, not claims about current coverage. Deeper structural rules follow once a"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "concrete reviewer need justifies them. See the roadmap for status."
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 22,
+              "newLine": 62,
+              "kind": "context",
+              "text": "## Team policy belongs in the repository"
+            },
+            {
+              "oldLine": 23,
+              "newLine": 63,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 24,
+              "newLine": 64,
+              "kind": "context",
+              "text": "Teams store rules in `.px1/rules.json`. Rules are versioned and reviewed with"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/RELEASING.md",
+      "status": "M",
+      "diff": "diff --git a/docs/RELEASING.md b/docs/RELEASING.md\nindex f7fbd61..066f383 100644\n--- a/docs/RELEASING.md\n+++ b/docs/RELEASING.md\n@@ -2,6 +2,11 @@\n \n Consumers should pin px1 to an immutable release or maintained major tag.\n \n+An Action release is distinct from the public product launch. Before announcing\n+the broader launch, check the human-review, evidence, privacy, and pilot criteria\n+in [ROADMAP.md](../ROADMAP.md). Product messaging should lead with understanding\n+the code your agent wrote before merging, as described in the product vision.\n+\n 1. Update `VERSION` in a normal pull request and merge it after checks pass.\n 2. Open **Actions → Release px1 Actions → Run workflow** on the default branch.\n 3. Enter the matching immutable tag, such as `v1.2.0`.\n",
+      "hunks": [
+        {
+          "id": "diff-754c360649f3c0b5",
+          "header": "@@ -2,6 +2,11 @@",
+          "lines": [
+            {
+              "oldLine": 2,
+              "newLine": 2,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 3,
+              "newLine": 3,
+              "kind": "context",
+              "text": "Consumers should pin px1 to an immutable release or maintained major tag."
+            },
+            {
+              "oldLine": 4,
+              "newLine": 4,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "An Action release is distinct from the public product launch. Before announcing"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "the broader launch, check the human-review, evidence, privacy, and pilot criteria"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "in [ROADMAP.md](../ROADMAP.md). Product messaging should lead with understanding"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "the code your agent wrote before merging, as described in the product vision."
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 5,
+              "newLine": 10,
+              "kind": "context",
+              "text": "1. Update `VERSION` in a normal pull request and merge it after checks pass."
+            },
+            {
+              "oldLine": 6,
+              "newLine": 11,
+              "kind": "context",
+              "text": "2. Open **Actions → Release px1 Actions → Run workflow** on the default branch."
+            },
+            {
+              "oldLine": 7,
+              "newLine": 12,
+              "kind": "context",
+              "text": "3. Enter the matching immutable tag, such as `v1.2.0`."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/STATIC_REVIEW_EXPLANATIONS.md",
+      "status": "M",
+      "diff": "diff --git a/docs/STATIC_REVIEW_EXPLANATIONS.md b/docs/STATIC_REVIEW_EXPLANATIONS.md\nindex a0fdc7a..04c0363 100644\n--- a/docs/STATIC_REVIEW_EXPLANATIONS.md\n+++ b/docs/STATIC_REVIEW_EXPLANATIONS.md\n@@ -1,5 +1,9 @@\n # Static review explanations\n \n+Explanations help a human understand agent-written code before merging. They\n+should lead the reviewer back to inspectable code, and never mark a file\n+reviewed or imply that an unmentioned change is safe.\n+\n px1 can add short, expandable AI explanation chips to a static PR review\n report. You can let the reusable Action generate them with OpenAI, or provide\n the same provider-neutral JSON from another generator. In both cases,\n",
+      "hunks": [
+        {
+          "id": "diff-7bfa23b63629096a",
+          "header": "@@ -1,5 +1,9 @@",
+          "lines": [
+            {
+              "oldLine": 1,
+              "newLine": 1,
+              "kind": "context",
+              "text": "# Static review explanations"
+            },
+            {
+              "oldLine": 2,
+              "newLine": 2,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "Explanations help a human understand agent-written code before merging. They"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "should lead the reviewer back to inspectable code, and never mark a file"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "reviewed or imply that an unmentioned change is safe."
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 3,
+              "newLine": 7,
+              "kind": "context",
+              "text": "px1 can add short, expandable AI explanation chips to a static PR review"
+            },
+            {
+              "oldLine": 4,
+              "newLine": 8,
+              "kind": "context",
+              "text": "report. You can let the reusable Action generate them with OpenAI, or provide"
+            },
+            {
+              "oldLine": 5,
+              "newLine": 9,
+              "kind": "context",
+              "text": "the same provider-neutral JSON from another generator. In both cases,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/VERIFICATION_REPORT.md",
+      "status": "M",
+      "diff": "diff --git a/docs/VERIFICATION_REPORT.md b/docs/VERIFICATION_REPORT.md\nindex 4659d8d..a3d1afd 100644\n--- a/docs/VERIFICATION_REPORT.md\n+++ b/docs/VERIFICATION_REPORT.md\n@@ -1,5 +1,9 @@\n # GitHub Actions verification input\n \n+Verification is evidence for a human reviewing agent-written code. Passing CI\n+does not mark files reviewed, establish behavioral test coverage, or approve a\n+PR. Results describe the recorded revision and collection time, not live state.\n+\n The px1 workflow collects check runs for the exact pull-request head and writes\n a small JSON input for the report generator:\n \n",
+      "hunks": [
+        {
+          "id": "diff-c871c2c1a9518f68",
+          "header": "@@ -1,5 +1,9 @@",
+          "lines": [
+            {
+              "oldLine": 1,
+              "newLine": 1,
+              "kind": "context",
+              "text": "# GitHub Actions verification input"
+            },
+            {
+              "oldLine": 2,
+              "newLine": 2,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "Verification is evidence for a human reviewing agent-written code. Passing CI"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "does not mark files reviewed, establish behavioral test coverage, or approve a"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "PR. Results describe the recorded revision and collection time, not live state."
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 3,
+              "newLine": 7,
+              "kind": "context",
+              "text": "The px1 workflow collects check runs for the exact pull-request head and writes"
+            },
+            {
+              "oldLine": 4,
+              "newLine": 8,
+              "kind": "context",
+              "text": "a small JSON input for the report generator:"
+            },
+            {
+              "oldLine": 5,
+              "newLine": 9,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "export_test.go",
+      "status": "M",
+      "diff": "diff --git a/export_test.go b/export_test.go\nindex ce3c1b6..ba6aab5 100644\n--- a/export_test.go\n+++ b/export_test.go\n@@ -142,7 +142,7 @@ func TestGenerateStaticReviewUsesPinnedCommits(t *testing.T) {\n \t\tt.Fatal(err)\n \t}\n \thtml := string(b)\n-\tfor _, want := range []string{\"id=\\\"report-data\\\"\", \"api/users.ts\", \"Use apiClient, not fetch\", \"Review queue\", \"px1:ack:\", \"localStorage\", \"aria-pressed\", \"Acknowledge\"} {\n+\tfor _, want := range []string{\"id=\\\"report-data\\\"\", \"api/users.ts\", \"Use apiClient, not fetch\", \"Automated findings\", \"Your code review\", \"px1:ack:\", \"localStorage\", \"aria-pressed\", \"Acknowledge\"} {\n \t\tif !strings.Contains(html, want) {\n \t\t\tt.Errorf(\"report missing %q\", want)\n \t\t}\n",
+      "hunks": [
+        {
+          "id": "diff-eb52e78f73941e6b",
+          "header": "@@ -142,7 +142,7 @@ func TestGenerateStaticReviewUsesPinnedCommits(t *testing.T) {",
+          "lines": [
+            {
+              "oldLine": 142,
+              "newLine": 142,
+              "kind": "context",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "oldLine": 143,
+              "newLine": 143,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 144,
+              "newLine": 144,
+              "kind": "context",
+              "text": "\thtml := string(b)"
+            },
+            {
+              "oldLine": 145,
+              "kind": "removed",
+              "text": "\tfor _, want := range []string{\"id=\\\"report-data\\\"\", \"api/users.ts\", \"Use apiClient, not fetch\", \"Review queue\", \"px1:ack:\", \"localStorage\", \"aria-pressed\", \"Acknowledge\"} {"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\tfor _, want := range []string{\"id=\\\"report-data\\\"\", \"api/users.ts\", \"Use apiClient, not fetch\", \"Automated findings\", \"Your code review\", \"px1:ack:\", \"localStorage\", \"aria-pressed\", \"Acknowledge\"} {"
+            },
+            {
+              "oldLine": 146,
+              "newLine": 146,
+              "kind": "context",
+              "text": "\t\tif !strings.Contains(html, want) {"
+            },
+            {
+              "oldLine": 147,
+              "newLine": 147,
+              "kind": "context",
+              "text": "\t\t\tt.Errorf(\"report missing %q\", want)"
+            },
+            {
+              "oldLine": 148,
+              "newLine": 148,
+              "kind": "context",
+              "text": "\t\t}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "main.go",
+      "status": "M",
+      "diff": "diff --git a/main.go b/main.go\nindex 3f243d4..02dd96d 100644\n--- a/main.go\n+++ b/main.go\n@@ -36,7 +36,7 @@ func main() {\n \t\tfmt.Printf(\"px1 %s (%s/%s)\\n\", version, runtime.GOOS, runtime.GOARCH)\n \t\treturn\n \t}\n-\tfmt.Fprintf(os.Stderr, \"px1 %s - generate a commit-pinned PR review artifact\\n\\n\", version)\n+\tfmt.Fprintf(os.Stderr, \"px1 %s - understand the code your agent wrote before you merge it\\n\\n\", version)\n \tfmt.Fprintln(os.Stderr, \"usage: px1 \u003cexport-review|generate-explanations|validate-rules\u003e [options]\")\n \tos.Exit(2)\n }\n",
+      "hunks": [
+        {
+          "id": "diff-11f9be028d498621",
+          "header": "@@ -36,7 +36,7 @@ func main() {",
+          "lines": [
+            {
+              "oldLine": 36,
+              "newLine": 36,
+              "kind": "context",
+              "text": "\t\tfmt.Printf(\"px1 %s (%s/%s)\\n\", version, runtime.GOOS, runtime.GOARCH)"
+            },
+            {
+              "oldLine": 37,
+              "newLine": 37,
+              "kind": "context",
+              "text": "\t\treturn"
+            },
+            {
+              "oldLine": 38,
+              "newLine": 38,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 39,
+              "kind": "removed",
+              "text": "\tfmt.Fprintf(os.Stderr, \"px1 %s - generate a commit-pinned PR review artifact\\n\\n\", version)"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tfmt.Fprintf(os.Stderr, \"px1 %s - understand the code your agent wrote before you merge it\\n\\n\", version)"
+            },
+            {
+              "oldLine": 40,
+              "newLine": 40,
+              "kind": "context",
+              "text": "\tfmt.Fprintln(os.Stderr, \"usage: px1 \u003cexport-review|generate-explanations|validate-rules\u003e [options]\")"
+            },
+            {
+              "oldLine": 41,
+              "newLine": 41,
+              "kind": "context",
+              "text": "\tos.Exit(2)"
+            },
+            {
+              "oldLine": 42,
+              "newLine": 42,
+              "kind": "context",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "static_report/report.css",
+      "status": "M",
+      "diff": "diff --git a/static_report/report.css b/static_report/report.css\nindex cc555cb..12972a8 100644\n--- a/static_report/report.css\n+++ b/static_report/report.css\n@@ -143,6 +143,10 @@ body.resizing{cursor:col-resize;user-select:none}\n .btn{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:2px 10px;font-size:var(--fs-small);font-weight:500}\n .btn:hover{border-color:var(--edge)}\n .btn[aria-pressed=\"true\"]{color:var(--ok)}\n+.btn:disabled{cursor:default;opacity:.5}\n+.review-summary{margin:0 0 8px;font-size:var(--fs-small)}\n+.review-hint{margin:8px 0 0;color:var(--dim);font-size:var(--fs-fine)}\n+.review-state{max-width:100%;background:var(--canvas);color:var(--ink);border:1px solid var(--edge);border-radius:var(--r-md);padding:4px 8px;font:var(--fs-small) var(--sans)}\n \n .spine{position:sticky;top:var(--top-h,140px);height:calc(100vh - var(--top-h,140px) - 20px);border-radius:var(--r-sm);background:var(--well);overflow:hidden}\n .spine a{position:absolute;left:0;right:0;height:4px}\n",
+      "hunks": [
+        {
+          "id": "diff-d7db1f8c14716940",
+          "header": "@@ -143,6 +143,10 @@ body.resizing{cursor:col-resize;user-select:none}",
+          "lines": [
+            {
+              "oldLine": 143,
+              "newLine": 143,
+              "kind": "context",
+              "text": ".btn{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:2px 10px;font-size:var(--fs-small);font-weight:500}"
+            },
+            {
+              "oldLine": 144,
+              "newLine": 144,
+              "kind": "context",
+              "text": ".btn:hover{border-color:var(--edge)}"
+            },
+            {
+              "oldLine": 145,
+              "newLine": 145,
+              "kind": "context",
+              "text": ".btn[aria-pressed=\"true\"]{color:var(--ok)}"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": ".btn:disabled{cursor:default;opacity:.5}"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": ".review-summary{margin:0 0 8px;font-size:var(--fs-small)}"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": ".review-hint{margin:8px 0 0;color:var(--dim);font-size:var(--fs-fine)}"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": ".review-state{max-width:100%;background:var(--canvas);color:var(--ink);border:1px solid var(--edge);border-radius:var(--r-md);padding:4px 8px;font:var(--fs-small) var(--sans)}"
+            },
+            {
+              "oldLine": 146,
+              "newLine": 150,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 147,
+              "newLine": 151,
+              "kind": "context",
+              "text": ".spine{position:sticky;top:var(--top-h,140px);height:calc(100vh - var(--top-h,140px) - 20px);border-radius:var(--r-sm);background:var(--well);overflow:hidden}"
+            },
+            {
+              "oldLine": 148,
+              "newLine": 152,
+              "kind": "context",
+              "text": ".spine a{position:absolute;left:0;right:0;height:4px}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "static_report/report.js",
+      "status": "M",
+      "diff": "diff --git a/static_report/report.js b/static_report/report.js\nindex 5ab8815..8b4cd89 100644\n--- a/static_report/report.js\n+++ b/static_report/report.js\n@@ -23,6 +23,24 @@ let ack=new Set();\n try{const saved=JSON.parse(localStorage.getItem(ackKey)||'[]');if(Array.isArray(saved))ack=new Set(saved.filter((k)=\u003etypeof k==='string'))}catch{}\n const persist=()=\u003e{try{localStorage.setItem(ackKey,JSON.stringify([...ack].sort()))}catch{}};\n \n+/* Explicit human declarations are independent of automated findings. Include\n+   both revisions: a different comparison must start a fresh review. */\n+const reviewKey='px1:file-review:'+JSON.stringify([report.repository,report.base,report.head]);\n+const reviewStates=new Map();\n+const validPaths=new Set(files.map((f)=\u003ef.path));\n+let reviewStorageAvailable=true;\n+try{\n+  const saved=JSON.parse(localStorage.getItem(reviewKey)||'[]');\n+  if(Array.isArray(saved))for(const entry of saved){\n+    if(Array.isArray(entry)\u0026\u0026entry.length===2\u0026\u0026validPaths.has(entry[0])\u0026\u0026['reviewed','follow-up'].includes(entry[1]))reviewStates.set(entry[0],entry[1]);\n+  }\n+}catch{reviewStorageAvailable=false}\n+const reviewState=(path)=\u003ereviewStates.get(path)||'unreviewed';\n+const persistReview=()=\u003e{\n+  try{localStorage.setItem(reviewKey,JSON.stringify([...reviewStates]));reviewStorageAvailable=true}\n+  catch{reviewStorageAvailable=false}\n+};\n+\n /* One list of everything worth a reader's attention, anchored to a file. */\n const items=[];\n const fileIndex=new Map(files.map((f,i)=\u003e[f.path,i]));\n@@ -74,9 +92,11 @@ function paintTop(){\n   const pending=checks.filter((c)=\u003ec.status==='running'||c.status==='queued').length;\n   const parts=[];\n   h1.textContent='';\n-  if(o.length)h1.textContent=plural(o.length,'place')+(o.length===1?' needs':' need')+' a decision';\n-  else h1.textContent='Nothing open';\n-  if(failing)h1.textContent+=(o.length?', and ':', but ')+plural(failing,'check')+(failing===1?' is':' are')+' failing';\n+  const reviewed=files.filter((f)=\u003ereviewState(f.path)==='reviewed').length;\n+  const followUp=files.filter((f)=\u003ereviewState(f.path)==='follow-up').length;\n+  h1.textContent=files.length?reviewed+' of '+plural(files.length,'file')+' marked reviewed':'No changed files';\n+  if(followUp)h1.textContent+=' · '+followUp+' need follow-up';\n+  if(failing)h1.textContent+=' · '+plural(failing,'check')+' failing';\n   verdict.textContent='';\n   verdict.append(h('span','chip '+(rules?'chip-danger':''),plural(rules,'rule finding')));\n   verdict.append(h('span','chip '+(attn?'chip-attention':''),plural(attn,'attention flag')));\n@@ -99,7 +119,13 @@ for(const block of blocks){\n   li.append(a);blockList.append(li);\n }\n if(blocks.length){blocksSec.append(blocksHead,blockList);rail.append(blocksSec)}\n-const queueSec=h('section');const queueHead=h('h2','eyebrow','Review queue ');const queueCount=h('span','count');queueHead.append(queueCount);\n+const progressSec=h('section','review-progress');\n+progressSec.append(h('h2','eyebrow','Your code review'));\n+const progressSummary=h('p','review-summary');progressSummary.setAttribute('role','status');\n+const nextUnreviewed=h('button','btn','Next unreviewed file');nextUnreviewed.type='button';\n+const progressHint=h('p','review-hint');\n+progressSec.append(progressSummary,nextUnreviewed,progressHint);rail.append(progressSec);\n+const queueSec=h('section');const queueHead=h('h2','eyebrow','Automated findings ');const queueCount=h('span','count');queueHead.append(queueCount);\n const queue=h('ul','queue');queueSec.append(queueHead,queue);\n const filesSec=h('section');const filesHead=h('h2','eyebrow','Files ');\n const seg=h('span','seg');seg.setAttribute('role','group');seg.setAttribute('aria-label','File filter');\n@@ -116,7 +142,7 @@ const order={rule:0,attn:1,note:2};\n function paintQueue(){\n   queue.textContent='';\n   queueCount.textContent=open().length+' open';\n-  if(!items.length){queue.append(h('p','empty','Nothing to review beyond the diff.'));return}\n+  if(!items.length){queue.append(h('p','empty',files.length?'No automated findings. Changed code still needs your review.':'No automated findings.'));return}\n   [...items].sort((a,b)=\u003eorder[a.k]-order[b.k]).forEach((it)=\u003e{\n     const a=h('a','qitem'+(it.k!=='note'\u0026\u0026ack.has(it.ackId)?' done':''));a.href='#'+it.id;\n     const row=h('div','row');row.append(chipFor(it.k),h('span','t',it.title));\n@@ -141,7 +167,8 @@ function paintFiles(){\n     p.append(h('b',null,base));\n     const m=h('span','m');\n     for(const [kind,cls] of [['rule','r'],['attn','a'],['note','n']]){const n=mine.filter((x)=\u003ex.k===kind).length;if(n)m.append(h('i','mark '+cls,n))}\n-    link.append(p,m,h('span','delta','+'+stats[i].a+' −'+stats[i].d+' · '+(STATUS[f.status]||f.status)));\n+    const stateLabel={unreviewed:'Unreviewed',reviewed:'Reviewed','follow-up':'Needs follow-up'}[reviewState(f.path)];\n+    link.append(p,m,h('span','delta','+'+stats[i].a+' −'+stats[i].d+' · '+(STATUS[f.status]||f.status)+' · '+stateLabel));\n     li.append(link);fileList.append(li);\n   });\n }\n@@ -149,6 +176,24 @@ const paintMainFilter=()=\u003edocument.querySelectorAll('.fsec').forEach((sec)=\u003e{con\n fAll.onclick=()=\u003e{flaggedOnly=false;paintFiles();paintMainFilter()};\n fFlag.onclick=()=\u003e{flaggedOnly=true;paintFiles();paintMainFilter()};\n search.addEventListener('input',()=\u003e{searchQuery=search.value.trim().toLowerCase();paintFiles();paintMainFilter()});\n+let lastReviewIndex=-1;\n+function paintProgress(){\n+  const unread=files.filter((f)=\u003ereviewState(f.path)==='unreviewed').length;\n+  const followUp=files.filter((f)=\u003ereviewState(f.path)==='follow-up').length;\n+  progressSummary.textContent=unread+' unreviewed · '+followUp+' need follow-up';\n+  nextUnreviewed.disabled=unread===0;\n+  progressHint.textContent=(reviewStorageAvailable?'Saved in this browser for this comparison.':'Browser storage unavailable; progress lasts only on this page.')+' Your marks record review progress, not approval or proof of correctness.';\n+}\n+nextUnreviewed.onclick=()=\u003e{\n+  for(let offset=1;offset\u003c=files.length;offset++){\n+    const i=(lastReviewIndex+offset)%files.length;\n+    if(reviewState(files[i].path)!=='unreviewed')continue;\n+    lastReviewIndex=i;\n+    flaggedOnly=false;searchQuery='';search.value='';paintFiles();paintMainFilter();\n+    const section=document.getElementById('f'+i);section.focus({preventScroll:true});section.scrollIntoView();\n+    break;\n+  }\n+};\n \n /* ---- diff ---- */\n function annotation(it,fileLevel){\n@@ -189,11 +234,21 @@ addEventListener('hashchange',openNoteFromHash);\n const main=h('main','main');\n const renderedGroups=new Set();\n files.forEach((f,i)=\u003e{\n-  const sec=h('section','fsec');sec.id='f'+i;sec.dataset.fileIndex=String(i);\n+  const sec=h('section','fsec');sec.id='f'+i;sec.dataset.fileIndex=String(i);sec.tabIndex=-1;sec.setAttribute('aria-label',f.path);\n   const head=h('div','fhead');\n   const group=blocks.find((block)=\u003eblock.paths.includes(f.path));\n   if(group\u0026\u0026!renderedGroups.has(group.id)){const anchor=h('span');anchor.id=group.id;main.append(anchor);renderedGroups.add(group.id)}\n   head.append(h('span','path',f.path),h('span','eyebrow',STATUS[f.status]||f.status),h('span','spacer'),h('span','mono muted','+'+stats[i].a+' −'+stats[i].d));\n+  const state=h('select','review-state');state.setAttribute('aria-label','Review status for '+f.path);\n+  for(const [value,label] of [['unreviewed','Unreviewed'],['reviewed','Reviewed'],['follow-up','Needs follow-up']]){\n+    const option=h('option',null,label);option.value=value;state.append(option);\n+  }\n+  state.value=reviewState(f.path);\n+  state.onchange=()=\u003e{\n+    if(state.value==='unreviewed')reviewStates.delete(f.path);else reviewStates.set(f.path,state.value);\n+    lastReviewIndex=i;persistReview();paintTop();paintFiles();paintProgress();syncTop();\n+  };\n+  head.append(state);\n   sec.append(head);\n   const body=h('div','fbody');\n   const mine=items.filter((x)=\u003ex.fi===i);\n@@ -293,11 +348,11 @@ handle.addEventListener('keydown',(e)=\u003e{\n   e.preventDefault();setRailWidth(next,true);settle();\n });\n addEventListener('resize',()=\u003esetRailWidth(parseFloat(wrap.style.getPropertyValue('--rail-w'))||savedWidth,false));\n-const foot=h('div','foot','Acknowledgements are saved in this browser only and apply to commit '+short(report.head)+'.');\n+const foot=h('div','foot','File review progress and finding acknowledgements are independent and browser-local. This report is a snapshot of commit '+short(report.head)+'. Confirm the current PR revision before approving in GitHub.');\n app.textContent='';\n app.append(top,wrap,foot);\n setRailWidth(savedWidth,false);\n-paintTop();paintQueue();paintFiles();syncTop();\n+paintTop();paintQueue();paintFiles();paintProgress();syncTop();\n /* A deep link such as #ann-3 opens its note and scrolls to it once the page is built. */\n openNoteFromHash();\n if(location.hash.length\u003e1)document.getElementById(location.hash.slice(1))?.scrollIntoView();\n",
+      "hunks": [
+        {
+          "id": "diff-6809d981829570ee",
+          "header": "@@ -23,6 +23,24 @@ let ack=new Set();",
+          "lines": [
+            {
+              "oldLine": 23,
+              "newLine": 23,
+              "kind": "context",
+              "text": "try{const saved=JSON.parse(localStorage.getItem(ackKey)||'[]');if(Array.isArray(saved))ack=new Set(saved.filter((k)=\u003etypeof k==='string'))}catch{}"
+            },
+            {
+              "oldLine": 24,
+              "newLine": 24,
+              "kind": "context",
+              "text": "const persist=()=\u003e{try{localStorage.setItem(ackKey,JSON.stringify([...ack].sort()))}catch{}};"
+            },
+            {
+              "oldLine": 25,
+              "newLine": 25,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "/* Explicit human declarations are independent of automated findings. Include"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "   both revisions: a different comparison must start a fresh review. */"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "const reviewKey='px1:file-review:'+JSON.stringify([report.repository,report.base,report.head]);"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "const reviewStates=new Map();"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "const validPaths=new Set(files.map((f)=\u003ef.path));"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "let reviewStorageAvailable=true;"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "try{"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "  const saved=JSON.parse(localStorage.getItem(reviewKey)||'[]');"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "  if(Array.isArray(saved))for(const entry of saved){"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "    if(Array.isArray(entry)\u0026\u0026entry.length===2\u0026\u0026validPaths.has(entry[0])\u0026\u0026['reviewed','follow-up'].includes(entry[1]))reviewStates.set(entry[0],entry[1]);"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "  }"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "}catch{reviewStorageAvailable=false}"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "const reviewState=(path)=\u003ereviewStates.get(path)||'unreviewed';"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "const persistReview=()=\u003e{"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "  try{localStorage.setItem(reviewKey,JSON.stringify([...reviewStates]));reviewStorageAvailable=true}"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "  catch{reviewStorageAvailable=false}"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "};"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 26,
+              "newLine": 44,
+              "kind": "context",
+              "text": "/* One list of everything worth a reader's attention, anchored to a file. */"
+            },
+            {
+              "oldLine": 27,
+              "newLine": 45,
+              "kind": "context",
+              "text": "const items=[];"
+            },
+            {
+              "oldLine": 28,
+              "newLine": 46,
+              "kind": "context",
+              "text": "const fileIndex=new Map(files.map((f,i)=\u003e[f.path,i]));"
+            }
+          ]
+        },
+        {
+          "id": "diff-29c1584d11215a1a",
+          "header": "@@ -74,9 +92,11 @@ function paintTop(){",
+          "lines": [
+            {
+              "oldLine": 74,
+              "newLine": 92,
+              "kind": "context",
+              "text": "  const pending=checks.filter((c)=\u003ec.status==='running'||c.status==='queued').length;"
+            },
+            {
+              "oldLine": 75,
+              "newLine": 93,
+              "kind": "context",
+              "text": "  const parts=[];"
+            },
+            {
+              "oldLine": 76,
+              "newLine": 94,
+              "kind": "context",
+              "text": "  h1.textContent='';"
+            },
+            {
+              "oldLine": 77,
+              "kind": "removed",
+              "text": "  if(o.length)h1.textContent=plural(o.length,'place')+(o.length===1?' needs':' need')+' a decision';"
+            },
+            {
+              "oldLine": 78,
+              "kind": "removed",
+              "text": "  else h1.textContent='Nothing open';"
+            },
+            {
+              "oldLine": 79,
+              "kind": "removed",
+              "text": "  if(failing)h1.textContent+=(o.length?', and ':', but ')+plural(failing,'check')+(failing===1?' is':' are')+' failing';"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "  const reviewed=files.filter((f)=\u003ereviewState(f.path)==='reviewed').length;"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "  const followUp=files.filter((f)=\u003ereviewState(f.path)==='follow-up').length;"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "  h1.textContent=files.length?reviewed+' of '+plural(files.length,'file')+' marked reviewed':'No changed files';"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "  if(followUp)h1.textContent+=' · '+followUp+' need follow-up';"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "  if(failing)h1.textContent+=' · '+plural(failing,'check')+' failing';"
+            },
+            {
+              "oldLine": 80,
+              "newLine": 100,
+              "kind": "context",
+              "text": "  verdict.textContent='';"
+            },
+            {
+              "oldLine": 81,
+              "newLine": 101,
+              "kind": "context",
+              "text": "  verdict.append(h('span','chip '+(rules?'chip-danger':''),plural(rules,'rule finding')));"
+            },
+            {
+              "oldLine": 82,
+              "newLine": 102,
+              "kind": "context",
+              "text": "  verdict.append(h('span','chip '+(attn?'chip-attention':''),plural(attn,'attention flag')));"
+            }
+          ]
+        },
+        {
+          "id": "diff-2c5ca8e96281b7ff",
+          "header": "@@ -99,7 +119,13 @@ for(const block of blocks){",
+          "lines": [
+            {
+              "oldLine": 99,
+              "newLine": 119,
+              "kind": "context",
+              "text": "  li.append(a);blockList.append(li);"
+            },
+            {
+              "oldLine": 100,
+              "newLine": 120,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 101,
+              "newLine": 121,
+              "kind": "context",
+              "text": "if(blocks.length){blocksSec.append(blocksHead,blockList);rail.append(blocksSec)}"
+            },
+            {
+              "oldLine": 102,
+              "kind": "removed",
+              "text": "const queueSec=h('section');const queueHead=h('h2','eyebrow','Review queue ');const queueCount=h('span','count');queueHead.append(queueCount);"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "const progressSec=h('section','review-progress');"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "progressSec.append(h('h2','eyebrow','Your code review'));"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "const progressSummary=h('p','review-summary');progressSummary.setAttribute('role','status');"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "const nextUnreviewed=h('button','btn','Next unreviewed file');nextUnreviewed.type='button';"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "const progressHint=h('p','review-hint');"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "progressSec.append(progressSummary,nextUnreviewed,progressHint);rail.append(progressSec);"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "const queueSec=h('section');const queueHead=h('h2','eyebrow','Automated findings ');const queueCount=h('span','count');queueHead.append(queueCount);"
+            },
+            {
+              "oldLine": 103,
+              "newLine": 129,
+              "kind": "context",
+              "text": "const queue=h('ul','queue');queueSec.append(queueHead,queue);"
+            },
+            {
+              "oldLine": 104,
+              "newLine": 130,
+              "kind": "context",
+              "text": "const filesSec=h('section');const filesHead=h('h2','eyebrow','Files ');"
+            },
+            {
+              "oldLine": 105,
+              "newLine": 131,
+              "kind": "context",
+              "text": "const seg=h('span','seg');seg.setAttribute('role','group');seg.setAttribute('aria-label','File filter');"
+            }
+          ]
+        },
+        {
+          "id": "diff-21fc85fb569576ea",
+          "header": "@@ -116,7 +142,7 @@ const order={rule:0,attn:1,note:2};",
+          "lines": [
+            {
+              "oldLine": 116,
+              "newLine": 142,
+              "kind": "context",
+              "text": "function paintQueue(){"
+            },
+            {
+              "oldLine": 117,
+              "newLine": 143,
+              "kind": "context",
+              "text": "  queue.textContent='';"
+            },
+            {
+              "oldLine": 118,
+              "newLine": 144,
+              "kind": "context",
+              "text": "  queueCount.textContent=open().length+' open';"
+            },
+            {
+              "oldLine": 119,
+              "kind": "removed",
+              "text": "  if(!items.length){queue.append(h('p','empty','Nothing to review beyond the diff.'));return}"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "  if(!items.length){queue.append(h('p','empty',files.length?'No automated findings. Changed code still needs your review.':'No automated findings.'));return}"
+            },
+            {
+              "oldLine": 120,
+              "newLine": 146,
+              "kind": "context",
+              "text": "  [...items].sort((a,b)=\u003eorder[a.k]-order[b.k]).forEach((it)=\u003e{"
+            },
+            {
+              "oldLine": 121,
+              "newLine": 147,
+              "kind": "context",
+              "text": "    const a=h('a','qitem'+(it.k!=='note'\u0026\u0026ack.has(it.ackId)?' done':''));a.href='#'+it.id;"
+            },
+            {
+              "oldLine": 122,
+              "newLine": 148,
+              "kind": "context",
+              "text": "    const row=h('div','row');row.append(chipFor(it.k),h('span','t',it.title));"
+            }
+          ]
+        },
+        {
+          "id": "diff-80a0519761145373",
+          "header": "@@ -141,7 +167,8 @@ function paintFiles(){",
+          "lines": [
+            {
+              "oldLine": 141,
+              "newLine": 167,
+              "kind": "context",
+              "text": "    p.append(h('b',null,base));"
+            },
+            {
+              "oldLine": 142,
+              "newLine": 168,
+              "kind": "context",
+              "text": "    const m=h('span','m');"
+            },
+            {
+              "oldLine": 143,
+              "newLine": 169,
+              "kind": "context",
+              "text": "    for(const [kind,cls] of [['rule','r'],['attn','a'],['note','n']]){const n=mine.filter((x)=\u003ex.k===kind).length;if(n)m.append(h('i','mark '+cls,n))}"
+            },
+            {
+              "oldLine": 144,
+              "kind": "removed",
+              "text": "    link.append(p,m,h('span','delta','+'+stats[i].a+' −'+stats[i].d+' · '+(STATUS[f.status]||f.status)));"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "    const stateLabel={unreviewed:'Unreviewed',reviewed:'Reviewed','follow-up':'Needs follow-up'}[reviewState(f.path)];"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "    link.append(p,m,h('span','delta','+'+stats[i].a+' −'+stats[i].d+' · '+(STATUS[f.status]||f.status)+' · '+stateLabel));"
+            },
+            {
+              "oldLine": 145,
+              "newLine": 172,
+              "kind": "context",
+              "text": "    li.append(link);fileList.append(li);"
+            },
+            {
+              "oldLine": 146,
+              "newLine": 173,
+              "kind": "context",
+              "text": "  });"
+            },
+            {
+              "oldLine": 147,
+              "newLine": 174,
+              "kind": "context",
+              "text": "}"
+            }
+          ]
+        },
+        {
+          "id": "diff-7f85b13420817a03",
+          "header": "@@ -149,6 +176,24 @@ const paintMainFilter=()=\u003edocument.querySelectorAll('.fsec').forEach((sec)=\u003e{con",
+          "lines": [
+            {
+              "oldLine": 149,
+              "newLine": 176,
+              "kind": "context",
+              "text": "fAll.onclick=()=\u003e{flaggedOnly=false;paintFiles();paintMainFilter()};"
+            },
+            {
+              "oldLine": 150,
+              "newLine": 177,
+              "kind": "context",
+              "text": "fFlag.onclick=()=\u003e{flaggedOnly=true;paintFiles();paintMainFilter()};"
+            },
+            {
+              "oldLine": 151,
+              "newLine": 178,
+              "kind": "context",
+              "text": "search.addEventListener('input',()=\u003e{searchQuery=search.value.trim().toLowerCase();paintFiles();paintMainFilter()});"
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": "let lastReviewIndex=-1;"
+            },
+            {
+              "newLine": 180,
+              "kind": "added",
+              "text": "function paintProgress(){"
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": "  const unread=files.filter((f)=\u003ereviewState(f.path)==='unreviewed').length;"
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": "  const followUp=files.filter((f)=\u003ereviewState(f.path)==='follow-up').length;"
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": "  progressSummary.textContent=unread+' unreviewed · '+followUp+' need follow-up';"
+            },
+            {
+              "newLine": 184,
+              "kind": "added",
+              "text": "  nextUnreviewed.disabled=unread===0;"
+            },
+            {
+              "newLine": 185,
+              "kind": "added",
+              "text": "  progressHint.textContent=(reviewStorageAvailable?'Saved in this browser for this comparison.':'Browser storage unavailable; progress lasts only on this page.')+' Your marks record review progress, not approval or proof of correctness.';"
+            },
+            {
+              "newLine": 186,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "nextUnreviewed.onclick=()=\u003e{"
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": "  for(let offset=1;offset\u003c=files.length;offset++){"
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "    const i=(lastReviewIndex+offset)%files.length;"
+            },
+            {
+              "newLine": 190,
+              "kind": "added",
+              "text": "    if(reviewState(files[i].path)!=='unreviewed')continue;"
+            },
+            {
+              "newLine": 191,
+              "kind": "added",
+              "text": "    lastReviewIndex=i;"
+            },
+            {
+              "newLine": 192,
+              "kind": "added",
+              "text": "    flaggedOnly=false;searchQuery='';search.value='';paintFiles();paintMainFilter();"
+            },
+            {
+              "newLine": 193,
+              "kind": "added",
+              "text": "    const section=document.getElementById('f'+i);section.focus({preventScroll:true});section.scrollIntoView();"
+            },
+            {
+              "newLine": 194,
+              "kind": "added",
+              "text": "    break;"
+            },
+            {
+              "newLine": 195,
+              "kind": "added",
+              "text": "  }"
+            },
+            {
+              "newLine": 196,
+              "kind": "added",
+              "text": "};"
+            },
+            {
+              "oldLine": 152,
+              "newLine": 197,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 153,
+              "newLine": 198,
+              "kind": "context",
+              "text": "/* ---- diff ---- */"
+            },
+            {
+              "oldLine": 154,
+              "newLine": 199,
+              "kind": "context",
+              "text": "function annotation(it,fileLevel){"
+            }
+          ]
+        },
+        {
+          "id": "diff-c671da4224f3c549",
+          "header": "@@ -189,11 +234,21 @@ addEventListener('hashchange',openNoteFromHash);",
+          "lines": [
+            {
+              "oldLine": 189,
+              "newLine": 234,
+              "kind": "context",
+              "text": "const main=h('main','main');"
+            },
+            {
+              "oldLine": 190,
+              "newLine": 235,
+              "kind": "context",
+              "text": "const renderedGroups=new Set();"
+            },
+            {
+              "oldLine": 191,
+              "newLine": 236,
+              "kind": "context",
+              "text": "files.forEach((f,i)=\u003e{"
+            },
+            {
+              "oldLine": 192,
+              "kind": "removed",
+              "text": "  const sec=h('section','fsec');sec.id='f'+i;sec.dataset.fileIndex=String(i);"
+            },
+            {
+              "newLine": 237,
+              "kind": "added",
+              "text": "  const sec=h('section','fsec');sec.id='f'+i;sec.dataset.fileIndex=String(i);sec.tabIndex=-1;sec.setAttribute('aria-label',f.path);"
+            },
+            {
+              "oldLine": 193,
+              "newLine": 238,
+              "kind": "context",
+              "text": "  const head=h('div','fhead');"
+            },
+            {
+              "oldLine": 194,
+              "newLine": 239,
+              "kind": "context",
+              "text": "  const group=blocks.find((block)=\u003eblock.paths.includes(f.path));"
+            },
+            {
+              "oldLine": 195,
+              "newLine": 240,
+              "kind": "context",
+              "text": "  if(group\u0026\u0026!renderedGroups.has(group.id)){const anchor=h('span');anchor.id=group.id;main.append(anchor);renderedGroups.add(group.id)}"
+            },
+            {
+              "oldLine": 196,
+              "newLine": 241,
+              "kind": "context",
+              "text": "  head.append(h('span','path',f.path),h('span','eyebrow',STATUS[f.status]||f.status),h('span','spacer'),h('span','mono muted','+'+stats[i].a+' −'+stats[i].d));"
+            },
+            {
+              "newLine": 242,
+              "kind": "added",
+              "text": "  const state=h('select','review-state');state.setAttribute('aria-label','Review status for '+f.path);"
+            },
+            {
+              "newLine": 243,
+              "kind": "added",
+              "text": "  for(const [value,label] of [['unreviewed','Unreviewed'],['reviewed','Reviewed'],['follow-up','Needs follow-up']]){"
+            },
+            {
+              "newLine": 244,
+              "kind": "added",
+              "text": "    const option=h('option',null,label);option.value=value;state.append(option);"
+            },
+            {
+              "newLine": 245,
+              "kind": "added",
+              "text": "  }"
+            },
+            {
+              "newLine": 246,
+              "kind": "added",
+              "text": "  state.value=reviewState(f.path);"
+            },
+            {
+              "newLine": 247,
+              "kind": "added",
+              "text": "  state.onchange=()=\u003e{"
+            },
+            {
+              "newLine": 248,
+              "kind": "added",
+              "text": "    if(state.value==='unreviewed')reviewStates.delete(f.path);else reviewStates.set(f.path,state.value);"
+            },
+            {
+              "newLine": 249,
+              "kind": "added",
+              "text": "    lastReviewIndex=i;persistReview();paintTop();paintFiles();paintProgress();syncTop();"
+            },
+            {
+              "newLine": 250,
+              "kind": "added",
+              "text": "  };"
+            },
+            {
+              "newLine": 251,
+              "kind": "added",
+              "text": "  head.append(state);"
+            },
+            {
+              "oldLine": 197,
+              "newLine": 252,
+              "kind": "context",
+              "text": "  sec.append(head);"
+            },
+            {
+              "oldLine": 198,
+              "newLine": 253,
+              "kind": "context",
+              "text": "  const body=h('div','fbody');"
+            },
+            {
+              "oldLine": 199,
+              "newLine": 254,
+              "kind": "context",
+              "text": "  const mine=items.filter((x)=\u003ex.fi===i);"
+            }
+          ]
+        },
+        {
+          "id": "diff-510db13ea8f88aff",
+          "header": "@@ -293,11 +348,11 @@ handle.addEventListener('keydown',(e)=\u003e{",
+          "lines": [
+            {
+              "oldLine": 293,
+              "newLine": 348,
+              "kind": "context",
+              "text": "  e.preventDefault();setRailWidth(next,true);settle();"
+            },
+            {
+              "oldLine": 294,
+              "newLine": 349,
+              "kind": "context",
+              "text": "});"
+            },
+            {
+              "oldLine": 295,
+              "newLine": 350,
+              "kind": "context",
+              "text": "addEventListener('resize',()=\u003esetRailWidth(parseFloat(wrap.style.getPropertyValue('--rail-w'))||savedWidth,false));"
+            },
+            {
+              "oldLine": 296,
+              "kind": "removed",
+              "text": "const foot=h('div','foot','Acknowledgements are saved in this browser only and apply to commit '+short(report.head)+'.');"
+            },
+            {
+              "newLine": 351,
+              "kind": "added",
+              "text": "const foot=h('div','foot','File review progress and finding acknowledgements are independent and browser-local. This report is a snapshot of commit '+short(report.head)+'. Confirm the current PR revision before approving in GitHub.');"
+            },
+            {
+              "oldLine": 297,
+              "newLine": 352,
+              "kind": "context",
+              "text": "app.textContent='';"
+            },
+            {
+              "oldLine": 298,
+              "newLine": 353,
+              "kind": "context",
+              "text": "app.append(top,wrap,foot);"
+            },
+            {
+              "oldLine": 299,
+              "newLine": 354,
+              "kind": "context",
+              "text": "setRailWidth(savedWidth,false);"
+            },
+            {
+              "oldLine": 300,
+              "kind": "removed",
+              "text": "paintTop();paintQueue();paintFiles();syncTop();"
+            },
+            {
+              "newLine": 355,
+              "kind": "added",
+              "text": "paintTop();paintQueue();paintFiles();paintProgress();syncTop();"
+            },
+            {
+              "oldLine": 301,
+              "newLine": 356,
+              "kind": "context",
+              "text": "/* A deep link such as #ann-3 opens its note and scrolls to it once the page is built. */"
+            },
+            {
+              "oldLine": 302,
+              "newLine": 357,
+              "kind": "context",
+              "text": "openNoteFromHash();"
+            },
+            {
+              "oldLine": 303,
+              "newLine": 358,
+              "kind": "context",
+              "text": "if(location.hash.length\u003e1)document.getElementById(location.hash.slice(1))?.scrollIntoView();"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-0867450ca115c293",
+      "title": "Code changes",
+      "summary": "16 related files share the \"code\" change signal.",
+      "paths": [
+        ".github/ISSUE_TEMPLATE/feature_request.md",
+        "AGENT.md",
+        "CONTRIBUTING.md",
+        "README.md",
+        "ROADMAP.md",
+        "action.yml",
+        "browser-tests/report.test.mjs",
+        "docs/GITHUB_REVIEW_INTEGRATION_PLAN.md",
+        "docs/PRODUCT_VISION.md",
+        "docs/RELEASING.md",
+        "docs/STATIC_REVIEW_EXPLANATIONS.md",
+        "docs/VERIFICATION_REPORT.md",
+        "export_test.go",
+        "main.go",
+        "static_report/report.css",
+        "static_report/report.js"
+      ]
+    }
+  ],
+  "ruleHits": [],
+  "explanations": [],
+  "attention": [
+    {
+      "id": "attention-db6ef6ef0fa7d0e8",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "static_report/report.js",
+      "line": 38,
+      "evidence": "const reviewState=(path)=\u003ereviewStates.get(path)||'unreviewed';"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "07305b4a0e80be6b07507f2e07d526d8f27cb7bc",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/37919332597",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/37919332597/job/113783192778",
+        "startedAt": "2026-10-09T10:43:26Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/37919332452/job/113783189709",
+        "startedAt": "2026-10-09T10:43:24Z"
+      }
+    ]
+  }
+}
