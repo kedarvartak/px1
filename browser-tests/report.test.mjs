@@ -24,6 +24,7 @@ before(async()=>{
   git('config','user.email','fixture@px1.test');
   git('config','user.name','px1 fixture');
   writeFileSync(join(repo,'src','orders.ts'),'export const ready = true;\n');
+  writeFileSync(join(repo,'src','orders.test.ts'),"import {ready} from './orders';\nvoid ready;\n");
   writeFileSync(join(repo,'README.md'),'Fixture repository.\n');
   writeFileSync(join(repo,'.px1','rules.json'),JSON.stringify({rules:[{pattern:'console\\.log',glob:'*.ts',message:'Use the shared logger'}]}));
   git('add','.');git('commit','-qm','base');
@@ -90,5 +91,16 @@ test('search narrows both navigation and visible diffs',async()=>{
   await search.fill('order-2499');
   assert.equal(await page.locator('.fsec:visible').count(),1);
   assert.match(await page.locator('.fsec:visible .path').textContent(),/orders\.ts/);
+  await page.close();
+});
+
+test('affected-file hints explain unchanged files outside the changed-file list',async()=>{
+  const page=await browser.newPage();
+  await page.setContent(reportHTML,{waitUntil:'load'});
+  const hints=page.locator('.affected-file');
+  assert.equal(await hints.count(),1);
+  assert.match(await hints.textContent(),/src\/orders\.test\.ts/);
+  assert.match(await hints.textContent(),/test imports the changed file/);
+  assert.equal(await page.locator('.files .file').count(),2,'unchanged hints must not enter the changed-file queue');
   await page.close();
 });

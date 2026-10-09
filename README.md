@@ -18,6 +18,7 @@ in GitHub.
 
 - Structured, line-numbered diffs grouped into reviewable blocks
 - Cross-file change groups that connect related routes, services, tests, and schemas
+- Explainable hints for unchanged importers, tests, configuration, and dependency files
 - Fast file-and-code search for large pull requests
 - Repository-specific findings from `.px1/rules.json`
 - Exact-commit GitHub check results
@@ -45,6 +46,12 @@ A sticky PR comment links the reviewer to it
 
 The workflow checks out trusted base-branch code and fetches the PR head only
 as Git objects. px1 inspects the diff; it does not execute code from the PR.
+Affected-file hints are deterministic navigation evidence from the pinned head
+commit, including common single-line JavaScript and TypeScript import forms.
+They are shown separately from changed files and never become required review
+items. The report shows when repository paths, file contents, or hint output
+exceeded a deterministic scan limit; absence of a hint is not proof that no
+related file exists.
 
 ## Set up px1
 
