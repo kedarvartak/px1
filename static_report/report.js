@@ -12,6 +12,7 @@ const attention=Array.isArray(report.attention)?report.attention:[];
 const explanations=Array.isArray(report.explanations)?report.explanations:[];
 const verification=report.verification||{checks:[]};
 const checks=Array.isArray(verification.checks)?verification.checks:[];
+const evidence=Array.isArray(report.evidence)?report.evidence:[];
 
 const h=(tag,cls,txt)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(txt!=null)n.textContent=String(txt);return n};
 const short=(sha)=>String(sha||'').slice(0,7);
@@ -89,6 +90,8 @@ if(verification.available&&checks.length){
     inner.append(row);
   }
   checksPanel.append(inner);
+}else if(verification.available){
+  checksPanel.append(h('div','checks-note','CI verification is attached for revision '+short(verification.revision)+' with 0 recorded checks. This is not a live status feed.'));
 }else{
   checksPanel.append(h('div','checks-note',verification.error||'No CI verification is attached to this report.'));
 }
@@ -111,7 +114,7 @@ function paintTop(){
   const ci=h('button','chip '+(failing?'chip-danger':pending?'chip-attention':''));
   ci.type='button';
   ci.setAttribute('aria-expanded',String(!checksPanel.hidden));
-  ci.textContent=verification.available&&checks.length?'CI '+checks.filter((c)=>c.status==='passed').length+'/'+checks.length+' passed':'CI not attached';
+  ci.textContent=verification.available?(checks.length?'CI '+checks.filter((c)=>c.status==='passed').length+'/'+checks.length+' passed':'CI attached · 0 checks'):verification.error?'CI unavailable':'CI not attached';
   ci.onclick=()=>{checksPanel.hidden=!checksPanel.hidden;ci.setAttribute('aria-expanded',String(!checksPanel.hidden));syncTop()};
   verdict.append(ci);
   {const n=items.filter((i)=>i.k==='note').length;verdict.append(h('span','chip'+(n?' chip-note':''),plural(n,'AI note')))}
@@ -119,6 +122,27 @@ function paintTop(){
 
 /* ---- rail ---- */
 const rail=h('aside','rail');rail.setAttribute('aria-label','Review navigation');
+const evidenceSec=h('section','evidence');
+const evidenceHead=h('h2','eyebrow','Evidence & limits');
+const evidenceIntro=h('p','evidence-intro','Each source is separate. None of these signals approves the pull request.');
+const evidenceList=h('ul','evidence-list');
+for(const source of evidence){
+  const li=h('li','evidence-source');
+  const sourceHead=h('div','evidence-head');
+  sourceHead.append(h('span','evidence-label',source.label),h('span','evidence-state state-'+source.state,source.state.replaceAll('-',' ')));
+  li.append(sourceHead,h('p','evidence-detail',source.detail));
+  if(source.revision){
+    const identity=h('p','evidence-revision');
+    identity.append(document.createTextNode(source.base?'Comparison ': 'Revision '));
+    if(source.base)identity.append(h('code',null,short(source.base)),document.createTextNode('…'));
+    identity.append(h('code',null,short(source.revision)));
+    li.append(identity);
+  }
+  for(const limit of Array.isArray(source.limits)?source.limits:[])li.append(h('p','evidence-limit',limit));
+  evidenceList.append(li);
+}
+if(!evidence.length)evidenceList.append(h('li','evidence-source evidence-missing','Evidence metadata is unavailable in this older snapshot. Treat every source as limited.'));
+evidenceSec.append(evidenceHead,evidenceIntro,evidenceList);rail.append(evidenceSec);
 const blocksSec=h('section');const blocksHead=h('h2','eyebrow','Change groups ');blocksHead.append(h('span','count',blocks.length));
 const blockList=h('ul','queue');
 for(const block of blocks){
@@ -190,7 +214,7 @@ const order={rule:0,attn:1,note:2};
 function paintQueue(){
   queue.textContent='';
   queueCount.textContent=open().length+' open';
-  if(!items.length){queue.append(h('p','empty',files.length?'No automated findings. Changed code still needs your review.':'No automated findings.'));return}
+  if(!items.length){queue.append(h('p','empty',files.length?'No automated findings matched. This is not evidence that the change is safe; changed code still needs your review.':'No automated findings matched.'));return}
   [...items].sort((a,b)=>order[a.k]-order[b.k]).forEach((it)=>{
     const a=h('a','qitem'+(it.k!=='note'&&ack.has(it.ackId)?' done':''));a.href='#'+it.id;
     const row=h('div','row');row.append(chipFor(it.k),h('span','t',it.title));
@@ -430,7 +454,7 @@ handle.addEventListener('keydown',(e)=>{
   e.preventDefault();setRailWidth(next,true);settle();
 });
 addEventListener('resize',()=>setRailWidth(parseFloat(wrap.style.getPropertyValue('--rail-w'))||savedWidth,false));
-const foot=h('div','foot','File review progress and finding acknowledgements are independent and browser-local. This report is a snapshot of commit '+short(report.head)+'. Confirm the current PR revision before approving in GitHub.');
+const foot=h('div','foot','File review progress and finding acknowledgements are independent and browser-local. This static snapshot represents '+short(report.base)+'…'+short(report.head)+' and cannot know the current live PR head or check status. Confirm both in GitHub before approving.');
 app.textContent='';
 app.append(top,wrap,foot);
 setRailWidth(savedWidth,false);

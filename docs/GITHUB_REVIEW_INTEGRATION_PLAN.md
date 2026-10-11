@@ -71,6 +71,20 @@ files and clears search and flag filters to reveal its destination. A storage
 failure leaves progress usable in memory and displays its temporary nature.
 Review declarations are not attestations of comprehension or shared approvals.
 
+## Evidence and limitations contract
+
+`review.json` exposes human progress, deterministic analysis, optional AI
+explanations, and CI verification as independent evidence sources. Each source
+has a state, a plain-language description, explicit limits, and the full base
+and/or head revision it represents. Missing AI and CI inputs are distinguishable
+from attached inputs that contain zero entries.
+
+Deterministic analysis is marked `limited` when attention scanning, affected-file
+hints, or inspection-question generation skips content or reaches a bound. The
+relevant component and limit are retained in the evidence entry. An empty finding
+list means only that no rule or signal matched. Reports are generated snapshots;
+they do not poll GitHub and cannot establish the current PR head or live checks.
+
 ## Inspection-question contract
 
 Inspection questions are deterministic prompts derived from existing attention

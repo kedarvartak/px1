@@ -53,11 +53,12 @@ broader public product launch. It does not imply every item is already shipped.
    selected high-impact changes and source/test relationships. They link to the
    relevant diff or changed tests, name unchanged related tests, expose output
    limits, and make no claim about author intent, correctness, or coverage.
-3. [ ] **Transparent evidence and limitations.** Separate human review progress,
-   automated analysis, AI explanations, and CI results. Surface skipped and
-   truncated analysis, missing verification, and the revision represented by
-   each source. An empty findings list must not imply safety. A static snapshot
-   must not claim to know the current live PR head.
+3. [x] **Transparent evidence and limitations.** The report now separates human
+   review progress, deterministic analysis, AI explanations, and CI results in
+   an evidence panel. Each source names its represented revision and state;
+   skipped or bounded analysis and missing inputs are visible. Empty findings
+   explicitly mean no matches, not safety, and the snapshot disclaims knowledge
+   of the current live PR head and check status.
 4. [ ] **Safe private-code delivery and publication.** Provide an access-appropriate
    delivery path, such as downloadable Actions artifacts, before positioning
    px1 for private repositories. Public Pages publication must be deliberate.

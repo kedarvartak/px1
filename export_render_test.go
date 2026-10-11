@@ -63,7 +63,7 @@ func TestStaticAttentionHandlesRenameAndModeChange(t *testing.T) {
 	runGitTest(t, root, "commit", "-am", "head")
 	head := strings.TrimSpace(runGitTest(t, root, "rev-parse", "HEAD"))
 
-	flags, err := staticAttention(root, base, head)
+	flags, _, err := staticAttention(root, base, head)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,9 +91,32 @@ func TestStaticAttentionIsEmptyNotNull(t *testing.T) {
 	writeExportTestFile(t, root, "notes.txt", "b\n")
 	runGitTest(t, root, "commit", "-am", "head")
 	head := strings.TrimSpace(runGitTest(t, root, "rev-parse", "HEAD"))
-	flags, err := staticAttention(root, base, head)
+	flags, analysis, err := staticAttention(root, base, head)
 	if err != nil || flags == nil || len(flags) != 0 {
 		t.Fatalf("flags = %#v, err = %v", flags, err)
+	}
+	if analysis.CandidateFiles != 1 || analysis.FilesAnalyzed != 1 || analysis.Truncated {
+		t.Fatalf("analysis = %#v", analysis)
+	}
+}
+
+func TestStaticReviewHTMLExplainsEvidenceAndSnapshotLimits(t *testing.T) {
+	report := staticReviewReport{
+		Base: strings.Repeat("a", 40), Head: strings.Repeat("b", 40),
+		Evidence: []staticEvidenceSource{
+			{ID: "human", Label: "Human review progress", State: "browser-local", Base: strings.Repeat("a", 40), Revision: strings.Repeat("b", 40), Detail: "Local declarations", Limits: []string{"Not shared"}},
+			{ID: "automated", Label: "Deterministic analysis", State: "limited", Revision: strings.Repeat("b", 40), Detail: "Zero findings means no matches", Limits: []string{"content rules skipped"}},
+		},
+		Verification: verificationResponse{Checks: []verificationCheck{}},
+	}
+	body, err := renderStaticReviewHTML(report)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"Evidence & limits", "Human review progress", "Deterministic analysis", "content rules skipped", "cannot know the current live PR head"} {
+		if !strings.Contains(string(body), want) {
+			t.Errorf("report missing %q", want)
+		}
 	}
 }
 

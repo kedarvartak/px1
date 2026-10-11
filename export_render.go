@@ -77,49 +77,70 @@ func renderStaticReviewHTML(report staticReviewReport) ([]byte, error) {
 
 // staticAttention evaluates deterministic risk signals against the exact two
 // commits represented by the published report.
-func staticAttention(root, base, head string) ([]reviewAttentionFlag, error) {
+type staticAttentionAnalysis struct {
+	CandidateFiles     int      `json:"candidateFiles"`
+	FilesAnalyzed      int      `json:"filesAnalyzed"`
+	ContentUnavailable int      `json:"contentUnavailable"`
+	Truncated          bool     `json:"truncated"`
+	Limits             []string `json:"limits"`
+}
+
+func staticAttention(root, base, head string) ([]reviewAttentionFlag, staticAttentionAnalysis, error) {
 	out, err := exec.Command("git", "-C", root, "diff", "--raw", "--no-abbrev", "--find-renames", "-z", base, head, "--").Output()
 	if err != nil {
-		return nil, fmt.Errorf("list attention candidates: %w", err)
+		return nil, staticAttentionAnalysis{}, fmt.Errorf("list attention candidates: %w", err)
 	}
-	candidates, err := staticAttentionCandidates(root, base, head, out)
+	candidates, analysis, err := staticAttentionCandidates(root, base, head, out)
 	if err != nil {
-		return nil, err
+		return nil, staticAttentionAnalysis{}, err
 	}
-	flags := detectReviewAttention(candidates, nil).Flags
+	detected := detectReviewAttention(candidates, nil)
+	flags := detected.Flags
 	if flags == nil {
 		flags = []reviewAttentionFlag{}
 	}
-	return flags, nil
+	if detected.Truncated {
+		analysis.Truncated = true
+		analysis.Limits = append(analysis.Limits, "attention findings reached the output limit")
+	}
+	return flags, analysis, nil
 }
 
 // staticAttentionCandidates parses `git diff --raw -z` output: a metadata
 // record ":<old mode> <new mode> <old sha> <new sha> <status>" followed by one
 // path, or two for renames and copies.
-func staticAttentionCandidates(root, base, head string, raw []byte) ([]attentionCandidate, error) {
+func staticAttentionCandidates(root, base, head string, raw []byte) ([]attentionCandidate, staticAttentionAnalysis, error) {
 	fields := strings.Split(strings.TrimRight(string(raw), "\x00"), "\x00")
 	var candidates []attentionCandidate
+	analysis := staticAttentionAnalysis{Limits: []string{}}
+	if len(fields) == 1 && fields[0] == "" {
+		return []attentionCandidate{}, analysis, nil
+	}
 	var err error
 	remaining := int64(attentionMaxContentBytes)
-	for i := 0; i < len(fields) && len(candidates) < attentionMaxFiles; {
+	for i := 0; i < len(fields); {
 		meta := strings.Fields(strings.TrimPrefix(fields[i], ":"))
 		if len(meta) < 5 {
-			return nil, errors.New("unexpected git diff --raw output")
+			return nil, staticAttentionAnalysis{}, errors.New("unexpected git diff --raw output")
 		}
 		status := meta[4][:1]
 		oldPath, newPath := "", ""
 		if status == "R" || status == "C" {
 			if i+2 >= len(fields) {
-				return nil, errors.New("unexpected git diff --raw output")
+				return nil, staticAttentionAnalysis{}, errors.New("unexpected git diff --raw output")
 			}
 			oldPath, newPath = fields[i+1], fields[i+2]
 			i += 3
 		} else {
 			if i+1 >= len(fields) {
-				return nil, errors.New("unexpected git diff --raw output")
+				return nil, staticAttentionAnalysis{}, errors.New("unexpected git diff --raw output")
 			}
 			oldPath, newPath = fields[i+1], fields[i+1]
 			i += 2
+		}
+		analysis.CandidateFiles++
+		if len(candidates) >= attentionMaxFiles {
+			continue
 		}
 		deleted := status == "D"
 		path := newPath
@@ -136,22 +157,34 @@ func staticAttentionCandidates(root, base, head string, raw []byte) ([]attention
 		if status != "A" {
 			var ok bool
 			if candidate.Baseline, ok, err = attentionBlob(root, base, oldPath, &remaining); err != nil {
-				return nil, err
+				return nil, staticAttentionAnalysis{}, err
 			}
 			available = available && ok
 		}
 		if !deleted {
 			var ok bool
 			if candidate.Current, ok, err = attentionBlob(root, head, newPath, &remaining); err != nil {
-				return nil, err
+				return nil, staticAttentionAnalysis{}, err
 			}
 			available = available && ok
 		}
 		candidate.ContentAvailable = available && !containsNUL(candidate.Baseline) && !containsNUL(candidate.Current)
+		if !candidate.ContentAvailable {
+			analysis.ContentUnavailable++
+		}
 		candidates = append(candidates, candidate)
 	}
+	analysis.FilesAnalyzed = len(candidates)
+	if analysis.CandidateFiles > analysis.FilesAnalyzed {
+		analysis.Truncated = true
+		analysis.Limits = append(analysis.Limits, fmt.Sprintf("attention analysis limited to %d of %d changed files", analysis.FilesAnalyzed, analysis.CandidateFiles))
+	}
+	if analysis.ContentUnavailable > 0 {
+		analysis.Truncated = true
+		analysis.Limits = append(analysis.Limits, fmt.Sprintf("content rules skipped for %d files because content was binary or exceeded byte limits", analysis.ContentUnavailable))
+	}
 	sort.Slice(candidates, func(i, j int) bool { return candidates[i].Path < candidates[j].Path })
-	return candidates, nil
+	return candidates, analysis, nil
 }
 
 // attentionBlob reads one file at a commit unless it is larger than the live

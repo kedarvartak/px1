@@ -132,9 +132,37 @@ test('a report with no findings still starts with every file unreviewed',async()
   const page=await browser.newPage();
   await page.setContent(reportVariant((data)=>{data.ruleHits=[];data.attention=[];data.explanations=[]}));
   assert.match(await page.locator('h1').textContent(),/^0 of 2 files marked reviewed/);
-  assert.equal(await page.getByText('No automated findings. Changed code still needs your review.',{exact:true}).count(),1);
+  assert.equal(await page.getByText('No automated findings matched. This is not evidence that the change is safe; changed code still needs your review.',{exact:true}).count(),1);
   await page.locator('.fsec').last().scrollIntoViewIfNeeded();
   assert.match(await page.locator('h1').textContent(),/^0 of 2 files marked reviewed/);
+  await page.close();
+});
+
+test('evidence sources expose identity, absence, and analysis limits separately',async()=>{
+  const page=await browser.newPage();
+  await page.setContent(reportHTML,{waitUntil:'load'});
+  const panel=page.locator('.evidence');
+  assert.equal(await panel.getByText('Human review progress',{exact:true}).count(),1);
+  assert.equal(await panel.getByText('Deterministic analysis',{exact:true}).count(),1);
+  assert.equal(await panel.getByText('AI explanations',{exact:true}).count(),1);
+  assert.equal(await panel.getByText('CI verification',{exact:true}).count(),1);
+  assert.equal(await panel.getByText('not attached',{exact:true}).count(),2);
+  assert.match(await panel.textContent(),/Zero findings means no matches/);
+  assert.match(await page.locator('.foot').textContent(),/cannot know the current live PR head or check status/);
+  await page.close();
+});
+
+test('attached CI with zero checks is not presented as missing',async()=>{
+  const page=await browser.newPage();
+  await page.setContent(reportVariant((data)=>{
+    data.verification={available:true,source:'github-actions',revision:data.head,checks:[]};
+    const ci=data.evidence.find((source)=>source.id==='ci');
+    Object.assign(ci,{state:'available',revision:data.head,detail:'0 recorded GitHub Actions checks; this is not a live status feed.'});
+  }));
+  const ci=page.getByRole('button',{name:'CI attached · 0 checks'});
+  assert.equal(await ci.count(),1);
+  await ci.click();
+  assert.match(await page.locator('.checks-note').textContent(),/attached.+0 recorded checks/i);
   await page.close();
 });
 
