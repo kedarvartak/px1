@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Help reviewers understand PR changes and team-rule findings in px1 reports
+about: Help developers understand agent-written code and make informed review decisions
 title: "[FEATURE] "
 labels: ["enhancement"]
 assignees: ""

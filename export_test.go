@@ -142,7 +142,7 @@ func TestGenerateStaticReviewUsesPinnedCommits(t *testing.T) {
 		t.Fatal(err)
 	}
 	html := string(b)
-	for _, want := range []string{"id=\"report-data\"", "api/users.ts", "Use apiClient, not fetch", "Review queue", "px1:ack:", "localStorage", "aria-pressed", "Acknowledge"} {
+	for _, want := range []string{"id=\"report-data\"", "api/users.ts", "Use apiClient, not fetch", "Automated findings", "Your code review", "px1:ack:", "localStorage", "aria-pressed", "Acknowledge"} {
 		if !strings.Contains(html, want) {
 			t.Errorf("report missing %q", want)
 		}

@@ -1,5 +1,9 @@
 # GitHub Actions verification input
 
+Verification is evidence for a human reviewing agent-written code. Passing CI
+does not mark files reviewed, establish behavioral test coverage, or approve a
+PR. Results describe the recorded revision and collection time, not live state.
+
 The px1 workflow collects check runs for the exact pull-request head and writes
 a small JSON input for the report generator:
 

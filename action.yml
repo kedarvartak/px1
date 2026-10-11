@@ -1,5 +1,5 @@
 name: px1 PR review artifact
-description: Generate a commit-pinned px1 review report from two Git revisions.
+description: Understand the code your agent wrote before you merge it, with a static report for human review.
 author: px1
 
 inputs:

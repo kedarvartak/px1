@@ -2,6 +2,11 @@
 
 Consumers should pin px1 to an immutable release or maintained major tag.
 
+An Action release is distinct from the public product launch. Before announcing
+the broader launch, check the human-review, evidence, privacy, and pilot criteria
+in [ROADMAP.md](../ROADMAP.md). Product messaging should lead with understanding
+the code your agent wrote before merging, as described in the product vision.
+
 1. Update `VERSION` in a normal pull request and merge it after checks pass.
 2. Open **Actions → Release px1 Actions → Run workflow** on the default branch.
 3. Enter the matching immutable tag, such as `v1.2.0`.
