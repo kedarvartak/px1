@@ -3,6 +3,8 @@ const report=JSON.parse(document.getElementById('report-data').textContent);
 const app=document.getElementById('app');
 const files=Array.isArray(report.files)?report.files:[];
 const blocks=Array.isArray(report.blocks)?report.blocks:[];
+const affectedFiles=Array.isArray(report.affectedFiles)?report.affectedFiles:[];
+const affectedAnalysis=report.affectedAnalysis||null;
 const ruleHits=Array.isArray(report.ruleHits)?report.ruleHits:[];
 const attention=Array.isArray(report.attention)?report.attention:[];
 const explanations=Array.isArray(report.explanations)?report.explanations:[];
@@ -19,9 +21,13 @@ const chipFor=(k)=>h('span','chip '+CHIP[k],KIND[k]);
 /* Acknowledgements live in this browser only. The key predates the redesign;
    keeping it means earlier acknowledgements still apply. */
 const ackKey='px1:ack:'+report.repository+':'+report.head;
+const noteKey='px1:note:'+report.repository+':'+report.head;
 let ack=new Set();
 try{const saved=JSON.parse(localStorage.getItem(ackKey)||'[]');if(Array.isArray(saved))ack=new Set(saved.filter((k)=>typeof k==='string'))}catch{}
 const persist=()=>{try{localStorage.setItem(ackKey,JSON.stringify([...ack].sort()))}catch{}};
+let reviewerNote='';
+try{reviewerNote=localStorage.getItem(noteKey)||''}catch{}
+const persistNote=()=>{try{localStorage.setItem(noteKey,reviewerNote)}catch{}};
 
 /* Explicit human declarations are independent of automated findings. Include
    both revisions: a different comparison must start a fresh review. */
@@ -125,6 +131,24 @@ const progressSummary=h('p','review-summary');progressSummary.setAttribute('role
 const nextUnreviewed=h('button','btn','Next unreviewed file');nextUnreviewed.type='button';
 const progressHint=h('p','review-hint');
 progressSec.append(progressSummary,nextUnreviewed,progressHint);rail.append(progressSec);
+const affectedSec=h('section');const affectedHead=h('h2','eyebrow','Affected file hints ');affectedHead.append(h('span','count',affectedFiles.length));
+const affectedList=h('ul','affected-list');
+for(const file of affectedFiles){
+  const li=h('li','affected-file');li.append(h('code',null,file.path));
+  for(const evidence of Array.isArray(file.evidence)?file.evidence:[]){
+    const reason=h('span','affected-reason');reason.append(h('b',null,evidence.kind),document.createTextNode(' · '+evidence.detail+' ('+evidence.changedPath+')'));li.append(reason);
+  }
+  affectedList.append(li);
+}
+if(affectedFiles.length||affectedAnalysis?.truncated){
+  affectedSec.append(affectedHead,affectedList);
+  if(affectedAnalysis){
+    const coverage=h('p','affected-coverage',(affectedAnalysis.truncated?'Limited analysis: ':'Analysis: ')+affectedAnalysis.filesScanned+' of '+affectedAnalysis.candidatePaths+' unchanged candidate files read.');
+    affectedSec.append(coverage);
+    if(affectedAnalysis.truncated)for(const limit of affectedAnalysis.limits||[])affectedSec.append(h('p','affected-limit',limit+'.'));
+  }
+  rail.append(affectedSec);
+}
 const queueSec=h('section');const queueHead=h('h2','eyebrow','Automated findings ');const queueCount=h('span','count');queueHead.append(queueCount);
 const queue=h('ul','queue');queueSec.append(queueHead,queue);
 const filesSec=h('section');const filesHead=h('h2','eyebrow','Files ');
@@ -134,7 +158,17 @@ fAll.type=fFlag.type='button';seg.append(fAll,fFlag);filesHead.append(seg);
 const search=h('input','file-search');search.type='search';search.placeholder='Search files and changed code';search.setAttribute('aria-label','Search files and changed code');
 const fileList=h('ul','files');filesSec.append(filesHead,fileList);
 filesSec.insertBefore(search,fileList);
-rail.append(queueSec,filesSec);
+const feedbackSec=h('section','feedback');
+const feedbackHead=h('h2','eyebrow','Reviewer feedback');
+const feedbackNote=h('textarea','feedback-note');feedbackNote.rows=4;feedbackNote.maxLength=10000;
+feedbackNote.placeholder='Add notes to include in the export';feedbackNote.setAttribute('aria-label','Reviewer notes');feedbackNote.value=reviewerNote;
+feedbackNote.addEventListener('input',()=>{reviewerNote=feedbackNote.value;persistNote()});
+const feedbackHint=h('p','feedback-hint','Saved only in this browser for this commit.');
+const feedbackActions=h('div','feedback-actions');
+const mdExport=h('button','btn','Export Markdown'),jsonExport=h('button','btn','Export JSON');
+mdExport.type=jsonExport.type='button';
+feedbackActions.append(mdExport,jsonExport);feedbackSec.append(feedbackHead,feedbackNote,feedbackHint,feedbackActions);
+rail.append(queueSec,filesSec,feedbackSec);
 let flaggedOnly=false;
 let searchQuery='';
 
@@ -150,6 +184,25 @@ function paintQueue(){
     const li=h('li');li.append(a);queue.append(li);
   });
 }
+const acknowledgedItems=()=>items.filter((it)=>it.k!=='note'&&ack.has(it.ackId)).map((it)=>({
+  id:it.ackId,kind:it.k,path:it.path,line:it.line||0,title:it.title
+}));
+const feedbackData=()=>({version:1,repository:report.repository||'',base:report.base||'',head:report.head||'',exportedAt:new Date().toISOString(),note:reviewerNote,acknowledgements:acknowledgedItems()});
+const markdownText=(value)=>String(value).replace(/[\\[\]_*<>]/g,'\\$&').replace(/`/g,"'");
+const markdownFeedback=()=>{
+  const data=feedbackData(),out=['## px1 reviewer feedback','',`Commit: \`${data.head}\``,''];
+  if(data.note.trim())out.push('### Notes','',data.note.trim(),'');
+  out.push('### Acknowledgements','');
+  if(!data.acknowledgements.length)out.push('_None._');
+  else for(const item of data.acknowledgements)out.push(`- [x] ${markdownText(item.title)} — \`${markdownText(item.path)}${item.line?':'+item.line:''}\``);
+  return out.join('\n')+'\n';
+};
+const downloadFeedback=(name,type,body)=>{
+  const url=URL.createObjectURL(new Blob([body],{type}));
+  const a=h('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+};
+mdExport.onclick=()=>downloadFeedback(`px1-feedback-${short(report.head)}.md`,'text/markdown;charset=utf-8',markdownFeedback());
+jsonExport.onclick=()=>downloadFeedback(`px1-feedback-${short(report.head)}.json`,'application/json;charset=utf-8',JSON.stringify(feedbackData(),null,2)+'\n');
 const stats=files.map((f)=>{let a=0,d=0;for(const hk of f.hunks||[])for(const l of hk.lines||[]){if(l.kind==='added')a++;else if(l.kind==='removed')d++}return{a,d}});
 const searchable=files.map((f,i)=>[f.path,...(f.hunks||[]).flatMap((hk)=>(hk.lines||[]).map((l)=>l.text)),...items.filter((x)=>x.fi===i).flatMap((x)=>[x.title,x.why,x.ev])].join('\n').toLowerCase());
 const fileVisible=(f,i)=>{if(flaggedOnly&&!items.some((x)=>x.fi===i))return false;return !searchQuery||searchable[i].includes(searchQuery)};

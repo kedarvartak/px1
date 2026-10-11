@@ -27,6 +27,7 @@ in GitHub.
 - Next-unreviewed navigation that includes code with no automated findings
 - Structured, line-numbered diffs grouped into reviewable blocks
 - Cross-file change groups that connect related routes, services, tests, and schemas
+- Explainable hints for unchanged importers, tests, configuration, and dependency files
 - Fast file-and-code search for large pull requests
 - Repository-specific findings from `.px1/rules.json`
 - Exact-commit GitHub check results
@@ -37,6 +38,7 @@ in GitHub.
 - A report URL pinned to the PR head SHA
 - Machine-readable `review.json` for agents and repository automation
 - Historical report links that remain valid after the PR changes
+- Browser-local reviewer notes and acknowledgements exportable as Markdown or JSON
 
 ## Review the code, including changes nobody flagged
 
@@ -70,6 +72,12 @@ A sticky PR comment links the reviewer to it
 
 The workflow checks out trusted base-branch code and fetches the PR head only
 as Git objects. px1 inspects the diff; it does not execute code from the PR.
+Affected-file hints are deterministic navigation evidence from the pinned head
+commit, including common single-line JavaScript and TypeScript import forms.
+They are shown separately from changed files and never become required review
+items. The report shows when repository paths, file contents, or hint output
+exceeded a deterministic scan limit; absence of a hint is not proof that no
+related file exists.
 
 ## Set up px1
 
@@ -86,6 +94,8 @@ https://<owner>.github.io/<repository>/reviews/<head-sha>/
 ```
 
 and creates or updates one marked px1 comment on the PR.
+The comment summarizes finding counts, the highest-priority team rules, exact
+verification state, and the commit-pinned artifact link.
 
 ## Team rules
 
@@ -163,6 +173,11 @@ See [the explanation contract](docs/STATIC_REVIEW_EXPLANATIONS.md) and
 - The reviewer UI is one static HTML file and makes no network requests.
 - GitHub Pages reports are public unless the repository's Pages configuration
   provides access control. Do not publish sensitive private code publicly.
+
+Reviewer notes and acknowledgements remain in browser storage, scoped to the
+repository and full head SHA. Use the report's **Export Markdown** or **Export
+JSON** controls to download feedback for pasting into GitHub; px1 never uploads
+that feedback or presents it as shared state.
 
 ## Development
 

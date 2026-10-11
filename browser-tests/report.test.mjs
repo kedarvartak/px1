@@ -24,6 +24,7 @@ before(async()=>{
   git('config','user.email','fixture@px1.test');
   git('config','user.name','px1 fixture');
   writeFileSync(join(repo,'src','orders.ts'),'export const ready = true;\n');
+  writeFileSync(join(repo,'src','orders.test.ts'),"import {ready} from './orders';\nvoid ready;\n");
   writeFileSync(join(repo,'README.md'),'Fixture repository.\n');
   writeFileSync(join(repo,'.px1','rules.json'),JSON.stringify({rules:[{pattern:'console\\.log',glob:'*.ts',message:'Use the shared logger'}]}));
   git('add','.');git('commit','-qm','base');
@@ -173,4 +174,45 @@ test('invalid stored states are ignored and storage failure keeps review usable'
   assert.match(await page.locator('h1').textContent(),/^1 of 2 files marked reviewed/);
   assert.match(await page.locator('.review-hint').textContent(),/storage unavailable; progress lasts only on this page/);
   await context.close();
+});
+
+test('affected-file hints explain unchanged files outside the changed-file list',async()=>{
+  const page=await browser.newPage();
+  await page.setContent(reportHTML,{waitUntil:'load'});
+  const hints=page.locator('.affected-file');
+  assert.equal(await hints.count(),1);
+  assert.match(await hints.textContent(),/src\/orders\.test\.ts/);
+  assert.match(await hints.textContent(),/test imports the changed file/);
+  assert.equal(await page.locator('.files .file').count(),2,'unchanged hints must not enter the changed-file queue');
+  await page.close();
+});
+
+test('reviewer feedback exports browser-local notes and acknowledgements',async()=>{
+  const page=await browser.newPage();
+  await page.setContent(reportHTML,{waitUntil:'load'});
+  await page.getByRole('button',{name:'Acknowledge'}).first().click();
+  await page.getByRole('textbox',{name:'Reviewer notes'}).fill('Ready after the logging follow-up.');
+  await page.evaluate(()=>{
+    window.__feedbackExports=[];
+    URL.createObjectURL=(blob)=>{blob.text().then((text)=>window.__feedbackExports.push(text));return 'blob:px1-test'};
+    URL.revokeObjectURL=()=>{};
+    HTMLAnchorElement.prototype.click=()=>{};
+  });
+
+  await page.getByRole('button',{name:'Export JSON'}).click();
+  await page.waitForFunction(()=>window.__feedbackExports.length===1);
+  const json=await page.evaluate(()=>window.__feedbackExports[0]);
+  const data=JSON.parse(json);
+  assert.equal(data.note,'Ready after the logging follow-up.');
+  assert.equal(data.head,git('rev-parse','HEAD'));
+  assert.equal(data.acknowledgements.length,1);
+  assert.match(data.acknowledgements[0].path,/orders\.ts/);
+
+  await page.getByRole('button',{name:'Export Markdown'}).click();
+  await page.waitForFunction(()=>window.__feedbackExports.length===2);
+  const markdown=await page.evaluate(()=>window.__feedbackExports[1]);
+  assert.match(markdown,/## px1 reviewer feedback/);
+  assert.match(markdown,/Ready after the logging follow-up/);
+  assert.match(markdown,/- \[x\] .+ — `src\/orders\.ts/);
+  await page.close();
 });

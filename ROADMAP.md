@@ -68,18 +68,18 @@ broader public product launch. It does not imply every item is already shipped.
    on comparable changes. Compare comprehension, correct decisions, and time
    against their existing workflow. Click counts alone are not a success metric.
 
-## Supporting work already proposed
+## Supporting work shipped alongside the review workflow
 
 - **Reviewer feedback export — [PR #134](https://github.com/kedarvartak/px1/pull/134).**
   Export local notes and acknowledgements as Markdown or JSON. Follow up by
   including file-review progress and unresolved follow-ups; keep the distinction
   between local declarations and shared GitHub review explicit.
 - **Explainable affected-file hints — [PR #135](https://github.com/kedarvartak/px1/pull/135).**
-  Keep suggestions separate from changed files, verify the evidence, and make
-  related code inspectable. Suggestions alone do not establish impact.
+  Suggestions stay separate from changed files, expose bounded analysis and
+  factual evidence, and never establish impact by themselves.
 - **PR summary improvements — [PR #136](https://github.com/kedarvartak/px1/pull/136).**
-  Summarize findings and verification with the artifact link. Keep the comment
-  an invitation to inspect code, avoiding approval-like conclusions.
+  Summarize findings and verification with the artifact link while keeping the
+  comment an invitation to inspect code, not an approval-like conclusion.
 
 ## After launch
 
