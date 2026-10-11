@@ -104,3 +104,33 @@ test('affected-file hints explain unchanged files outside the changed-file list'
   assert.equal(await page.locator('.files .file').count(),2,'unchanged hints must not enter the changed-file queue');
   await page.close();
 });
+
+test('reviewer feedback exports browser-local notes and acknowledgements',async()=>{
+  const page=await browser.newPage();
+  await page.setContent(reportHTML,{waitUntil:'load'});
+  await page.getByRole('button',{name:'Acknowledge'}).first().click();
+  await page.getByRole('textbox',{name:'Reviewer notes'}).fill('Ready after the logging follow-up.');
+  await page.evaluate(()=>{
+    window.__feedbackExports=[];
+    URL.createObjectURL=(blob)=>{blob.text().then((text)=>window.__feedbackExports.push(text));return 'blob:px1-test'};
+    URL.revokeObjectURL=()=>{};
+    HTMLAnchorElement.prototype.click=()=>{};
+  });
+
+  await page.getByRole('button',{name:'Export JSON'}).click();
+  await page.waitForFunction(()=>window.__feedbackExports.length===1);
+  const json=await page.evaluate(()=>window.__feedbackExports[0]);
+  const data=JSON.parse(json);
+  assert.equal(data.note,'Ready after the logging follow-up.');
+  assert.equal(data.head,git('rev-parse','HEAD'));
+  assert.equal(data.acknowledgements.length,1);
+  assert.match(data.acknowledgements[0].path,/orders\.ts/);
+
+  await page.getByRole('button',{name:'Export Markdown'}).click();
+  await page.waitForFunction(()=>window.__feedbackExports.length===2);
+  const markdown=await page.evaluate(()=>window.__feedbackExports[1]);
+  assert.match(markdown,/## px1 reviewer feedback/);
+  assert.match(markdown,/Ready after the logging follow-up/);
+  assert.match(markdown,/- \[x\] .+ — `src\/orders\.ts/);
+  await page.close();
+});
