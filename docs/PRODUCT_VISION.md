@@ -36,6 +36,7 @@ to it. The report combines:
 
 - readable, structured diffs;
 - explicit file-review states independent of automated findings;
+- evidence-first inspection questions linked to code and tests;
 - concise explanation chips beside changed blocks;
 - repository-defined team-rule findings with evidence;
 - exact-revision CI results; and
@@ -53,11 +54,11 @@ requires checking the current PR in GitHub.
 
 ## Public launch priorities
 
-After explicit review progress, prioritize behavioral explanations linked to
-code and tests, visible analysis limitations, safe private-code delivery, and a
-demo plus pilot measuring comprehension and review decisions. These are planned
-work, not claims about current coverage. Deeper structural rules follow once a
-concrete reviewer need justifies them. See the roadmap for status.
+Explicit review progress and a first deterministic set of behavioral inspection
+questions are implemented. Next prioritize visible analysis limitations, safe
+private-code delivery, and a demo plus pilot measuring comprehension and review
+decisions. Deeper structural rules follow once a concrete reviewer need
+justifies them. See the roadmap for status.
 
 ## Team policy belongs in the repository
 

@@ -48,10 +48,11 @@ broader public product launch. It does not imply every item is already shipped.
    Headline progress is independent of finding acknowledgements. Marks are
    deliberate, browser-local declarations scoped to repository/base/head;
    scrolling never marks code reviewed, and marks never imply approval.
-2. [ ] **Behavioral understanding beside the code.** Explain important behavior
-   changes with concrete inspection questions and links to the relevant diff,
-   tests, or related files. Distinguish observed evidence from inferred intent.
-   Start with a small useful set, without requiring general-purpose chat.
+2. [x] **Behavioral understanding beside the code.** Deterministic inspection
+   cards now separate observed evidence from a concrete reviewer question for
+   selected high-impact changes and source/test relationships. They link to the
+   relevant diff or changed tests, name unchanged related tests, expose output
+   limits, and make no claim about author intent, correctness, or coverage.
 3. [ ] **Transparent evidence and limitations.** Separate human review progress,
    automated analysis, AI explanations, and CI results. Surface skipped and
    truncated analysis, missing verification, and the revision represented by

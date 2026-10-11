@@ -5,6 +5,8 @@ const files=Array.isArray(report.files)?report.files:[];
 const blocks=Array.isArray(report.blocks)?report.blocks:[];
 const affectedFiles=Array.isArray(report.affectedFiles)?report.affectedFiles:[];
 const affectedAnalysis=report.affectedAnalysis||null;
+const inspectionQuestions=Array.isArray(report.inspectionQuestions)?report.inspectionQuestions:[];
+const inspectionAnalysis=report.inspectionAnalysis||null;
 const ruleHits=Array.isArray(report.ruleHits)?report.ruleHits:[];
 const attention=Array.isArray(report.attention)?report.attention:[];
 const explanations=Array.isArray(report.explanations)?report.explanations:[];
@@ -131,6 +133,18 @@ const progressSummary=h('p','review-summary');progressSummary.setAttribute('role
 const nextUnreviewed=h('button','btn','Next unreviewed file');nextUnreviewed.type='button';
 const progressHint=h('p','review-hint');
 progressSec.append(progressSummary,nextUnreviewed,progressHint);rail.append(progressSec);
+const inspectionSec=h('section','inspection-nav');const inspectionHead=h('h2','eyebrow','Inspection questions ');inspectionHead.append(h('span','count',inspectionQuestions.length));
+const inspectionList=h('ul','inspection-list');
+for(const prompt of inspectionQuestions){
+  const li=h('li'),a=h('a','inspection-link');a.href='#'+prompt.id;
+  a.append(h('span','t',prompt.question),h('span','w',prompt.path+(prompt.line?':'+prompt.line:'')));
+  li.append(a);inspectionList.append(li);
+}
+if(inspectionQuestions.length||inspectionAnalysis?.truncated){
+  inspectionSec.append(inspectionHead,inspectionList);
+  if(inspectionAnalysis?.truncated)for(const limit of inspectionAnalysis.limits||[])inspectionSec.append(h('p','inspection-limit',limit+'.'));
+  rail.append(inspectionSec);
+}
 const affectedSec=h('section');const affectedHead=h('h2','eyebrow','Affected file hints ');affectedHead.append(h('span','count',affectedFiles.length));
 const affectedList=h('ul','affected-list');
 for(const file of affectedFiles){
@@ -304,6 +318,20 @@ files.forEach((f,i)=>{
   head.append(state);
   sec.append(head);
   const body=h('div','fbody');
+  for(const prompt of inspectionQuestions.filter((question)=>question.path===f.path)){
+    const card=h('article','inspection-card');card.id=prompt.id;
+    const title=h('div','inspection-title');title.append(h('span','chip chip-question','Question'),h('span','src',prompt.kind));card.append(title);
+    card.append(h('b','inspection-label','Observed evidence'),h('p','inspection-observation',prompt.observation));
+    card.append(h('b','inspection-label','Reviewer question'),h('p','inspection-question',prompt.question));
+    const links=h('div','inspection-references');
+    if(prompt.line){const lineLink=h('a',null,'View diff line '+prompt.line);lineLink.href='#line-f'+i+'-n'+prompt.line;links.append(lineLink)}
+    for(const ref of Array.isArray(prompt.related)?prompt.related:[]){
+      if(ref.inDiff&&fileIndex.has(ref.path)){const link=h('a',null,ref.path);link.href='#f'+fileIndex.get(ref.path);links.append(link)}
+      else{const related=h('span',null);related.append(h('code',null,ref.path),document.createTextNode(' · '+ref.relationship));links.append(related)}
+    }
+    if(links.childNodes.length)card.append(links);
+    body.append(card);
+  }
   const mine=items.filter((x)=>x.fi===i);
   const placed=new Set();
   const hunks=Array.isArray(f.hunks)?f.hunks:[];
@@ -323,6 +351,7 @@ files.forEach((f,i)=>{
       for(const l of hk.lines||[]){
         const marks=byLine.get(l)||[];
         const row=h('div','ln '+l.kind);
+        if(l.newLine)row.id='line-f'+i+'-n'+l.newLine;
         row.append(h('span','g',l.oldLine||''),h('span','g',l.newLine||''),h('span','mk',l.kind==='added'?'+':l.kind==='removed'?'−':' '),h('span','c',l.text));
         rowOf.set(l,row);hunk.append(row);
         for(const it of marks)hunk.append(annotation(it,false));

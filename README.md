@@ -28,6 +28,7 @@ in GitHub.
 - Structured, line-numbered diffs grouped into reviewable blocks
 - Cross-file change groups that connect related routes, services, tests, and schemas
 - Explainable hints for unchanged importers, tests, configuration, and dependency files
+- Evidence-first inspection questions linked to changed or related tests
 - Fast file-and-code search for large pull requests
 - Repository-specific findings from `.px1/rules.json`
 - Exact-commit GitHub check results
@@ -55,6 +56,13 @@ storage is unavailable, the report says progress lasts only on the page.
 px1 works alongside existing coding agents and AI reviewers. Its focus is the
 human's understanding and decisions; AI explanations are optional. Confirm the
 current PR revision in GitHub before submitting your review.
+
+Inspection questions keep observations separate from judgment. px1 can point
+out that an exported interface, authentication path, schema, configuration,
+dependency, executable mode, or test relationship changed, then ask what the
+reviewer should verify. Changed tests link back into the diff; unchanged related
+tests are named as context. These prompts are deterministic and bounded. They
+do not infer author intent, prove test coverage, or count as findings.
 
 ## How it works
 

@@ -197,6 +197,28 @@ func TestStaticReviewHTMLShipsAffectedFileHints(t *testing.T) {
 	}
 }
 
+func TestStaticReviewHTMLShipsInspectionQuestions(t *testing.T) {
+	report := staticReviewReport{
+		Files: []staticReviewFile{{Path: "src/service.ts", Status: "M"}, {Path: "src/service.test.ts", Status: "M"}},
+		InspectionQuestions: []staticInspectionQuestion{{
+			ID: "inspect-1", Path: "src/service.ts", Line: 12, Kind: "changed-test",
+			Observation: "The implementation and test both changed.", Question: "Which test demonstrates the behavior?",
+			Related: []staticInspectionReference{{Path: "src/service.test.ts", Relationship: "changed companion test", InDiff: true}},
+		}},
+		InspectionAnalysis: staticInspectionAnalysis{Truncated: true, Limits: []string{"inspection questions limited to 100"}},
+		Verification:       verificationResponse{Checks: []verificationCheck{}},
+	}
+	body, err := renderStaticReviewHTML(report)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"Inspection questions", "Observed evidence", "Reviewer question", "Which test demonstrates the behavior?", "View diff line", "inspection questions limited to 100"} {
+		if !strings.Contains(string(body), want) {
+			t.Errorf("report missing %q", want)
+		}
+	}
+}
+
 func TestStaticReviewHTMLShipsReviewerFeedbackExport(t *testing.T) {
 	body, err := renderStaticReviewHTML(staticReviewReport{Verification: verificationResponse{Checks: []verificationCheck{}}})
 	if err != nil {

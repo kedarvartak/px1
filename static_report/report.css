@@ -93,6 +93,12 @@ body.resizing{cursor:col-resize;user-select:none}
 .affected-reason b{color:var(--dim);font-weight:500;text-transform:capitalize}
 .affected-coverage,.affected-limit{margin:7px 0 0;color:var(--faint);font-size:var(--fs-fine);line-height:1.35}
 .affected-limit{color:var(--attention)}
+.inspection-list{list-style:none;margin:0;padding:0}
+.inspection-link{display:grid;gap:2px;padding:7px 0;border-top:1px solid var(--line);color:inherit;text-decoration:none}
+.inspection-list li:first-child .inspection-link{border-top:0;padding-top:2px}
+.inspection-link .t{font-size:var(--fs-small);line-height:1.35}
+.inspection-link .w{color:var(--faint);font:var(--fs-fine) var(--mono);overflow-wrap:anywhere}
+.inspection-limit{margin:7px 0 0;color:var(--attention);font-size:var(--fs-fine)}
 .qitem{display:grid;gap:2px;text-decoration:none;color:inherit;padding:8px 0;border-top:1px solid var(--line)}
 .queue li:first-child .qitem{border-top:0;padding-top:2px}
 .qitem .row{display:flex;gap:8px;align-items:center}
@@ -145,6 +151,15 @@ body.resizing{cursor:col-resize;user-select:none}
 .note-body{padding:0 0 12px 30px}
 .note-body p{margin:0 0 6px;max-width:68ch;color:var(--dim)}
 .ann.filelevel{padding-left:16px;border-top:0}
+.inspection-card{margin:10px;padding:12px;border:1px solid var(--edge);border-radius:var(--r-md);background:var(--surface);scroll-margin-top:calc(var(--top-h,140px) + 16px)}
+.inspection-title{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.chip-question{background:var(--note-tint);color:var(--note)}
+.inspection-label{display:block;margin-top:8px;color:var(--dim);font-size:var(--fs-fine);text-transform:uppercase;letter-spacing:.04em}
+.inspection-observation,.inspection-question{margin:3px 0 0;font-size:var(--fs-small);line-height:1.45}
+.inspection-question{font-weight:500}
+.inspection-references{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:var(--fs-fine)}
+.inspection-references a{color:var(--note)}
+.inspection-references code{overflow-wrap:anywhere}
 .ann-top{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .ann-title{font-weight:600}
 .ann p{margin:4px 0 0;max-width:68ch;color:var(--dim)}
