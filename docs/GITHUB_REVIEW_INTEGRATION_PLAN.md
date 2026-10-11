@@ -42,7 +42,8 @@ The generator reads only commit-pinned data:
 - optional explanation JSON whose revision equals the head SHA.
 
 The report contains changed files, structured hunks, rule findings, attention
-signals, verification results, and optional explanations.
+signals, bounded inspection questions with observed evidence and related-file
+references, verification results, and optional explanations.
 
 ## Security boundaries
 
@@ -69,6 +70,19 @@ findings marks a file reviewed. Next-unreviewed navigation includes unflagged
 files and clears search and flag filters to reveal its destination. A storage
 failure leaves progress usable in memory and displays its temporary nature.
 Review declarations are not attestations of comprehension or shared approvals.
+
+## Inspection-question contract
+
+Inspection questions are deterministic prompts derived from existing attention
+evidence and source/test relationships. Each entry in `review.json` keeps the
+observed evidence separate from the question and identifies its primary changed
+file, optional line, and related paths. Links are emitted only for files present
+in the diff; unchanged related tests are labels, not claims of coverage.
+
+Questions are bounded to 100 entries and related paths to 8 per question; the
+report exposes either truncation explicitly. Questions are not findings,
+acknowledgements, AI output, inferred author intent, or evidence that a behavior
+is correct.
 
 ## Deliberately unsupported
 

@@ -21,17 +21,19 @@ import (
 // published page cannot silently drift when a pull request receives another
 // commit.
 type staticReviewReport struct {
-	Version          int                    `json:"version"`
-	Repository       string                 `json:"repository"`
-	Base             string                 `json:"base"`
-	Head             string                 `json:"head"`
-	GeneratedAt      time.Time              `json:"generatedAt"`
-	Files            []staticReviewFile     `json:"files"`
-	Blocks           []staticReviewBlock    `json:"blocks"`
-	AffectedFiles    []staticAffectedFile   `json:"affectedFiles"`
-	AffectedAnalysis staticAffectedAnalysis `json:"affectedAnalysis"`
-	RuleHits         []staticReviewHit      `json:"ruleHits"`
-	Explanations     []staticExplanation    `json:"explanations"`
+	Version             int                        `json:"version"`
+	Repository          string                     `json:"repository"`
+	Base                string                     `json:"base"`
+	Head                string                     `json:"head"`
+	GeneratedAt         time.Time                  `json:"generatedAt"`
+	Files               []staticReviewFile         `json:"files"`
+	Blocks              []staticReviewBlock        `json:"blocks"`
+	AffectedFiles       []staticAffectedFile       `json:"affectedFiles"`
+	AffectedAnalysis    staticAffectedAnalysis     `json:"affectedAnalysis"`
+	InspectionQuestions []staticInspectionQuestion `json:"inspectionQuestions"`
+	InspectionAnalysis  staticInspectionAnalysis   `json:"inspectionAnalysis"`
+	RuleHits            []staticReviewHit          `json:"ruleHits"`
+	Explanations        []staticExplanation        `json:"explanations"`
 	// Attention lists the risk signals px1 raises on the diff itself, such as
 	// workflow permission changes or new public API. Snapshots written before
 	// the field existed decode to nil, and the page renders that as none.
@@ -208,20 +210,23 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi
 	if err != nil {
 		return staticReviewReport{}, err
 	}
+	questions, questionAnalysis := inspectionQuestions(files, flags, affected)
 	return staticReviewReport{
-		Version:          1,
-		Repository:       filepath.Base(root),
-		Base:             baseSHA,
-		Head:             headSHA,
-		GeneratedAt:      time.Now().UTC(),
-		Files:            files,
-		Blocks:           relatedReviewBlocks(files),
-		AffectedFiles:    affected,
-		AffectedAnalysis: affectedAnalysis,
-		RuleHits:         staticHits,
-		Explanations:     explanations,
-		Attention:        flags,
-		Verification:     verification,
+		Version:             1,
+		Repository:          filepath.Base(root),
+		Base:                baseSHA,
+		Head:                headSHA,
+		GeneratedAt:         time.Now().UTC(),
+		Files:               files,
+		Blocks:              relatedReviewBlocks(files),
+		AffectedFiles:       affected,
+		AffectedAnalysis:    affectedAnalysis,
+		InspectionQuestions: questions,
+		InspectionAnalysis:  questionAnalysis,
+		RuleHits:            staticHits,
+		Explanations:        explanations,
+		Attention:           flags,
+		Verification:        verification,
 	}, nil
 }
 

@@ -187,6 +187,21 @@ test('affected-file hints explain unchanged files outside the changed-file list'
   await page.close();
 });
 
+test('inspection questions separate evidence from prompts and link back to code',async()=>{
+  const page=await browser.newPage();
+  await page.setContent(reportHTML,{waitUntil:'load'});
+  const cards=page.locator('.inspection-card');
+  assert.ok(await cards.count()>=2,'fixture should produce public API and related-test questions');
+  assert.equal(await cards.getByText('Observed evidence',{exact:true}).count(),await cards.count());
+  assert.equal(await cards.getByText('Reviewer question',{exact:true}).count(),await cards.count());
+  assert.match(await cards.filter({hasText:'unchanged test'}).textContent(),/src\/orders\.test\.ts/);
+  const lineLink=cards.getByRole('link',{name:/View diff line/}).first();
+  await lineLink.click();
+  assert.match(await page.evaluate(()=>location.hash),/^#line-f\d+-n\d+$/);
+  assert.equal(await page.locator('.inspection-card .act').count(),0,'questions must not become acknowledgement findings');
+  await page.close();
+});
+
 test('reviewer feedback exports browser-local notes and acknowledgements',async()=>{
   const page=await browser.newPage();
   await page.setContent(reportHTML,{waitUntil:'load'});

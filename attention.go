@@ -44,7 +44,11 @@ type attentionCandidate struct {
 	ContentAvailable  bool
 }
 
-var publicAPIAddedLine = regexp.MustCompile(`(?i)(HandleFunc\s*\(|\.(get|post|put|patch|delete)\s*\(|@(app|router)\.(get|post|put|patch|delete)\b|\bexport\s+(async\s+)?(function|class|const|let|var)\b|^\s*func\s+[A-Z][A-Za-z0-9_]*\s*\()`)
+var (
+	routeAPIAddedLine   = regexp.MustCompile(`(?i)(\bHandleFunc\s*\(|\b(app|router|server)\.(get|post|put|patch|delete)\s*\(|@(app|router)\.(get|post|put|patch|delete)\b)`)
+	jsExportAddedLine   = regexp.MustCompile(`\bexport\s+(async\s+)?(function|class|const|let|var)\b`)
+	goExportedAddedLine = regexp.MustCompile(`^\s*func\s+(\([^)]*\)\s*)?[A-Z][A-Za-z0-9_]*\s*\(`)
+)
 
 func detectReviewAttention(candidates []attentionCandidate, dismissed map[string]bool) reviewAttention {
 	flags := make([]reviewAttentionFlag, 0)
@@ -95,7 +99,7 @@ func detectReviewAttention(candidates []attentionCandidate, dismissed map[string
 		}
 		for _, line := range added {
 			text := strings.TrimSpace(line.Text)
-			if publicAPIAddedLine.MatchString(text) {
+			if !isTestFile(lower, base) && isPublicAPIAddedLine(text) {
 				add("public-api", "New endpoint or public API", "An added declaration looks externally callable or route-facing.", path, line.Number, clip(text, 180))
 				break
 			}
@@ -111,6 +115,10 @@ func detectReviewAttention(candidates []attentionCandidate, dismissed map[string
 		return flags[i].Rule < flags[j].Rule
 	})
 	return reviewAttention{Flags: flags, Truncated: truncated}
+}
+
+func isPublicAPIAddedLine(text string) bool {
+	return routeAPIAddedLine.MatchString(text) || jsExportAddedLine.MatchString(text) || goExportedAddedLine.MatchString(text)
 }
 
 type attentionLine struct {

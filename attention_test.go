@@ -61,9 +61,29 @@ func TestDetectReviewAttentionAvoidsNearMatches(t *testing.T) {
 		{Path: "internal/client.go"},
 		{Path: "scripts/deploy.sh", BaselineMode: 0o644, CurrentMode: 0o644},
 		{Path: "small.go", Baseline: []byte("package small\n"), Current: []byte("package small\nvar private = 1\n"), ContentAvailable: true},
+		{Path: "internal/private.go", Current: []byte("func privateHandler() {}\n"), ContentAvailable: true},
+		{Path: "internal/cache.js", Current: []byte("const value = fileIndex.get(path);\n"), ContentAvailable: true},
+		{Path: "internal/public_test.go", Current: []byte("func TestPublicHandler(t *testing.T) {}\n"), ContentAvailable: true},
 	}
 	if got := detectReviewAttention(candidates, nil); len(got.Flags) != 0 {
 		t.Fatalf("near matches received attention flags: %#v", got.Flags)
+	}
+}
+
+func TestDetectReviewAttentionRecognizesSupportedPublicAPISyntax(t *testing.T) {
+	candidates := []attentionCandidate{
+		{Path: "api/routes.go", Current: []byte("func PublicHandler() {}\nfunc (s *Server) CreateUser() {}\n"), ContentAvailable: true},
+		{Path: "web/routes.ts", Current: []byte("export async function createUser() {}\nrouter.post('/users', handler);\n"), ContentAvailable: true},
+	}
+	got := detectReviewAttention(candidates, nil)
+	paths := map[string]bool{}
+	for _, flag := range got.Flags {
+		if flag.Rule == "public-api" {
+			paths[flag.Path] = true
+		}
+	}
+	if !paths["api/routes.go"] || !paths["web/routes.ts"] {
+		t.Fatalf("public API flags = %#v", got.Flags)
 	}
 }
 
