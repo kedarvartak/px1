@@ -66,6 +66,17 @@ test('wide screens use the available report width',async()=>{
   await page.close();
 });
 
+test('review status control reserves space for its chevron',async()=>{
+  const page=await browser.newPage();
+  await page.setContent(reportHTML,{waitUntil:'load'});
+  const state=page.getByRole('combobox',{name:'Review status for README.md',exact:true});
+  const style=await state.evaluate((el)=>{const computed=getComputedStyle(el);return{appearance:computed.appearance,paddingRight:parseFloat(computed.paddingRight),backgroundImage:computed.backgroundImage}});
+  assert.equal(style.appearance,'none');
+  assert.ok(style.paddingRight>=36,`right padding ${style.paddingRight}px should clear the chevron`);
+  assert.notEqual(style.backgroundImage,'none','review status should render a deliberate chevron');
+  await page.close();
+});
+
 test('report has no serious automated accessibility violations',async()=>{
   const context=await browser.newContext();
   const page=await context.newPage();

@@ -185,7 +185,14 @@ body.resizing{cursor:col-resize;user-select:none}
 .btn:disabled{cursor:default;opacity:.5}
 .review-summary{margin:0 0 8px;font-size:var(--fs-small)}
 .review-hint{margin:8px 0 0;color:var(--dim);font-size:var(--fs-fine)}
-.review-state{max-width:100%;background:var(--canvas);color:var(--ink);border:1px solid var(--edge);border-radius:var(--r-md);padding:4px 8px;font:var(--fs-small) var(--sans)}
+.review-state{
+  max-width:100%;min-width:150px;appearance:none;-webkit-appearance:none;
+  background-color:var(--canvas);color:var(--ink);border:1px solid var(--edge);border-radius:var(--r-md);
+  background-image:linear-gradient(45deg,transparent 50%,var(--dim) 50%),linear-gradient(135deg,var(--dim) 50%,transparent 50%);
+  background-position:calc(100% - 16px) 50%,calc(100% - 11px) 50%;
+  background-repeat:no-repeat;background-size:5px 5px,5px 5px;
+  padding:4px 36px 4px 12px;font:var(--fs-small) var(--sans)
+}
 
 .spine{position:sticky;top:var(--top-h,140px);height:calc(100vh - var(--top-h,140px) - 20px);border-radius:var(--r-sm);background:var(--well);overflow:hidden}
 .spine a{position:absolute;left:0;right:0;height:4px}
