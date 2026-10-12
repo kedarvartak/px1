@@ -3,8 +3,6 @@ const report=JSON.parse(document.getElementById('report-data').textContent);
 const app=document.getElementById('app');
 const files=Array.isArray(report.files)?report.files:[];
 const blocks=Array.isArray(report.blocks)?report.blocks:[];
-const affectedFiles=Array.isArray(report.affectedFiles)?report.affectedFiles:[];
-const affectedAnalysis=report.affectedAnalysis||null;
 const inspectionQuestions=Array.isArray(report.inspectionQuestions)?report.inspectionQuestions:[];
 const inspectionAnalysis=report.inspectionAnalysis||null;
 const ruleHits=Array.isArray(report.ruleHits)?report.ruleHits:[];
@@ -24,13 +22,9 @@ const chipFor=(k)=>h('span','chip '+CHIP[k],KIND[k]);
 /* Acknowledgements live in this browser only. The key predates the redesign;
    keeping it means earlier acknowledgements still apply. */
 const ackKey='px1:ack:'+report.repository+':'+report.head;
-const noteKey='px1:note:'+report.repository+':'+report.head;
 let ack=new Set();
 try{const saved=JSON.parse(localStorage.getItem(ackKey)||'[]');if(Array.isArray(saved))ack=new Set(saved.filter((k)=>typeof k==='string'))}catch{}
 const persist=()=>{try{localStorage.setItem(ackKey,JSON.stringify([...ack].sort()))}catch{}};
-let reviewerNote='';
-try{reviewerNote=localStorage.getItem(noteKey)||''}catch{}
-const persistNote=()=>{try{localStorage.setItem(noteKey,reviewerNote)}catch{}};
 
 /* Explicit human declarations are independent of automated findings. Include
    both revisions: a different comparison must start a fresh review. */
@@ -70,7 +64,7 @@ range.append(h('b',null,short(report.head)),document.createTextNode(' ← '),h('
 brand.append(range);
 const root=document.documentElement;
 const themeBtn=h('button','theme-btn');themeBtn.type='button';
-const paintTheme=()=>{const light=root.dataset.theme==='light';themeBtn.textContent=light?'Dark theme':'Light theme';themeBtn.setAttribute('aria-label','Switch to '+(light?'dark':'light')+' theme')};
+const paintTheme=()=>{const light=root.dataset.theme==='light';themeBtn.textContent=light?'☾':'☀';themeBtn.setAttribute('aria-label','Switch to '+(light?'dark':'light')+' theme');themeBtn.title='Switch to '+(light?'dark':'light')+' theme'};
 themeBtn.onclick=()=>{const next=root.dataset.theme==='light'?'dark':'light';root.dataset.theme=next;try{localStorage.setItem('px1:theme',next)}catch{}paintTheme()};
 paintTheme();
 brand.append(themeBtn);
@@ -122,6 +116,28 @@ function paintTop(){
 
 /* ---- rail ---- */
 const rail=h('aside','rail');rail.setAttribute('aria-label','Review navigation');
+const railScaleKey='px1:rail-text-scale';
+const railScales=[.85,.95,1,1.1,1.2,1.3];
+let railScaleIndex=2;
+try{const saved=Number(localStorage.getItem(railScaleKey));const index=railScales.indexOf(saved);if(index>=0)railScaleIndex=index}catch{}
+const railTools=h('div','rail-tools');
+const railToolsLabel=h('span','rail-tools-label','Sidebar text');
+const zoomOut=h('button','zoom-btn','−');zoomOut.type='button';zoomOut.title='Decrease sidebar text size';zoomOut.setAttribute('aria-label','Decrease sidebar text size');
+const zoomStatus=h('span','zoom-status');zoomStatus.setAttribute('aria-live','polite');
+const zoomIn=h('button','zoom-btn','+');zoomIn.type='button';zoomIn.title='Increase sidebar text size';zoomIn.setAttribute('aria-label','Increase sidebar text size');
+const applyRailScale=(remember)=>{
+  const scale=railScales[railScaleIndex];
+  rail.style.fontSize=14*scale+'px';
+  rail.style.setProperty('--fs-small',12.5*scale+'px');
+  rail.style.setProperty('--fs-fine',11.5*scale+'px');
+  rail.style.setProperty('--fs-eyebrow',11*scale+'px');
+  zoomStatus.textContent=Math.round(scale*100)+'%';
+  zoomOut.disabled=railScaleIndex===0;zoomIn.disabled=railScaleIndex===railScales.length-1;
+  if(remember){try{localStorage.setItem(railScaleKey,String(scale))}catch{}}
+};
+zoomOut.onclick=()=>{if(railScaleIndex>0){railScaleIndex--;applyRailScale(true);syncTop()}};
+zoomIn.onclick=()=>{if(railScaleIndex<railScales.length-1){railScaleIndex++;applyRailScale(true);syncTop()}};
+railTools.append(railToolsLabel,zoomOut,zoomStatus,zoomIn);rail.append(railTools);
 const evidenceSec=h('section','evidence');
 const evidenceHead=h('h2','eyebrow','Evidence & limits');
 const evidenceIntro=h('p','evidence-intro','Each source is separate. None of these signals approves the pull request.');
@@ -143,14 +159,6 @@ for(const source of evidence){
 }
 if(!evidence.length)evidenceList.append(h('li','evidence-source evidence-missing','Evidence metadata is unavailable in this older snapshot. Treat every source as limited.'));
 evidenceSec.append(evidenceHead,evidenceIntro,evidenceList);rail.append(evidenceSec);
-const blocksSec=h('section');const blocksHead=h('h2','eyebrow','Change groups ');blocksHead.append(h('span','count',blocks.length));
-const blockList=h('ul','queue');
-for(const block of blocks){
-  const li=h('li'),a=h('a','qitem');a.href='#'+block.id;
-  a.append(h('div','row',block.title),h('span','w',block.paths.length+' related files'));
-  li.append(a);blockList.append(li);
-}
-if(blocks.length){blocksSec.append(blocksHead,blockList);rail.append(blocksSec)}
 const progressSec=h('section','review-progress');
 progressSec.append(h('h2','eyebrow','Your code review'));
 const progressSummary=h('p','review-summary');progressSummary.setAttribute('role','status');
@@ -169,24 +177,6 @@ if(inspectionQuestions.length||inspectionAnalysis?.truncated){
   if(inspectionAnalysis?.truncated)for(const limit of inspectionAnalysis.limits||[])inspectionSec.append(h('p','inspection-limit',limit+'.'));
   rail.append(inspectionSec);
 }
-const affectedSec=h('section');const affectedHead=h('h2','eyebrow','Affected file hints ');affectedHead.append(h('span','count',affectedFiles.length));
-const affectedList=h('ul','affected-list');
-for(const file of affectedFiles){
-  const li=h('li','affected-file');li.append(h('code',null,file.path));
-  for(const evidence of Array.isArray(file.evidence)?file.evidence:[]){
-    const reason=h('span','affected-reason');reason.append(h('b',null,evidence.kind),document.createTextNode(' · '+evidence.detail+' ('+evidence.changedPath+')'));li.append(reason);
-  }
-  affectedList.append(li);
-}
-if(affectedFiles.length||affectedAnalysis?.truncated){
-  affectedSec.append(affectedHead,affectedList);
-  if(affectedAnalysis){
-    const coverage=h('p','affected-coverage',(affectedAnalysis.truncated?'Limited analysis: ':'Analysis: ')+affectedAnalysis.filesScanned+' of '+affectedAnalysis.candidatePaths+' unchanged candidate files read.');
-    affectedSec.append(coverage);
-    if(affectedAnalysis.truncated)for(const limit of affectedAnalysis.limits||[])affectedSec.append(h('p','affected-limit',limit+'.'));
-  }
-  rail.append(affectedSec);
-}
 const queueSec=h('section');const queueHead=h('h2','eyebrow','Automated findings ');const queueCount=h('span','count');queueHead.append(queueCount);
 const queue=h('ul','queue');queueSec.append(queueHead,queue);
 const filesSec=h('section');const filesHead=h('h2','eyebrow','Files ');
@@ -196,17 +186,7 @@ fAll.type=fFlag.type='button';seg.append(fAll,fFlag);filesHead.append(seg);
 const search=h('input','file-search');search.type='search';search.placeholder='Search files and changed code';search.setAttribute('aria-label','Search files and changed code');
 const fileList=h('ul','files');filesSec.append(filesHead,fileList);
 filesSec.insertBefore(search,fileList);
-const feedbackSec=h('section','feedback');
-const feedbackHead=h('h2','eyebrow','Reviewer feedback');
-const feedbackNote=h('textarea','feedback-note');feedbackNote.rows=4;feedbackNote.maxLength=10000;
-feedbackNote.placeholder='Add notes to include in the export';feedbackNote.setAttribute('aria-label','Reviewer notes');feedbackNote.value=reviewerNote;
-feedbackNote.addEventListener('input',()=>{reviewerNote=feedbackNote.value;persistNote()});
-const feedbackHint=h('p','feedback-hint','Saved only in this browser for this commit.');
-const feedbackActions=h('div','feedback-actions');
-const mdExport=h('button','btn','Export Markdown'),jsonExport=h('button','btn','Export JSON');
-mdExport.type=jsonExport.type='button';
-feedbackActions.append(mdExport,jsonExport);feedbackSec.append(feedbackHead,feedbackNote,feedbackHint,feedbackActions);
-rail.append(queueSec,filesSec,feedbackSec);
+rail.append(queueSec,filesSec);
 let flaggedOnly=false;
 let searchQuery='';
 
@@ -222,25 +202,6 @@ function paintQueue(){
     const li=h('li');li.append(a);queue.append(li);
   });
 }
-const acknowledgedItems=()=>items.filter((it)=>it.k!=='note'&&ack.has(it.ackId)).map((it)=>({
-  id:it.ackId,kind:it.k,path:it.path,line:it.line||0,title:it.title
-}));
-const feedbackData=()=>({version:1,repository:report.repository||'',base:report.base||'',head:report.head||'',exportedAt:new Date().toISOString(),note:reviewerNote,acknowledgements:acknowledgedItems()});
-const markdownText=(value)=>String(value).replace(/[\\[\]_*<>]/g,'\\$&').replace(/`/g,"'");
-const markdownFeedback=()=>{
-  const data=feedbackData(),out=['## px1 reviewer feedback','',`Commit: \`${data.head}\``,''];
-  if(data.note.trim())out.push('### Notes','',data.note.trim(),'');
-  out.push('### Acknowledgements','');
-  if(!data.acknowledgements.length)out.push('_None._');
-  else for(const item of data.acknowledgements)out.push(`- [x] ${markdownText(item.title)} — \`${markdownText(item.path)}${item.line?':'+item.line:''}\``);
-  return out.join('\n')+'\n';
-};
-const downloadFeedback=(name,type,body)=>{
-  const url=URL.createObjectURL(new Blob([body],{type}));
-  const a=h('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
-};
-mdExport.onclick=()=>downloadFeedback(`px1-feedback-${short(report.head)}.md`,'text/markdown;charset=utf-8',markdownFeedback());
-jsonExport.onclick=()=>downloadFeedback(`px1-feedback-${short(report.head)}.json`,'application/json;charset=utf-8',JSON.stringify(feedbackData(),null,2)+'\n');
 const stats=files.map((f)=>{let a=0,d=0;for(const hk of f.hunks||[])for(const l of hk.lines||[]){if(l.kind==='added')a++;else if(l.kind==='removed')d++}return{a,d}});
 const searchable=files.map((f,i)=>[f.path,...(f.hunks||[]).flatMap((hk)=>(hk.lines||[]).map((l)=>l.text)),...items.filter((x)=>x.fi===i).flatMap((x)=>[x.title,x.why,x.ev])].join('\n').toLowerCase());
 const fileVisible=(f,i)=>{if(flaggedOnly&&!items.some((x)=>x.fi===i))return false;return !searchQuery||searchable[i].includes(searchQuery)};
@@ -454,10 +415,13 @@ handle.addEventListener('keydown',(e)=>{
   e.preventDefault();setRailWidth(next,true);settle();
 });
 addEventListener('resize',()=>setRailWidth(parseFloat(wrap.style.getPropertyValue('--rail-w'))||savedWidth,false));
-const foot=h('div','foot','File review progress and finding acknowledgements are independent and browser-local. This static snapshot represents '+short(report.base)+'…'+short(report.head)+' and cannot know the current live PR head or check status. Confirm both in GitHub before approving.');
+const foot=h('div','foot');
+foot.append(document.createTextNode('File review progress and finding acknowledgements are independent and browser-local. This static snapshot represents '+short(report.base)+'…'+short(report.head)+' and cannot know the current live PR head or check status. Confirm both in GitHub before approving. Bundle checksums detect file changes; they do not prove authorship. '));
+const checksumLink=h('a',null,'View checksums');checksumLink.href='checksums.sha256';foot.append(checksumLink);
 app.textContent='';
 app.append(top,wrap,foot);
 setRailWidth(savedWidth,false);
+applyRailScale(false);
 paintTop();paintQueue();paintFiles();paintProgress();syncTop();
 /* A deep link such as #ann-3 opens its note and scrolls to it once the page is built. */
 openNoteFromHash();

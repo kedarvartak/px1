@@ -1,10 +1,45 @@
 package main
 
 import (
+	"os"
 	"regexp"
 	"strings"
 	"testing"
 )
+
+func TestRepositoryPolicyContainsScopedCodeWritingRules(t *testing.T) {
+	body, err := os.ReadFile(".px1/rules.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rules, err := parseTeamRules(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rules) < 8 {
+		t.Fatalf("repository policy has %d rules, want at least 8", len(rules))
+	}
+	want := map[string]bool{
+		"prefer-ternary-for-simple-value-choice": false,
+		"strict-equality":                        false,
+		"no-empty-catch":                         false,
+		"no-async-foreach":                       false,
+		"prefer-any-over-empty-interface":        false,
+	}
+	for _, rule := range rules {
+		if _, ok := want[rule.ID]; ok {
+			want[rule.ID] = true
+		}
+		if len(rule.Globs) == 0 {
+			t.Errorf("repository rule %q is not scoped to code files", rule.ID)
+		}
+	}
+	for id, found := range want {
+		if !found {
+			t.Errorf("repository policy missing %q", id)
+		}
+	}
+}
 
 func TestArtifactRulesRejectUselessPatterns(t *testing.T) {
 	for _, in := range []ruleInput{

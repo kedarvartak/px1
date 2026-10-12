@@ -105,13 +105,17 @@ jobs:
       - name: Export commit-pinned report
         uses: ./
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          # Keep the documented name canonical, but accept the repository's
+          # existing legacy name so model-backed reports do not fail closed
+          # while the secret is being renamed.
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || secrets.OPENAI_API__KEY }}
         with:
           root: .
           base: ${{ env.BASE_SHA }}
           head: ${{ env.HEAD_SHA }}
           verification-file: .px1/verification.json
           explanation-model: gpt-6-luna
+          privacy-check: true
           out: site/reviews/${{ env.HEAD_SHA }}
 
       - name: Preserve historical review reports

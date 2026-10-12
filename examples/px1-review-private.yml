@@ -1,0 +1,148 @@
+name: px1 private review artifact
+
+# ACCESS-CONTROLLED DELIVERY TEMPLATE: reports are uploaded as authenticated
+# GitHub Actions artifacts instead of being published through GitHub Pages.
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  checks: read
+  pull-requests: write
+
+concurrency:
+  group: px1-private-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      REPORT_DIR: ${{ github.workspace }}/px1-review
+
+    steps:
+      - name: Checkout trusted base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+
+      - name: Fetch PR head as data
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin \
+            "refs/pull/${PR_NUMBER}/head:refs/remotes/origin/px1-pr-head"
+          test "$(git rev-parse refs/remotes/origin/px1-pr-head)" = "$HEAD_SHA"
+
+      - name: Collect exact-head GitHub checks
+        uses: actions/github-script@v7
+        env:
+          VERIFICATION_FILE: ${{ github.workspace }}/.px1/verification.json
+        with:
+          script: |
+            const fs = require('fs');
+            const runs = await github.paginate(github.rest.checks.listForRef, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: process.env.HEAD_SHA,
+              per_page: 100,
+            });
+            const names = new Map();
+            const checks = runs.map((run) => {
+              const baseName = run.name || run.app?.name || 'GitHub check';
+              const count = (names.get(baseName) || 0) + 1;
+              names.set(baseName, count);
+              const name = count === 1 ? baseName : `${baseName} (${count})`;
+              let status = 'cancelled';
+              if (run.status === 'queued') status = 'queued';
+              else if (run.status !== 'completed') status = 'running';
+              else if (run.conclusion === 'success' || run.conclusion === 'neutral') status = 'passed';
+              else if (['failure', 'timed_out', 'action_required'].includes(run.conclusion)) status = 'failed';
+              return {
+                name,
+                status,
+                summary: run.output?.summary || '',
+                url: run.html_url || '',
+                startedAt: run.started_at || undefined,
+                finishedAt: run.completed_at || undefined,
+              };
+            });
+            fs.mkdirSync('.px1', { recursive: true });
+            fs.writeFileSync(process.env.VERIFICATION_FILE, `${JSON.stringify({
+              source: 'github-actions',
+              revision: process.env.HEAD_SHA,
+              url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              checks,
+            }, null, 2)}\n`);
+
+      - name: Generate commit-pinned report
+        uses: kedarvartak/px1@v1
+        with:
+          base: ${{ env.BASE_SHA }}
+          head: ${{ env.HEAD_SHA }}
+          root: ${{ github.workspace }}
+          verification-file: ${{ github.workspace }}/.px1/verification.json
+          privacy-check: true
+          out: ${{ env.REPORT_DIR }}
+
+      # Enabling explanation-model also requires OPENAI_API_KEY in env and sends
+      # bounded, non-excluded diff content to that model provider. Exclusion
+      # globs reduce input scope but are not redaction.
+
+      - name: Upload access-controlled review
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: px1-review-${{ env.HEAD_SHA }}
+          path: ${{ env.REPORT_DIR }}
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Update sticky PR comment
+        uses: actions/github-script@v7
+        env:
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+          ARTIFACT_DIGEST: ${{ steps.upload.outputs.artifact-digest }}
+        with:
+          script: |
+            const marker = '<!-- px1-static-review -->';
+            const body = [
+              marker,
+              '## px1 private review artifact',
+              '',
+              `Review for commit \`${process.env.HEAD_SHA}\`.`,
+              '',
+              `[Download the authenticated report artifact](${process.env.ARTIFACT_URL})`,
+              '',
+              'Download, unzip, and open `index.html`. Repository read access is required and the artifact expires after 30 days.',
+              '',
+              `Archive SHA-256: \`${process.env.ARTIFACT_DIGEST}\``,
+              '',
+              '_Checksums detect changes; they do not prove authorship. Privacy scanning is not redaction or access control._',
+            ].join('\n');
+            const params = {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            };
+            const comments = await github.paginate(github.rest.issues.listComments, params);
+            const existing = comments.find((comment) =>
+              comment.user?.type === 'Bot' && comment.body?.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: params.owner,
+                repo: params.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({ ...params, body });
+            }

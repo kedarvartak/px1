@@ -38,15 +38,13 @@ type staticInspectionAnalysis struct {
 // inspectionQuestions turns deterministic evidence into bounded prompts for a
 // human reviewer. Questions deliberately ask about behavior; they never claim
 // to know author intent or whether the change is correct.
-func inspectionQuestions(files []staticReviewFile, flags []reviewAttentionFlag, affected []staticAffectedFile) ([]staticInspectionQuestion, staticInspectionAnalysis) {
+func inspectionQuestions(files []staticReviewFile, flags []reviewAttentionFlag) ([]staticInspectionQuestion, staticInspectionAnalysis) {
 	questions := make([]staticInspectionQuestion, 0)
 	analysis := staticInspectionAnalysis{Limits: []string{}}
 	seen := map[string]bool{}
 	relatedLimited := false
-	changed := make(map[string]staticReviewFile, len(files))
 	testsByStem := map[string][]staticReviewFile{}
 	for _, file := range files {
-		changed[file.Path] = file
 		if file.Status != "D" && isTestPath(file.Path) {
 			stem := companionStem(file.Path)
 			testsByStem[stem] = append(testsByStem[stem], file)
@@ -113,33 +111,6 @@ func inspectionQuestions(files []staticReviewFile, flags []reviewAttentionFlag, 
 		}
 	}
 
-	for _, hint := range affected {
-		if !isTestPath(hint.Path) {
-			continue
-		}
-		byChangedPath := map[string]map[string]bool{}
-		for _, evidence := range hint.Evidence {
-			if evidence.Kind != "test" || changed[evidence.ChangedPath].Path == "" {
-				continue
-			}
-			if byChangedPath[evidence.ChangedPath] == nil {
-				byChangedPath[evidence.ChangedPath] = map[string]bool{}
-			}
-			byChangedPath[evidence.ChangedPath][evidence.Detail] = true
-		}
-		for changedPath, detailSet := range byChangedPath {
-			details := make([]string, 0, len(detailSet))
-			for detail := range detailSet {
-				details = append(details, detail)
-			}
-			sort.Strings(details)
-			observation := "An unchanged test is related to this changed file: " + strings.Join(details, "; ") + "."
-			add("related-test", changedPath, 0, observation,
-				"Does this existing test still describe the changed behavior, and which important path remains unverified?",
-				[]staticInspectionReference{{Path: hint.Path, Relationship: "unchanged related test", InDiff: false}})
-		}
-	}
-
 	if analysis.Truncated {
 		analysis.Limits = append(analysis.Limits, fmt.Sprintf("inspection questions limited to %d", inspectionQuestionLimit))
 	}
@@ -193,4 +164,17 @@ func nearbyCompanionTest(source, test string) bool {
 	}
 	sourceDir, testDir := path.Dir(source), path.Dir(test)
 	return sourceDir == testDir || strings.HasPrefix(testDir, strings.TrimSuffix(sourceDir, "/")+"/")
+}
+
+func isTestPath(file string) bool {
+	base := strings.ToLower(path.Base(file))
+	return strings.Contains(base, ".test.") || strings.Contains(base, ".spec.") || strings.HasSuffix(strings.TrimSuffix(base, path.Ext(base)), "_test") || strings.Contains(strings.ToLower(file), "/test/") || strings.Contains(strings.ToLower(file), "/tests/")
+}
+
+func companionStem(file string) string {
+	base := strings.ToLower(strings.TrimSuffix(path.Base(file), path.Ext(file)))
+	for _, suffix := range []string{".test", ".spec", "_test", "-test"} {
+		base = strings.TrimSuffix(base, suffix)
+	}
+	return base
 }

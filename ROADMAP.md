@@ -7,10 +7,10 @@ coding to an agent. Acknowledging AI findings is insufficient: reviewers need
 to challenge incorrect findings and inspect code with no findings. The roadmap
 prioritizes that outcome over expanding automated detection.
 
-px1 has one product flow:
+px1 has one product shape with two explicit delivery choices:
 
 ```text
-push PR → GitHub Action → static review artifact → GitHub Pages → PR link
+push PR → GitHub Action → static review artifact → authenticated download or deliberate Pages publication → PR link
 ```
 
 Local code browsing, local review sessions, agent editing, self-hosted imports,
@@ -31,11 +31,13 @@ accounts, and a managed SaaS are outside the product.
 - [x] Optional AI explanations generated in Actions with strict JSON output
 - [x] AI input exclusion globs for sensitive repository paths
 - [x] Rich team rules with severity, rationale, literal matching, and block matching
-- [x] Cross-file change groups and large-report search
+- [x] Large-report file and changed-code search
 - [x] Machine-readable `review.json` alongside the reviewer HTML
 - [x] Browser rendering, accessibility, and large-diff performance gates
 - [x] `validate-rules` CLI for repository policy checks
 - [x] Immutable release workflow for the `v1` Action tag
+- [x] Access-controlled Actions-artifact delivery for private repositories
+- [x] Privacy checks, model-transfer warnings, and report checksums
 
 ## Public v1 launch priorities
 
@@ -51,19 +53,22 @@ broader public product launch. It does not imply every item is already shipped.
 2. [x] **Behavioral understanding beside the code.** Deterministic inspection
    cards now separate observed evidence from a concrete reviewer question for
    selected high-impact changes and source/test relationships. They link to the
-   relevant diff or changed tests, name unchanged related tests, expose output
-   limits, and make no claim about author intent, correctness, or coverage.
+   relevant diff or changed companion tests, expose output limits, and make no
+   claim about author intent, correctness, or coverage.
 3. [x] **Transparent evidence and limitations.** The report now separates human
    review progress, deterministic analysis, AI explanations, and CI results in
    an evidence panel. Each source names its represented revision and state;
    skipped or bounded analysis and missing inputs are visible. Empty findings
    explicitly mean no matches, not safety, and the snapshot disclaims knowledge
    of the current live PR head and check status.
-4. [ ] **Safe private-code delivery and publication.** Provide an access-appropriate
-   delivery path, such as downloadable Actions artifacts, before positioning
-   px1 for private repositories. Public Pages publication must be deliberate.
-   Add redaction checks, clear model-transfer warnings, and checksums; redaction
-   is not access control and checksums alone do not prove authorship.
+4. [x] **Safe private-code delivery and publication.** Private repositories now
+   have a dedicated workflow that uploads an authenticated, expiring Actions
+   artifact and requires repository read access. Public Pages is a separate,
+   explicitly warned template. Generated bundles include per-file SHA-256
+   checksums, and the Action blocks high-confidence secret signatures and
+   sensitive paths by default while warning on model transfer. The docs state
+   that scanning is not redaction or access control and checksums do not prove
+   authorship.
 5. [ ] **Demonstrate and measure the original problem.** Demo one misleading
    automated finding and one meaningful unflagged problem, showing the evidence
    a person uses to decide. Run a pilot with roughly 5–10 agent-heavy developers
@@ -72,13 +77,9 @@ broader public product launch. It does not imply every item is already shipped.
 
 ## Supporting work shipped alongside the review workflow
 
-- **Reviewer feedback export — [PR #134](https://github.com/kedarvartak/px1/pull/134).**
-  Export local notes and acknowledgements as Markdown or JSON. Follow up by
-  including file-review progress and unresolved follow-ups; keep the distinction
-  between local declarations and shared GitHub review explicit.
-- **Explainable affected-file hints — [PR #135](https://github.com/kedarvartak/px1/pull/135).**
-  Suggestions stay separate from changed files, expose bounded analysis and
-  factual evidence, and never establish impact by themselves.
+- **Repository code-writing policy.** `.px1/rules.json` now contains scoped,
+  deterministic conventions for clearer JavaScript, TypeScript, and Go instead
+  of treating broad change-risk signals as team style rules.
 - **PR summary improvements — [PR #136](https://github.com/kedarvartak/px1/pull/136).**
   Summarize findings and verification with the artifact link while keeping the
   comment an invitation to inspect code, not an approval-like conclusion.

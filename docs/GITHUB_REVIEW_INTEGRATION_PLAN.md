@@ -3,33 +3,36 @@
 px1 helps developers understand the code their agents wrote before merging.
 This architecture delivers inspectable code and evidence for that human review.
 
-## Supported flow
+## Supported flows
 
-px1 supports one delivery path:
+px1 generates the same static, commit-pinned bundle for two delivery paths:
 
 1. A pull request is opened, synchronized, or reopened.
 2. A `pull_request_target` workflow loads trusted workflow code from the base
    branch.
 3. The workflow fetches the PR head as Git objects without executing it.
-4. px1 compares the exact base and head SHAs and generates one static HTML file.
-5. The workflow restores older reports, adds the new SHA report, and publishes
-   the complete site through GitHub Pages.
-6. A sticky PR comment links to `reviews/<head-sha>/`.
+4. px1 compares the exact base and head SHAs and generates `index.html`,
+   `review.json`, and `checksums.sha256`.
+5. The workflow either uploads an authenticated, expiring Actions artifact or,
+   after an explicit visibility decision, publishes through GitHub Pages.
+6. A sticky PR comment links to the selected delivery location.
 
 ## Artifact identity
 
-Every report contains full base and head commit SHAs. A new PR commit creates a
-new path rather than changing the old report:
+Every report contains full base and head commit SHAs. The private workflow gives
+each head its own immutable Actions artifact. The Pages workflow creates a new
+path rather than changing the old report:
 
 ```text
 https://<owner>.github.io/<repo>/reviews/<head-sha>/
 ```
 
-The generated-only `px1-review-reports` branch retains historical reports. Its
-tree is validated before restore and may contain only regular files matching:
+In Pages mode, the generated-only `px1-review-reports` branch retains historical
+reports. Its tree is validated before restore and may contain only regular files
+matching:
 
 ```text
-reviews/<40-character-lowercase-sha>/index.html
+reviews/<40-character-lowercase-sha>/{index.html,review.json,checksums.sha256}
 ```
 
 ## Inputs
@@ -54,8 +57,26 @@ references, verification results, and optional explanations.
 - Imported verification and explanation revisions must equal the report head.
 - The static report has no backend and makes no network requests.
 - Reviewer acknowledgement is browser-local progress, not approval.
+- The default privacy check blocks high-confidence secret signatures and
+  sensitive paths before delivery; it is detection, not redaction or access
+  control.
+- Enabling model explanations transfers bounded, non-excluded diff content to
+  the configured provider and emits a workflow warning.
+- `checksums.sha256` detects changed bundle files but does not prove authorship.
 
 GitHub remains the authority for comments, requested changes, and approval.
+
+## Delivery contract
+
+Use `examples/px1-review-private.yml` for private repositories unless a reviewed
+GitHub Pages access-control configuration is already in place. Its download URL
+requires GitHub authentication and repository read access, and the example uses
+a 30-day retention period. Download and unzip the artifact before opening
+`index.html`.
+
+Use `examples/px1-review.yml` only after deliberately confirming Pages
+visibility. GitHub Pages can be public even when its source repository is
+private. Neither the privacy check nor checksums make public publication safe.
 
 ## Human review progress contract
 
@@ -79,19 +100,19 @@ has a state, a plain-language description, explicit limits, and the full base
 and/or head revision it represents. Missing AI and CI inputs are distinguishable
 from attached inputs that contain zero entries.
 
-Deterministic analysis is marked `limited` when attention scanning, affected-file
-hints, or inspection-question generation skips content or reaches a bound. The
-relevant component and limit are retained in the evidence entry. An empty finding
-list means only that no rule or signal matched. Reports are generated snapshots;
-they do not poll GitHub and cannot establish the current PR head or live checks.
+Deterministic analysis is marked `limited` when attention scanning or
+inspection-question generation skips content or reaches a bound. The relevant
+component and limit are retained in the evidence entry. An empty finding list
+means only that no rule or signal matched. Reports are generated snapshots; they
+do not poll GitHub and cannot establish the current PR head or live checks.
 
 ## Inspection-question contract
 
 Inspection questions are deterministic prompts derived from existing attention
-evidence and source/test relationships. Each entry in `review.json` keeps the
+evidence and changed source/test relationships. Each entry in `review.json` keeps the
 observed evidence separate from the question and identifies its primary changed
 file, optional line, and related paths. Links are emitted only for files present
-in the diff; unchanged related tests are labels, not claims of coverage.
+in the diff.
 
 Questions are bounded to 100 entries and related paths to 8 per question; the
 report exposes either truncation explicitly. Questions are not findings,

@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "id": "prefer-ternary-for-simple-value-choice",
+      "title": "Prefer a conditional expression for a simple value choice",
+      "description": "A short value assignment is easier to scan when the condition and both outcomes stay together.",
+      "severity": "info",
+      "globs": ["**/*.js", "**/*.jsx", "**/*.mjs", "**/*.ts", "**/*.tsx"],
+      "match": {
+        "kind": "block-regex",
+        "pattern": "(?s)\\bif\\s*\\([^)]*\\)\\s*\\{\\s*[A-Za-z_$][A-Za-z0-9_$.\\[\\]]*\\s*=\\s*[^;\\n]+;?\\s*\\}\\s*else\\s*\\{\\s*[A-Za-z_$][A-Za-z0-9_$.\\[\\]]*\\s*="
+      },
+      "message": "Use a ternary expression when this branch only chooses between two values. Keep if/else when either branch performs work or needs multiple statements."
+    },
+    {
+      "id": "no-var",
+      "title": "Use const or let instead of var",
+      "description": "Block-scoped declarations make mutation and variable lifetime clearer.",
+      "severity": "warning",
+      "globs": ["**/*.js", "**/*.jsx", "**/*.mjs", "**/*.ts", "**/*.tsx"],
+      "match": {"kind": "regex", "pattern": "(^|[;{]\\s*)var\\s+[A-Za-z_$]"},
+      "message": "Use const by default, or let when reassignment is required."
+    },
+    {
+      "id": "strict-equality",
+      "title": "Use strict equality",
+      "description": "Strict comparisons avoid implicit coercion and make the accepted value types explicit.",
+      "severity": "warning",
+      "globs": ["**/*.js", "**/*.jsx", "**/*.mjs", "**/*.ts", "**/*.tsx"],
+      "match": {"kind": "regex", "pattern": "(^|[^=!])(?:==|!=)([^=]|$)"},
+      "message": "Replace == or != with === or !== unless coercion is deliberate and documented."
+    },
+    {
+      "id": "no-console-debugging",
+      "title": "Remove direct console debugging",
+      "description": "Ad-hoc console output is noisy and bypasses structured logging and redaction conventions.",
+      "severity": "warning",
+      "globs": ["**/*.js", "**/*.jsx", "**/*.mjs", "**/*.ts", "**/*.tsx"],
+      "match": {"kind": "regex", "pattern": "\\bconsole\\.(?:log|debug|trace)\\s*\\("},
+      "message": "Remove debugging output or route intentional diagnostics through the project logger."
+    },
+    {
+      "id": "no-empty-catch",
+      "title": "Do not swallow errors silently",
+      "description": "An empty catch block hides failures and leaves future readers unable to tell whether ignoring the error is intentional.",
+      "severity": "error",
+      "globs": ["**/*.js", "**/*.jsx", "**/*.mjs", "**/*.ts", "**/*.tsx"],
+      "match": {"kind": "block-regex", "pattern": "(?s)\\bcatch(?:\\s*\\([^)]*\\))?\\s*\\{\\s*\\}"},
+      "message": "Handle, report, or explicitly document why this error can be ignored."
+    },
+    {
+      "id": "no-async-foreach",
+      "title": "Do not pass an async callback to forEach",
+      "description": "forEach does not await async callbacks, which makes completion and error handling misleading.",
+      "severity": "error",
+      "globs": ["**/*.js", "**/*.jsx", "**/*.mjs", "**/*.ts", "**/*.tsx"],
+      "match": {"kind": "regex", "pattern": "\\.forEach\\s*\\(\\s*async\\b"},
+      "message": "Use for...of for sequential work or Promise.all with map for deliberate concurrency."
+    },
+    {
+      "id": "prefer-any-over-empty-interface",
+      "title": "Use any instead of interface{}",
+      "description": "The any alias communicates an intentionally unconstrained Go value more clearly.",
+      "severity": "info",
+      "globs": ["**/*.go"],
+      "match": {"kind": "regex", "pattern": "\\binterface\\s*\\{\\s*\\}"},
+      "message": "Use any unless the older spelling is required for compatibility."
+    },
+    {
+      "id": "no-deprecated-ioutil",
+      "title": "Avoid deprecated ioutil APIs",
+      "description": "Modern io and os APIs are clearer and keep new code off the deprecated compatibility package.",
+      "severity": "warning",
+      "globs": ["**/*.go"],
+      "match": {"kind": "regex", "pattern": "(?:\"io/ioutil\"|\\bioutil\\.)"},
+      "message": "Use the equivalent io or os package API."
+    },
+    {
+      "id": "no-unresolved-code-markers",
+      "title": "Resolve temporary code markers",
+      "description": "TODO and FIXME markers should become a tracked issue or be resolved before the change is merged.",
+      "severity": "info",
+      "globs": ["**/*.go", "**/*.js", "**/*.jsx", "**/*.mjs", "**/*.ts", "**/*.tsx"],
+      "match": {"kind": "regex", "pattern": "\\b(?:TODO|FIXME)\\b"},
+      "message": "Resolve this marker or link it to a concrete tracked issue with enough context."
+    },
+    {
+      "id": "no-broad-lint-disable",
+      "title": "Keep lint suppressions narrow",
+      "description": "File-wide or rule-unspecified suppressions hide unrelated problems and make future violations invisible.",
+      "severity": "warning",
+      "globs": ["**/*.go", "**/*.js", "**/*.jsx", "**/*.mjs", "**/*.ts", "**/*.tsx"],
+      "match": {"kind": "regex", "pattern": "(?:eslint-disable(?:\\s*$|\\s*\\*/)|nolint(?:\\s*$|\\s*//|\\s*\\*/))"},
+      "message": "Name the exact rule being suppressed and keep the suppression on the smallest possible scope."
+    }
+  ]
+}

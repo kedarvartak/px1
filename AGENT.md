@@ -5,8 +5,9 @@ Prioritize human inspection and decisions, including code without findings.
 Keep file-review progress independent of automated finding acknowledgements;
 neither is proof of correctness or a GitHub approval.
 
-px1 has one product flow: GitHub Actions generates a commit-pinned static
-review artifact, GitHub Pages serves it, and a PR comment links to it.
+px1 has one product shape: GitHub Actions generates a commit-pinned static
+review artifact, then a PR comment links to either an access-controlled Actions
+download or a deliberately published GitHub Pages report.
 
 Keep changes inside that boundary. Do not reintroduce a local server, workspace
 browser, mutable review sessions, agent editing, self-hosted imports, accounts,

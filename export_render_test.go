@@ -203,19 +203,19 @@ func TestStaticReviewHTMLShipsResizablePanel(t *testing.T) {
 	}
 }
 
-func TestStaticReviewHTMLShipsAffectedFileHints(t *testing.T) {
-	report := staticReviewReport{
-		AffectedFiles:    []staticAffectedFile{{Path: "src/service.test.ts", Evidence: []staticAffectedEvidence{{Kind: "test", ChangedPath: "src/service.ts", Detail: "test imports the changed file"}}}},
-		AffectedAnalysis: staticAffectedAnalysis{RepositoryPaths: 5, CandidatePaths: 4, FilesScanned: 3, Truncated: true, Limits: []string{"content unavailable for 1 candidate paths because of binary or byte limits"}},
-		Verification:     verificationResponse{Checks: []verificationCheck{}},
-	}
-	body, err := renderStaticReviewHTML(report)
+func TestStaticReviewHTMLHasSidebarTextControlsAndNoRemovedPanels(t *testing.T) {
+	body, err := renderStaticReviewHTML(staticReviewReport{Verification: verificationResponse{Checks: []verificationCheck{}}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"Affected file hints", "affectedFiles", "test imports the changed file", "src/service.test.ts", "Limited analysis", "content unavailable"} {
+	for _, want := range []string{"Sidebar text", "Decrease sidebar text size", "Increase sidebar text size", "px1:rail-text-scale"} {
 		if !strings.Contains(string(body), want) {
 			t.Errorf("report missing %q", want)
+		}
+	}
+	for _, banned := range []string{"Affected file hints", "affectedFiles", "Reviewer feedback", "Export Markdown", "Export JSON", "Change groups"} {
+		if strings.Contains(string(body), banned) {
+			t.Errorf("report still includes removed panel %q", banned)
 		}
 	}
 }
@@ -242,12 +242,12 @@ func TestStaticReviewHTMLShipsInspectionQuestions(t *testing.T) {
 	}
 }
 
-func TestStaticReviewHTMLShipsReviewerFeedbackExport(t *testing.T) {
+func TestStaticReviewHTMLLinksChecksumsWithoutClaimingAuthorship(t *testing.T) {
 	body, err := renderStaticReviewHTML(staticReviewReport{Verification: verificationResponse{Checks: []verificationCheck{}}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"Reviewer feedback", "Export Markdown", "Export JSON", "px1:note:", "acknowledgements", "createObjectURL"} {
+	for _, want := range []string{"checksums.sha256", "do not prove authorship"} {
 		if !strings.Contains(string(body), want) {
 			t.Errorf("report missing %q", want)
 		}

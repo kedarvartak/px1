@@ -28,8 +28,6 @@ type staticReviewReport struct {
 	GeneratedAt         time.Time                  `json:"generatedAt"`
 	Files               []staticReviewFile         `json:"files"`
 	Blocks              []staticReviewBlock        `json:"blocks"`
-	AffectedFiles       []staticAffectedFile       `json:"affectedFiles"`
-	AffectedAnalysis    staticAffectedAnalysis     `json:"affectedAnalysis"`
 	InspectionQuestions []staticInspectionQuestion `json:"inspectionQuestions"`
 	InspectionAnalysis  staticInspectionAnalysis   `json:"inspectionAnalysis"`
 	AttentionAnalysis   staticAttentionAnalysis    `json:"attentionAnalysis"`
@@ -220,12 +218,8 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi
 	if err != nil {
 		return staticReviewReport{}, err
 	}
-	affected, affectedAnalysis, err := affectedFileHints(root, headSHA, files)
-	if err != nil {
-		return staticReviewReport{}, err
-	}
-	questions, questionAnalysis := inspectionQuestions(files, flags, affected)
-	evidence := staticEvidence(baseSHA, headSHA, options.ExplanationsFile != "", explanations, verification, affectedAnalysis, questionAnalysis, attentionAnalysis)
+	questions, questionAnalysis := inspectionQuestions(files, flags)
+	evidence := staticEvidence(baseSHA, headSHA, options.ExplanationsFile != "", explanations, verification, questionAnalysis, attentionAnalysis)
 	return staticReviewReport{
 		Version:             1,
 		Repository:          filepath.Base(root),
@@ -234,8 +228,6 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi
 		GeneratedAt:         time.Now().UTC(),
 		Files:               files,
 		Blocks:              relatedReviewBlocks(files),
-		AffectedFiles:       affected,
-		AffectedAnalysis:    affectedAnalysis,
 		InspectionQuestions: questions,
 		InspectionAnalysis:  questionAnalysis,
 		AttentionAnalysis:   attentionAnalysis,
@@ -247,19 +239,16 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi
 	}, nil
 }
 
-func staticEvidence(base, head string, explanationsAttached bool, explanations []staticExplanation, verification verificationResponse, affected staticAffectedAnalysis, inspection staticInspectionAnalysis, attention staticAttentionAnalysis) []staticEvidenceSource {
+func staticEvidence(base, head string, explanationsAttached bool, explanations []staticExplanation, verification verificationResponse, inspection staticInspectionAnalysis, attention staticAttentionAnalysis) []staticEvidenceSource {
 	automatedLimits := []string{}
 	for _, limit := range attention.Limits {
 		automatedLimits = append(automatedLimits, "Attention analysis: "+limit)
-	}
-	for _, limit := range affected.Limits {
-		automatedLimits = append(automatedLimits, "Affected-file analysis: "+limit)
 	}
 	for _, limit := range inspection.Limits {
 		automatedLimits = append(automatedLimits, "Inspection questions: "+limit)
 	}
 	automatedState := "available"
-	if attention.Truncated || affected.Truncated || inspection.Truncated {
+	if attention.Truncated || inspection.Truncated {
 		automatedState = "limited"
 	}
 
@@ -284,7 +273,7 @@ func staticEvidence(base, head string, explanationsAttached bool, explanations [
 
 	return []staticEvidenceSource{
 		{ID: "human", Label: "Human review progress", State: "browser-local", Base: base, Revision: head, Detail: "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.", Limits: []string{"Progress is stored only in this browser and is not shared with GitHub."}},
-		{ID: "automated", Label: "Deterministic analysis", State: automatedState, Base: base, Revision: head, Detail: "Rules, attention signals, affected-file hints, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.", Limits: automatedLimits},
+		{ID: "automated", Label: "Deterministic analysis", State: automatedState, Base: base, Revision: head, Detail: "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.", Limits: automatedLimits},
 		ai,
 		ci,
 	}
@@ -715,8 +704,13 @@ func writeStaticReviewReport(outDir string, report staticReviewReport) error {
 	if err := os.WriteFile(filepath.Join(outDir, "index.html"), html, 0o644); err != nil {
 		return fmt.Errorf("write static report: %w", err)
 	}
-	if err := os.WriteFile(filepath.Join(outDir, "review.json"), append(data, '\n'), 0o644); err != nil {
+	machineData := append(append([]byte{}, data...), '\n')
+	if err := os.WriteFile(filepath.Join(outDir, "review.json"), machineData, 0o644); err != nil {
 		return fmt.Errorf("write machine-readable report: %w", err)
+	}
+	manifest := fmt.Sprintf("%x  index.html\n%x  review.json\n", sha256.Sum256(html), sha256.Sum256(machineData))
+	if err := os.WriteFile(filepath.Join(outDir, "checksums.sha256"), []byte(manifest), 0o644); err != nil {
+		return fmt.Errorf("write report checksums: %w", err)
 	}
 	return nil
 }

@@ -1,5 +1,10 @@
 name: px1 review artifact
 
+# PUBLIC DELIVERY TEMPLATE: the generated report contains source diffs and is
+# published through GitHub Pages. Confirm the Pages site's visibility before
+# using this workflow for private or sensitive code. Redaction checks are not
+# access control.
+
 on:
   pull_request_target:
     types: [opened, synchronize, reopened]
@@ -95,8 +100,9 @@ jobs:
           base: ${{ env.BASE_SHA }}
           head: ${{ env.HEAD_SHA }}
           root: ${{ github.workspace }}
-          verification-file: .px1/verification.json
-          out: site/reviews/${{ env.HEAD_SHA }}
+          verification-file: ${{ github.workspace }}/.px1/verification.json
+          privacy-check: true
+          out: ${{ github.workspace }}/site/reviews/${{ env.HEAD_SHA }}
 
       - name: Preserve immutable report history
         uses: kedarvartak/px1/history@v1
