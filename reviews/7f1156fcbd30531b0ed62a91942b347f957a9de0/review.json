@@ -1,0 +1,179 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "6e6221aca0bd6680f74febedc099b54056785280",
+  "head": "7f1156fcbd30531b0ed62a91942b347f957a9de0",
+  "generatedAt": "2026-10-12T14:19:31.445987946Z",
+  "files": [
+    {
+      "path": ".github/workflows/px1-review-report.yml",
+      "status": "M",
+      "diff": "diff --git a/.github/workflows/px1-review-report.yml b/.github/workflows/px1-review-report.yml\nindex c8bcb6a..809f22a 100644\n--- a/.github/workflows/px1-review-report.yml\n+++ b/.github/workflows/px1-review-report.yml\n@@ -104,11 +104,14 @@ jobs:\n \n       - name: Export commit-pinned report\n         uses: ./\n+        env:\n+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}\n         with:\n           root: .\n           base: ${{ env.BASE_SHA }}\n           head: ${{ env.HEAD_SHA }}\n           verification-file: .px1/verification.json\n+          explanation-model: gpt-6-luna\n           out: site/reviews/${{ env.HEAD_SHA }}\n \n       - name: Preserve historical review reports\n",
+      "hunks": [
+        {
+          "id": "diff-1a5afdfbe99c6e4d",
+          "header": "@@ -104,11 +104,14 @@ jobs:",
+          "lines": [
+            {
+              "oldLine": 104,
+              "newLine": 104,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 105,
+              "newLine": 105,
+              "kind": "context",
+              "text": "      - name: Export commit-pinned report"
+            },
+            {
+              "oldLine": 106,
+              "newLine": 106,
+              "kind": "context",
+              "text": "        uses: ./"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "        env:"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}"
+            },
+            {
+              "oldLine": 107,
+              "newLine": 109,
+              "kind": "context",
+              "text": "        with:"
+            },
+            {
+              "oldLine": 108,
+              "newLine": 110,
+              "kind": "context",
+              "text": "          root: ."
+            },
+            {
+              "oldLine": 109,
+              "newLine": 111,
+              "kind": "context",
+              "text": "          base: ${{ env.BASE_SHA }}"
+            },
+            {
+              "oldLine": 110,
+              "newLine": 112,
+              "kind": "context",
+              "text": "          head: ${{ env.HEAD_SHA }}"
+            },
+            {
+              "oldLine": 111,
+              "newLine": 113,
+              "kind": "context",
+              "text": "          verification-file: .px1/verification.json"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "          explanation-model: gpt-6-luna"
+            },
+            {
+              "oldLine": 112,
+              "newLine": 115,
+              "kind": "context",
+              "text": "          out: site/reviews/${{ env.HEAD_SHA }}"
+            },
+            {
+              "oldLine": 113,
+              "newLine": 116,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 114,
+              "newLine": 117,
+              "kind": "context",
+              "text": "      - name: Preserve historical review reports"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [],
+  "affectedFiles": [],
+  "affectedAnalysis": {
+    "repositoryPaths": 63,
+    "candidatePaths": 2,
+    "filesScanned": 2,
+    "bytesScanned": 44455,
+    "truncated": false,
+    "limits": []
+  },
+  "inspectionQuestions": [],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 1,
+    "filesAnalyzed": 1,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "6e6221aca0bd6680f74febedc099b54056785280",
+      "revision": "7f1156fcbd30531b0ed62a91942b347f957a9de0",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "6e6221aca0bd6680f74febedc099b54056785280",
+      "revision": "7f1156fcbd30531b0ed62a91942b347f957a9de0",
+      "detail": "Rules, attention signals, affected-file hints, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "not-attached",
+      "detail": "No optional AI explanation file was attached. AI notes are context, not verification.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "7f1156fcbd30531b0ed62a91942b347f957a9de0",
+      "detail": "1 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "7f1156fcbd30531b0ed62a91942b347f957a9de0",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/38262015597",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/38262015597/job/114854646927",
+        "startedAt": "2026-10-12T14:19:08Z"
+      }
+    ]
+  }
+}
