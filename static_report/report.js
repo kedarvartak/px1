@@ -64,7 +64,7 @@ range.append(h('b',null,short(report.head)),document.createTextNode(' ← '),h('
 brand.append(range);
 const root=document.documentElement;
 const themeBtn=h('button','theme-btn');themeBtn.type='button';
-const paintTheme=()=>{const light=root.dataset.theme==='light';themeBtn.textContent=light?'Dark theme':'Light theme';themeBtn.setAttribute('aria-label','Switch to '+(light?'dark':'light')+' theme')};
+const paintTheme=()=>{const light=root.dataset.theme==='light';themeBtn.textContent=light?'☾':'☀';themeBtn.setAttribute('aria-label','Switch to '+(light?'dark':'light')+' theme');themeBtn.title='Switch to '+(light?'dark':'light')+' theme'};
 themeBtn.onclick=()=>{const next=root.dataset.theme==='light'?'dark':'light';root.dataset.theme=next;try{localStorage.setItem('px1:theme',next)}catch{}paintTheme()};
 paintTheme();
 brand.append(themeBtn);
