@@ -82,7 +82,7 @@ test('report has no serious automated accessibility violations',async()=>{
   const page=await context.newPage();
   await page.setContent(reportHTML,{waitUntil:'load'});
   await page.locator('.fsec').first().waitFor();
-  const results=await new AxeBuilder({page}).disableRules(['color-contrast']).analyze();
+  const results=await new AxeBuilder({page}).analyze();
   const serious=results.violations.filter((v)=>v.impact==='serious'||v.impact==='critical');
   assert.deepEqual(serious.map((v)=>({id:v.id,impact:v.impact,nodes:v.nodes.length})),[]);
   await context.close();
@@ -226,14 +226,17 @@ test('invalid stored states are ignored and storage failure keeps review usable'
   await context.close();
 });
 
-test('affected-file hints explain unchanged files outside the changed-file list',async()=>{
+test('sidebar text controls resize and persist without removed panels',async()=>{
   const page=await browser.newPage();
   await page.setContent(reportHTML,{waitUntil:'load'});
-  const hints=page.locator('.affected-file');
-  assert.equal(await hints.count(),1);
-  assert.match(await hints.textContent(),/src\/orders\.test\.ts/);
-  assert.match(await hints.textContent(),/test imports the changed file/);
-  assert.equal(await page.locator('.files .file').count(),2,'unchanged hints must not enter the changed-file queue');
+  const rail=page.locator('.rail');
+  const before=parseFloat(await rail.evaluate((element)=>getComputedStyle(element).fontSize));
+  await page.getByRole('button',{name:'Increase sidebar text size'}).click();
+  const after=parseFloat(await rail.evaluate((element)=>getComputedStyle(element).fontSize));
+  assert.ok(after>before,`sidebar text should grow from ${before}px, got ${after}px`);
+  assert.equal(await page.getByText('Reviewer feedback',{exact:true}).count(),0);
+  assert.equal(await page.getByText('Affected file hints',{exact:true}).count(),0);
+  assert.equal(await page.getByText(/Change groups/).count(),0);
   await page.close();
 });
 
@@ -241,43 +244,12 @@ test('inspection questions separate evidence from prompts and link back to code'
   const page=await browser.newPage();
   await page.setContent(reportHTML,{waitUntil:'load'});
   const cards=page.locator('.inspection-card');
-  assert.ok(await cards.count()>=2,'fixture should produce public API and related-test questions');
+  assert.ok(await cards.count()>=1,'fixture should produce a public API question');
   assert.equal(await cards.getByText('Observed evidence',{exact:true}).count(),await cards.count());
   assert.equal(await cards.getByText('Reviewer question',{exact:true}).count(),await cards.count());
-  assert.match(await cards.filter({hasText:'unchanged test'}).textContent(),/src\/orders\.test\.ts/);
   const lineLink=cards.getByRole('link',{name:/View diff line/}).first();
   await lineLink.click();
   assert.match(await page.evaluate(()=>location.hash),/^#line-f\d+-n\d+$/);
   assert.equal(await page.locator('.inspection-card .act').count(),0,'questions must not become acknowledgement findings');
-  await page.close();
-});
-
-test('reviewer feedback exports browser-local notes and acknowledgements',async()=>{
-  const page=await browser.newPage();
-  await page.setContent(reportHTML,{waitUntil:'load'});
-  await page.getByRole('button',{name:'Acknowledge'}).first().click();
-  await page.getByRole('textbox',{name:'Reviewer notes'}).fill('Ready after the logging follow-up.');
-  await page.evaluate(()=>{
-    window.__feedbackExports=[];
-    URL.createObjectURL=(blob)=>{blob.text().then((text)=>window.__feedbackExports.push(text));return 'blob:px1-test'};
-    URL.revokeObjectURL=()=>{};
-    HTMLAnchorElement.prototype.click=()=>{};
-  });
-
-  await page.getByRole('button',{name:'Export JSON'}).click();
-  await page.waitForFunction(()=>window.__feedbackExports.length===1);
-  const json=await page.evaluate(()=>window.__feedbackExports[0]);
-  const data=JSON.parse(json);
-  assert.equal(data.note,'Ready after the logging follow-up.');
-  assert.equal(data.head,git('rev-parse','HEAD'));
-  assert.equal(data.acknowledgements.length,1);
-  assert.match(data.acknowledgements[0].path,/orders\.ts/);
-
-  await page.getByRole('button',{name:'Export Markdown'}).click();
-  await page.waitForFunction(()=>window.__feedbackExports.length===2);
-  const markdown=await page.evaluate(()=>window.__feedbackExports[1]);
-  assert.match(markdown,/## px1 reviewer feedback/);
-  assert.match(markdown,/Ready after the logging follow-up/);
-  assert.match(markdown,/- \[x\] .+ — `src\/orders\.ts/);
   await page.close();
 });

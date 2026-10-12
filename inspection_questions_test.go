@@ -17,7 +17,7 @@ func TestInspectionQuestionsSeparateObservedEvidenceFromReviewerQuestions(t *tes
 		{Rule: "authentication", Path: "src/auth/session.ts", Evidence: "src/auth/session.ts"},
 		{Rule: "large-diff", Path: "src/service.ts", Evidence: "500 added lines"},
 	}
-	questions, analysis := inspectionQuestions(files, flags, nil)
+	questions, analysis := inspectionQuestions(files, flags)
 	if analysis.Truncated || len(questions) != 3 {
 		t.Fatalf("questions = %#v, analysis = %#v", questions, analysis)
 	}
@@ -40,31 +40,6 @@ func TestInspectionQuestionsSeparateObservedEvidenceFromReviewerQuestions(t *tes
 	}
 }
 
-func TestInspectionQuestionsLinkUnchangedRelatedTestsWithoutCallingThemCoverage(t *testing.T) {
-	files := []staticReviewFile{{Path: "src/service.ts", Status: "M"}}
-	affected := []staticAffectedFile{{
-		Path: "src/service.test.ts",
-		Evidence: []staticAffectedEvidence{
-			{Kind: "test", ChangedPath: "src/service.ts", Detail: "test imports the changed file"},
-			{Kind: "test", ChangedPath: "src/service.ts", Detail: "test filename matches the changed source file"},
-		},
-	}}
-	questions, _ := inspectionQuestions(files, nil, affected)
-	if len(questions) != 1 {
-		t.Fatalf("questions = %#v", questions)
-	}
-	question := questions[0]
-	if question.Kind != "related-test" || len(question.Related) != 1 || question.Related[0].InDiff {
-		t.Fatalf("question = %#v", question)
-	}
-	if strings.Contains(strings.ToLower(question.Observation), "covered") {
-		t.Fatalf("observation overclaims test coverage: %q", question.Observation)
-	}
-	if !strings.Contains(question.Observation, "imports") || !strings.Contains(question.Observation, "filename") {
-		t.Fatalf("observation lost relationship evidence: %q", question.Observation)
-	}
-}
-
 func TestInspectionQuestionsExposeOutputLimit(t *testing.T) {
 	flags := make([]reviewAttentionFlag, inspectionQuestionLimit+1)
 	files := make([]staticReviewFile, inspectionQuestionLimit+1)
@@ -73,7 +48,7 @@ func TestInspectionQuestionsExposeOutputLimit(t *testing.T) {
 		files[i] = staticReviewFile{Path: file, Status: "M"}
 		flags[i] = reviewAttentionFlag{Rule: "configuration", Path: file, Evidence: file}
 	}
-	questions, analysis := inspectionQuestions(files, flags, nil)
+	questions, analysis := inspectionQuestions(files, flags)
 	if len(questions) != inspectionQuestionLimit || !analysis.Truncated || len(analysis.Limits) != 1 {
 		t.Fatalf("questions = %d, analysis = %#v", len(questions), analysis)
 	}
@@ -84,7 +59,7 @@ func TestInspectionQuestionsBoundRelatedChangedTests(t *testing.T) {
 	for i := 0; i < inspectionRelatedLimit+2; i++ {
 		files = append(files, staticReviewFile{Path: fmt.Sprintf("src/tests/%02d/service.test.ts", i), Status: "M"})
 	}
-	questions, analysis := inspectionQuestions(files, nil, nil)
+	questions, analysis := inspectionQuestions(files, nil)
 	if len(questions) != 1 || len(questions[0].Related) != inspectionRelatedLimit {
 		t.Fatalf("questions = %#v", questions)
 	}

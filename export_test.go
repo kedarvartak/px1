@@ -182,7 +182,7 @@ func TestGenerateStaticReviewUsesPinnedCommits(t *testing.T) {
 func TestStaticEvidenceDistinguishesAttachedEmptySources(t *testing.T) {
 	head := strings.Repeat("b", 40)
 	verification := verificationResponse{Available: true, Revision: head, Checks: []verificationCheck{}}
-	sources := staticEvidence(strings.Repeat("a", 40), head, true, []staticExplanation{}, verification, staticAffectedAnalysis{}, staticInspectionAnalysis{}, staticAttentionAnalysis{})
+	sources := staticEvidence(strings.Repeat("a", 40), head, true, []staticExplanation{}, verification, staticInspectionAnalysis{}, staticAttentionAnalysis{})
 	byID := map[string]staticEvidenceSource{}
 	for _, source := range sources {
 		byID[source.ID] = source
@@ -198,14 +198,13 @@ func TestStaticEvidenceDistinguishesAttachedEmptySources(t *testing.T) {
 func TestStaticEvidenceAggregatesAnalysisLimits(t *testing.T) {
 	head := strings.Repeat("b", 40)
 	sources := staticEvidence(strings.Repeat("a", 40), head, false, nil, verificationResponse{},
-		staticAffectedAnalysis{Truncated: true, Limits: []string{"repository scan capped"}},
 		staticInspectionAnalysis{Truncated: true, Limits: []string{"questions capped"}},
 		staticAttentionAnalysis{Truncated: true, Limits: []string{"content skipped"}})
 	automated := sources[1]
-	if automated.State != "limited" || len(automated.Limits) != 3 {
+	if automated.State != "limited" || len(automated.Limits) != 2 {
 		t.Fatalf("automated evidence = %#v", automated)
 	}
-	for _, want := range []string{"Attention analysis: content skipped", "Affected-file analysis: repository scan capped", "Inspection questions: questions capped"} {
+	for _, want := range []string{"Attention analysis: content skipped", "Inspection questions: questions capped"} {
 		if !containsString(automated.Limits, want) {
 			t.Errorf("missing %q in %#v", want, automated.Limits)
 		}

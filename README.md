@@ -27,9 +27,7 @@ in GitHub.
 - Explicit file states: unreviewed, reviewed, or needs follow-up
 - Next-unreviewed navigation that includes code with no automated findings
 - Structured, line-numbered diffs grouped into reviewable blocks
-- Cross-file change groups that connect related routes, services, tests, and schemas
-- Explainable hints for unchanged importers, tests, configuration, and dependency files
-- Evidence-first inspection questions linked to changed or related tests
+- Evidence-first inspection questions linked to changed code and companion tests
 - Fast file-and-code search for large pull requests
 - Repository-specific findings from `.px1/rules.json`
 - Exact-commit GitHub check results
@@ -41,7 +39,6 @@ in GitHub.
 - Machine-readable `review.json` for agents and repository automation
 - Access-controlled downloads for private code, or historical Pages links when
   public publication is deliberately enabled
-- Browser-local reviewer notes and acknowledgements exportable as Markdown or JSON
 
 ## Review the code, including changes nobody flagged
 
@@ -69,9 +66,9 @@ page is a static snapshot and cannot know the live PR head or live check status.
 Inspection questions keep observations separate from judgment. px1 can point
 out that an exported interface, authentication path, schema, configuration,
 dependency, executable mode, or test relationship changed, then ask what the
-reviewer should verify. Changed tests link back into the diff; unchanged related
-tests are named as context. These prompts are deterministic and bounded. They
-do not infer author intent, prove test coverage, or count as findings.
+reviewer should verify. Changed companion tests link back into the diff. These
+prompts are deterministic and bounded. They do not infer author intent, prove
+test coverage, or count as findings.
 
 ## How it works
 
@@ -89,12 +86,6 @@ A sticky PR comment links the reviewer to it
 
 The workflow checks out trusted base-branch code and fetches the PR head only
 as Git objects. px1 inspects the diff; it does not execute code from the PR.
-Affected-file hints are deterministic navigation evidence from the pinned head
-commit, including common single-line JavaScript and TypeScript import forms.
-They are shown separately from changed files and never become required review
-items. The report shows when repository paths, file contents, or hint output
-exceeded a deterministic scan limit; absence of a hint is not proof that no
-related file exists.
 
 ## Set up px1
 
@@ -167,6 +158,12 @@ shows the team-owned title, reason, severity,
 matching line, and nearby diff context. The compact format remains supported.
 A finding is a team convention, not a claim that the code is unsafe.
 
+px1's own policy file focuses on concrete code-writing habits, including
+conditional expressions for simple JavaScript value choices, strict equality,
+block-scoped declarations, explicit error handling, awaited iteration, and
+modern Go APIs. These are review conventions, so each rule is scoped by language
+and phrased with an exception where the shorter pattern would be misleading.
+
 Validate the policy before opening a PR or in repository CI:
 
 ```bash
@@ -211,10 +208,8 @@ See [the explanation contract](docs/STATIC_REVIEW_EXPLANATIONS.md) and
 
 See [private-code delivery and privacy limits](docs/PRIVATE_DELIVERY.md).
 
-Reviewer notes and acknowledgements remain in browser storage, scoped to the
-repository and full head SHA. Use the report's **Export Markdown** or **Export
-JSON** controls to download feedback for pasting into GitHub; px1 never uploads
-that feedback or presents it as shared state.
+Finding acknowledgements remain in browser storage, scoped to the repository
+and full head SHA. px1 never uploads them or presents them as shared state.
 
 ## Development
 

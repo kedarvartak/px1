@@ -100,19 +100,19 @@ has a state, a plain-language description, explicit limits, and the full base
 and/or head revision it represents. Missing AI and CI inputs are distinguishable
 from attached inputs that contain zero entries.
 
-Deterministic analysis is marked `limited` when attention scanning, affected-file
-hints, or inspection-question generation skips content or reaches a bound. The
-relevant component and limit are retained in the evidence entry. An empty finding
-list means only that no rule or signal matched. Reports are generated snapshots;
-they do not poll GitHub and cannot establish the current PR head or live checks.
+Deterministic analysis is marked `limited` when attention scanning or
+inspection-question generation skips content or reaches a bound. The relevant
+component and limit are retained in the evidence entry. An empty finding list
+means only that no rule or signal matched. Reports are generated snapshots; they
+do not poll GitHub and cannot establish the current PR head or live checks.
 
 ## Inspection-question contract
 
 Inspection questions are deterministic prompts derived from existing attention
-evidence and source/test relationships. Each entry in `review.json` keeps the
+evidence and changed source/test relationships. Each entry in `review.json` keeps the
 observed evidence separate from the question and identifies its primary changed
 file, optional line, and related paths. Links are emitted only for files present
-in the diff; unchanged related tests are labels, not claims of coverage.
+in the diff.
 
 Questions are bounded to 100 entries and related paths to 8 per question; the
 report exposes either truncation explicitly. Questions are not findings,

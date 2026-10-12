@@ -31,7 +31,7 @@ accounts, and a managed SaaS are outside the product.
 - [x] Optional AI explanations generated in Actions with strict JSON output
 - [x] AI input exclusion globs for sensitive repository paths
 - [x] Rich team rules with severity, rationale, literal matching, and block matching
-- [x] Cross-file change groups and large-report search
+- [x] Large-report file and changed-code search
 - [x] Machine-readable `review.json` alongside the reviewer HTML
 - [x] Browser rendering, accessibility, and large-diff performance gates
 - [x] `validate-rules` CLI for repository policy checks
@@ -53,8 +53,8 @@ broader public product launch. It does not imply every item is already shipped.
 2. [x] **Behavioral understanding beside the code.** Deterministic inspection
    cards now separate observed evidence from a concrete reviewer question for
    selected high-impact changes and source/test relationships. They link to the
-   relevant diff or changed tests, name unchanged related tests, expose output
-   limits, and make no claim about author intent, correctness, or coverage.
+   relevant diff or changed companion tests, expose output limits, and make no
+   claim about author intent, correctness, or coverage.
 3. [x] **Transparent evidence and limitations.** The report now separates human
    review progress, deterministic analysis, AI explanations, and CI results in
    an evidence panel. Each source names its represented revision and state;
@@ -77,13 +77,9 @@ broader public product launch. It does not imply every item is already shipped.
 
 ## Supporting work shipped alongside the review workflow
 
-- **Reviewer feedback export — [PR #134](https://github.com/kedarvartak/px1/pull/134).**
-  Export local notes and acknowledgements as Markdown or JSON. Follow up by
-  including file-review progress and unresolved follow-ups; keep the distinction
-  between local declarations and shared GitHub review explicit.
-- **Explainable affected-file hints — [PR #135](https://github.com/kedarvartak/px1/pull/135).**
-  Suggestions stay separate from changed files, expose bounded analysis and
-  factual evidence, and never establish impact by themselves.
+- **Repository code-writing policy.** `.px1/rules.json` now contains scoped,
+  deterministic conventions for clearer JavaScript, TypeScript, and Go instead
+  of treating broad change-risk signals as team style rules.
 - **PR summary improvements — [PR #136](https://github.com/kedarvartak/px1/pull/136).**
   Summarize findings and verification with the artifact link while keeping the
   comment an invitation to inspect code, not an approval-like conclusion.
