@@ -55,6 +55,17 @@ test('report renders a large diff inside the performance budget',async()=>{
   await page.close();
 });
 
+test('wide screens use the available report width',async()=>{
+  const page=await browser.newPage({viewport:{width:1920,height:1000}});
+  await page.setContent(reportHTML,{waitUntil:'load'});
+  const wrap=await page.locator('.wrap').boundingBox();
+  const header=await page.locator('.top-in').boundingBox();
+  assert.ok(wrap.width>1850,`report width ${wrap.width}px should fill a 1920px viewport`);
+  assert.ok(header.width>1850,`header width ${header.width}px should fill a 1920px viewport`);
+  assert.ok(wrap.x<20&&header.x<20,'layout should keep only the deliberate inner gutter');
+  await page.close();
+});
+
 test('report has no serious automated accessibility violations',async()=>{
   const context=await browser.newContext();
   const page=await context.newPage();
