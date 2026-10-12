@@ -54,11 +54,11 @@ requires checking the current PR in GitHub.
 
 ## Public launch priorities
 
-Explicit review progress and a first deterministic set of behavioral inspection
-questions are implemented. Next prioritize visible analysis limitations, safe
-private-code delivery, and a demo plus pilot measuring comprehension and review
-decisions. Deeper structural rules follow once a concrete reviewer need
-justifies them. See the roadmap for status.
+Explicit review progress, behavioral inspection questions, and a source-by-source
+evidence and limitations panel are implemented. Next prioritize safe private-code
+delivery and a demo plus pilot measuring comprehension and review decisions.
+Deeper structural rules follow once a concrete reviewer need justifies them. See
+the roadmap for status.
 
 ## Team policy belongs in the repository
 

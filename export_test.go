@@ -96,6 +96,22 @@ func TestGenerateStaticReviewUsesPinnedCommits(t *testing.T) {
 	if report.Verification.Available || report.Verification.Error != "" || len(report.Verification.Checks) != 0 {
 		t.Fatalf("verification = %#v", report.Verification)
 	}
+	if len(report.Evidence) != 4 {
+		t.Fatalf("evidence = %#v", report.Evidence)
+	}
+	byID := map[string]staticEvidenceSource{}
+	for _, source := range report.Evidence {
+		byID[source.ID] = source
+	}
+	if byID["human"].Base != base || byID["human"].Revision != head || byID["human"].State != "browser-local" {
+		t.Fatalf("human evidence = %#v", byID["human"])
+	}
+	if byID["automated"].Revision != head || byID["automated"].State == "" {
+		t.Fatalf("automated evidence = %#v", byID["automated"])
+	}
+	if byID["ai"].State != "not-attached" || byID["ci"].State != "not-attached" {
+		t.Fatalf("optional evidence = ai %#v, ci %#v", byID["ai"], byID["ci"])
+	}
 
 	// A mutable checkout change must not change the report's rules or diff.
 	writeExportTestFile(t, root, ".px1/rules.json", `{"rules":[{"pattern":"\\bfetch\\(","glob":"*.ts","message":"Changed after commit"}]}`)
@@ -147,6 +163,48 @@ func TestGenerateStaticReviewUsesPinnedCommits(t *testing.T) {
 			t.Errorf("report missing %q", want)
 		}
 	}
+}
+
+func TestStaticEvidenceDistinguishesAttachedEmptySources(t *testing.T) {
+	head := strings.Repeat("b", 40)
+	verification := verificationResponse{Available: true, Revision: head, Checks: []verificationCheck{}}
+	sources := staticEvidence(strings.Repeat("a", 40), head, true, []staticExplanation{}, verification, staticAffectedAnalysis{}, staticInspectionAnalysis{}, staticAttentionAnalysis{})
+	byID := map[string]staticEvidenceSource{}
+	for _, source := range sources {
+		byID[source.ID] = source
+	}
+	if byID["ai"].State != "available" || byID["ai"].Revision != head || !strings.Contains(byID["ai"].Detail, "0 optional") {
+		t.Fatalf("AI evidence = %#v", byID["ai"])
+	}
+	if byID["ci"].State != "available" || byID["ci"].Revision != head || !strings.Contains(byID["ci"].Detail, "0 recorded") {
+		t.Fatalf("CI evidence = %#v", byID["ci"])
+	}
+}
+
+func TestStaticEvidenceAggregatesAnalysisLimits(t *testing.T) {
+	head := strings.Repeat("b", 40)
+	sources := staticEvidence(strings.Repeat("a", 40), head, false, nil, verificationResponse{},
+		staticAffectedAnalysis{Truncated: true, Limits: []string{"repository scan capped"}},
+		staticInspectionAnalysis{Truncated: true, Limits: []string{"questions capped"}},
+		staticAttentionAnalysis{Truncated: true, Limits: []string{"content skipped"}})
+	automated := sources[1]
+	if automated.State != "limited" || len(automated.Limits) != 3 {
+		t.Fatalf("automated evidence = %#v", automated)
+	}
+	for _, want := range []string{"Attention analysis: content skipped", "Affected-file analysis: repository scan capped", "Inspection questions: questions capped"} {
+		if !containsString(automated.Limits, want) {
+			t.Errorf("missing %q in %#v", want, automated.Limits)
+		}
+	}
+}
+
+func containsString(values []string, want string) bool {
+	for _, value := range values {
+		if value == want {
+			return true
+		}
+	}
+	return false
 }
 
 func writeExportTestFile(t *testing.T, root, rel, content string) {

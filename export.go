@@ -32,13 +32,27 @@ type staticReviewReport struct {
 	AffectedAnalysis    staticAffectedAnalysis     `json:"affectedAnalysis"`
 	InspectionQuestions []staticInspectionQuestion `json:"inspectionQuestions"`
 	InspectionAnalysis  staticInspectionAnalysis   `json:"inspectionAnalysis"`
+	AttentionAnalysis   staticAttentionAnalysis    `json:"attentionAnalysis"`
 	RuleHits            []staticReviewHit          `json:"ruleHits"`
 	Explanations        []staticExplanation        `json:"explanations"`
+	Evidence            []staticEvidenceSource     `json:"evidence"`
 	// Attention lists the risk signals px1 raises on the diff itself, such as
 	// workflow permission changes or new public API. Snapshots written before
 	// the field existed decode to nil, and the page renders that as none.
 	Attention    []reviewAttentionFlag `json:"attention"`
 	Verification verificationResponse  `json:"verification"`
+}
+
+// staticEvidenceSource makes provenance and limitations explicit. Sources are
+// deliberately separate: no automated or CI state can complete human review.
+type staticEvidenceSource struct {
+	ID       string   `json:"id"`
+	Label    string   `json:"label"`
+	State    string   `json:"state"`
+	Base     string   `json:"base,omitempty"`
+	Revision string   `json:"revision,omitempty"`
+	Detail   string   `json:"detail"`
+	Limits   []string `json:"limits"`
 }
 
 type staticReviewFile struct {
@@ -202,7 +216,7 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi
 	if err != nil {
 		return staticReviewReport{}, err
 	}
-	flags, err := staticAttention(root, baseSHA, headSHA)
+	flags, attentionAnalysis, err := staticAttention(root, baseSHA, headSHA)
 	if err != nil {
 		return staticReviewReport{}, err
 	}
@@ -211,6 +225,7 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi
 		return staticReviewReport{}, err
 	}
 	questions, questionAnalysis := inspectionQuestions(files, flags, affected)
+	evidence := staticEvidence(baseSHA, headSHA, options.ExplanationsFile != "", explanations, verification, affectedAnalysis, questionAnalysis, attentionAnalysis)
 	return staticReviewReport{
 		Version:             1,
 		Repository:          filepath.Base(root),
@@ -223,11 +238,56 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi
 		AffectedAnalysis:    affectedAnalysis,
 		InspectionQuestions: questions,
 		InspectionAnalysis:  questionAnalysis,
+		AttentionAnalysis:   attentionAnalysis,
 		RuleHits:            staticHits,
 		Explanations:        explanations,
+		Evidence:            evidence,
 		Attention:           flags,
 		Verification:        verification,
 	}, nil
+}
+
+func staticEvidence(base, head string, explanationsAttached bool, explanations []staticExplanation, verification verificationResponse, affected staticAffectedAnalysis, inspection staticInspectionAnalysis, attention staticAttentionAnalysis) []staticEvidenceSource {
+	automatedLimits := []string{}
+	for _, limit := range attention.Limits {
+		automatedLimits = append(automatedLimits, "Attention analysis: "+limit)
+	}
+	for _, limit := range affected.Limits {
+		automatedLimits = append(automatedLimits, "Affected-file analysis: "+limit)
+	}
+	for _, limit := range inspection.Limits {
+		automatedLimits = append(automatedLimits, "Inspection questions: "+limit)
+	}
+	automatedState := "available"
+	if attention.Truncated || affected.Truncated || inspection.Truncated {
+		automatedState = "limited"
+	}
+
+	ai := staticEvidenceSource{ID: "ai", Label: "AI explanations", State: "not-attached", Detail: "No optional AI explanation file was attached. AI notes are context, not verification.", Limits: []string{}}
+	if explanationsAttached {
+		ai.State = "available"
+		ai.Revision = head
+		ai.Detail = fmt.Sprintf("%d optional AI explanations attached for the exact report head; they may be incomplete or wrong.", len(explanations))
+	}
+
+	ci := staticEvidenceSource{ID: "ci", Label: "CI verification", State: "not-attached", Detail: "No CI verification was attached; this report does not know live check status.", Limits: []string{}}
+	if verification.Available {
+		ci.State = "available"
+		ci.Revision = verification.Revision
+		ci.Detail = fmt.Sprintf("%d recorded GitHub Actions checks; this is not a live status feed.", len(verification.Checks))
+	} else if verification.Error != "" {
+		ci.State = "unavailable"
+		ci.Revision = verification.Revision
+		ci.Detail = "Attached CI verification could not be trusted."
+		ci.Limits = []string{verification.Error}
+	}
+
+	return []staticEvidenceSource{
+		{ID: "human", Label: "Human review progress", State: "browser-local", Base: base, Revision: head, Detail: "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.", Limits: []string{"Progress is stored only in this browser and is not shared with GitHub."}},
+		{ID: "automated", Label: "Deterministic analysis", State: automatedState, Base: base, Revision: head, Detail: "Rules, attention signals, affected-file hints, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.", Limits: automatedLimits},
+		ai,
+		ci,
+	}
 }
 
 func gitDiffBetween(root, base, head string) (string, error) {

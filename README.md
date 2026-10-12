@@ -57,6 +57,13 @@ px1 works alongside existing coding agents and AI reviewers. Its focus is the
 human's understanding and decisions; AI explanations are optional. Confirm the
 current PR revision in GitHub before submitting your review.
 
+The **Evidence & limits** panel keeps four signals distinct: browser-local human
+progress, deterministic analysis, optional AI explanations, and imported CI
+verification. It shows the exact comparison or revision each source represents,
+whether an input is absent, and any scan or output limits. Zero findings means
+that no configured analysis matched; it is never a safety claim. The generated
+page is a static snapshot and cannot know the live PR head or live check status.
+
 Inspection questions keep observations separate from judgment. px1 can point
 out that an exported interface, authentication path, schema, configuration,
 dependency, executable mode, or test relationship changed, then ask what the
