@@ -105,7 +105,10 @@ jobs:
       - name: Export commit-pinned report
         uses: ./
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          # Keep the documented name canonical, but accept the repository's
+          # existing legacy name so model-backed reports do not fail closed
+          # while the secret is being renamed.
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || secrets.OPENAI_API__KEY }}
         with:
           root: .
           base: ${{ env.BASE_SHA }}

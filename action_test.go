@@ -43,6 +43,17 @@ func TestArtifactActionKeepsRevisionInputsExplicit(t *testing.T) {
 	}
 }
 
+func TestReviewWorkflowAcceptsCanonicalAndLegacyAPISecretNames(t *testing.T) {
+	body, err := os.ReadFile(".github/workflows/px1-review-report.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	if !strings.Contains(text, "secrets.OPENAI_API_KEY || secrets.OPENAI_API__KEY") {
+		t.Fatal("review workflow must prefer the canonical API secret and accept the existing legacy name")
+	}
+}
+
 func TestPrivateArtifactWorkflowAvoidsPagesAndRequiresRepositoryAccess(t *testing.T) {
 	body, err := os.ReadFile("examples/px1-review-private.yml")
 	if err != nil {
