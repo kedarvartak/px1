@@ -1,0 +1,299 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "6e6221aca0bd6680f74febedc099b54056785280",
+  "head": "3ccfee8f75660cd0cdf1e20968d7231fca52e2b0",
+  "generatedAt": "2026-10-12T14:13:25.54581204Z",
+  "files": [
+    {
+      "path": "browser-tests/report.test.mjs",
+      "status": "M",
+      "diff": "diff --git a/browser-tests/report.test.mjs b/browser-tests/report.test.mjs\nindex 887e529..6a2a833 100644\n--- a/browser-tests/report.test.mjs\n+++ b/browser-tests/report.test.mjs\n@@ -66,6 +66,17 @@ test('wide screens use the available report width',async()=\u003e{\n   await page.close();\n });\n \n+test('review status control reserves space for its chevron',async()=\u003e{\n+  const page=await browser.newPage();\n+  await page.setContent(reportHTML,{waitUntil:'load'});\n+  const state=page.getByRole('combobox',{name:'Review status for README.md',exact:true});\n+  const style=await state.evaluate((el)=\u003e{const computed=getComputedStyle(el);return{appearance:computed.appearance,paddingRight:parseFloat(computed.paddingRight),backgroundImage:computed.backgroundImage}});\n+  assert.equal(style.appearance,'none');\n+  assert.ok(style.paddingRight\u003e=36,`right padding ${style.paddingRight}px should clear the chevron`);\n+  assert.notEqual(style.backgroundImage,'none','review status should render a deliberate chevron');\n+  await page.close();\n+});\n+\n test('report has no serious automated accessibility violations',async()=\u003e{\n   const context=await browser.newContext();\n   const page=await context.newPage();\n",
+      "hunks": [
+        {
+          "id": "diff-7566576712be8bcd",
+          "header": "@@ -66,6 +66,17 @@ test('wide screens use the available report width',async()=\u003e{",
+          "lines": [
+            {
+              "oldLine": 66,
+              "newLine": 66,
+              "kind": "context",
+              "text": "  await page.close();"
+            },
+            {
+              "oldLine": 67,
+              "newLine": 67,
+              "kind": "context",
+              "text": "});"
+            },
+            {
+              "oldLine": 68,
+              "newLine": 68,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "test('review status control reserves space for its chevron',async()=\u003e{"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "  const page=await browser.newPage();"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "  await page.setContent(reportHTML,{waitUntil:'load'});"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "  const state=page.getByRole('combobox',{name:'Review status for README.md',exact:true});"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "  const style=await state.evaluate((el)=\u003e{const computed=getComputedStyle(el);return{appearance:computed.appearance,paddingRight:parseFloat(computed.paddingRight),backgroundImage:computed.backgroundImage}});"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "  assert.equal(style.appearance,'none');"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "  assert.ok(style.paddingRight\u003e=36,`right padding ${style.paddingRight}px should clear the chevron`);"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "  assert.notEqual(style.backgroundImage,'none','review status should render a deliberate chevron');"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "  await page.close();"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "});"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 69,
+              "newLine": 80,
+              "kind": "context",
+              "text": "test('report has no serious automated accessibility violations',async()=\u003e{"
+            },
+            {
+              "oldLine": 70,
+              "newLine": 81,
+              "kind": "context",
+              "text": "  const context=await browser.newContext();"
+            },
+            {
+              "oldLine": 71,
+              "newLine": 82,
+              "kind": "context",
+              "text": "  const page=await context.newPage();"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "static_report/report.css",
+      "status": "M",
+      "diff": "diff --git a/static_report/report.css b/static_report/report.css\nindex 80583f2..c84c591 100644\n--- a/static_report/report.css\n+++ b/static_report/report.css\n@@ -185,7 +185,14 @@ body.resizing{cursor:col-resize;user-select:none}\n .btn:disabled{cursor:default;opacity:.5}\n .review-summary{margin:0 0 8px;font-size:var(--fs-small)}\n .review-hint{margin:8px 0 0;color:var(--dim);font-size:var(--fs-fine)}\n-.review-state{max-width:100%;background:var(--canvas);color:var(--ink);border:1px solid var(--edge);border-radius:var(--r-md);padding:4px 8px;font:var(--fs-small) var(--sans)}\n+.review-state{\n+  max-width:100%;min-width:150px;appearance:none;-webkit-appearance:none;\n+  background-color:var(--canvas);color:var(--ink);border:1px solid var(--edge);border-radius:var(--r-md);\n+  background-image:linear-gradient(45deg,transparent 50%,var(--dim) 50%),linear-gradient(135deg,var(--dim) 50%,transparent 50%);\n+  background-position:calc(100% - 16px) 50%,calc(100% - 11px) 50%;\n+  background-repeat:no-repeat;background-size:5px 5px,5px 5px;\n+  padding:4px 36px 4px 12px;font:var(--fs-small) var(--sans)\n+}\n \n .spine{position:sticky;top:var(--top-h,140px);height:calc(100vh - var(--top-h,140px) - 20px);border-radius:var(--r-sm);background:var(--well);overflow:hidden}\n .spine a{position:absolute;left:0;right:0;height:4px}\n",
+      "hunks": [
+        {
+          "id": "diff-dbd46b8912f2098a",
+          "header": "@@ -185,7 +185,14 @@ body.resizing{cursor:col-resize;user-select:none}",
+          "lines": [
+            {
+              "oldLine": 185,
+              "newLine": 185,
+              "kind": "context",
+              "text": ".btn:disabled{cursor:default;opacity:.5}"
+            },
+            {
+              "oldLine": 186,
+              "newLine": 186,
+              "kind": "context",
+              "text": ".review-summary{margin:0 0 8px;font-size:var(--fs-small)}"
+            },
+            {
+              "oldLine": 187,
+              "newLine": 187,
+              "kind": "context",
+              "text": ".review-hint{margin:8px 0 0;color:var(--dim);font-size:var(--fs-fine)}"
+            },
+            {
+              "oldLine": 188,
+              "kind": "removed",
+              "text": ".review-state{max-width:100%;background:var(--canvas);color:var(--ink);border:1px solid var(--edge);border-radius:var(--r-md);padding:4px 8px;font:var(--fs-small) var(--sans)}"
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": ".review-state{"
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "  max-width:100%;min-width:150px;appearance:none;-webkit-appearance:none;"
+            },
+            {
+              "newLine": 190,
+              "kind": "added",
+              "text": "  background-color:var(--canvas);color:var(--ink);border:1px solid var(--edge);border-radius:var(--r-md);"
+            },
+            {
+              "newLine": 191,
+              "kind": "added",
+              "text": "  background-image:linear-gradient(45deg,transparent 50%,var(--dim) 50%),linear-gradient(135deg,var(--dim) 50%,transparent 50%);"
+            },
+            {
+              "newLine": 192,
+              "kind": "added",
+              "text": "  background-position:calc(100% - 16px) 50%,calc(100% - 11px) 50%;"
+            },
+            {
+              "newLine": 193,
+              "kind": "added",
+              "text": "  background-repeat:no-repeat;background-size:5px 5px,5px 5px;"
+            },
+            {
+              "newLine": 194,
+              "kind": "added",
+              "text": "  padding:4px 36px 4px 12px;font:var(--fs-small) var(--sans)"
+            },
+            {
+              "newLine": 195,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "oldLine": 189,
+              "newLine": 196,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 190,
+              "newLine": 197,
+              "kind": "context",
+              "text": ".spine{position:sticky;top:var(--top-h,140px);height:calc(100vh - var(--top-h,140px) - 20px);border-radius:var(--r-sm);background:var(--well);overflow:hidden}"
+            },
+            {
+              "oldLine": 191,
+              "newLine": 198,
+              "kind": "context",
+              "text": ".spine a{position:absolute;left:0;right:0;height:4px}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-f8cb6427192faede",
+      "title": "Report changes",
+      "summary": "2 related files share the \"report\" change signal.",
+      "paths": [
+        "browser-tests/report.test.mjs",
+        "static_report/report.css"
+      ]
+    }
+  ],
+  "affectedFiles": [],
+  "affectedAnalysis": {
+    "repositoryPaths": 63,
+    "candidatePaths": 1,
+    "filesScanned": 1,
+    "bytesScanned": 29613,
+    "truncated": false,
+    "limits": []
+  },
+  "inspectionQuestions": [],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 2,
+    "filesAnalyzed": 2,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "6e6221aca0bd6680f74febedc099b54056785280",
+      "revision": "3ccfee8f75660cd0cdf1e20968d7231fca52e2b0",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "6e6221aca0bd6680f74febedc099b54056785280",
+      "revision": "3ccfee8f75660cd0cdf1e20968d7231fca52e2b0",
+      "detail": "Rules, attention signals, affected-file hints, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "not-attached",
+      "detail": "No optional AI explanation file was attached. AI notes are context, not verification.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "3ccfee8f75660cd0cdf1e20968d7231fca52e2b0",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "3ccfee8f75660cd0cdf1e20968d7231fca52e2b0",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/38261279825",
+    "checks": [
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/38261281635/job/114852121936",
+        "startedAt": "2026-10-12T14:13:01Z"
+      },
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/38261279825/job/114852118303",
+        "startedAt": "2026-10-12T14:13:01Z"
+      }
+    ]
+  }
+}
