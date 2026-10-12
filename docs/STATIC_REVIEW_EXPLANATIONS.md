@@ -29,7 +29,9 @@ and is never written to the report.
     OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 ```
 
-The generator sends only the bounded, non-excluded Git diff to the Responses
+Enabling `explanation-model` transfers bounded, non-excluded pull-request diff
+content to the configured model provider. The Action emits a visible warning
+before that transfer. The generator sends the diff to the Responses
 API, requests a strict JSON schema, sets `store: false`, and refuses incomplete,
 malformed, stale, or out-of-scope output. Use `explanation-exclude-globs` for
 paths your team does not want sent to the model. It never checks out or executes
@@ -37,9 +39,10 @@ pull-request code. If no model is set,
 the Action works without an API key and produces the normal diff-and-rules
 artifact.
 
-The exclusion affects only AI input. Excluded files still appear in the local
-static report, rules, and deterministic attention signals. Review the API
-provider's current data controls before enabling explanations for private code.
+The exclusion affects only AI input. It is not content redaction, secret
+detection, or access control. Excluded files still appear in the static report,
+rules, and deterministic attention signals. Review the API provider's current
+data controls before enabling explanations for private code.
 
 ## Bring your own explanation file
 

@@ -454,7 +454,9 @@ handle.addEventListener('keydown',(e)=>{
   e.preventDefault();setRailWidth(next,true);settle();
 });
 addEventListener('resize',()=>setRailWidth(parseFloat(wrap.style.getPropertyValue('--rail-w'))||savedWidth,false));
-const foot=h('div','foot','File review progress and finding acknowledgements are independent and browser-local. This static snapshot represents '+short(report.base)+'…'+short(report.head)+' and cannot know the current live PR head or check status. Confirm both in GitHub before approving.');
+const foot=h('div','foot');
+foot.append(document.createTextNode('File review progress and finding acknowledgements are independent and browser-local. This static snapshot represents '+short(report.base)+'…'+short(report.head)+' and cannot know the current live PR head or check status. Confirm both in GitHub before approving. Bundle checksums detect file changes; they do not prove authorship. '));
+const checksumLink=h('a',null,'View checksums');checksumLink.href='checksums.sha256';foot.append(checksumLink);
 app.textContent='';
 app.append(top,wrap,foot);
 setRailWidth(savedWidth,false);

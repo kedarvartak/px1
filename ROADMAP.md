@@ -7,10 +7,10 @@ coding to an agent. Acknowledging AI findings is insufficient: reviewers need
 to challenge incorrect findings and inspect code with no findings. The roadmap
 prioritizes that outcome over expanding automated detection.
 
-px1 has one product flow:
+px1 has one product shape with two explicit delivery choices:
 
 ```text
-push PR → GitHub Action → static review artifact → GitHub Pages → PR link
+push PR → GitHub Action → static review artifact → authenticated download or deliberate Pages publication → PR link
 ```
 
 Local code browsing, local review sessions, agent editing, self-hosted imports,
@@ -36,6 +36,8 @@ accounts, and a managed SaaS are outside the product.
 - [x] Browser rendering, accessibility, and large-diff performance gates
 - [x] `validate-rules` CLI for repository policy checks
 - [x] Immutable release workflow for the `v1` Action tag
+- [x] Access-controlled Actions-artifact delivery for private repositories
+- [x] Privacy checks, model-transfer warnings, and report checksums
 
 ## Public v1 launch priorities
 
@@ -59,11 +61,14 @@ broader public product launch. It does not imply every item is already shipped.
    skipped or bounded analysis and missing inputs are visible. Empty findings
    explicitly mean no matches, not safety, and the snapshot disclaims knowledge
    of the current live PR head and check status.
-4. [ ] **Safe private-code delivery and publication.** Provide an access-appropriate
-   delivery path, such as downloadable Actions artifacts, before positioning
-   px1 for private repositories. Public Pages publication must be deliberate.
-   Add redaction checks, clear model-transfer warnings, and checksums; redaction
-   is not access control and checksums alone do not prove authorship.
+4. [x] **Safe private-code delivery and publication.** Private repositories now
+   have a dedicated workflow that uploads an authenticated, expiring Actions
+   artifact and requires repository read access. Public Pages is a separate,
+   explicitly warned template. Generated bundles include per-file SHA-256
+   checksums, and the Action blocks high-confidence secret signatures and
+   sensitive paths by default while warning on model transfer. The docs state
+   that scanning is not redaction or access control and checksums do not prove
+   authorship.
 5. [ ] **Demonstrate and measure the original problem.** Demo one misleading
    automated finding and one meaningful unflagged problem, showing the evidence
    a person uses to decide. Run a pilot with roughly 5–10 agent-heavy developers

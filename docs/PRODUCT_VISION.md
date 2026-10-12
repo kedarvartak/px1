@@ -31,8 +31,9 @@ not establish that advantage.
 ## The product
 
 When a pull request opens or changes, GitHub Actions generates a static report
-for that exact head commit. GitHub Pages hosts it and a sticky PR comment links
-to it. The report combines:
+for that exact head commit. A sticky PR comment links to either an authenticated
+Actions artifact or a deliberately published GitHub Pages report. The report
+combines:
 
 - readable, structured diffs;
 - explicit file-review states independent of automated findings;
@@ -54,11 +55,11 @@ requires checking the current PR in GitHub.
 
 ## Public launch priorities
 
-Explicit review progress, behavioral inspection questions, and a source-by-source
-evidence and limitations panel are implemented. Next prioritize safe private-code
-delivery and a demo plus pilot measuring comprehension and review decisions.
-Deeper structural rules follow once a concrete reviewer need justifies them. See
-the roadmap for status.
+Explicit review progress, behavioral inspection questions, source-by-source
+evidence, and access-appropriate delivery are implemented. Next prioritize a
+demo plus pilot measuring comprehension and review decisions. Deeper structural
+rules follow once a concrete reviewer need justifies them. See the roadmap for
+status.
 
 ## Team policy belongs in the repository
 
@@ -73,7 +74,8 @@ uncertainty.
 Model-generated explanations should clarify mechanics, dependencies, and
 review impact. They must not invent author intent or label code safe. Provider
 keys stay in GitHub Actions secrets; only validated, commit-pinned output enters
-the static report.
+the static report. Enabling explanations transfers bounded, non-excluded diff
+content to the configured model provider; path exclusions are not redaction.
 
 Without a model, px1 still provides diffs, rules, CI evidence, and deterministic
 attention signals.

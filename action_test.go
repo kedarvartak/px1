@@ -20,11 +20,16 @@ func TestArtifactActionKeepsRevisionInputsExplicit(t *testing.T) {
 		"go run . \"${args[@]}\"",
 		"test -s \"$PX1_OUT/index.html\"",
 		"test -s \"$PX1_OUT/review.json\"",
+		"test -s \"$PX1_OUT/checksums.sha256\"",
 		"PX1_EXPLANATION_MODEL: ${{ inputs.explanation-model }}",
 		"generate-explanations",
 		"OPENAI_API_KEY",
 		"PX1_EXPLANATION_EXCLUDE_GLOBS: ${{ inputs.explanation-exclude-globs }}",
 		"--exclude-glob \"$pattern\"",
+		"PX1_PRIVACY_CHECK: ${{ inputs.privacy-check }}",
+		"privacy-check --review-file \"$PX1_OUT/review.json\"",
+		"sha256sum --check checksums.sha256",
+		"AI explanations send bounded, non-excluded pull-request diff content",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("action.yml missing %q", want)
@@ -35,6 +40,32 @@ func TestArtifactActionKeepsRevisionInputsExplicit(t *testing.T) {
 	}
 	if strings.Contains(text, "openai-api-key") {
 		t.Fatal("API keys must come from the caller environment, not action inputs")
+	}
+}
+
+func TestPrivateArtifactWorkflowAvoidsPagesAndRequiresRepositoryAccess(t *testing.T) {
+	body, err := os.ReadFile("examples/px1-review-private.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	for _, want := range []string{
+		"uses: actions/upload-artifact@v4",
+		"artifact-url",
+		"artifact-digest",
+		"retention-days: 30",
+		"Repository read access is required",
+		"privacy-check: true",
+		"checksums detect changes; they do not prove authorship",
+	} {
+		if !strings.Contains(strings.ToLower(text), strings.ToLower(want)) {
+			t.Errorf("private workflow missing %q", want)
+		}
+	}
+	for _, banned := range []string{"pages: write", "actions/deploy-pages", "actions/upload-pages-artifact"} {
+		if strings.Contains(text, banned) {
+			t.Errorf("private workflow must not contain %q", banned)
+		}
 	}
 }
 

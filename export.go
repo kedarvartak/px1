@@ -715,8 +715,13 @@ func writeStaticReviewReport(outDir string, report staticReviewReport) error {
 	if err := os.WriteFile(filepath.Join(outDir, "index.html"), html, 0o644); err != nil {
 		return fmt.Errorf("write static report: %w", err)
 	}
-	if err := os.WriteFile(filepath.Join(outDir, "review.json"), append(data, '\n'), 0o644); err != nil {
+	machineData := append(append([]byte{}, data...), '\n')
+	if err := os.WriteFile(filepath.Join(outDir, "review.json"), machineData, 0o644); err != nil {
 		return fmt.Errorf("write machine-readable report: %w", err)
+	}
+	manifest := fmt.Sprintf("%x  index.html\n%x  review.json\n", sha256.Sum256(html), sha256.Sum256(machineData))
+	if err := os.WriteFile(filepath.Join(outDir, "checksums.sha256"), []byte(manifest), 0o644); err != nil {
+		return fmt.Errorf("write report checksums: %w", err)
 	}
 	return nil
 }

@@ -112,6 +112,7 @@ jobs:
           head: ${{ env.HEAD_SHA }}
           verification-file: .px1/verification.json
           explanation-model: gpt-6-luna
+          privacy-check: true
           out: site/reviews/${{ env.HEAD_SHA }}
 
       - name: Preserve historical review reports

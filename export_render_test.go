@@ -253,3 +253,15 @@ func TestStaticReviewHTMLShipsReviewerFeedbackExport(t *testing.T) {
 		}
 	}
 }
+
+func TestStaticReviewHTMLLinksChecksumsWithoutClaimingAuthorship(t *testing.T) {
+	body, err := renderStaticReviewHTML(staticReviewReport{Verification: verificationResponse{Checks: []verificationCheck{}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"checksums.sha256", "do not prove authorship"} {
+		if !strings.Contains(string(body), want) {
+			t.Errorf("report missing %q", want)
+		}
+	}
+}

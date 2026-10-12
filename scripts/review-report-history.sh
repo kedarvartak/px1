@@ -32,7 +32,7 @@ validate_history_tree() {
     mode="${metadata%% *}"
     metadata="${metadata#* }"
     type="${metadata%% *}"
-    if [[ "$mode" != "100644" || "$type" != "blob" || ! "$path" =~ ^reviews/[0-9a-f]{40}/(index\.html|review\.json)$ ]]; then
+    if [[ "$mode" != "100644" || "$type" != "blob" || ! "$path" =~ ^reviews/[0-9a-f]{40}/(index\.html|review\.json|checksums\.sha256)$ ]]; then
       echo "refusing unexpected history entry: $path" >&2
       exit 1
     fi
@@ -40,7 +40,7 @@ validate_history_tree() {
 }
 
 validate_site() {
-  local site_abs="$1" file relative found=false
+  local site_abs="$1" file relative manifest found=false
   if find -P "$site_abs" -type l -print -quit | grep -q .; then
     echo "refusing symlink in review history" >&2
     exit 1
@@ -48,7 +48,7 @@ validate_site() {
   while IFS= read -r -d '' file; do
     found=true
     relative="${file#"$site_abs"/}"
-    if [[ ! "$relative" =~ ^reviews/[0-9a-f]{40}/(index\.html|review\.json)$ ]]; then
+    if [[ ! "$relative" =~ ^reviews/[0-9a-f]{40}/(index\.html|review\.json|checksums\.sha256)$ ]]; then
       echo "refusing unexpected site entry: $relative" >&2
       exit 1
     fi
@@ -57,6 +57,12 @@ validate_site() {
     echo "review history is empty" >&2
     exit 1
   }
+  while IFS= read -r -d '' manifest; do
+    if ! (cd "$(dirname "$manifest")" && sha256sum --check "$(basename "$manifest")" >/dev/null); then
+      echo "refusing report with invalid checksums: ${manifest#"$site_abs"/}" >&2
+      exit 1
+    fi
+  done < <(find -P "$site_abs" -type f -name checksums.sha256 -print0)
 }
 
 if [[ "$action" == "restore" ]]; then
@@ -66,6 +72,8 @@ if [[ "$action" == "restore" ]]; then
       "refs/heads/${history_branch}:${history_ref}"
     validate_history_tree
     git --git-dir="$git_dir" archive "$history_ref" | tar -x -C "$site_dir"
+    site_abs="$(cd "$site_dir" && pwd -P)"
+    validate_site "$site_abs"
   fi
   exit 0
 fi

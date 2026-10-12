@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -43,6 +45,15 @@ func TestReviewReportHistoryPreservesEarlierRevisions(t *testing.T) {
 	assertHistoryReport(t, final, first, "first")
 	assertHistoryReport(t, final, second, "second")
 
+	firstIndex := filepath.Join(final, "reviews", first, "index.html")
+	if err := os.WriteFile(firstIndex, []byte("tampered"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runHistoryCommandFailure(t, root, "invalid checksums", "bash", script, "publish", final)
+	if err := os.WriteFile(firstIndex, []byte("first"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
 	unexpected := filepath.Join(final, "README.md")
 	if err := os.WriteFile(unexpected, []byte("unexpected\n"), 0o644); err != nil {
 		t.Fatal(err)
@@ -63,10 +74,16 @@ func writeHistoryReport(t *testing.T, root, revision, content string) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "index.html"), []byte(content), 0o644); err != nil {
+	html := []byte(content)
+	if err := os.WriteFile(filepath.Join(dir, "index.html"), html, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "review.json"), []byte(`{"content":"`+content+`"}`), 0o644); err != nil {
+	review := []byte(`{"content":"` + content + `"}`)
+	if err := os.WriteFile(filepath.Join(dir, "review.json"), review, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	manifest := fmt.Sprintf("%x  index.html\n%x  review.json\n", sha256.Sum256(html), sha256.Sum256(review))
+	if err := os.WriteFile(filepath.Join(dir, "checksums.sha256"), []byte(manifest), 0o644); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -86,6 +103,9 @@ func assertHistoryReport(t *testing.T, root, revision, want string) {
 	}
 	if !strings.Contains(string(data), want) {
 		t.Fatalf("review data %s = %q, want content %q", revision, data, want)
+	}
+	if _, err := os.Stat(filepath.Join(root, "reviews", revision, "checksums.sha256")); err != nil {
+		t.Fatal(err)
 	}
 }
 

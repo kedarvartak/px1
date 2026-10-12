@@ -200,6 +200,7 @@ body.resizing{cursor:col-resize;user-select:none}
 .spine .thumb{position:absolute;left:0;right:0;border-block:1px solid var(--dim);pointer-events:none}
 
 .foot{width:100%;padding:6px 16px 40px;color:var(--faint);font-size:var(--fs-small)}
+.foot a{color:var(--dim)}
 .noscript{padding:24px 16px}
 
 @media (max-width:1000px){

@@ -26,7 +26,7 @@ inputs:
     required: false
     default: ''
   explanation-model:
-    description: Optional OpenAI model used to generate explanations. Requires OPENAI_API_KEY in the caller environment.
+    description: Optional OpenAI model used to generate explanations. Sends bounded, non-excluded diff content to the configured endpoint and requires OPENAI_API_KEY in the caller environment.
     required: false
     default: ''
   explanation-endpoint:
@@ -34,9 +34,13 @@ inputs:
     required: false
     default: https://api.openai.com/v1/responses
   explanation-exclude-globs:
-    description: Optional newline-separated repository globs omitted from AI input.
+    description: Optional newline-separated repository globs omitted from AI input. Exclusion is not redaction.
     required: false
     default: ''
+  privacy-check:
+    description: Fail when the generated report contains high-confidence secret signatures or sensitive paths. This check is not redaction or access control.
+    required: false
+    default: 'true'
 
 runs:
   using: composite
@@ -59,6 +63,7 @@ runs:
         PX1_EXPLANATION_MODEL: ${{ inputs.explanation-model }}
         PX1_EXPLANATION_ENDPOINT: ${{ inputs.explanation-endpoint }}
         PX1_EXPLANATION_EXCLUDE_GLOBS: ${{ inputs.explanation-exclude-globs }}
+        PX1_PRIVACY_CHECK: ${{ inputs.privacy-check }}
       run: |
         set -euo pipefail
         if [[ -n "$PX1_EXPLANATIONS_FILE" && -n "$PX1_EXPLANATION_MODEL" ]]; then
@@ -70,6 +75,7 @@ runs:
             echo "px1: explanation-model requires OPENAI_API_KEY" >&2
             exit 2
           fi
+          echo "::warning title=px1 model transfer::AI explanations send bounded, non-excluded pull-request diff content to the configured model endpoint. Exclusion globs are not redaction."
           PX1_EXPLANATIONS_FILE="${RUNNER_TEMP:-/tmp}/px1-explanations-${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-0}.json"
           explanation_args=(
             generate-explanations
@@ -99,8 +105,22 @@ runs:
           args+=(--explanations-file "$PX1_EXPLANATIONS_FILE")
         fi
         (cd "$GITHUB_ACTION_PATH" && go run . "${args[@]}")
+        case "$PX1_PRIVACY_CHECK" in
+          true)
+            (cd "$GITHUB_ACTION_PATH" && go run . privacy-check --review-file "$PX1_OUT/review.json")
+            ;;
+          false)
+            echo "::warning title=px1 privacy check disabled::The report was not checked for likely secret signatures or sensitive paths. Delivery visibility remains your responsibility."
+            ;;
+          *)
+            echo "px1: privacy-check must be true or false" >&2
+            exit 2
+            ;;
+        esac
+        (cd "$GITHUB_ACTION_PATH" && cd "$PX1_OUT" && sha256sum --check checksums.sha256)
         test -s "$PX1_OUT/index.html"
         test -s "$PX1_OUT/review.json"
+        test -s "$PX1_OUT/checksums.sha256"
 
 branding:
   icon: eye

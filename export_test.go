@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -161,6 +163,18 @@ func TestGenerateStaticReviewUsesPinnedCommits(t *testing.T) {
 	for _, want := range []string{"id=\"report-data\"", "api/users.ts", "Use apiClient, not fetch", "Automated findings", "Your code review", "px1:ack:", "localStorage", "aria-pressed", "Acknowledge"} {
 		if !strings.Contains(html, want) {
 			t.Errorf("report missing %q", want)
+		}
+	}
+	manifest, err := os.ReadFile(filepath.Join(out, "checksums.sha256"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		fmt.Sprintf("%x  index.html", sha256.Sum256(b)),
+		fmt.Sprintf("%x  review.json", sha256.Sum256(reviewBytes)),
+	} {
+		if !strings.Contains(string(manifest), want) {
+			t.Errorf("checksum manifest missing %q: %s", want, manifest)
 		}
 	}
 }
