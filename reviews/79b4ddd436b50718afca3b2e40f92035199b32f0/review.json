@@ -1,0 +1,3441 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "00b005c3600c65970c2c159a44981e20ec9da265",
+  "head": "79b4ddd436b50718afca3b2e40f92035199b32f0",
+  "generatedAt": "2026-10-12T14:07:15.121084954Z",
+  "files": [
+    {
+      "path": "README.md",
+      "status": "M",
+      "diff": "diff --git a/README.md b/README.md\nindex 1184f00..2f72fd5 100644\n--- a/README.md\n+++ b/README.md\n@@ -57,6 +57,13 @@ px1 works alongside existing coding agents and AI reviewers. Its focus is the\n human's understanding and decisions; AI explanations are optional. Confirm the\n current PR revision in GitHub before submitting your review.\n \n+The **Evidence \u0026 limits** panel keeps four signals distinct: browser-local human\n+progress, deterministic analysis, optional AI explanations, and imported CI\n+verification. It shows the exact comparison or revision each source represents,\n+whether an input is absent, and any scan or output limits. Zero findings means\n+that no configured analysis matched; it is never a safety claim. The generated\n+page is a static snapshot and cannot know the live PR head or live check status.\n+\n Inspection questions keep observations separate from judgment. px1 can point\n out that an exported interface, authentication path, schema, configuration,\n dependency, executable mode, or test relationship changed, then ask what the\n",
+      "hunks": [
+        {
+          "id": "diff-da9ff62dc5ac0086",
+          "header": "@@ -57,6 +57,13 @@ px1 works alongside existing coding agents and AI reviewers. Its focus is the",
+          "lines": [
+            {
+              "oldLine": 57,
+              "newLine": 57,
+              "kind": "context",
+              "text": "human's understanding and decisions; AI explanations are optional. Confirm the"
+            },
+            {
+              "oldLine": 58,
+              "newLine": 58,
+              "kind": "context",
+              "text": "current PR revision in GitHub before submitting your review."
+            },
+            {
+              "oldLine": 59,
+              "newLine": 59,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "The **Evidence \u0026 limits** panel keeps four signals distinct: browser-local human"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "progress, deterministic analysis, optional AI explanations, and imported CI"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "verification. It shows the exact comparison or revision each source represents,"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "whether an input is absent, and any scan or output limits. Zero findings means"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "that no configured analysis matched; it is never a safety claim. The generated"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "page is a static snapshot and cannot know the live PR head or live check status."
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 60,
+              "newLine": 67,
+              "kind": "context",
+              "text": "Inspection questions keep observations separate from judgment. px1 can point"
+            },
+            {
+              "oldLine": 61,
+              "newLine": 68,
+              "kind": "context",
+              "text": "out that an exported interface, authentication path, schema, configuration,"
+            },
+            {
+              "oldLine": 62,
+              "newLine": 69,
+              "kind": "context",
+              "text": "dependency, executable mode, or test relationship changed, then ask what the"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/ROADMAP.md b/ROADMAP.md\nindex 69b6ff8..b85a20f 100644\n--- a/ROADMAP.md\n+++ b/ROADMAP.md\n@@ -53,11 +53,12 @@ broader public product launch. It does not imply every item is already shipped.\n    selected high-impact changes and source/test relationships. They link to the\n    relevant diff or changed tests, name unchanged related tests, expose output\n    limits, and make no claim about author intent, correctness, or coverage.\n-3. [ ] **Transparent evidence and limitations.** Separate human review progress,\n-   automated analysis, AI explanations, and CI results. Surface skipped and\n-   truncated analysis, missing verification, and the revision represented by\n-   each source. An empty findings list must not imply safety. A static snapshot\n-   must not claim to know the current live PR head.\n+3. [x] **Transparent evidence and limitations.** The report now separates human\n+   review progress, deterministic analysis, AI explanations, and CI results in\n+   an evidence panel. Each source names its represented revision and state;\n+   skipped or bounded analysis and missing inputs are visible. Empty findings\n+   explicitly mean no matches, not safety, and the snapshot disclaims knowledge\n+   of the current live PR head and check status.\n 4. [ ] **Safe private-code delivery and publication.** Provide an access-appropriate\n    delivery path, such as downloadable Actions artifacts, before positioning\n    px1 for private repositories. Public Pages publication must be deliberate.\n",
+      "hunks": [
+        {
+          "id": "diff-5b63d3f1935b4668",
+          "header": "@@ -53,11 +53,12 @@ broader public product launch. It does not imply every item is already shipped.",
+          "lines": [
+            {
+              "oldLine": 53,
+              "newLine": 53,
+              "kind": "context",
+              "text": "   selected high-impact changes and source/test relationships. They link to the"
+            },
+            {
+              "oldLine": 54,
+              "newLine": 54,
+              "kind": "context",
+              "text": "   relevant diff or changed tests, name unchanged related tests, expose output"
+            },
+            {
+              "oldLine": 55,
+              "newLine": 55,
+              "kind": "context",
+              "text": "   limits, and make no claim about author intent, correctness, or coverage."
+            },
+            {
+              "oldLine": 56,
+              "kind": "removed",
+              "text": "3. [ ] **Transparent evidence and limitations.** Separate human review progress,"
+            },
+            {
+              "oldLine": 57,
+              "kind": "removed",
+              "text": "   automated analysis, AI explanations, and CI results. Surface skipped and"
+            },
+            {
+              "oldLine": 58,
+              "kind": "removed",
+              "text": "   truncated analysis, missing verification, and the revision represented by"
+            },
+            {
+              "oldLine": 59,
+              "kind": "removed",
+              "text": "   each source. An empty findings list must not imply safety. A static snapshot"
+            },
+            {
+              "oldLine": 60,
+              "kind": "removed",
+              "text": "   must not claim to know the current live PR head."
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "3. [x] **Transparent evidence and limitations.** The report now separates human"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "   review progress, deterministic analysis, AI explanations, and CI results in"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "   an evidence panel. Each source names its represented revision and state;"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "   skipped or bounded analysis and missing inputs are visible. Empty findings"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "   explicitly mean no matches, not safety, and the snapshot disclaims knowledge"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "   of the current live PR head and check status."
+            },
+            {
+              "oldLine": 61,
+              "newLine": 62,
+              "kind": "context",
+              "text": "4. [ ] **Safe private-code delivery and publication.** Provide an access-appropriate"
+            },
+            {
+              "oldLine": 62,
+              "newLine": 63,
+              "kind": "context",
+              "text": "   delivery path, such as downloadable Actions artifacts, before positioning"
+            },
+            {
+              "oldLine": 63,
+              "newLine": 64,
+              "kind": "context",
+              "text": "   px1 for private repositories. Public Pages publication must be deliberate."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "browser-tests/report.test.mjs",
+      "status": "M",
+      "diff": "diff --git a/browser-tests/report.test.mjs b/browser-tests/report.test.mjs\nindex 8e9f6c0..887e529 100644\n--- a/browser-tests/report.test.mjs\n+++ b/browser-tests/report.test.mjs\n@@ -55,6 +55,17 @@ test('report renders a large diff inside the performance budget',async()=\u003e{\n   await page.close();\n });\n \n+test('wide screens use the available report width',async()=\u003e{\n+  const page=await browser.newPage({viewport:{width:1920,height:1000}});\n+  await page.setContent(reportHTML,{waitUntil:'load'});\n+  const wrap=await page.locator('.wrap').boundingBox();\n+  const header=await page.locator('.top-in').boundingBox();\n+  assert.ok(wrap.width\u003e1850,`report width ${wrap.width}px should fill a 1920px viewport`);\n+  assert.ok(header.width\u003e1850,`header width ${header.width}px should fill a 1920px viewport`);\n+  assert.ok(wrap.x\u003c20\u0026\u0026header.x\u003c20,'layout should keep only the deliberate inner gutter');\n+  await page.close();\n+});\n+\n test('report has no serious automated accessibility violations',async()=\u003e{\n   const context=await browser.newContext();\n   const page=await context.newPage();\n@@ -132,12 +143,40 @@ test('a report with no findings still starts with every file unreviewed',async()\n   const page=await browser.newPage();\n   await page.setContent(reportVariant((data)=\u003e{data.ruleHits=[];data.attention=[];data.explanations=[]}));\n   assert.match(await page.locator('h1').textContent(),/^0 of 2 files marked reviewed/);\n-  assert.equal(await page.getByText('No automated findings. Changed code still needs your review.',{exact:true}).count(),1);\n+  assert.equal(await page.getByText('No automated findings matched. This is not evidence that the change is safe; changed code still needs your review.',{exact:true}).count(),1);\n   await page.locator('.fsec').last().scrollIntoViewIfNeeded();\n   assert.match(await page.locator('h1').textContent(),/^0 of 2 files marked reviewed/);\n   await page.close();\n });\n \n+test('evidence sources expose identity, absence, and analysis limits separately',async()=\u003e{\n+  const page=await browser.newPage();\n+  await page.setContent(reportHTML,{waitUntil:'load'});\n+  const panel=page.locator('.evidence');\n+  assert.equal(await panel.getByText('Human review progress',{exact:true}).count(),1);\n+  assert.equal(await panel.getByText('Deterministic analysis',{exact:true}).count(),1);\n+  assert.equal(await panel.getByText('AI explanations',{exact:true}).count(),1);\n+  assert.equal(await panel.getByText('CI verification',{exact:true}).count(),1);\n+  assert.equal(await panel.getByText('not attached',{exact:true}).count(),2);\n+  assert.match(await panel.textContent(),/Zero findings means no matches/);\n+  assert.match(await page.locator('.foot').textContent(),/cannot know the current live PR head or check status/);\n+  await page.close();\n+});\n+\n+test('attached CI with zero checks is not presented as missing',async()=\u003e{\n+  const page=await browser.newPage();\n+  await page.setContent(reportVariant((data)=\u003e{\n+    data.verification={available:true,source:'github-actions',revision:data.head,checks:[]};\n+    const ci=data.evidence.find((source)=\u003esource.id==='ci');\n+    Object.assign(ci,{state:'available',revision:data.head,detail:'0 recorded GitHub Actions checks; this is not a live status feed.'});\n+  }));\n+  const ci=page.getByRole('button',{name:'CI attached · 0 checks'});\n+  assert.equal(await ci.count(),1);\n+  await ci.click();\n+  assert.match(await page.locator('.checks-note').textContent(),/attached.+0 recorded checks/i);\n+  await page.close();\n+});\n+\n test('file review persists only for the same repository and revision pair',async()=\u003e{\n   const context=await browser.newContext();\n   const page=await context.newPage();\n",
+      "hunks": [
+        {
+          "id": "diff-a6d11410acf7d321",
+          "header": "@@ -55,6 +55,17 @@ test('report renders a large diff inside the performance budget',async()=\u003e{",
+          "lines": [
+            {
+              "oldLine": 55,
+              "newLine": 55,
+              "kind": "context",
+              "text": "  await page.close();"
+            },
+            {
+              "oldLine": 56,
+              "newLine": 56,
+              "kind": "context",
+              "text": "});"
+            },
+            {
+              "oldLine": 57,
+              "newLine": 57,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "test('wide screens use the available report width',async()=\u003e{"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "  const page=await browser.newPage({viewport:{width:1920,height:1000}});"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "  await page.setContent(reportHTML,{waitUntil:'load'});"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "  const wrap=await page.locator('.wrap').boundingBox();"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "  const header=await page.locator('.top-in').boundingBox();"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "  assert.ok(wrap.width\u003e1850,`report width ${wrap.width}px should fill a 1920px viewport`);"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "  assert.ok(header.width\u003e1850,`header width ${header.width}px should fill a 1920px viewport`);"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "  assert.ok(wrap.x\u003c20\u0026\u0026header.x\u003c20,'layout should keep only the deliberate inner gutter');"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "  await page.close();"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "});"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 58,
+              "newLine": 69,
+              "kind": "context",
+              "text": "test('report has no serious automated accessibility violations',async()=\u003e{"
+            },
+            {
+              "oldLine": 59,
+              "newLine": 70,
+              "kind": "context",
+              "text": "  const context=await browser.newContext();"
+            },
+            {
+              "oldLine": 60,
+              "newLine": 71,
+              "kind": "context",
+              "text": "  const page=await context.newPage();"
+            }
+          ]
+        },
+        {
+          "id": "diff-b0de486c67c93dce",
+          "header": "@@ -132,12 +143,40 @@ test('a report with no findings still starts with every file unreviewed',async()",
+          "lines": [
+            {
+              "oldLine": 132,
+              "newLine": 143,
+              "kind": "context",
+              "text": "  const page=await browser.newPage();"
+            },
+            {
+              "oldLine": 133,
+              "newLine": 144,
+              "kind": "context",
+              "text": "  await page.setContent(reportVariant((data)=\u003e{data.ruleHits=[];data.attention=[];data.explanations=[]}));"
+            },
+            {
+              "oldLine": 134,
+              "newLine": 145,
+              "kind": "context",
+              "text": "  assert.match(await page.locator('h1').textContent(),/^0 of 2 files marked reviewed/);"
+            },
+            {
+              "oldLine": 135,
+              "kind": "removed",
+              "text": "  assert.equal(await page.getByText('No automated findings. Changed code still needs your review.',{exact:true}).count(),1);"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "  assert.equal(await page.getByText('No automated findings matched. This is not evidence that the change is safe; changed code still needs your review.',{exact:true}).count(),1);"
+            },
+            {
+              "oldLine": 136,
+              "newLine": 147,
+              "kind": "context",
+              "text": "  await page.locator('.fsec').last().scrollIntoViewIfNeeded();"
+            },
+            {
+              "oldLine": 137,
+              "newLine": 148,
+              "kind": "context",
+              "text": "  assert.match(await page.locator('h1').textContent(),/^0 of 2 files marked reviewed/);"
+            },
+            {
+              "oldLine": 138,
+              "newLine": 149,
+              "kind": "context",
+              "text": "  await page.close();"
+            },
+            {
+              "oldLine": 139,
+              "newLine": 150,
+              "kind": "context",
+              "text": "});"
+            },
+            {
+              "oldLine": 140,
+              "newLine": 151,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "test('evidence sources expose identity, absence, and analysis limits separately',async()=\u003e{"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "  const page=await browser.newPage();"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "  await page.setContent(reportHTML,{waitUntil:'load'});"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "  const panel=page.locator('.evidence');"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "  assert.equal(await panel.getByText('Human review progress',{exact:true}).count(),1);"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "  assert.equal(await panel.getByText('Deterministic analysis',{exact:true}).count(),1);"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "  assert.equal(await panel.getByText('AI explanations',{exact:true}).count(),1);"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "  assert.equal(await panel.getByText('CI verification',{exact:true}).count(),1);"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "  assert.equal(await panel.getByText('not attached',{exact:true}).count(),2);"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "  assert.match(await panel.textContent(),/Zero findings means no matches/);"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "  assert.match(await page.locator('.foot').textContent(),/cannot know the current live PR head or check status/);"
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "  await page.close();"
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "});"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "test('attached CI with zero checks is not presented as missing',async()=\u003e{"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": "  const page=await browser.newPage();"
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": "  await page.setContent(reportVariant((data)=\u003e{"
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "    data.verification={available:true,source:'github-actions',revision:data.head,checks:[]};"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "    const ci=data.evidence.find((source)=\u003esource.id==='ci');"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "    Object.assign(ci,{state:'available',revision:data.head,detail:'0 recorded GitHub Actions checks; this is not a live status feed.'});"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "  }));"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "  const ci=page.getByRole('button',{name:'CI attached · 0 checks'});"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "  assert.equal(await ci.count(),1);"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "  await ci.click();"
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "  assert.match(await page.locator('.checks-note').textContent(),/attached.+0 recorded checks/i);"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": "  await page.close();"
+            },
+            {
+              "newLine": 178,
+              "kind": "added",
+              "text": "});"
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 141,
+              "newLine": 180,
+              "kind": "context",
+              "text": "test('file review persists only for the same repository and revision pair',async()=\u003e{"
+            },
+            {
+              "oldLine": 142,
+              "newLine": 181,
+              "kind": "context",
+              "text": "  const context=await browser.newContext();"
+            },
+            {
+              "oldLine": 143,
+              "newLine": 182,
+              "kind": "context",
+              "text": "  const page=await context.newPage();"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/GITHUB_REVIEW_INTEGRATION_PLAN.md",
+      "status": "M",
+      "diff": "diff --git a/docs/GITHUB_REVIEW_INTEGRATION_PLAN.md b/docs/GITHUB_REVIEW_INTEGRATION_PLAN.md\nindex 93098ce..50f95ae 100644\n--- a/docs/GITHUB_REVIEW_INTEGRATION_PLAN.md\n+++ b/docs/GITHUB_REVIEW_INTEGRATION_PLAN.md\n@@ -71,6 +71,20 @@ files and clears search and flag filters to reveal its destination. A storage\n failure leaves progress usable in memory and displays its temporary nature.\n Review declarations are not attestations of comprehension or shared approvals.\n \n+## Evidence and limitations contract\n+\n+`review.json` exposes human progress, deterministic analysis, optional AI\n+explanations, and CI verification as independent evidence sources. Each source\n+has a state, a plain-language description, explicit limits, and the full base\n+and/or head revision it represents. Missing AI and CI inputs are distinguishable\n+from attached inputs that contain zero entries.\n+\n+Deterministic analysis is marked `limited` when attention scanning, affected-file\n+hints, or inspection-question generation skips content or reaches a bound. The\n+relevant component and limit are retained in the evidence entry. An empty finding\n+list means only that no rule or signal matched. Reports are generated snapshots;\n+they do not poll GitHub and cannot establish the current PR head or live checks.\n+\n ## Inspection-question contract\n \n Inspection questions are deterministic prompts derived from existing attention\n",
+      "hunks": [
+        {
+          "id": "diff-3dc34541489dbbba",
+          "header": "@@ -71,6 +71,20 @@ files and clears search and flag filters to reveal its destination. A storage",
+          "lines": [
+            {
+              "oldLine": 71,
+              "newLine": 71,
+              "kind": "context",
+              "text": "failure leaves progress usable in memory and displays its temporary nature."
+            },
+            {
+              "oldLine": 72,
+              "newLine": 72,
+              "kind": "context",
+              "text": "Review declarations are not attestations of comprehension or shared approvals."
+            },
+            {
+              "oldLine": 73,
+              "newLine": 73,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "## Evidence and limitations contract"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "`review.json` exposes human progress, deterministic analysis, optional AI"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "explanations, and CI verification as independent evidence sources. Each source"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "has a state, a plain-language description, explicit limits, and the full base"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "and/or head revision it represents. Missing AI and CI inputs are distinguishable"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "from attached inputs that contain zero entries."
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "Deterministic analysis is marked `limited` when attention scanning, affected-file"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "hints, or inspection-question generation skips content or reaches a bound. The"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "relevant component and limit are retained in the evidence entry. An empty finding"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "list means only that no rule or signal matched. Reports are generated snapshots;"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "they do not poll GitHub and cannot establish the current PR head or live checks."
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 74,
+              "newLine": 88,
+              "kind": "context",
+              "text": "## Inspection-question contract"
+            },
+            {
+              "oldLine": 75,
+              "newLine": 89,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 76,
+              "newLine": 90,
+              "kind": "context",
+              "text": "Inspection questions are deterministic prompts derived from existing attention"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/PRODUCT_VISION.md",
+      "status": "M",
+      "diff": "diff --git a/docs/PRODUCT_VISION.md b/docs/PRODUCT_VISION.md\nindex 3e770fe..8314d5f 100644\n--- a/docs/PRODUCT_VISION.md\n+++ b/docs/PRODUCT_VISION.md\n@@ -54,11 +54,11 @@ requires checking the current PR in GitHub.\n \n ## Public launch priorities\n \n-Explicit review progress and a first deterministic set of behavioral inspection\n-questions are implemented. Next prioritize visible analysis limitations, safe\n-private-code delivery, and a demo plus pilot measuring comprehension and review\n-decisions. Deeper structural rules follow once a concrete reviewer need\n-justifies them. See the roadmap for status.\n+Explicit review progress, behavioral inspection questions, and a source-by-source\n+evidence and limitations panel are implemented. Next prioritize safe private-code\n+delivery and a demo plus pilot measuring comprehension and review decisions.\n+Deeper structural rules follow once a concrete reviewer need justifies them. See\n+the roadmap for status.\n \n ## Team policy belongs in the repository\n \n",
+      "hunks": [
+        {
+          "id": "diff-d0a734dcf71dbdb6",
+          "header": "@@ -54,11 +54,11 @@ requires checking the current PR in GitHub.",
+          "lines": [
+            {
+              "oldLine": 54,
+              "newLine": 54,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 55,
+              "newLine": 55,
+              "kind": "context",
+              "text": "## Public launch priorities"
+            },
+            {
+              "oldLine": 56,
+              "newLine": 56,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 57,
+              "kind": "removed",
+              "text": "Explicit review progress and a first deterministic set of behavioral inspection"
+            },
+            {
+              "oldLine": 58,
+              "kind": "removed",
+              "text": "questions are implemented. Next prioritize visible analysis limitations, safe"
+            },
+            {
+              "oldLine": 59,
+              "kind": "removed",
+              "text": "private-code delivery, and a demo plus pilot measuring comprehension and review"
+            },
+            {
+              "oldLine": 60,
+              "kind": "removed",
+              "text": "decisions. Deeper structural rules follow once a concrete reviewer need"
+            },
+            {
+              "oldLine": 61,
+              "kind": "removed",
+              "text": "justifies them. See the roadmap for status."
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "Explicit review progress, behavioral inspection questions, and a source-by-source"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "evidence and limitations panel are implemented. Next prioritize safe private-code"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "delivery and a demo plus pilot measuring comprehension and review decisions."
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "Deeper structural rules follow once a concrete reviewer need justifies them. See"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "the roadmap for status."
+            },
+            {
+              "oldLine": 62,
+              "newLine": 62,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 63,
+              "newLine": 63,
+              "kind": "context",
+              "text": "## Team policy belongs in the repository"
+            },
+            {
+              "oldLine": 64,
+              "newLine": 64,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "export.go",
+      "status": "M",
+      "diff": "diff --git a/export.go b/export.go\nindex 4817b56..4075c54 100644\n--- a/export.go\n+++ b/export.go\n@@ -32,8 +32,10 @@ type staticReviewReport struct {\n \tAffectedAnalysis    staticAffectedAnalysis     `json:\"affectedAnalysis\"`\n \tInspectionQuestions []staticInspectionQuestion `json:\"inspectionQuestions\"`\n \tInspectionAnalysis  staticInspectionAnalysis   `json:\"inspectionAnalysis\"`\n+\tAttentionAnalysis   staticAttentionAnalysis    `json:\"attentionAnalysis\"`\n \tRuleHits            []staticReviewHit          `json:\"ruleHits\"`\n \tExplanations        []staticExplanation        `json:\"explanations\"`\n+\tEvidence            []staticEvidenceSource     `json:\"evidence\"`\n \t// Attention lists the risk signals px1 raises on the diff itself, such as\n \t// workflow permission changes or new public API. Snapshots written before\n \t// the field existed decode to nil, and the page renders that as none.\n@@ -41,6 +43,18 @@ type staticReviewReport struct {\n \tVerification verificationResponse  `json:\"verification\"`\n }\n \n+// staticEvidenceSource makes provenance and limitations explicit. Sources are\n+// deliberately separate: no automated or CI state can complete human review.\n+type staticEvidenceSource struct {\n+\tID       string   `json:\"id\"`\n+\tLabel    string   `json:\"label\"`\n+\tState    string   `json:\"state\"`\n+\tBase     string   `json:\"base,omitempty\"`\n+\tRevision string   `json:\"revision,omitempty\"`\n+\tDetail   string   `json:\"detail\"`\n+\tLimits   []string `json:\"limits\"`\n+}\n+\n type staticReviewFile struct {\n \tPath   string             `json:\"path\"`\n \tStatus string             `json:\"status\"`\n@@ -202,7 +216,7 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi\n \tif err != nil {\n \t\treturn staticReviewReport{}, err\n \t}\n-\tflags, err := staticAttention(root, baseSHA, headSHA)\n+\tflags, attentionAnalysis, err := staticAttention(root, baseSHA, headSHA)\n \tif err != nil {\n \t\treturn staticReviewReport{}, err\n \t}\n@@ -211,6 +225,7 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi\n \t\treturn staticReviewReport{}, err\n \t}\n \tquestions, questionAnalysis := inspectionQuestions(files, flags, affected)\n+\tevidence := staticEvidence(baseSHA, headSHA, options.ExplanationsFile != \"\", explanations, verification, affectedAnalysis, questionAnalysis, attentionAnalysis)\n \treturn staticReviewReport{\n \t\tVersion:             1,\n \t\tRepository:          filepath.Base(root),\n@@ -223,13 +238,58 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi\n \t\tAffectedAnalysis:    affectedAnalysis,\n \t\tInspectionQuestions: questions,\n \t\tInspectionAnalysis:  questionAnalysis,\n+\t\tAttentionAnalysis:   attentionAnalysis,\n \t\tRuleHits:            staticHits,\n \t\tExplanations:        explanations,\n+\t\tEvidence:            evidence,\n \t\tAttention:           flags,\n \t\tVerification:        verification,\n \t}, nil\n }\n \n+func staticEvidence(base, head string, explanationsAttached bool, explanations []staticExplanation, verification verificationResponse, affected staticAffectedAnalysis, inspection staticInspectionAnalysis, attention staticAttentionAnalysis) []staticEvidenceSource {\n+\tautomatedLimits := []string{}\n+\tfor _, limit := range attention.Limits {\n+\t\tautomatedLimits = append(automatedLimits, \"Attention analysis: \"+limit)\n+\t}\n+\tfor _, limit := range affected.Limits {\n+\t\tautomatedLimits = append(automatedLimits, \"Affected-file analysis: \"+limit)\n+\t}\n+\tfor _, limit := range inspection.Limits {\n+\t\tautomatedLimits = append(automatedLimits, \"Inspection questions: \"+limit)\n+\t}\n+\tautomatedState := \"available\"\n+\tif attention.Truncated || affected.Truncated || inspection.Truncated {\n+\t\tautomatedState = \"limited\"\n+\t}\n+\n+\tai := staticEvidenceSource{ID: \"ai\", Label: \"AI explanations\", State: \"not-attached\", Detail: \"No optional AI explanation file was attached. AI notes are context, not verification.\", Limits: []string{}}\n+\tif explanationsAttached {\n+\t\tai.State = \"available\"\n+\t\tai.Revision = head\n+\t\tai.Detail = fmt.Sprintf(\"%d optional AI explanations attached for the exact report head; they may be incomplete or wrong.\", len(explanations))\n+\t}\n+\n+\tci := staticEvidenceSource{ID: \"ci\", Label: \"CI verification\", State: \"not-attached\", Detail: \"No CI verification was attached; this report does not know live check status.\", Limits: []string{}}\n+\tif verification.Available {\n+\t\tci.State = \"available\"\n+\t\tci.Revision = verification.Revision\n+\t\tci.Detail = fmt.Sprintf(\"%d recorded GitHub Actions checks; this is not a live status feed.\", len(verification.Checks))\n+\t} else if verification.Error != \"\" {\n+\t\tci.State = \"unavailable\"\n+\t\tci.Revision = verification.Revision\n+\t\tci.Detail = \"Attached CI verification could not be trusted.\"\n+\t\tci.Limits = []string{verification.Error}\n+\t}\n+\n+\treturn []staticEvidenceSource{\n+\t\t{ID: \"human\", Label: \"Human review progress\", State: \"browser-local\", Base: base, Revision: head, Detail: \"Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.\", Limits: []string{\"Progress is stored only in this browser and is not shared with GitHub.\"}},\n+\t\t{ID: \"automated\", Label: \"Deterministic analysis\", State: automatedState, Base: base, Revision: head, Detail: \"Rules, attention signals, affected-file hints, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.\", Limits: automatedLimits},\n+\t\tai,\n+\t\tci,\n+\t}\n+}\n+\n func gitDiffBetween(root, base, head string) (string, error) {\n \tcmd := exec.Command(\"git\", \"-C\", root, \"diff\", \"--no-color\", \"--no-ext-diff\", \"--unified=3\", base, head, \"--\")\n \tout, err := cmd.Output()\n",
+      "hunks": [
+        {
+          "id": "diff-51d558544385cdf4",
+          "header": "@@ -32,8 +32,10 @@ type staticReviewReport struct {",
+          "lines": [
+            {
+              "oldLine": 32,
+              "newLine": 32,
+              "kind": "context",
+              "text": "\tAffectedAnalysis    staticAffectedAnalysis     `json:\"affectedAnalysis\"`"
+            },
+            {
+              "oldLine": 33,
+              "newLine": 33,
+              "kind": "context",
+              "text": "\tInspectionQuestions []staticInspectionQuestion `json:\"inspectionQuestions\"`"
+            },
+            {
+              "oldLine": 34,
+              "newLine": 34,
+              "kind": "context",
+              "text": "\tInspectionAnalysis  staticInspectionAnalysis   `json:\"inspectionAnalysis\"`"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tAttentionAnalysis   staticAttentionAnalysis    `json:\"attentionAnalysis\"`"
+            },
+            {
+              "oldLine": 35,
+              "newLine": 36,
+              "kind": "context",
+              "text": "\tRuleHits            []staticReviewHit          `json:\"ruleHits\"`"
+            },
+            {
+              "oldLine": 36,
+              "newLine": 37,
+              "kind": "context",
+              "text": "\tExplanations        []staticExplanation        `json:\"explanations\"`"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tEvidence            []staticEvidenceSource     `json:\"evidence\"`"
+            },
+            {
+              "oldLine": 37,
+              "newLine": 39,
+              "kind": "context",
+              "text": "\t// Attention lists the risk signals px1 raises on the diff itself, such as"
+            },
+            {
+              "oldLine": 38,
+              "newLine": 40,
+              "kind": "context",
+              "text": "\t// workflow permission changes or new public API. Snapshots written before"
+            },
+            {
+              "oldLine": 39,
+              "newLine": 41,
+              "kind": "context",
+              "text": "\t// the field existed decode to nil, and the page renders that as none."
+            }
+          ]
+        },
+        {
+          "id": "diff-e2a1a8492472ef6e",
+          "header": "@@ -41,6 +43,18 @@ type staticReviewReport struct {",
+          "lines": [
+            {
+              "oldLine": 41,
+              "newLine": 43,
+              "kind": "context",
+              "text": "\tVerification verificationResponse  `json:\"verification\"`"
+            },
+            {
+              "oldLine": 42,
+              "newLine": 44,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 43,
+              "newLine": 45,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "// staticEvidenceSource makes provenance and limitations explicit. Sources are"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "// deliberately separate: no automated or CI state can complete human review."
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "type staticEvidenceSource struct {"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\tID       string   `json:\"id\"`"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\tLabel    string   `json:\"label\"`"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\tState    string   `json:\"state\"`"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\tBase     string   `json:\"base,omitempty\"`"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\tRevision string   `json:\"revision,omitempty\"`"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\tDetail   string   `json:\"detail\"`"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\tLimits   []string `json:\"limits\"`"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 44,
+              "newLine": 58,
+              "kind": "context",
+              "text": "type staticReviewFile struct {"
+            },
+            {
+              "oldLine": 45,
+              "newLine": 59,
+              "kind": "context",
+              "text": "\tPath   string             `json:\"path\"`"
+            },
+            {
+              "oldLine": 46,
+              "newLine": 60,
+              "kind": "context",
+              "text": "\tStatus string             `json:\"status\"`"
+            }
+          ]
+        },
+        {
+          "id": "diff-dc8cf587769d2003",
+          "header": "@@ -202,7 +216,7 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi",
+          "lines": [
+            {
+              "oldLine": 202,
+              "newLine": 216,
+              "kind": "context",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 203,
+              "newLine": 217,
+              "kind": "context",
+              "text": "\t\treturn staticReviewReport{}, err"
+            },
+            {
+              "oldLine": 204,
+              "newLine": 218,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 205,
+              "kind": "removed",
+              "text": "\tflags, err := staticAttention(root, baseSHA, headSHA)"
+            },
+            {
+              "newLine": 219,
+              "kind": "added",
+              "text": "\tflags, attentionAnalysis, err := staticAttention(root, baseSHA, headSHA)"
+            },
+            {
+              "oldLine": 206,
+              "newLine": 220,
+              "kind": "context",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 207,
+              "newLine": 221,
+              "kind": "context",
+              "text": "\t\treturn staticReviewReport{}, err"
+            },
+            {
+              "oldLine": 208,
+              "newLine": 222,
+              "kind": "context",
+              "text": "\t}"
+            }
+          ]
+        },
+        {
+          "id": "diff-0a0e57545ab7d0ab",
+          "header": "@@ -211,6 +225,7 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi",
+          "lines": [
+            {
+              "oldLine": 211,
+              "newLine": 225,
+              "kind": "context",
+              "text": "\t\treturn staticReviewReport{}, err"
+            },
+            {
+              "oldLine": 212,
+              "newLine": 226,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 213,
+              "newLine": 227,
+              "kind": "context",
+              "text": "\tquestions, questionAnalysis := inspectionQuestions(files, flags, affected)"
+            },
+            {
+              "newLine": 228,
+              "kind": "added",
+              "text": "\tevidence := staticEvidence(baseSHA, headSHA, options.ExplanationsFile != \"\", explanations, verification, affectedAnalysis, questionAnalysis, attentionAnalysis)"
+            },
+            {
+              "oldLine": 214,
+              "newLine": 229,
+              "kind": "context",
+              "text": "\treturn staticReviewReport{"
+            },
+            {
+              "oldLine": 215,
+              "newLine": 230,
+              "kind": "context",
+              "text": "\t\tVersion:             1,"
+            },
+            {
+              "oldLine": 216,
+              "newLine": 231,
+              "kind": "context",
+              "text": "\t\tRepository:          filepath.Base(root),"
+            }
+          ]
+        },
+        {
+          "id": "diff-f489b15668ca6656",
+          "header": "@@ -223,13 +238,58 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi",
+          "lines": [
+            {
+              "oldLine": 223,
+              "newLine": 238,
+              "kind": "context",
+              "text": "\t\tAffectedAnalysis:    affectedAnalysis,"
+            },
+            {
+              "oldLine": 224,
+              "newLine": 239,
+              "kind": "context",
+              "text": "\t\tInspectionQuestions: questions,"
+            },
+            {
+              "oldLine": 225,
+              "newLine": 240,
+              "kind": "context",
+              "text": "\t\tInspectionAnalysis:  questionAnalysis,"
+            },
+            {
+              "newLine": 241,
+              "kind": "added",
+              "text": "\t\tAttentionAnalysis:   attentionAnalysis,"
+            },
+            {
+              "oldLine": 226,
+              "newLine": 242,
+              "kind": "context",
+              "text": "\t\tRuleHits:            staticHits,"
+            },
+            {
+              "oldLine": 227,
+              "newLine": 243,
+              "kind": "context",
+              "text": "\t\tExplanations:        explanations,"
+            },
+            {
+              "newLine": 244,
+              "kind": "added",
+              "text": "\t\tEvidence:            evidence,"
+            },
+            {
+              "oldLine": 228,
+              "newLine": 245,
+              "kind": "context",
+              "text": "\t\tAttention:           flags,"
+            },
+            {
+              "oldLine": 229,
+              "newLine": 246,
+              "kind": "context",
+              "text": "\t\tVerification:        verification,"
+            },
+            {
+              "oldLine": 230,
+              "newLine": 247,
+              "kind": "context",
+              "text": "\t}, nil"
+            },
+            {
+              "oldLine": 231,
+              "newLine": 248,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 232,
+              "newLine": 249,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 250,
+              "kind": "added",
+              "text": "func staticEvidence(base, head string, explanationsAttached bool, explanations []staticExplanation, verification verificationResponse, affected staticAffectedAnalysis, inspection staticInspectionAnalysis, attention staticAttentionAnalysis) []staticEvidenceSource {"
+            },
+            {
+              "newLine": 251,
+              "kind": "added",
+              "text": "\tautomatedLimits := []string{}"
+            },
+            {
+              "newLine": 252,
+              "kind": "added",
+              "text": "\tfor _, limit := range attention.Limits {"
+            },
+            {
+              "newLine": 253,
+              "kind": "added",
+              "text": "\t\tautomatedLimits = append(automatedLimits, \"Attention analysis: \"+limit)"
+            },
+            {
+              "newLine": 254,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 255,
+              "kind": "added",
+              "text": "\tfor _, limit := range affected.Limits {"
+            },
+            {
+              "newLine": 256,
+              "kind": "added",
+              "text": "\t\tautomatedLimits = append(automatedLimits, \"Affected-file analysis: \"+limit)"
+            },
+            {
+              "newLine": 257,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 258,
+              "kind": "added",
+              "text": "\tfor _, limit := range inspection.Limits {"
+            },
+            {
+              "newLine": 259,
+              "kind": "added",
+              "text": "\t\tautomatedLimits = append(automatedLimits, \"Inspection questions: \"+limit)"
+            },
+            {
+              "newLine": 260,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 261,
+              "kind": "added",
+              "text": "\tautomatedState := \"available\""
+            },
+            {
+              "newLine": 262,
+              "kind": "added",
+              "text": "\tif attention.Truncated || affected.Truncated || inspection.Truncated {"
+            },
+            {
+              "newLine": 263,
+              "kind": "added",
+              "text": "\t\tautomatedState = \"limited\""
+            },
+            {
+              "newLine": 264,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 265,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 266,
+              "kind": "added",
+              "text": "\tai := staticEvidenceSource{ID: \"ai\", Label: \"AI explanations\", State: \"not-attached\", Detail: \"No optional AI explanation file was attached. AI notes are context, not verification.\", Limits: []string{}}"
+            },
+            {
+              "newLine": 267,
+              "kind": "added",
+              "text": "\tif explanationsAttached {"
+            },
+            {
+              "newLine": 268,
+              "kind": "added",
+              "text": "\t\tai.State = \"available\""
+            },
+            {
+              "newLine": 269,
+              "kind": "added",
+              "text": "\t\tai.Revision = head"
+            },
+            {
+              "newLine": 270,
+              "kind": "added",
+              "text": "\t\tai.Detail = fmt.Sprintf(\"%d optional AI explanations attached for the exact report head; they may be incomplete or wrong.\", len(explanations))"
+            },
+            {
+              "newLine": 271,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 272,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 273,
+              "kind": "added",
+              "text": "\tci := staticEvidenceSource{ID: \"ci\", Label: \"CI verification\", State: \"not-attached\", Detail: \"No CI verification was attached; this report does not know live check status.\", Limits: []string{}}"
+            },
+            {
+              "newLine": 274,
+              "kind": "added",
+              "text": "\tif verification.Available {"
+            },
+            {
+              "newLine": 275,
+              "kind": "added",
+              "text": "\t\tci.State = \"available\""
+            },
+            {
+              "newLine": 276,
+              "kind": "added",
+              "text": "\t\tci.Revision = verification.Revision"
+            },
+            {
+              "newLine": 277,
+              "kind": "added",
+              "text": "\t\tci.Detail = fmt.Sprintf(\"%d recorded GitHub Actions checks; this is not a live status feed.\", len(verification.Checks))"
+            },
+            {
+              "newLine": 278,
+              "kind": "added",
+              "text": "\t} else if verification.Error != \"\" {"
+            },
+            {
+              "newLine": 279,
+              "kind": "added",
+              "text": "\t\tci.State = \"unavailable\""
+            },
+            {
+              "newLine": 280,
+              "kind": "added",
+              "text": "\t\tci.Revision = verification.Revision"
+            },
+            {
+              "newLine": 281,
+              "kind": "added",
+              "text": "\t\tci.Detail = \"Attached CI verification could not be trusted.\""
+            },
+            {
+              "newLine": 282,
+              "kind": "added",
+              "text": "\t\tci.Limits = []string{verification.Error}"
+            },
+            {
+              "newLine": 283,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 284,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 285,
+              "kind": "added",
+              "text": "\treturn []staticEvidenceSource{"
+            },
+            {
+              "newLine": 286,
+              "kind": "added",
+              "text": "\t\t{ID: \"human\", Label: \"Human review progress\", State: \"browser-local\", Base: base, Revision: head, Detail: \"Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.\", Limits: []string{\"Progress is stored only in this browser and is not shared with GitHub.\"}},"
+            },
+            {
+              "newLine": 287,
+              "kind": "added",
+              "text": "\t\t{ID: \"automated\", Label: \"Deterministic analysis\", State: automatedState, Base: base, Revision: head, Detail: \"Rules, attention signals, affected-file hints, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.\", Limits: automatedLimits},"
+            },
+            {
+              "newLine": 288,
+              "kind": "added",
+              "text": "\t\tai,"
+            },
+            {
+              "newLine": 289,
+              "kind": "added",
+              "text": "\t\tci,"
+            },
+            {
+              "newLine": 290,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 291,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 292,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 233,
+              "newLine": 293,
+              "kind": "context",
+              "text": "func gitDiffBetween(root, base, head string) (string, error) {"
+            },
+            {
+              "oldLine": 234,
+              "newLine": 294,
+              "kind": "context",
+              "text": "\tcmd := exec.Command(\"git\", \"-C\", root, \"diff\", \"--no-color\", \"--no-ext-diff\", \"--unified=3\", base, head, \"--\")"
+            },
+            {
+              "oldLine": 235,
+              "newLine": 295,
+              "kind": "context",
+              "text": "\tout, err := cmd.Output()"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "export_render.go",
+      "status": "M",
+      "diff": "diff --git a/export_render.go b/export_render.go\nindex 943fb73..92a764f 100644\n--- a/export_render.go\n+++ b/export_render.go\n@@ -77,50 +77,71 @@ func renderStaticReviewHTML(report staticReviewReport) ([]byte, error) {\n \n // staticAttention evaluates deterministic risk signals against the exact two\n // commits represented by the published report.\n-func staticAttention(root, base, head string) ([]reviewAttentionFlag, error) {\n+type staticAttentionAnalysis struct {\n+\tCandidateFiles     int      `json:\"candidateFiles\"`\n+\tFilesAnalyzed      int      `json:\"filesAnalyzed\"`\n+\tContentUnavailable int      `json:\"contentUnavailable\"`\n+\tTruncated          bool     `json:\"truncated\"`\n+\tLimits             []string `json:\"limits\"`\n+}\n+\n+func staticAttention(root, base, head string) ([]reviewAttentionFlag, staticAttentionAnalysis, error) {\n \tout, err := exec.Command(\"git\", \"-C\", root, \"diff\", \"--raw\", \"--no-abbrev\", \"--find-renames\", \"-z\", base, head, \"--\").Output()\n \tif err != nil {\n-\t\treturn nil, fmt.Errorf(\"list attention candidates: %w\", err)\n+\t\treturn nil, staticAttentionAnalysis{}, fmt.Errorf(\"list attention candidates: %w\", err)\n \t}\n-\tcandidates, err := staticAttentionCandidates(root, base, head, out)\n+\tcandidates, analysis, err := staticAttentionCandidates(root, base, head, out)\n \tif err != nil {\n-\t\treturn nil, err\n+\t\treturn nil, staticAttentionAnalysis{}, err\n \t}\n-\tflags := detectReviewAttention(candidates, nil).Flags\n+\tdetected := detectReviewAttention(candidates, nil)\n+\tflags := detected.Flags\n \tif flags == nil {\n \t\tflags = []reviewAttentionFlag{}\n \t}\n-\treturn flags, nil\n+\tif detected.Truncated {\n+\t\tanalysis.Truncated = true\n+\t\tanalysis.Limits = append(analysis.Limits, \"attention findings reached the output limit\")\n+\t}\n+\treturn flags, analysis, nil\n }\n \n // staticAttentionCandidates parses `git diff --raw -z` output: a metadata\n // record \":\u003cold mode\u003e \u003cnew mode\u003e \u003cold sha\u003e \u003cnew sha\u003e \u003cstatus\u003e\" followed by one\n // path, or two for renames and copies.\n-func staticAttentionCandidates(root, base, head string, raw []byte) ([]attentionCandidate, error) {\n+func staticAttentionCandidates(root, base, head string, raw []byte) ([]attentionCandidate, staticAttentionAnalysis, error) {\n \tfields := strings.Split(strings.TrimRight(string(raw), \"\\x00\"), \"\\x00\")\n \tvar candidates []attentionCandidate\n+\tanalysis := staticAttentionAnalysis{Limits: []string{}}\n+\tif len(fields) == 1 \u0026\u0026 fields[0] == \"\" {\n+\t\treturn []attentionCandidate{}, analysis, nil\n+\t}\n \tvar err error\n \tremaining := int64(attentionMaxContentBytes)\n-\tfor i := 0; i \u003c len(fields) \u0026\u0026 len(candidates) \u003c attentionMaxFiles; {\n+\tfor i := 0; i \u003c len(fields); {\n \t\tmeta := strings.Fields(strings.TrimPrefix(fields[i], \":\"))\n \t\tif len(meta) \u003c 5 {\n-\t\t\treturn nil, errors.New(\"unexpected git diff --raw output\")\n+\t\t\treturn nil, staticAttentionAnalysis{}, errors.New(\"unexpected git diff --raw output\")\n \t\t}\n \t\tstatus := meta[4][:1]\n \t\toldPath, newPath := \"\", \"\"\n \t\tif status == \"R\" || status == \"C\" {\n \t\t\tif i+2 \u003e= len(fields) {\n-\t\t\t\treturn nil, errors.New(\"unexpected git diff --raw output\")\n+\t\t\t\treturn nil, staticAttentionAnalysis{}, errors.New(\"unexpected git diff --raw output\")\n \t\t\t}\n \t\t\toldPath, newPath = fields[i+1], fields[i+2]\n \t\t\ti += 3\n \t\t} else {\n \t\t\tif i+1 \u003e= len(fields) {\n-\t\t\t\treturn nil, errors.New(\"unexpected git diff --raw output\")\n+\t\t\t\treturn nil, staticAttentionAnalysis{}, errors.New(\"unexpected git diff --raw output\")\n \t\t\t}\n \t\t\toldPath, newPath = fields[i+1], fields[i+1]\n \t\t\ti += 2\n \t\t}\n+\t\tanalysis.CandidateFiles++\n+\t\tif len(candidates) \u003e= attentionMaxFiles {\n+\t\t\tcontinue\n+\t\t}\n \t\tdeleted := status == \"D\"\n \t\tpath := newPath\n \t\tif deleted {\n@@ -136,22 +157,34 @@ func staticAttentionCandidates(root, base, head string, raw []byte) ([]attention\n \t\tif status != \"A\" {\n \t\t\tvar ok bool\n \t\t\tif candidate.Baseline, ok, err = attentionBlob(root, base, oldPath, \u0026remaining); err != nil {\n-\t\t\t\treturn nil, err\n+\t\t\t\treturn nil, staticAttentionAnalysis{}, err\n \t\t\t}\n \t\t\tavailable = available \u0026\u0026 ok\n \t\t}\n \t\tif !deleted {\n \t\t\tvar ok bool\n \t\t\tif candidate.Current, ok, err = attentionBlob(root, head, newPath, \u0026remaining); err != nil {\n-\t\t\t\treturn nil, err\n+\t\t\t\treturn nil, staticAttentionAnalysis{}, err\n \t\t\t}\n \t\t\tavailable = available \u0026\u0026 ok\n \t\t}\n \t\tcandidate.ContentAvailable = available \u0026\u0026 !containsNUL(candidate.Baseline) \u0026\u0026 !containsNUL(candidate.Current)\n+\t\tif !candidate.ContentAvailable {\n+\t\t\tanalysis.ContentUnavailable++\n+\t\t}\n \t\tcandidates = append(candidates, candidate)\n \t}\n+\tanalysis.FilesAnalyzed = len(candidates)\n+\tif analysis.CandidateFiles \u003e analysis.FilesAnalyzed {\n+\t\tanalysis.Truncated = true\n+\t\tanalysis.Limits = append(analysis.Limits, fmt.Sprintf(\"attention analysis limited to %d of %d changed files\", analysis.FilesAnalyzed, analysis.CandidateFiles))\n+\t}\n+\tif analysis.ContentUnavailable \u003e 0 {\n+\t\tanalysis.Truncated = true\n+\t\tanalysis.Limits = append(analysis.Limits, fmt.Sprintf(\"content rules skipped for %d files because content was binary or exceeded byte limits\", analysis.ContentUnavailable))\n+\t}\n \tsort.Slice(candidates, func(i, j int) bool { return candidates[i].Path \u003c candidates[j].Path })\n-\treturn candidates, nil\n+\treturn candidates, analysis, nil\n }\n \n // attentionBlob reads one file at a commit unless it is larger than the live\n",
+      "hunks": [
+        {
+          "id": "diff-9e5cf8a1d3562f44",
+          "header": "@@ -77,50 +77,71 @@ func renderStaticReviewHTML(report staticReviewReport) ([]byte, error) {",
+          "lines": [
+            {
+              "oldLine": 77,
+              "newLine": 77,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 78,
+              "newLine": 78,
+              "kind": "context",
+              "text": "// staticAttention evaluates deterministic risk signals against the exact two"
+            },
+            {
+              "oldLine": 79,
+              "newLine": 79,
+              "kind": "context",
+              "text": "// commits represented by the published report."
+            },
+            {
+              "oldLine": 80,
+              "kind": "removed",
+              "text": "func staticAttention(root, base, head string) ([]reviewAttentionFlag, error) {"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "type staticAttentionAnalysis struct {"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\tCandidateFiles     int      `json:\"candidateFiles\"`"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\tFilesAnalyzed      int      `json:\"filesAnalyzed\"`"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\tContentUnavailable int      `json:\"contentUnavailable\"`"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\tTruncated          bool     `json:\"truncated\"`"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\tLimits             []string `json:\"limits\"`"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "func staticAttention(root, base, head string) ([]reviewAttentionFlag, staticAttentionAnalysis, error) {"
+            },
+            {
+              "oldLine": 81,
+              "newLine": 89,
+              "kind": "context",
+              "text": "\tout, err := exec.Command(\"git\", \"-C\", root, \"diff\", \"--raw\", \"--no-abbrev\", \"--find-renames\", \"-z\", base, head, \"--\").Output()"
+            },
+            {
+              "oldLine": 82,
+              "newLine": 90,
+              "kind": "context",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 83,
+              "kind": "removed",
+              "text": "\t\treturn nil, fmt.Errorf(\"list attention candidates: %w\", err)"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t\treturn nil, staticAttentionAnalysis{}, fmt.Errorf(\"list attention candidates: %w\", err)"
+            },
+            {
+              "oldLine": 84,
+              "newLine": 92,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 85,
+              "kind": "removed",
+              "text": "\tcandidates, err := staticAttentionCandidates(root, base, head, out)"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\tcandidates, analysis, err := staticAttentionCandidates(root, base, head, out)"
+            },
+            {
+              "oldLine": 86,
+              "newLine": 94,
+              "kind": "context",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 87,
+              "kind": "removed",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t\treturn nil, staticAttentionAnalysis{}, err"
+            },
+            {
+              "oldLine": 88,
+              "newLine": 96,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 89,
+              "kind": "removed",
+              "text": "\tflags := detectReviewAttention(candidates, nil).Flags"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\tdetected := detectReviewAttention(candidates, nil)"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\tflags := detected.Flags"
+            },
+            {
+              "oldLine": 90,
+              "newLine": 99,
+              "kind": "context",
+              "text": "\tif flags == nil {"
+            },
+            {
+              "oldLine": 91,
+              "newLine": 100,
+              "kind": "context",
+              "text": "\t\tflags = []reviewAttentionFlag{}"
+            },
+            {
+              "oldLine": 92,
+              "newLine": 101,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 93,
+              "kind": "removed",
+              "text": "\treturn flags, nil"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\tif detected.Truncated {"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t\tanalysis.Truncated = true"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t\tanalysis.Limits = append(analysis.Limits, \"attention findings reached the output limit\")"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\treturn flags, analysis, nil"
+            },
+            {
+              "oldLine": 94,
+              "newLine": 107,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 95,
+              "newLine": 108,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 96,
+              "newLine": 109,
+              "kind": "context",
+              "text": "// staticAttentionCandidates parses `git diff --raw -z` output: a metadata"
+            },
+            {
+              "oldLine": 97,
+              "newLine": 110,
+              "kind": "context",
+              "text": "// record \":\u003cold mode\u003e \u003cnew mode\u003e \u003cold sha\u003e \u003cnew sha\u003e \u003cstatus\u003e\" followed by one"
+            },
+            {
+              "oldLine": 98,
+              "newLine": 111,
+              "kind": "context",
+              "text": "// path, or two for renames and copies."
+            },
+            {
+              "oldLine": 99,
+              "kind": "removed",
+              "text": "func staticAttentionCandidates(root, base, head string, raw []byte) ([]attentionCandidate, error) {"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "func staticAttentionCandidates(root, base, head string, raw []byte) ([]attentionCandidate, staticAttentionAnalysis, error) {"
+            },
+            {
+              "oldLine": 100,
+              "newLine": 113,
+              "kind": "context",
+              "text": "\tfields := strings.Split(strings.TrimRight(string(raw), \"\\x00\"), \"\\x00\")"
+            },
+            {
+              "oldLine": 101,
+              "newLine": 114,
+              "kind": "context",
+              "text": "\tvar candidates []attentionCandidate"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "\tanalysis := staticAttentionAnalysis{Limits: []string{}}"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "\tif len(fields) == 1 \u0026\u0026 fields[0] == \"\" {"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\t\treturn []attentionCandidate{}, analysis, nil"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 102,
+              "newLine": 119,
+              "kind": "context",
+              "text": "\tvar err error"
+            },
+            {
+              "oldLine": 103,
+              "newLine": 120,
+              "kind": "context",
+              "text": "\tremaining := int64(attentionMaxContentBytes)"
+            },
+            {
+              "oldLine": 104,
+              "kind": "removed",
+              "text": "\tfor i := 0; i \u003c len(fields) \u0026\u0026 len(candidates) \u003c attentionMaxFiles; {"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\tfor i := 0; i \u003c len(fields); {"
+            },
+            {
+              "oldLine": 105,
+              "newLine": 122,
+              "kind": "context",
+              "text": "\t\tmeta := strings.Fields(strings.TrimPrefix(fields[i], \":\"))"
+            },
+            {
+              "oldLine": 106,
+              "newLine": 123,
+              "kind": "context",
+              "text": "\t\tif len(meta) \u003c 5 {"
+            },
+            {
+              "oldLine": 107,
+              "kind": "removed",
+              "text": "\t\t\treturn nil, errors.New(\"unexpected git diff --raw output\")"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\t\t\treturn nil, staticAttentionAnalysis{}, errors.New(\"unexpected git diff --raw output\")"
+            },
+            {
+              "oldLine": 108,
+              "newLine": 125,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 109,
+              "newLine": 126,
+              "kind": "context",
+              "text": "\t\tstatus := meta[4][:1]"
+            },
+            {
+              "oldLine": 110,
+              "newLine": 127,
+              "kind": "context",
+              "text": "\t\toldPath, newPath := \"\", \"\""
+            },
+            {
+              "oldLine": 111,
+              "newLine": 128,
+              "kind": "context",
+              "text": "\t\tif status == \"R\" || status == \"C\" {"
+            },
+            {
+              "oldLine": 112,
+              "newLine": 129,
+              "kind": "context",
+              "text": "\t\t\tif i+2 \u003e= len(fields) {"
+            },
+            {
+              "oldLine": 113,
+              "kind": "removed",
+              "text": "\t\t\t\treturn nil, errors.New(\"unexpected git diff --raw output\")"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\t\t\t\treturn nil, staticAttentionAnalysis{}, errors.New(\"unexpected git diff --raw output\")"
+            },
+            {
+              "oldLine": 114,
+              "newLine": 131,
+              "kind": "context",
+              "text": "\t\t\t}"
+            },
+            {
+              "oldLine": 115,
+              "newLine": 132,
+              "kind": "context",
+              "text": "\t\t\toldPath, newPath = fields[i+1], fields[i+2]"
+            },
+            {
+              "oldLine": 116,
+              "newLine": 133,
+              "kind": "context",
+              "text": "\t\t\ti += 3"
+            },
+            {
+              "oldLine": 117,
+              "newLine": 134,
+              "kind": "context",
+              "text": "\t\t} else {"
+            },
+            {
+              "oldLine": 118,
+              "newLine": 135,
+              "kind": "context",
+              "text": "\t\t\tif i+1 \u003e= len(fields) {"
+            },
+            {
+              "oldLine": 119,
+              "kind": "removed",
+              "text": "\t\t\t\treturn nil, errors.New(\"unexpected git diff --raw output\")"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\t\t\t\treturn nil, staticAttentionAnalysis{}, errors.New(\"unexpected git diff --raw output\")"
+            },
+            {
+              "oldLine": 120,
+              "newLine": 137,
+              "kind": "context",
+              "text": "\t\t\t}"
+            },
+            {
+              "oldLine": 121,
+              "newLine": 138,
+              "kind": "context",
+              "text": "\t\t\toldPath, newPath = fields[i+1], fields[i+1]"
+            },
+            {
+              "oldLine": 122,
+              "newLine": 139,
+              "kind": "context",
+              "text": "\t\t\ti += 2"
+            },
+            {
+              "oldLine": 123,
+              "newLine": 140,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "\t\tanalysis.CandidateFiles++"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "\t\tif len(candidates) \u003e= attentionMaxFiles {"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 124,
+              "newLine": 145,
+              "kind": "context",
+              "text": "\t\tdeleted := status == \"D\""
+            },
+            {
+              "oldLine": 125,
+              "newLine": 146,
+              "kind": "context",
+              "text": "\t\tpath := newPath"
+            },
+            {
+              "oldLine": 126,
+              "newLine": 147,
+              "kind": "context",
+              "text": "\t\tif deleted {"
+            }
+          ]
+        },
+        {
+          "id": "diff-0e9fe17622ca7b30",
+          "header": "@@ -136,22 +157,34 @@ func staticAttentionCandidates(root, base, head string, raw []byte) ([]attention",
+          "lines": [
+            {
+              "oldLine": 136,
+              "newLine": 157,
+              "kind": "context",
+              "text": "\t\tif status != \"A\" {"
+            },
+            {
+              "oldLine": 137,
+              "newLine": 158,
+              "kind": "context",
+              "text": "\t\t\tvar ok bool"
+            },
+            {
+              "oldLine": 138,
+              "newLine": 159,
+              "kind": "context",
+              "text": "\t\t\tif candidate.Baseline, ok, err = attentionBlob(root, base, oldPath, \u0026remaining); err != nil {"
+            },
+            {
+              "oldLine": 139,
+              "kind": "removed",
+              "text": "\t\t\t\treturn nil, err"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "\t\t\t\treturn nil, staticAttentionAnalysis{}, err"
+            },
+            {
+              "oldLine": 140,
+              "newLine": 161,
+              "kind": "context",
+              "text": "\t\t\t}"
+            },
+            {
+              "oldLine": 141,
+              "newLine": 162,
+              "kind": "context",
+              "text": "\t\t\tavailable = available \u0026\u0026 ok"
+            },
+            {
+              "oldLine": 142,
+              "newLine": 163,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 143,
+              "newLine": 164,
+              "kind": "context",
+              "text": "\t\tif !deleted {"
+            },
+            {
+              "oldLine": 144,
+              "newLine": 165,
+              "kind": "context",
+              "text": "\t\t\tvar ok bool"
+            },
+            {
+              "oldLine": 145,
+              "newLine": 166,
+              "kind": "context",
+              "text": "\t\t\tif candidate.Current, ok, err = attentionBlob(root, head, newPath, \u0026remaining); err != nil {"
+            },
+            {
+              "oldLine": 146,
+              "kind": "removed",
+              "text": "\t\t\t\treturn nil, err"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": "\t\t\t\treturn nil, staticAttentionAnalysis{}, err"
+            },
+            {
+              "oldLine": 147,
+              "newLine": 168,
+              "kind": "context",
+              "text": "\t\t\t}"
+            },
+            {
+              "oldLine": 148,
+              "newLine": 169,
+              "kind": "context",
+              "text": "\t\t\tavailable = available \u0026\u0026 ok"
+            },
+            {
+              "oldLine": 149,
+              "newLine": 170,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 150,
+              "newLine": 171,
+              "kind": "context",
+              "text": "\t\tcandidate.ContentAvailable = available \u0026\u0026 !containsNUL(candidate.Baseline) \u0026\u0026 !containsNUL(candidate.Current)"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "\t\tif !candidate.ContentAvailable {"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "\t\t\tanalysis.ContentUnavailable++"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 151,
+              "newLine": 175,
+              "kind": "context",
+              "text": "\t\tcandidates = append(candidates, candidate)"
+            },
+            {
+              "oldLine": 152,
+              "newLine": 176,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": "\tanalysis.FilesAnalyzed = len(candidates)"
+            },
+            {
+              "newLine": 178,
+              "kind": "added",
+              "text": "\tif analysis.CandidateFiles \u003e analysis.FilesAnalyzed {"
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": "\t\tanalysis.Truncated = true"
+            },
+            {
+              "newLine": 180,
+              "kind": "added",
+              "text": "\t\tanalysis.Limits = append(analysis.Limits, fmt.Sprintf(\"attention analysis limited to %d of %d changed files\", analysis.FilesAnalyzed, analysis.CandidateFiles))"
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": "\tif analysis.ContentUnavailable \u003e 0 {"
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": "\t\tanalysis.Truncated = true"
+            },
+            {
+              "newLine": 184,
+              "kind": "added",
+              "text": "\t\tanalysis.Limits = append(analysis.Limits, fmt.Sprintf(\"content rules skipped for %d files because content was binary or exceeded byte limits\", analysis.ContentUnavailable))"
+            },
+            {
+              "newLine": 185,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 153,
+              "newLine": 186,
+              "kind": "context",
+              "text": "\tsort.Slice(candidates, func(i, j int) bool { return candidates[i].Path \u003c candidates[j].Path })"
+            },
+            {
+              "oldLine": 154,
+              "kind": "removed",
+              "text": "\treturn candidates, nil"
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "\treturn candidates, analysis, nil"
+            },
+            {
+              "oldLine": 155,
+              "newLine": 188,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 156,
+              "newLine": 189,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 157,
+              "newLine": 190,
+              "kind": "context",
+              "text": "// attentionBlob reads one file at a commit unless it is larger than the live"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "export_render_test.go",
+      "status": "M",
+      "diff": "diff --git a/export_render_test.go b/export_render_test.go\nindex 25410c9..8a02b7e 100644\n--- a/export_render_test.go\n+++ b/export_render_test.go\n@@ -63,7 +63,7 @@ func TestStaticAttentionHandlesRenameAndModeChange(t *testing.T) {\n \trunGitTest(t, root, \"commit\", \"-am\", \"head\")\n \thead := strings.TrimSpace(runGitTest(t, root, \"rev-parse\", \"HEAD\"))\n \n-\tflags, err := staticAttention(root, base, head)\n+\tflags, _, err := staticAttention(root, base, head)\n \tif err != nil {\n \t\tt.Fatal(err)\n \t}\n@@ -91,10 +91,33 @@ func TestStaticAttentionIsEmptyNotNull(t *testing.T) {\n \twriteExportTestFile(t, root, \"notes.txt\", \"b\\n\")\n \trunGitTest(t, root, \"commit\", \"-am\", \"head\")\n \thead := strings.TrimSpace(runGitTest(t, root, \"rev-parse\", \"HEAD\"))\n-\tflags, err := staticAttention(root, base, head)\n+\tflags, analysis, err := staticAttention(root, base, head)\n \tif err != nil || flags == nil || len(flags) != 0 {\n \t\tt.Fatalf(\"flags = %#v, err = %v\", flags, err)\n \t}\n+\tif analysis.CandidateFiles != 1 || analysis.FilesAnalyzed != 1 || analysis.Truncated {\n+\t\tt.Fatalf(\"analysis = %#v\", analysis)\n+\t}\n+}\n+\n+func TestStaticReviewHTMLExplainsEvidenceAndSnapshotLimits(t *testing.T) {\n+\treport := staticReviewReport{\n+\t\tBase: strings.Repeat(\"a\", 40), Head: strings.Repeat(\"b\", 40),\n+\t\tEvidence: []staticEvidenceSource{\n+\t\t\t{ID: \"human\", Label: \"Human review progress\", State: \"browser-local\", Base: strings.Repeat(\"a\", 40), Revision: strings.Repeat(\"b\", 40), Detail: \"Local declarations\", Limits: []string{\"Not shared\"}},\n+\t\t\t{ID: \"automated\", Label: \"Deterministic analysis\", State: \"limited\", Revision: strings.Repeat(\"b\", 40), Detail: \"Zero findings means no matches\", Limits: []string{\"content rules skipped\"}},\n+\t\t},\n+\t\tVerification: verificationResponse{Checks: []verificationCheck{}},\n+\t}\n+\tbody, err := renderStaticReviewHTML(report)\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tfor _, want := range []string{\"Evidence \u0026 limits\", \"Human review progress\", \"Deterministic analysis\", \"content rules skipped\", \"cannot know the current live PR head\"} {\n+\t\tif !strings.Contains(string(body), want) {\n+\t\t\tt.Errorf(\"report missing %q\", want)\n+\t\t}\n+\t}\n }\n \n func TestStaticReviewHTMLIsSelfContained(t *testing.T) {\n",
+      "hunks": [
+        {
+          "id": "diff-125cde6d1b7633f7",
+          "header": "@@ -63,7 +63,7 @@ func TestStaticAttentionHandlesRenameAndModeChange(t *testing.T) {",
+          "lines": [
+            {
+              "oldLine": 63,
+              "newLine": 63,
+              "kind": "context",
+              "text": "\trunGitTest(t, root, \"commit\", \"-am\", \"head\")"
+            },
+            {
+              "oldLine": 64,
+              "newLine": 64,
+              "kind": "context",
+              "text": "\thead := strings.TrimSpace(runGitTest(t, root, \"rev-parse\", \"HEAD\"))"
+            },
+            {
+              "oldLine": 65,
+              "newLine": 65,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 66,
+              "kind": "removed",
+              "text": "\tflags, err := staticAttention(root, base, head)"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\tflags, _, err := staticAttention(root, base, head)"
+            },
+            {
+              "oldLine": 67,
+              "newLine": 67,
+              "kind": "context",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 68,
+              "newLine": 68,
+              "kind": "context",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "oldLine": 69,
+              "newLine": 69,
+              "kind": "context",
+              "text": "\t}"
+            }
+          ]
+        },
+        {
+          "id": "diff-cafd2b74e6155156",
+          "header": "@@ -91,10 +91,33 @@ func TestStaticAttentionIsEmptyNotNull(t *testing.T) {",
+          "lines": [
+            {
+              "oldLine": 91,
+              "newLine": 91,
+              "kind": "context",
+              "text": "\twriteExportTestFile(t, root, \"notes.txt\", \"b\\n\")"
+            },
+            {
+              "oldLine": 92,
+              "newLine": 92,
+              "kind": "context",
+              "text": "\trunGitTest(t, root, \"commit\", \"-am\", \"head\")"
+            },
+            {
+              "oldLine": 93,
+              "newLine": 93,
+              "kind": "context",
+              "text": "\thead := strings.TrimSpace(runGitTest(t, root, \"rev-parse\", \"HEAD\"))"
+            },
+            {
+              "oldLine": 94,
+              "kind": "removed",
+              "text": "\tflags, err := staticAttention(root, base, head)"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\tflags, analysis, err := staticAttention(root, base, head)"
+            },
+            {
+              "oldLine": 95,
+              "newLine": 95,
+              "kind": "context",
+              "text": "\tif err != nil || flags == nil || len(flags) != 0 {"
+            },
+            {
+              "oldLine": 96,
+              "newLine": 96,
+              "kind": "context",
+              "text": "\t\tt.Fatalf(\"flags = %#v, err = %v\", flags, err)"
+            },
+            {
+              "oldLine": 97,
+              "newLine": 97,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\tif analysis.CandidateFiles != 1 || analysis.FilesAnalyzed != 1 || analysis.Truncated {"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"analysis = %#v\", analysis)"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "func TestStaticReviewHTMLExplainsEvidenceAndSnapshotLimits(t *testing.T) {"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\treport := staticReviewReport{"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\t\tBase: strings.Repeat(\"a\", 40), Head: strings.Repeat(\"b\", 40),"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\t\tEvidence: []staticEvidenceSource{"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\t\t\t{ID: \"human\", Label: \"Human review progress\", State: \"browser-local\", Base: strings.Repeat(\"a\", 40), Revision: strings.Repeat(\"b\", 40), Detail: \"Local declarations\", Limits: []string{\"Not shared\"}},"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\t\t\t{ID: \"automated\", Label: \"Deterministic analysis\", State: \"limited\", Revision: strings.Repeat(\"b\", 40), Detail: \"Zero findings means no matches\", Limits: []string{\"content rules skipped\"}},"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\t\t},"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\t\tVerification: verificationResponse{Checks: []verificationCheck{}},"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\tbody, err := renderStaticReviewHTML(report)"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "\tfor _, want := range []string{\"Evidence \u0026 limits\", \"Human review progress\", \"Deterministic analysis\", \"content rules skipped\", \"cannot know the current live PR head\"} {"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\t\tif !strings.Contains(string(body), want) {"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"report missing %q\", want)"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 98,
+              "newLine": 121,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 99,
+              "newLine": 122,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 100,
+              "newLine": 123,
+              "kind": "context",
+              "text": "func TestStaticReviewHTMLIsSelfContained(t *testing.T) {"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "export_test.go",
+      "status": "M",
+      "diff": "diff --git a/export_test.go b/export_test.go\nindex ba6aab5..373f6a6 100644\n--- a/export_test.go\n+++ b/export_test.go\n@@ -96,6 +96,22 @@ func TestGenerateStaticReviewUsesPinnedCommits(t *testing.T) {\n \tif report.Verification.Available || report.Verification.Error != \"\" || len(report.Verification.Checks) != 0 {\n \t\tt.Fatalf(\"verification = %#v\", report.Verification)\n \t}\n+\tif len(report.Evidence) != 4 {\n+\t\tt.Fatalf(\"evidence = %#v\", report.Evidence)\n+\t}\n+\tbyID := map[string]staticEvidenceSource{}\n+\tfor _, source := range report.Evidence {\n+\t\tbyID[source.ID] = source\n+\t}\n+\tif byID[\"human\"].Base != base || byID[\"human\"].Revision != head || byID[\"human\"].State != \"browser-local\" {\n+\t\tt.Fatalf(\"human evidence = %#v\", byID[\"human\"])\n+\t}\n+\tif byID[\"automated\"].Revision != head || byID[\"automated\"].State == \"\" {\n+\t\tt.Fatalf(\"automated evidence = %#v\", byID[\"automated\"])\n+\t}\n+\tif byID[\"ai\"].State != \"not-attached\" || byID[\"ci\"].State != \"not-attached\" {\n+\t\tt.Fatalf(\"optional evidence = ai %#v, ci %#v\", byID[\"ai\"], byID[\"ci\"])\n+\t}\n \n \t// A mutable checkout change must not change the report's rules or diff.\n \twriteExportTestFile(t, root, \".px1/rules.json\", `{\"rules\":[{\"pattern\":\"\\\\bfetch\\\\(\",\"glob\":\"*.ts\",\"message\":\"Changed after commit\"}]}`)\n@@ -149,6 +165,48 @@ func TestGenerateStaticReviewUsesPinnedCommits(t *testing.T) {\n \t}\n }\n \n+func TestStaticEvidenceDistinguishesAttachedEmptySources(t *testing.T) {\n+\thead := strings.Repeat(\"b\", 40)\n+\tverification := verificationResponse{Available: true, Revision: head, Checks: []verificationCheck{}}\n+\tsources := staticEvidence(strings.Repeat(\"a\", 40), head, true, []staticExplanation{}, verification, staticAffectedAnalysis{}, staticInspectionAnalysis{}, staticAttentionAnalysis{})\n+\tbyID := map[string]staticEvidenceSource{}\n+\tfor _, source := range sources {\n+\t\tbyID[source.ID] = source\n+\t}\n+\tif byID[\"ai\"].State != \"available\" || byID[\"ai\"].Revision != head || !strings.Contains(byID[\"ai\"].Detail, \"0 optional\") {\n+\t\tt.Fatalf(\"AI evidence = %#v\", byID[\"ai\"])\n+\t}\n+\tif byID[\"ci\"].State != \"available\" || byID[\"ci\"].Revision != head || !strings.Contains(byID[\"ci\"].Detail, \"0 recorded\") {\n+\t\tt.Fatalf(\"CI evidence = %#v\", byID[\"ci\"])\n+\t}\n+}\n+\n+func TestStaticEvidenceAggregatesAnalysisLimits(t *testing.T) {\n+\thead := strings.Repeat(\"b\", 40)\n+\tsources := staticEvidence(strings.Repeat(\"a\", 40), head, false, nil, verificationResponse{},\n+\t\tstaticAffectedAnalysis{Truncated: true, Limits: []string{\"repository scan capped\"}},\n+\t\tstaticInspectionAnalysis{Truncated: true, Limits: []string{\"questions capped\"}},\n+\t\tstaticAttentionAnalysis{Truncated: true, Limits: []string{\"content skipped\"}})\n+\tautomated := sources[1]\n+\tif automated.State != \"limited\" || len(automated.Limits) != 3 {\n+\t\tt.Fatalf(\"automated evidence = %#v\", automated)\n+\t}\n+\tfor _, want := range []string{\"Attention analysis: content skipped\", \"Affected-file analysis: repository scan capped\", \"Inspection questions: questions capped\"} {\n+\t\tif !containsString(automated.Limits, want) {\n+\t\t\tt.Errorf(\"missing %q in %#v\", want, automated.Limits)\n+\t\t}\n+\t}\n+}\n+\n+func containsString(values []string, want string) bool {\n+\tfor _, value := range values {\n+\t\tif value == want {\n+\t\t\treturn true\n+\t\t}\n+\t}\n+\treturn false\n+}\n+\n func writeExportTestFile(t *testing.T, root, rel, content string) {\n \tt.Helper()\n \tp := filepath.Join(root, filepath.FromSlash(rel))\n",
+      "hunks": [
+        {
+          "id": "diff-82d594ef57abcb53",
+          "header": "@@ -96,6 +96,22 @@ func TestGenerateStaticReviewUsesPinnedCommits(t *testing.T) {",
+          "lines": [
+            {
+              "oldLine": 96,
+              "newLine": 96,
+              "kind": "context",
+              "text": "\tif report.Verification.Available || report.Verification.Error != \"\" || len(report.Verification.Checks) != 0 {"
+            },
+            {
+              "oldLine": 97,
+              "newLine": 97,
+              "kind": "context",
+              "text": "\t\tt.Fatalf(\"verification = %#v\", report.Verification)"
+            },
+            {
+              "oldLine": 98,
+              "newLine": 98,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\tif len(report.Evidence) != 4 {"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"evidence = %#v\", report.Evidence)"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\tbyID := map[string]staticEvidenceSource{}"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\tfor _, source := range report.Evidence {"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t\tbyID[source.ID] = source"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\tif byID[\"human\"].Base != base || byID[\"human\"].Revision != head || byID[\"human\"].State != \"browser-local\" {"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"human evidence = %#v\", byID[\"human\"])"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\tif byID[\"automated\"].Revision != head || byID[\"automated\"].State == \"\" {"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"automated evidence = %#v\", byID[\"automated\"])"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\tif byID[\"ai\"].State != \"not-attached\" || byID[\"ci\"].State != \"not-attached\" {"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"optional evidence = ai %#v, ci %#v\", byID[\"ai\"], byID[\"ci\"])"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 99,
+              "newLine": 115,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 100,
+              "newLine": 116,
+              "kind": "context",
+              "text": "\t// A mutable checkout change must not change the report's rules or diff."
+            },
+            {
+              "oldLine": 101,
+              "newLine": 117,
+              "kind": "context",
+              "text": "\twriteExportTestFile(t, root, \".px1/rules.json\", `{\"rules\":[{\"pattern\":\"\\\\bfetch\\\\(\",\"glob\":\"*.ts\",\"message\":\"Changed after commit\"}]}`)"
+            }
+          ]
+        },
+        {
+          "id": "diff-3158fa791e3e96e3",
+          "header": "@@ -149,6 +165,48 @@ func TestGenerateStaticReviewUsesPinnedCommits(t *testing.T) {",
+          "lines": [
+            {
+              "oldLine": 149,
+              "newLine": 165,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 150,
+              "newLine": 166,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 151,
+              "newLine": 167,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": "func TestStaticEvidenceDistinguishesAttachedEmptySources(t *testing.T) {"
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "\thead := strings.Repeat(\"b\", 40)"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "\tverification := verificationResponse{Available: true, Revision: head, Checks: []verificationCheck{}}"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "\tsources := staticEvidence(strings.Repeat(\"a\", 40), head, true, []staticExplanation{}, verification, staticAffectedAnalysis{}, staticInspectionAnalysis{}, staticAttentionAnalysis{})"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "\tbyID := map[string]staticEvidenceSource{}"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "\tfor _, source := range sources {"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "\t\tbyID[source.ID] = source"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "\tif byID[\"ai\"].State != \"available\" || byID[\"ai\"].Revision != head || !strings.Contains(byID[\"ai\"].Detail, \"0 optional\") {"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"AI evidence = %#v\", byID[\"ai\"])"
+            },
+            {
+              "newLine": 178,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": "\tif byID[\"ci\"].State != \"available\" || byID[\"ci\"].Revision != head || !strings.Contains(byID[\"ci\"].Detail, \"0 recorded\") {"
+            },
+            {
+              "newLine": 180,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"CI evidence = %#v\", byID[\"ci\"])"
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 184,
+              "kind": "added",
+              "text": "func TestStaticEvidenceAggregatesAnalysisLimits(t *testing.T) {"
+            },
+            {
+              "newLine": 185,
+              "kind": "added",
+              "text": "\thead := strings.Repeat(\"b\", 40)"
+            },
+            {
+              "newLine": 186,
+              "kind": "added",
+              "text": "\tsources := staticEvidence(strings.Repeat(\"a\", 40), head, false, nil, verificationResponse{},"
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "\t\tstaticAffectedAnalysis{Truncated: true, Limits: []string{\"repository scan capped\"}},"
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": "\t\tstaticInspectionAnalysis{Truncated: true, Limits: []string{\"questions capped\"}},"
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "\t\tstaticAttentionAnalysis{Truncated: true, Limits: []string{\"content skipped\"}})"
+            },
+            {
+              "newLine": 190,
+              "kind": "added",
+              "text": "\tautomated := sources[1]"
+            },
+            {
+              "newLine": 191,
+              "kind": "added",
+              "text": "\tif automated.State != \"limited\" || len(automated.Limits) != 3 {"
+            },
+            {
+              "newLine": 192,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"automated evidence = %#v\", automated)"
+            },
+            {
+              "newLine": 193,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 194,
+              "kind": "added",
+              "text": "\tfor _, want := range []string{\"Attention analysis: content skipped\", \"Affected-file analysis: repository scan capped\", \"Inspection questions: questions capped\"} {"
+            },
+            {
+              "newLine": 195,
+              "kind": "added",
+              "text": "\t\tif !containsString(automated.Limits, want) {"
+            },
+            {
+              "newLine": 196,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"missing %q in %#v\", want, automated.Limits)"
+            },
+            {
+              "newLine": 197,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 198,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 199,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 200,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 201,
+              "kind": "added",
+              "text": "func containsString(values []string, want string) bool {"
+            },
+            {
+              "newLine": 202,
+              "kind": "added",
+              "text": "\tfor _, value := range values {"
+            },
+            {
+              "newLine": 203,
+              "kind": "added",
+              "text": "\t\tif value == want {"
+            },
+            {
+              "newLine": 204,
+              "kind": "added",
+              "text": "\t\t\treturn true"
+            },
+            {
+              "newLine": 205,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 206,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 207,
+              "kind": "added",
+              "text": "\treturn false"
+            },
+            {
+              "newLine": 208,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 209,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 152,
+              "newLine": 210,
+              "kind": "context",
+              "text": "func writeExportTestFile(t *testing.T, root, rel, content string) {"
+            },
+            {
+              "oldLine": 153,
+              "newLine": 211,
+              "kind": "context",
+              "text": "\tt.Helper()"
+            },
+            {
+              "oldLine": 154,
+              "newLine": 212,
+              "kind": "context",
+              "text": "\tp := filepath.Join(root, filepath.FromSlash(rel))"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "static_report/report.css",
+      "status": "M",
+      "diff": "diff --git a/static_report/report.css b/static_report/report.css\nindex 935a1f0..80583f2 100644\n--- a/static_report/report.css\n+++ b/static_report/report.css\n@@ -42,7 +42,7 @@ code,.mono{font-family:var(--mono);font-size:var(--fs-small)}\n .fbody::-webkit-scrollbar{height:12px}\n \n .top{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}\n-.top-in{max-width:1480px;margin:0 auto;padding:14px 16px;display:grid;gap:8px}\n+.top-in{width:100%;padding:14px 16px;display:grid;gap:8px}\n .brand{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;color:var(--dim);font-size:var(--fs-small)}\n .range{font-family:var(--mono);font-size:var(--fs-small)}\n .range b{font-weight:500;color:var(--ink)}\n@@ -58,8 +58,8 @@ button.chip:hover{filter:brightness(1.12)}\n .theme-btn:hover{border-color:var(--edge);color:var(--ink)}\n \n .checks{border-top:1px solid var(--line);background:var(--canvas)}\n-.checks-in{max-width:1480px;margin:0 auto;padding:10px 16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px 18px}\n-.checks-note{max-width:1480px;margin:0 auto;padding:10px 16px;color:var(--dim);font-size:var(--fs-small)}\n+.checks-in{width:100%;padding:10px 16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px 18px}\n+.checks-note{width:100%;padding:10px 16px;color:var(--dim);font-size:var(--fs-small)}\n .check{display:flex;gap:8px;align-items:baseline;font-size:var(--fs-small);min-width:0;color:inherit;text-decoration:none}\n a.check:hover .name{text-decoration:underline}\n .check .dot{flex:none;width:7px;height:7px;border-radius:50%;transform:translateY(-1px);background:var(--edge)}\n@@ -68,7 +68,7 @@ a.check:hover .name{text-decoration:underline}\n .check.failed .dot{background:var(--danger)}.check.failed .st{color:var(--danger)}\n .check.running .dot,.check.queued .dot{background:var(--attention)}\n \n-.wrap{position:relative;max-width:1480px;margin:0 auto;padding:20px 16px;display:grid;grid-template-columns:var(--rail-w,288px) minmax(0,1fr) 10px;gap:24px;align-items:start}\n+.wrap{position:relative;width:100%;padding:20px 16px;display:grid;grid-template-columns:var(--rail-w,288px) minmax(0,1fr) 10px;gap:24px;align-items:start}\n .resize-handle{position:absolute;z-index:6;top:0;bottom:0;left:calc(16px + var(--rail-w,288px) + 4px);width:16px;cursor:col-resize;touch-action:none;display:flex;justify-content:center}\n .resize-handle .grip{width:2px;height:100%;border-radius:2px;background:transparent;transition:background .15s}\n .resize-handle:hover .grip,.resize-handle.active .grip,.resize-handle:focus-visible .grip{background:var(--edge)}\n@@ -80,6 +80,18 @@ body.resizing{cursor:col-resize;user-select:none}\n .rail h2{margin:0 0 8px;display:flex;justify-content:space-between;align-items:center}\n .rail h2 .count{font:400 var(--fs-fine) var(--sans);letter-spacing:0;text-transform:none;color:var(--faint)}\n .rail .empty{margin:0;color:var(--faint);font-size:var(--fs-small)}\n+.evidence-intro{margin:0 0 7px;color:var(--dim);font-size:var(--fs-fine);line-height:1.4}\n+.evidence-list{list-style:none;margin:0;padding:0}\n+.evidence-source{display:grid;gap:3px;padding:8px 0;border-top:1px solid var(--line)}\n+.evidence-source:first-child{border-top:0}\n+.evidence-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}\n+.evidence-label{font-size:var(--fs-small);font-weight:500}\n+.evidence-state{flex:none;border-radius:999px;padding:1px 6px;background:var(--well);color:var(--dim);font-size:10.5px;text-transform:uppercase;letter-spacing:.03em}\n+.evidence-state.state-limited,.evidence-state.state-unavailable,.evidence-state.state-not-attached{background:var(--attention-tint);color:var(--attention)}\n+.evidence-detail,.evidence-revision,.evidence-limit{margin:0;color:var(--faint);font-size:var(--fs-fine);line-height:1.4}\n+.evidence-revision code{color:var(--dim)}\n+.evidence-limit{color:var(--attention)}\n+.evidence-missing{color:var(--attention);font-size:var(--fs-fine)}\n .feedback-note{display:block;width:100%;resize:vertical;min-height:78px;padding:8px 9px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--canvas);color:var(--ink);font:var(--fs-small)/1.45 var(--sans)}\n .feedback-note::placeholder{color:var(--faint)}\n .feedback-hint{margin:6px 0 9px;color:var(--faint);font-size:var(--fs-fine)}\n@@ -180,7 +192,7 @@ body.resizing{cursor:col-resize;user-select:none}\n .spine a{background:var(--edge)}\n .spine .thumb{position:absolute;left:0;right:0;border-block:1px solid var(--dim);pointer-events:none}\n \n-.foot{max-width:1480px;margin:0 auto;padding:6px 16px 40px;color:var(--faint);font-size:var(--fs-small)}\n+.foot{width:100%;padding:6px 16px 40px;color:var(--faint);font-size:var(--fs-small)}\n .noscript{padding:24px 16px}\n \n @media (max-width:1000px){\n",
+      "hunks": [
+        {
+          "id": "diff-0267cb5c52c4b4de",
+          "header": "@@ -42,7 +42,7 @@ code,.mono{font-family:var(--mono);font-size:var(--fs-small)}",
+          "lines": [
+            {
+              "oldLine": 42,
+              "newLine": 42,
+              "kind": "context",
+              "text": ".fbody::-webkit-scrollbar{height:12px}"
+            },
+            {
+              "oldLine": 43,
+              "newLine": 43,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 44,
+              "newLine": 44,
+              "kind": "context",
+              "text": ".top{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}"
+            },
+            {
+              "oldLine": 45,
+              "kind": "removed",
+              "text": ".top-in{max-width:1480px;margin:0 auto;padding:14px 16px;display:grid;gap:8px}"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": ".top-in{width:100%;padding:14px 16px;display:grid;gap:8px}"
+            },
+            {
+              "oldLine": 46,
+              "newLine": 46,
+              "kind": "context",
+              "text": ".brand{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;color:var(--dim);font-size:var(--fs-small)}"
+            },
+            {
+              "oldLine": 47,
+              "newLine": 47,
+              "kind": "context",
+              "text": ".range{font-family:var(--mono);font-size:var(--fs-small)}"
+            },
+            {
+              "oldLine": 48,
+              "newLine": 48,
+              "kind": "context",
+              "text": ".range b{font-weight:500;color:var(--ink)}"
+            }
+          ]
+        },
+        {
+          "id": "diff-d12df5c975f0ebd7",
+          "header": "@@ -58,8 +58,8 @@ button.chip:hover{filter:brightness(1.12)}",
+          "lines": [
+            {
+              "oldLine": 58,
+              "newLine": 58,
+              "kind": "context",
+              "text": ".theme-btn:hover{border-color:var(--edge);color:var(--ink)}"
+            },
+            {
+              "oldLine": 59,
+              "newLine": 59,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 60,
+              "newLine": 60,
+              "kind": "context",
+              "text": ".checks{border-top:1px solid var(--line);background:var(--canvas)}"
+            },
+            {
+              "oldLine": 61,
+              "kind": "removed",
+              "text": ".checks-in{max-width:1480px;margin:0 auto;padding:10px 16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px 18px}"
+            },
+            {
+              "oldLine": 62,
+              "kind": "removed",
+              "text": ".checks-note{max-width:1480px;margin:0 auto;padding:10px 16px;color:var(--dim);font-size:var(--fs-small)}"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": ".checks-in{width:100%;padding:10px 16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px 18px}"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": ".checks-note{width:100%;padding:10px 16px;color:var(--dim);font-size:var(--fs-small)}"
+            },
+            {
+              "oldLine": 63,
+              "newLine": 63,
+              "kind": "context",
+              "text": ".check{display:flex;gap:8px;align-items:baseline;font-size:var(--fs-small);min-width:0;color:inherit;text-decoration:none}"
+            },
+            {
+              "oldLine": 64,
+              "newLine": 64,
+              "kind": "context",
+              "text": "a.check:hover .name{text-decoration:underline}"
+            },
+            {
+              "oldLine": 65,
+              "newLine": 65,
+              "kind": "context",
+              "text": ".check .dot{flex:none;width:7px;height:7px;border-radius:50%;transform:translateY(-1px);background:var(--edge)}"
+            }
+          ]
+        },
+        {
+          "id": "diff-e7716ea415193bb4",
+          "header": "@@ -68,7 +68,7 @@ a.check:hover .name{text-decoration:underline}",
+          "lines": [
+            {
+              "oldLine": 68,
+              "newLine": 68,
+              "kind": "context",
+              "text": ".check.failed .dot{background:var(--danger)}.check.failed .st{color:var(--danger)}"
+            },
+            {
+              "oldLine": 69,
+              "newLine": 69,
+              "kind": "context",
+              "text": ".check.running .dot,.check.queued .dot{background:var(--attention)}"
+            },
+            {
+              "oldLine": 70,
+              "newLine": 70,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 71,
+              "kind": "removed",
+              "text": ".wrap{position:relative;max-width:1480px;margin:0 auto;padding:20px 16px;display:grid;grid-template-columns:var(--rail-w,288px) minmax(0,1fr) 10px;gap:24px;align-items:start}"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": ".wrap{position:relative;width:100%;padding:20px 16px;display:grid;grid-template-columns:var(--rail-w,288px) minmax(0,1fr) 10px;gap:24px;align-items:start}"
+            },
+            {
+              "oldLine": 72,
+              "newLine": 72,
+              "kind": "context",
+              "text": ".resize-handle{position:absolute;z-index:6;top:0;bottom:0;left:calc(16px + var(--rail-w,288px) + 4px);width:16px;cursor:col-resize;touch-action:none;display:flex;justify-content:center}"
+            },
+            {
+              "oldLine": 73,
+              "newLine": 73,
+              "kind": "context",
+              "text": ".resize-handle .grip{width:2px;height:100%;border-radius:2px;background:transparent;transition:background .15s}"
+            },
+            {
+              "oldLine": 74,
+              "newLine": 74,
+              "kind": "context",
+              "text": ".resize-handle:hover .grip,.resize-handle.active .grip,.resize-handle:focus-visible .grip{background:var(--edge)}"
+            }
+          ]
+        },
+        {
+          "id": "diff-5caa5122a967eebe",
+          "header": "@@ -80,6 +80,18 @@ body.resizing{cursor:col-resize;user-select:none}",
+          "lines": [
+            {
+              "oldLine": 80,
+              "newLine": 80,
+              "kind": "context",
+              "text": ".rail h2{margin:0 0 8px;display:flex;justify-content:space-between;align-items:center}"
+            },
+            {
+              "oldLine": 81,
+              "newLine": 81,
+              "kind": "context",
+              "text": ".rail h2 .count{font:400 var(--fs-fine) var(--sans);letter-spacing:0;text-transform:none;color:var(--faint)}"
+            },
+            {
+              "oldLine": 82,
+              "newLine": 82,
+              "kind": "context",
+              "text": ".rail .empty{margin:0;color:var(--faint);font-size:var(--fs-small)}"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": ".evidence-intro{margin:0 0 7px;color:var(--dim);font-size:var(--fs-fine);line-height:1.4}"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": ".evidence-list{list-style:none;margin:0;padding:0}"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": ".evidence-source{display:grid;gap:3px;padding:8px 0;border-top:1px solid var(--line)}"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": ".evidence-source:first-child{border-top:0}"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": ".evidence-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": ".evidence-label{font-size:var(--fs-small);font-weight:500}"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": ".evidence-state{flex:none;border-radius:999px;padding:1px 6px;background:var(--well);color:var(--dim);font-size:10.5px;text-transform:uppercase;letter-spacing:.03em}"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": ".evidence-state.state-limited,.evidence-state.state-unavailable,.evidence-state.state-not-attached{background:var(--attention-tint);color:var(--attention)}"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": ".evidence-detail,.evidence-revision,.evidence-limit{margin:0;color:var(--faint);font-size:var(--fs-fine);line-height:1.4}"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": ".evidence-revision code{color:var(--dim)}"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": ".evidence-limit{color:var(--attention)}"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": ".evidence-missing{color:var(--attention);font-size:var(--fs-fine)}"
+            },
+            {
+              "oldLine": 83,
+              "newLine": 95,
+              "kind": "context",
+              "text": ".feedback-note{display:block;width:100%;resize:vertical;min-height:78px;padding:8px 9px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--canvas);color:var(--ink);font:var(--fs-small)/1.45 var(--sans)}"
+            },
+            {
+              "oldLine": 84,
+              "newLine": 96,
+              "kind": "context",
+              "text": ".feedback-note::placeholder{color:var(--faint)}"
+            },
+            {
+              "oldLine": 85,
+              "newLine": 97,
+              "kind": "context",
+              "text": ".feedback-hint{margin:6px 0 9px;color:var(--faint);font-size:var(--fs-fine)}"
+            }
+          ]
+        },
+        {
+          "id": "diff-d7b921634134010c",
+          "header": "@@ -180,7 +192,7 @@ body.resizing{cursor:col-resize;user-select:none}",
+          "lines": [
+            {
+              "oldLine": 180,
+              "newLine": 192,
+              "kind": "context",
+              "text": ".spine a{background:var(--edge)}"
+            },
+            {
+              "oldLine": 181,
+              "newLine": 193,
+              "kind": "context",
+              "text": ".spine .thumb{position:absolute;left:0;right:0;border-block:1px solid var(--dim);pointer-events:none}"
+            },
+            {
+              "oldLine": 182,
+              "newLine": 194,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 183,
+              "kind": "removed",
+              "text": ".foot{max-width:1480px;margin:0 auto;padding:6px 16px 40px;color:var(--faint);font-size:var(--fs-small)}"
+            },
+            {
+              "newLine": 195,
+              "kind": "added",
+              "text": ".foot{width:100%;padding:6px 16px 40px;color:var(--faint);font-size:var(--fs-small)}"
+            },
+            {
+              "oldLine": 184,
+              "newLine": 196,
+              "kind": "context",
+              "text": ".noscript{padding:24px 16px}"
+            },
+            {
+              "oldLine": 185,
+              "newLine": 197,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 186,
+              "newLine": 198,
+              "kind": "context",
+              "text": "@media (max-width:1000px){"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "static_report/report.js",
+      "status": "M",
+      "diff": "diff --git a/static_report/report.js b/static_report/report.js\nindex c791c28..1f1029e 100644\n--- a/static_report/report.js\n+++ b/static_report/report.js\n@@ -12,6 +12,7 @@ const attention=Array.isArray(report.attention)?report.attention:[];\n const explanations=Array.isArray(report.explanations)?report.explanations:[];\n const verification=report.verification||{checks:[]};\n const checks=Array.isArray(verification.checks)?verification.checks:[];\n+const evidence=Array.isArray(report.evidence)?report.evidence:[];\n \n const h=(tag,cls,txt)=\u003e{const n=document.createElement(tag);if(cls)n.className=cls;if(txt!=null)n.textContent=String(txt);return n};\n const short=(sha)=\u003eString(sha||'').slice(0,7);\n@@ -89,6 +90,8 @@ if(verification.available\u0026\u0026checks.length){\n     inner.append(row);\n   }\n   checksPanel.append(inner);\n+}else if(verification.available){\n+  checksPanel.append(h('div','checks-note','CI verification is attached for revision '+short(verification.revision)+' with 0 recorded checks. This is not a live status feed.'));\n }else{\n   checksPanel.append(h('div','checks-note',verification.error||'No CI verification is attached to this report.'));\n }\n@@ -111,7 +114,7 @@ function paintTop(){\n   const ci=h('button','chip '+(failing?'chip-danger':pending?'chip-attention':''));\n   ci.type='button';\n   ci.setAttribute('aria-expanded',String(!checksPanel.hidden));\n-  ci.textContent=verification.available\u0026\u0026checks.length?'CI '+checks.filter((c)=\u003ec.status==='passed').length+'/'+checks.length+' passed':'CI not attached';\n+  ci.textContent=verification.available?(checks.length?'CI '+checks.filter((c)=\u003ec.status==='passed').length+'/'+checks.length+' passed':'CI attached · 0 checks'):verification.error?'CI unavailable':'CI not attached';\n   ci.onclick=()=\u003e{checksPanel.hidden=!checksPanel.hidden;ci.setAttribute('aria-expanded',String(!checksPanel.hidden));syncTop()};\n   verdict.append(ci);\n   {const n=items.filter((i)=\u003ei.k==='note').length;verdict.append(h('span','chip'+(n?' chip-note':''),plural(n,'AI note')))}\n@@ -119,6 +122,27 @@ function paintTop(){\n \n /* ---- rail ---- */\n const rail=h('aside','rail');rail.setAttribute('aria-label','Review navigation');\n+const evidenceSec=h('section','evidence');\n+const evidenceHead=h('h2','eyebrow','Evidence \u0026 limits');\n+const evidenceIntro=h('p','evidence-intro','Each source is separate. None of these signals approves the pull request.');\n+const evidenceList=h('ul','evidence-list');\n+for(const source of evidence){\n+  const li=h('li','evidence-source');\n+  const sourceHead=h('div','evidence-head');\n+  sourceHead.append(h('span','evidence-label',source.label),h('span','evidence-state state-'+source.state,source.state.replaceAll('-',' ')));\n+  li.append(sourceHead,h('p','evidence-detail',source.detail));\n+  if(source.revision){\n+    const identity=h('p','evidence-revision');\n+    identity.append(document.createTextNode(source.base?'Comparison ': 'Revision '));\n+    if(source.base)identity.append(h('code',null,short(source.base)),document.createTextNode('…'));\n+    identity.append(h('code',null,short(source.revision)));\n+    li.append(identity);\n+  }\n+  for(const limit of Array.isArray(source.limits)?source.limits:[])li.append(h('p','evidence-limit',limit));\n+  evidenceList.append(li);\n+}\n+if(!evidence.length)evidenceList.append(h('li','evidence-source evidence-missing','Evidence metadata is unavailable in this older snapshot. Treat every source as limited.'));\n+evidenceSec.append(evidenceHead,evidenceIntro,evidenceList);rail.append(evidenceSec);\n const blocksSec=h('section');const blocksHead=h('h2','eyebrow','Change groups ');blocksHead.append(h('span','count',blocks.length));\n const blockList=h('ul','queue');\n for(const block of blocks){\n@@ -190,7 +214,7 @@ const order={rule:0,attn:1,note:2};\n function paintQueue(){\n   queue.textContent='';\n   queueCount.textContent=open().length+' open';\n-  if(!items.length){queue.append(h('p','empty',files.length?'No automated findings. Changed code still needs your review.':'No automated findings.'));return}\n+  if(!items.length){queue.append(h('p','empty',files.length?'No automated findings matched. This is not evidence that the change is safe; changed code still needs your review.':'No automated findings matched.'));return}\n   [...items].sort((a,b)=\u003eorder[a.k]-order[b.k]).forEach((it)=\u003e{\n     const a=h('a','qitem'+(it.k!=='note'\u0026\u0026ack.has(it.ackId)?' done':''));a.href='#'+it.id;\n     const row=h('div','row');row.append(chipFor(it.k),h('span','t',it.title));\n@@ -430,7 +454,7 @@ handle.addEventListener('keydown',(e)=\u003e{\n   e.preventDefault();setRailWidth(next,true);settle();\n });\n addEventListener('resize',()=\u003esetRailWidth(parseFloat(wrap.style.getPropertyValue('--rail-w'))||savedWidth,false));\n-const foot=h('div','foot','File review progress and finding acknowledgements are independent and browser-local. This report is a snapshot of commit '+short(report.head)+'. Confirm the current PR revision before approving in GitHub.');\n+const foot=h('div','foot','File review progress and finding acknowledgements are independent and browser-local. This static snapshot represents '+short(report.base)+'…'+short(report.head)+' and cannot know the current live PR head or check status. Confirm both in GitHub before approving.');\n app.textContent='';\n app.append(top,wrap,foot);\n setRailWidth(savedWidth,false);\n",
+      "hunks": [
+        {
+          "id": "diff-f57f54c658ea50aa",
+          "header": "@@ -12,6 +12,7 @@ const attention=Array.isArray(report.attention)?report.attention:[];",
+          "lines": [
+            {
+              "oldLine": 12,
+              "newLine": 12,
+              "kind": "context",
+              "text": "const explanations=Array.isArray(report.explanations)?report.explanations:[];"
+            },
+            {
+              "oldLine": 13,
+              "newLine": 13,
+              "kind": "context",
+              "text": "const verification=report.verification||{checks:[]};"
+            },
+            {
+              "oldLine": 14,
+              "newLine": 14,
+              "kind": "context",
+              "text": "const checks=Array.isArray(verification.checks)?verification.checks:[];"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "const evidence=Array.isArray(report.evidence)?report.evidence:[];"
+            },
+            {
+              "oldLine": 15,
+              "newLine": 16,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 16,
+              "newLine": 17,
+              "kind": "context",
+              "text": "const h=(tag,cls,txt)=\u003e{const n=document.createElement(tag);if(cls)n.className=cls;if(txt!=null)n.textContent=String(txt);return n};"
+            },
+            {
+              "oldLine": 17,
+              "newLine": 18,
+              "kind": "context",
+              "text": "const short=(sha)=\u003eString(sha||'').slice(0,7);"
+            }
+          ]
+        },
+        {
+          "id": "diff-5619465109009705",
+          "header": "@@ -89,6 +90,8 @@ if(verification.available\u0026\u0026checks.length){",
+          "lines": [
+            {
+              "oldLine": 89,
+              "newLine": 90,
+              "kind": "context",
+              "text": "    inner.append(row);"
+            },
+            {
+              "oldLine": 90,
+              "newLine": 91,
+              "kind": "context",
+              "text": "  }"
+            },
+            {
+              "oldLine": 91,
+              "newLine": 92,
+              "kind": "context",
+              "text": "  checksPanel.append(inner);"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "}else if(verification.available){"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "  checksPanel.append(h('div','checks-note','CI verification is attached for revision '+short(verification.revision)+' with 0 recorded checks. This is not a live status feed.'));"
+            },
+            {
+              "oldLine": 92,
+              "newLine": 95,
+              "kind": "context",
+              "text": "}else{"
+            },
+            {
+              "oldLine": 93,
+              "newLine": 96,
+              "kind": "context",
+              "text": "  checksPanel.append(h('div','checks-note',verification.error||'No CI verification is attached to this report.'));"
+            },
+            {
+              "oldLine": 94,
+              "newLine": 97,
+              "kind": "context",
+              "text": "}"
+            }
+          ]
+        },
+        {
+          "id": "diff-f87937e3c4e6f062",
+          "header": "@@ -111,7 +114,7 @@ function paintTop(){",
+          "lines": [
+            {
+              "oldLine": 111,
+              "newLine": 114,
+              "kind": "context",
+              "text": "  const ci=h('button','chip '+(failing?'chip-danger':pending?'chip-attention':''));"
+            },
+            {
+              "oldLine": 112,
+              "newLine": 115,
+              "kind": "context",
+              "text": "  ci.type='button';"
+            },
+            {
+              "oldLine": 113,
+              "newLine": 116,
+              "kind": "context",
+              "text": "  ci.setAttribute('aria-expanded',String(!checksPanel.hidden));"
+            },
+            {
+              "oldLine": 114,
+              "kind": "removed",
+              "text": "  ci.textContent=verification.available\u0026\u0026checks.length?'CI '+checks.filter((c)=\u003ec.status==='passed').length+'/'+checks.length+' passed':'CI not attached';"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "  ci.textContent=verification.available?(checks.length?'CI '+checks.filter((c)=\u003ec.status==='passed').length+'/'+checks.length+' passed':'CI attached · 0 checks'):verification.error?'CI unavailable':'CI not attached';"
+            },
+            {
+              "oldLine": 115,
+              "newLine": 118,
+              "kind": "context",
+              "text": "  ci.onclick=()=\u003e{checksPanel.hidden=!checksPanel.hidden;ci.setAttribute('aria-expanded',String(!checksPanel.hidden));syncTop()};"
+            },
+            {
+              "oldLine": 116,
+              "newLine": 119,
+              "kind": "context",
+              "text": "  verdict.append(ci);"
+            },
+            {
+              "oldLine": 117,
+              "newLine": 120,
+              "kind": "context",
+              "text": "  {const n=items.filter((i)=\u003ei.k==='note').length;verdict.append(h('span','chip'+(n?' chip-note':''),plural(n,'AI note')))}"
+            }
+          ]
+        },
+        {
+          "id": "diff-52fb278666a6b7a3",
+          "header": "@@ -119,6 +122,27 @@ function paintTop(){",
+          "lines": [
+            {
+              "oldLine": 119,
+              "newLine": 122,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 120,
+              "newLine": 123,
+              "kind": "context",
+              "text": "/* ---- rail ---- */"
+            },
+            {
+              "oldLine": 121,
+              "newLine": 124,
+              "kind": "context",
+              "text": "const rail=h('aside','rail');rail.setAttribute('aria-label','Review navigation');"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "const evidenceSec=h('section','evidence');"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "const evidenceHead=h('h2','eyebrow','Evidence \u0026 limits');"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "const evidenceIntro=h('p','evidence-intro','Each source is separate. None of these signals approves the pull request.');"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "const evidenceList=h('ul','evidence-list');"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "for(const source of evidence){"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "  const li=h('li','evidence-source');"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "  const sourceHead=h('div','evidence-head');"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "  sourceHead.append(h('span','evidence-label',source.label),h('span','evidence-state state-'+source.state,source.state.replaceAll('-',' ')));"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "  li.append(sourceHead,h('p','evidence-detail',source.detail));"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "  if(source.revision){"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "    const identity=h('p','evidence-revision');"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "    identity.append(document.createTextNode(source.base?'Comparison ': 'Revision '));"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "    if(source.base)identity.append(h('code',null,short(source.base)),document.createTextNode('…'));"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "    identity.append(h('code',null,short(source.revision)));"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "    li.append(identity);"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "  }"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "  for(const limit of Array.isArray(source.limits)?source.limits:[])li.append(h('p','evidence-limit',limit));"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "  evidenceList.append(li);"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "if(!evidence.length)evidenceList.append(h('li','evidence-source evidence-missing','Evidence metadata is unavailable in this older snapshot. Treat every source as limited.'));"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "evidenceSec.append(evidenceHead,evidenceIntro,evidenceList);rail.append(evidenceSec);"
+            },
+            {
+              "oldLine": 122,
+              "newLine": 146,
+              "kind": "context",
+              "text": "const blocksSec=h('section');const blocksHead=h('h2','eyebrow','Change groups ');blocksHead.append(h('span','count',blocks.length));"
+            },
+            {
+              "oldLine": 123,
+              "newLine": 147,
+              "kind": "context",
+              "text": "const blockList=h('ul','queue');"
+            },
+            {
+              "oldLine": 124,
+              "newLine": 148,
+              "kind": "context",
+              "text": "for(const block of blocks){"
+            }
+          ]
+        },
+        {
+          "id": "diff-c162877ea2224dda",
+          "header": "@@ -190,7 +214,7 @@ const order={rule:0,attn:1,note:2};",
+          "lines": [
+            {
+              "oldLine": 190,
+              "newLine": 214,
+              "kind": "context",
+              "text": "function paintQueue(){"
+            },
+            {
+              "oldLine": 191,
+              "newLine": 215,
+              "kind": "context",
+              "text": "  queue.textContent='';"
+            },
+            {
+              "oldLine": 192,
+              "newLine": 216,
+              "kind": "context",
+              "text": "  queueCount.textContent=open().length+' open';"
+            },
+            {
+              "oldLine": 193,
+              "kind": "removed",
+              "text": "  if(!items.length){queue.append(h('p','empty',files.length?'No automated findings. Changed code still needs your review.':'No automated findings.'));return}"
+            },
+            {
+              "newLine": 217,
+              "kind": "added",
+              "text": "  if(!items.length){queue.append(h('p','empty',files.length?'No automated findings matched. This is not evidence that the change is safe; changed code still needs your review.':'No automated findings matched.'));return}"
+            },
+            {
+              "oldLine": 194,
+              "newLine": 218,
+              "kind": "context",
+              "text": "  [...items].sort((a,b)=\u003eorder[a.k]-order[b.k]).forEach((it)=\u003e{"
+            },
+            {
+              "oldLine": 195,
+              "newLine": 219,
+              "kind": "context",
+              "text": "    const a=h('a','qitem'+(it.k!=='note'\u0026\u0026ack.has(it.ackId)?' done':''));a.href='#'+it.id;"
+            },
+            {
+              "oldLine": 196,
+              "newLine": 220,
+              "kind": "context",
+              "text": "    const row=h('div','row');row.append(chipFor(it.k),h('span','t',it.title));"
+            }
+          ]
+        },
+        {
+          "id": "diff-444a38be84d0ca0d",
+          "header": "@@ -430,7 +454,7 @@ handle.addEventListener('keydown',(e)=\u003e{",
+          "lines": [
+            {
+              "oldLine": 430,
+              "newLine": 454,
+              "kind": "context",
+              "text": "  e.preventDefault();setRailWidth(next,true);settle();"
+            },
+            {
+              "oldLine": 431,
+              "newLine": 455,
+              "kind": "context",
+              "text": "});"
+            },
+            {
+              "oldLine": 432,
+              "newLine": 456,
+              "kind": "context",
+              "text": "addEventListener('resize',()=\u003esetRailWidth(parseFloat(wrap.style.getPropertyValue('--rail-w'))||savedWidth,false));"
+            },
+            {
+              "oldLine": 433,
+              "kind": "removed",
+              "text": "const foot=h('div','foot','File review progress and finding acknowledgements are independent and browser-local. This report is a snapshot of commit '+short(report.head)+'. Confirm the current PR revision before approving in GitHub.');"
+            },
+            {
+              "newLine": 457,
+              "kind": "added",
+              "text": "const foot=h('div','foot','File review progress and finding acknowledgements are independent and browser-local. This static snapshot represents '+short(report.base)+'…'+short(report.head)+' and cannot know the current live PR head or check status. Confirm both in GitHub before approving.');"
+            },
+            {
+              "oldLine": 434,
+              "newLine": 458,
+              "kind": "context",
+              "text": "app.textContent='';"
+            },
+            {
+              "oldLine": 435,
+              "newLine": 459,
+              "kind": "context",
+              "text": "app.append(top,wrap,foot);"
+            },
+            {
+              "oldLine": 436,
+              "newLine": 460,
+              "kind": "context",
+              "text": "setRailWidth(savedWidth,false);"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-7b592898bc96ebb3",
+      "title": "Evidence changes",
+      "summary": "11 related files share the \"evidence\" change signal.",
+      "paths": [
+        "README.md",
+        "ROADMAP.md",
+        "browser-tests/report.test.mjs",
+        "docs/GITHUB_REVIEW_INTEGRATION_PLAN.md",
+        "docs/PRODUCT_VISION.md",
+        "export.go",
+        "export_render.go",
+        "export_render_test.go",
+        "export_test.go",
+        "static_report/report.css",
+        "static_report/report.js"
+      ]
+    }
+  ],
+  "affectedFiles": [],
+  "affectedAnalysis": {
+    "repositoryPaths": 63,
+    "candidatePaths": 0,
+    "filesScanned": 0,
+    "bytesScanned": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "inspectionQuestions": [
+    {
+      "id": "inspect-6963e213e129d197",
+      "path": "export.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "export_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-d2fc2bc6ee26e1c0",
+      "path": "export_render.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "export_render_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [],
+  "attention": [],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "79b4ddd436b50718afca3b2e40f92035199b32f0",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/38260525817",
+    "checks": [
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/38260528137/job/114849540642",
+        "startedAt": "2026-10-12T14:06:48Z"
+      },
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/38260525817/job/114849536916",
+        "startedAt": "2026-10-12T14:06:48Z"
+      }
+    ]
+  }
+}
