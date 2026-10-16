@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "a775776da5645db371157d52ca59cb69ffecd134",
+  "head": "cbdf373c9fb5bae11739a38e58dc1629b6b2aef2",
+  "generatedAt": "2026-10-16T06:16:04.222561807Z",
+  "files": [
+    {
+      "path": "VERSION",
+      "status": "M",
+      "diff": "diff --git a/VERSION b/VERSION\nindex 3eefcb9..7dea76e 100644\n--- a/VERSION\n+++ b/VERSION\n@@ -1 +1 @@\n-1.0.0\n+1.0.1\n",
+      "hunks": [
+        {
+          "id": "diff-62e7bd3d0bb5ccb5",
+          "header": "@@ -1 +1 @@",
+          "lines": [
+            {
+              "oldLine": 1,
+              "kind": "removed",
+              "text": "1.0.0"
+            },
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "1.0.1"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [],
+  "inspectionQuestions": [],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 1,
+    "filesAnalyzed": 1,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "a775776da5645db371157d52ca59cb69ffecd134",
+      "revision": "cbdf373c9fb5bae11739a38e58dc1629b6b2aef2",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "a775776da5645db371157d52ca59cb69ffecd134",
+      "revision": "cbdf373c9fb5bae11739a38e58dc1629b6b2aef2",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "cbdf373c9fb5bae11739a38e58dc1629b6b2aef2",
+      "detail": "0 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "cbdf373c9fb5bae11739a38e58dc1629b6b2aef2",
+      "detail": "1 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "cbdf373c9fb5bae11739a38e58dc1629b6b2aef2",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/38860186346",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/38860186346/job/116840457867",
+        "startedAt": "2026-10-16T06:15:33Z"
+      }
+    ]
+  }
+}
