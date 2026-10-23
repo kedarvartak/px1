@@ -1,0 +1,2631 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "07ebf231a9edf64291529cccba3e6a91ba8dd402",
+  "head": "57b83bb73624166476e3e85412cbb07655a8c40e",
+  "generatedAt": "2026-10-23T22:13:14.586458729Z",
+  "files": [
+    {
+      "path": "internal/hosted/llm/gateway.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/llm/gateway.go b/internal/hosted/llm/gateway.go\nnew file mode 100644\nindex 0000000..ef4568f\n--- /dev/null\n+++ b/internal/hosted/llm/gateway.go\n@@ -0,0 +1,229 @@\n+// Package llm provides the bounded, observable model interface used by hosted\n+// review workers. Provider credentials stay inside provider adapters and are\n+// never included in requests, cache keys, or call records.\n+package llm\n+\n+import (\n+\t\"context\"\n+\t\"crypto/sha256\"\n+\t\"encoding/hex\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"sync\"\n+\t\"time\"\n+)\n+\n+type Request struct {\n+\tProvider        string\n+\tModel           string\n+\tSystem          string\n+\tPrompt          string\n+\tMaxOutputTokens int\n+\tTemperature     float64\n+}\n+\n+type Usage struct {\n+\tInputTokens     int64\n+\tOutputTokens    int64\n+\tCacheReadTokens int64\n+}\n+\n+type Response struct {\n+\tText      string\n+\tUsage     Usage\n+\tRequestID string\n+\tCached    bool\n+}\n+\n+type Provider interface {\n+\tName() string\n+\tComplete(context.Context, Request) (Response, error)\n+}\n+\n+type Cache interface {\n+\tGet(context.Context, string) (Response, bool, error)\n+\tPut(context.Context, string, Response, time.Duration) error\n+}\n+\n+type Recorder interface {\n+\tRecord(context.Context, CallRecord)\n+}\n+\n+type CallRecord struct {\n+\tProvider     string\n+\tModel        string\n+\tDuration     time.Duration\n+\tAttempts     int\n+\tUsage        Usage\n+\tCostMicrousd int64\n+\tCached       bool\n+\tErr          string\n+}\n+\n+type Price struct {\n+\tInputMicrousdPerMillion     int64\n+\tOutputMicrousdPerMillion    int64\n+\tCacheReadMicrousdPerMillion int64\n+}\n+\n+type Gateway struct {\n+\tProviders  map[string]Provider\n+\tCache      Cache\n+\tRecorder   Recorder\n+\tPrices     map[string]Price\n+\tTimeout    time.Duration\n+\tCacheTTL   time.Duration\n+\tMaxRetries int\n+\tSleep      func(context.Context, time.Duration) error\n+}\n+\n+func (g Gateway) Complete(ctx context.Context, request Request) (response Response, err error) {\n+\tprovider := g.Providers[request.Provider]\n+\tif provider == nil {\n+\t\treturn Response{}, fmt.Errorf(\"unknown LLM provider %q\", request.Provider)\n+\t}\n+\tif request.Model == \"\" || request.Prompt == \"\" || request.MaxOutputTokens \u003c= 0 {\n+\t\treturn Response{}, errors.New(\"LLM model, prompt, and positive output-token limit are required\")\n+\t}\n+\tif request.Temperature \u003c 0 || request.Temperature \u003e 2 {\n+\t\treturn Response{}, errors.New(\"LLM temperature must be between 0 and 2\")\n+\t}\n+\n+\tstarted := time.Now()\n+\trecord := CallRecord{Provider: request.Provider, Model: request.Model}\n+\tdefer func() {\n+\t\trecord.Duration = time.Since(started)\n+\t\trecord.Usage = response.Usage\n+\t\trecord.Cached = response.Cached\n+\t\tif !response.Cached {\n+\t\t\trecord.CostMicrousd = cost(g.Prices[request.Provider+\"/\"+request.Model], response.Usage)\n+\t\t}\n+\t\tif err != nil {\n+\t\t\trecord.Err = err.Error()\n+\t\t}\n+\t\tif g.Recorder != nil {\n+\t\t\tg.Recorder.Record(ctx, record)\n+\t\t}\n+\t}()\n+\n+\tcacheKey := promptKey(request)\n+\tif g.Cache != nil {\n+\t\tcached, ok, cacheErr := g.Cache.Get(ctx, cacheKey)\n+\t\tif cacheErr != nil {\n+\t\t\treturn Response{}, fmt.Errorf(\"read LLM prompt cache: %w\", cacheErr)\n+\t\t}\n+\t\tif ok {\n+\t\t\tcached.Cached = true\n+\t\t\treturn cached, nil\n+\t\t}\n+\t}\n+\n+\ttimeout := g.Timeout\n+\tif timeout \u003c= 0 {\n+\t\ttimeout = 90 * time.Second\n+\t}\n+\tmaxRetries := g.MaxRetries\n+\tif maxRetries \u003c 0 {\n+\t\tmaxRetries = 0\n+\t}\n+\tif maxRetries == 0 {\n+\t\tmaxRetries = 2\n+\t}\n+\n+\tfor attempt := 0; ; attempt++ {\n+\t\trecord.Attempts = attempt + 1\n+\t\tcallCtx, cancel := context.WithTimeout(ctx, timeout)\n+\t\tresponse, err = provider.Complete(callCtx, request)\n+\t\tcancel()\n+\t\tif err == nil {\n+\t\t\tbreak\n+\t\t}\n+\t\tvar temporary interface{ Temporary() bool }\n+\t\tif attempt \u003e= maxRetries || !errors.As(err, \u0026temporary) || !temporary.Temporary() {\n+\t\t\treturn Response{}, err\n+\t\t}\n+\t\tif sleepErr := g.sleep(ctx, time.Duration(1\u003c\u003cattempt)*time.Second); sleepErr != nil {\n+\t\t\treturn Response{}, sleepErr\n+\t\t}\n+\t}\n+\n+\tif response.Text == \"\" {\n+\t\treturn Response{}, errors.New(\"LLM provider returned an empty response\")\n+\t}\n+\tif response.Usage.InputTokens \u003c 0 || response.Usage.OutputTokens \u003c 0 || response.Usage.CacheReadTokens \u003c 0 {\n+\t\treturn Response{}, errors.New(\"LLM provider returned invalid token usage\")\n+\t}\n+\tif g.Cache != nil {\n+\t\tttl := g.CacheTTL\n+\t\tif ttl \u003c= 0 {\n+\t\t\tttl = 15 * time.Minute\n+\t\t}\n+\t\tif cacheErr := g.Cache.Put(ctx, cacheKey, response, ttl); cacheErr != nil {\n+\t\t\treturn Response{}, fmt.Errorf(\"write LLM prompt cache: %w\", cacheErr)\n+\t\t}\n+\t}\n+\treturn response, nil\n+}\n+\n+func (g Gateway) sleep(ctx context.Context, duration time.Duration) error {\n+\tif g.Sleep != nil {\n+\t\treturn g.Sleep(ctx, duration)\n+\t}\n+\ttimer := time.NewTimer(duration)\n+\tdefer timer.Stop()\n+\tselect {\n+\tcase \u003c-ctx.Done():\n+\t\treturn ctx.Err()\n+\tcase \u003c-timer.C:\n+\t\treturn nil\n+\t}\n+}\n+\n+func promptKey(request Request) string {\n+\tdigest := sha256.Sum256([]byte(fmt.Sprintf(\"%s\\x00%s\\x00%s\\x00%s\\x00%d\\x00%g\", request.Provider, request.Model, request.System, request.Prompt, request.MaxOutputTokens, request.Temperature)))\n+\treturn hex.EncodeToString(digest[:])\n+}\n+\n+func cost(price Price, usage Usage) int64 {\n+\treturn (usage.InputTokens*price.InputMicrousdPerMillion + usage.OutputTokens*price.OutputMicrousdPerMillion + usage.CacheReadTokens*price.CacheReadMicrousdPerMillion) / 1_000_000\n+}\n+\n+type memoryEntry struct {\n+\tresponse  Response\n+\texpiresAt time.Time\n+}\n+\n+type MemoryCache struct {\n+\tNow func() time.Time\n+\tmu  sync.Mutex\n+\tset map[string]memoryEntry\n+}\n+\n+func (c *MemoryCache) Get(_ context.Context, key string) (Response, bool, error) {\n+\tc.mu.Lock()\n+\tdefer c.mu.Unlock()\n+\tentry, ok := c.set[key]\n+\tif !ok || !entry.expiresAt.After(c.now()) {\n+\t\tdelete(c.set, key)\n+\t\treturn Response{}, false, nil\n+\t}\n+\treturn entry.response, true, nil\n+}\n+\n+func (c *MemoryCache) Put(_ context.Context, key string, response Response, ttl time.Duration) error {\n+\tc.mu.Lock()\n+\tdefer c.mu.Unlock()\n+\tif c.set == nil {\n+\t\tc.set = map[string]memoryEntry{}\n+\t}\n+\tresponse.Cached = false\n+\tc.set[key] = memoryEntry{response: response, expiresAt: c.now().Add(ttl)}\n+\treturn nil\n+}\n+\n+func (c *MemoryCache) now() time.Time {\n+\tif c.Now != nil {\n+\t\treturn c.Now()\n+\t}\n+\treturn time.Now()\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-fcde0af098fd364f",
+          "header": "@@ -0,0 +1,229 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "// Package llm provides the bounded, observable model interface used by hosted"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "// review workers. Provider credentials stay inside provider adapters and are"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "// never included in requests, cache keys, or call records."
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "package llm"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"crypto/sha256\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"encoding/hex\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\"sync\""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "type Request struct {"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tProvider        string"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tModel           string"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tSystem          string"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tPrompt          string"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tMaxOutputTokens int"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tTemperature     float64"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "type Usage struct {"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tInputTokens     int64"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tOutputTokens    int64"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tCacheReadTokens int64"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "type Response struct {"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tText      string"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tUsage     Usage"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tRequestID string"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tCached    bool"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "type Provider interface {"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tName() string"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tComplete(context.Context, Request) (Response, error)"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "type Cache interface {"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tGet(context.Context, string) (Response, bool, error)"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\tPut(context.Context, string, Response, time.Duration) error"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "type Recorder interface {"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\tRecord(context.Context, CallRecord)"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "type CallRecord struct {"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\tProvider     string"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\tModel        string"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\tDuration     time.Duration"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\tAttempts     int"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\tUsage        Usage"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\tCostMicrousd int64"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\tCached       bool"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\tErr          string"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "type Price struct {"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\tInputMicrousdPerMillion     int64"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\tOutputMicrousdPerMillion    int64"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\tCacheReadMicrousdPerMillion int64"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "type Gateway struct {"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\tProviders  map[string]Provider"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\tCache      Cache"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\tRecorder   Recorder"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\tPrices     map[string]Price"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\tTimeout    time.Duration"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\tCacheTTL   time.Duration"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\tMaxRetries int"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\tSleep      func(context.Context, time.Duration) error"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "func (g Gateway) Complete(ctx context.Context, request Request) (response Response, err error) {"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\tprovider := g.Providers[request.Provider]"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\tif provider == nil {"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t\treturn Response{}, fmt.Errorf(\"unknown LLM provider %q\", request.Provider)"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\tif request.Model == \"\" || request.Prompt == \"\" || request.MaxOutputTokens \u003c= 0 {"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\t\treturn Response{}, errors.New(\"LLM model, prompt, and positive output-token limit are required\")"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\tif request.Temperature \u003c 0 || request.Temperature \u003e 2 {"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\t\treturn Response{}, errors.New(\"LLM temperature must be between 0 and 2\")"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\tstarted := time.Now()"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\trecord := CallRecord{Provider: request.Provider, Model: request.Model}"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\tdefer func() {"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t\trecord.Duration = time.Since(started)"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\t\trecord.Usage = response.Usage"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t\trecord.Cached = response.Cached"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t\tif !response.Cached {"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\t\t\trecord.CostMicrousd = cost(g.Prices[request.Provider+\"/\"+request.Model], response.Usage)"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\t\t\trecord.Err = err.Error()"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t\tif g.Recorder != nil {"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\t\t\tg.Recorder.Record(ctx, record)"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\t}()"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\tcacheKey := promptKey(request)"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\tif g.Cache != nil {"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\t\tcached, ok, cacheErr := g.Cache.Get(ctx, cacheKey)"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\t\tif cacheErr != nil {"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\t\t\treturn Response{}, fmt.Errorf(\"read LLM prompt cache: %w\", cacheErr)"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "\t\tif ok {"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "\t\t\tcached.Cached = true"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\t\t\treturn cached, nil"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\ttimeout := g.Timeout"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\tif timeout \u003c= 0 {"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "\t\ttimeout = 90 * time.Second"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\tmaxRetries := g.MaxRetries"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\tif maxRetries \u003c 0 {"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\t\tmaxRetries = 0"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\tif maxRetries == 0 {"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\t\tmaxRetries = 2"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\tfor attempt := 0; ; attempt++ {"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\t\trecord.Attempts = attempt + 1"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\t\tcallCtx, cancel := context.WithTimeout(ctx, timeout)"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\t\tresponse, err = provider.Complete(callCtx, request)"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\t\tcancel()"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\t\tif err == nil {"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\t\t\tbreak"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "\t\tvar temporary interface{ Temporary() bool }"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "\t\tif attempt \u003e= maxRetries || !errors.As(err, \u0026temporary) || !temporary.Temporary() {"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "\t\t\treturn Response{}, err"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\t\tif sleepErr := g.sleep(ctx, time.Duration(1\u003c\u003cattempt)*time.Second); sleepErr != nil {"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\t\t\treturn Response{}, sleepErr"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "\tif response.Text == \"\" {"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "\t\treturn Response{}, errors.New(\"LLM provider returned an empty response\")"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "\tif response.Usage.InputTokens \u003c 0 || response.Usage.OutputTokens \u003c 0 || response.Usage.CacheReadTokens \u003c 0 {"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "\t\treturn Response{}, errors.New(\"LLM provider returned invalid token usage\")"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "\tif g.Cache != nil {"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "\t\tttl := g.CacheTTL"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "\t\tif ttl \u003c= 0 {"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "\t\t\tttl = 15 * time.Minute"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "\t\tif cacheErr := g.Cache.Put(ctx, cacheKey, response, ttl); cacheErr != nil {"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "\t\t\treturn Response{}, fmt.Errorf(\"write LLM prompt cache: %w\", cacheErr)"
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": "\treturn response, nil"
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": "func (g Gateway) sleep(ctx context.Context, duration time.Duration) error {"
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "\tif g.Sleep != nil {"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "\t\treturn g.Sleep(ctx, duration)"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "\ttimer := time.NewTimer(duration)"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "\tdefer timer.Stop()"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "\tselect {"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "\tcase \u003c-ctx.Done():"
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "\t\treturn ctx.Err()"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": "\tcase \u003c-timer.C:"
+            },
+            {
+              "newLine": 178,
+              "kind": "added",
+              "text": "\t\treturn nil"
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 180,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": "func promptKey(request Request) string {"
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": "\tdigest := sha256.Sum256([]byte(fmt.Sprintf(\"%s\\x00%s\\x00%s\\x00%s\\x00%d\\x00%g\", request.Provider, request.Model, request.System, request.Prompt, request.MaxOutputTokens, request.Temperature)))"
+            },
+            {
+              "newLine": 184,
+              "kind": "added",
+              "text": "\treturn hex.EncodeToString(digest[:])"
+            },
+            {
+              "newLine": 185,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 186,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "func cost(price Price, usage Usage) int64 {"
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": "\treturn (usage.InputTokens*price.InputMicrousdPerMillion + usage.OutputTokens*price.OutputMicrousdPerMillion + usage.CacheReadTokens*price.CacheReadMicrousdPerMillion) / 1_000_000"
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 190,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 191,
+              "kind": "added",
+              "text": "type memoryEntry struct {"
+            },
+            {
+              "newLine": 192,
+              "kind": "added",
+              "text": "\tresponse  Response"
+            },
+            {
+              "newLine": 193,
+              "kind": "added",
+              "text": "\texpiresAt time.Time"
+            },
+            {
+              "newLine": 194,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 195,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 196,
+              "kind": "added",
+              "text": "type MemoryCache struct {"
+            },
+            {
+              "newLine": 197,
+              "kind": "added",
+              "text": "\tNow func() time.Time"
+            },
+            {
+              "newLine": 198,
+              "kind": "added",
+              "text": "\tmu  sync.Mutex"
+            },
+            {
+              "newLine": 199,
+              "kind": "added",
+              "text": "\tset map[string]memoryEntry"
+            },
+            {
+              "newLine": 200,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 201,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 202,
+              "kind": "added",
+              "text": "func (c *MemoryCache) Get(_ context.Context, key string) (Response, bool, error) {"
+            },
+            {
+              "newLine": 203,
+              "kind": "added",
+              "text": "\tc.mu.Lock()"
+            },
+            {
+              "newLine": 204,
+              "kind": "added",
+              "text": "\tdefer c.mu.Unlock()"
+            },
+            {
+              "newLine": 205,
+              "kind": "added",
+              "text": "\tentry, ok := c.set[key]"
+            },
+            {
+              "newLine": 206,
+              "kind": "added",
+              "text": "\tif !ok || !entry.expiresAt.After(c.now()) {"
+            },
+            {
+              "newLine": 207,
+              "kind": "added",
+              "text": "\t\tdelete(c.set, key)"
+            },
+            {
+              "newLine": 208,
+              "kind": "added",
+              "text": "\t\treturn Response{}, false, nil"
+            },
+            {
+              "newLine": 209,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 210,
+              "kind": "added",
+              "text": "\treturn entry.response, true, nil"
+            },
+            {
+              "newLine": 211,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 212,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 213,
+              "kind": "added",
+              "text": "func (c *MemoryCache) Put(_ context.Context, key string, response Response, ttl time.Duration) error {"
+            },
+            {
+              "newLine": 214,
+              "kind": "added",
+              "text": "\tc.mu.Lock()"
+            },
+            {
+              "newLine": 215,
+              "kind": "added",
+              "text": "\tdefer c.mu.Unlock()"
+            },
+            {
+              "newLine": 216,
+              "kind": "added",
+              "text": "\tif c.set == nil {"
+            },
+            {
+              "newLine": 217,
+              "kind": "added",
+              "text": "\t\tc.set = map[string]memoryEntry{}"
+            },
+            {
+              "newLine": 218,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 219,
+              "kind": "added",
+              "text": "\tresponse.Cached = false"
+            },
+            {
+              "newLine": 220,
+              "kind": "added",
+              "text": "\tc.set[key] = memoryEntry{response: response, expiresAt: c.now().Add(ttl)}"
+            },
+            {
+              "newLine": 221,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 222,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 223,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 224,
+              "kind": "added",
+              "text": "func (c *MemoryCache) now() time.Time {"
+            },
+            {
+              "newLine": 225,
+              "kind": "added",
+              "text": "\tif c.Now != nil {"
+            },
+            {
+              "newLine": 226,
+              "kind": "added",
+              "text": "\t\treturn c.Now()"
+            },
+            {
+              "newLine": 227,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 228,
+              "kind": "added",
+              "text": "\treturn time.Now()"
+            },
+            {
+              "newLine": 229,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/llm/gateway_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/llm/gateway_test.go b/internal/hosted/llm/gateway_test.go\nnew file mode 100644\nindex 0000000..081b54e\n--- /dev/null\n+++ b/internal/hosted/llm/gateway_test.go\n@@ -0,0 +1,91 @@\n+package llm\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"sync\"\n+\t\"testing\"\n+\t\"time\"\n+)\n+\n+type temporaryError struct{}\n+\n+func (temporaryError) Error() string   { return \"try again\" }\n+func (temporaryError) Temporary() bool { return true }\n+\n+type fakeProvider struct {\n+\tmu       sync.Mutex\n+\tcalls    int\n+\tfailures int\n+}\n+\n+func (*fakeProvider) Name() string { return \"fake\" }\n+\n+func (p *fakeProvider) Complete(_ context.Context, _ Request) (Response, error) {\n+\tp.mu.Lock()\n+\tdefer p.mu.Unlock()\n+\tp.calls++\n+\tif p.calls \u003c= p.failures {\n+\t\treturn Response{}, temporaryError{}\n+\t}\n+\treturn Response{Text: \"review result\", Usage: Usage{InputTokens: 1000, OutputTokens: 200, CacheReadTokens: 500}}, nil\n+}\n+\n+type recordingSink struct {\n+\trecords []CallRecord\n+}\n+\n+func (r *recordingSink) Record(_ context.Context, record CallRecord) {\n+\tr.records = append(r.records, record)\n+}\n+\n+func TestGatewayRetriesRecordsCostAndCaches(t *testing.T) {\n+\tprovider := \u0026fakeProvider{failures: 1}\n+\trecorder := \u0026recordingSink{}\n+\tcache := \u0026MemoryCache{}\n+\tgateway := Gateway{\n+\t\tProviders: map[string]Provider{\"fake\": provider}, Cache: cache, Recorder: recorder,\n+\t\tPrices: map[string]Price{\"fake/model\": {InputMicrousdPerMillion: 1_000_000, OutputMicrousdPerMillion: 2_000_000, CacheReadMicrousdPerMillion: 500_000}},\n+\t\tSleep:  func(context.Context, time.Duration) error { return nil },\n+\t}\n+\trequest := Request{Provider: \"fake\", Model: \"model\", Prompt: \"review this diff\", MaxOutputTokens: 500}\n+\tfirst, err := gateway.Complete(context.Background(), request)\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif first.Cached || provider.calls != 2 {\n+\t\tt.Fatalf(\"first response cached=%v calls=%d\", first.Cached, provider.calls)\n+\t}\n+\tsecond, err := gateway.Complete(context.Background(), request)\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif !second.Cached || provider.calls != 2 {\n+\t\tt.Fatalf(\"second response cached=%v calls=%d\", second.Cached, provider.calls)\n+\t}\n+\tif len(recorder.records) != 2 || recorder.records[0].Attempts != 2 || recorder.records[1].Attempts != 0 {\n+\t\tt.Fatalf(\"records = %+v\", recorder.records)\n+\t}\n+\tif recorder.records[0].CostMicrousd != 1650 {\n+\t\tt.Fatalf(\"cost = %d microusd, want 1650\", recorder.records[0].CostMicrousd)\n+\t}\n+\tif recorder.records[1].CostMicrousd != 0 {\n+\t\tt.Fatalf(\"cached call cost = %d microusd, want 0\", recorder.records[1].CostMicrousd)\n+\t}\n+}\n+\n+func TestGatewayDoesNotRetryPermanentErrors(t *testing.T) {\n+\tprovider := permanentProvider{}\n+\tgateway := Gateway{Providers: map[string]Provider{\"permanent\": provider}, Sleep: func(context.Context, time.Duration) error { return errors.New(\"must not sleep\") }}\n+\t_, err := gateway.Complete(context.Background(), Request{Provider: \"permanent\", Model: \"model\", Prompt: \"prompt\", MaxOutputTokens: 1})\n+\tif err == nil || err.Error() != \"invalid request\" {\n+\t\tt.Fatalf(\"error = %v\", err)\n+\t}\n+}\n+\n+type permanentProvider struct{}\n+\n+func (permanentProvider) Name() string { return \"permanent\" }\n+func (permanentProvider) Complete(context.Context, Request) (Response, error) {\n+\treturn Response{}, errors.New(\"invalid request\")\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-def8d2fa26b130d8",
+          "header": "@@ -0,0 +1,91 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package llm"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"sync\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "type temporaryError struct{}"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "func (temporaryError) Error() string   { return \"try again\" }"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "func (temporaryError) Temporary() bool { return true }"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "type fakeProvider struct {"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tmu       sync.Mutex"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tcalls    int"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tfailures int"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "func (*fakeProvider) Name() string { return \"fake\" }"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "func (p *fakeProvider) Complete(_ context.Context, _ Request) (Response, error) {"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tp.mu.Lock()"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tdefer p.mu.Unlock()"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tp.calls++"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tif p.calls \u003c= p.failures {"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t\treturn Response{}, temporaryError{}"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\treturn Response{Text: \"review result\", Usage: Usage{InputTokens: 1000, OutputTokens: 200, CacheReadTokens: 500}}, nil"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "type recordingSink struct {"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\trecords []CallRecord"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "func (r *recordingSink) Record(_ context.Context, record CallRecord) {"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tr.records = append(r.records, record)"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "func TestGatewayRetriesRecordsCostAndCaches(t *testing.T) {"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tprovider := \u0026fakeProvider{failures: 1}"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\trecorder := \u0026recordingSink{}"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\tcache := \u0026MemoryCache{}"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\tgateway := Gateway{"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\tProviders: map[string]Provider{\"fake\": provider}, Cache: cache, Recorder: recorder,"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\tPrices: map[string]Price{\"fake/model\": {InputMicrousdPerMillion: 1_000_000, OutputMicrousdPerMillion: 2_000_000, CacheReadMicrousdPerMillion: 500_000}},"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\tSleep:  func(context.Context, time.Duration) error { return nil },"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\trequest := Request{Provider: \"fake\", Model: \"model\", Prompt: \"review this diff\", MaxOutputTokens: 500}"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\tfirst, err := gateway.Complete(context.Background(), request)"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\tif first.Cached || provider.calls != 2 {"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"first response cached=%v calls=%d\", first.Cached, provider.calls)"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\tsecond, err := gateway.Complete(context.Background(), request)"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\tif !second.Cached || provider.calls != 2 {"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"second response cached=%v calls=%d\", second.Cached, provider.calls)"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\tif len(recorder.records) != 2 || recorder.records[0].Attempts != 2 || recorder.records[1].Attempts != 0 {"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"records = %+v\", recorder.records)"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\tif recorder.records[0].CostMicrousd != 1650 {"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"cost = %d microusd, want 1650\", recorder.records[0].CostMicrousd)"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\tif recorder.records[1].CostMicrousd != 0 {"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"cached call cost = %d microusd, want 0\", recorder.records[1].CostMicrousd)"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "func TestGatewayDoesNotRetryPermanentErrors(t *testing.T) {"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\tprovider := permanentProvider{}"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\tgateway := Gateway{Providers: map[string]Provider{\"permanent\": provider}, Sleep: func(context.Context, time.Duration) error { return errors.New(\"must not sleep\") }}"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t_, err := gateway.Complete(context.Background(), Request{Provider: \"permanent\", Model: \"model\", Prompt: \"prompt\", MaxOutputTokens: 1})"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\tif err == nil || err.Error() != \"invalid request\" {"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"error = %v\", err)"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "type permanentProvider struct{}"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "func (permanentProvider) Name() string { return \"permanent\" }"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "func (permanentProvider) Complete(context.Context, Request) (Response, error) {"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\treturn Response{}, errors.New(\"invalid request\")"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/llm/providers.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/llm/providers.go b/internal/hosted/llm/providers.go\nnew file mode 100644\nindex 0000000..8d205e5\n--- /dev/null\n+++ b/internal/hosted/llm/providers.go\n@@ -0,0 +1,161 @@\n+package llm\n+\n+import (\n+\t\"bytes\"\n+\t\"context\"\n+\t\"encoding/json\"\n+\t\"fmt\"\n+\t\"io\"\n+\t\"net/http\"\n+\t\"strings\"\n+)\n+\n+type ProviderError struct {\n+\tProviderName string\n+\tStatusCode   int\n+\tRetry        bool\n+}\n+\n+func (e ProviderError) Error() string {\n+\treturn fmt.Sprintf(\"%s LLM request failed with status %d\", e.ProviderName, e.StatusCode)\n+}\n+\n+func (e ProviderError) Temporary() bool { return e.Retry }\n+\n+type OpenAIProvider struct {\n+\tAPIKey   string\n+\tEndpoint string\n+\tHTTP     *http.Client\n+}\n+\n+func (OpenAIProvider) Name() string { return \"openai\" }\n+\n+func (p OpenAIProvider) Complete(ctx context.Context, request Request) (Response, error) {\n+\tpayload := map[string]any{\n+\t\t\"model\":             request.Model,\n+\t\t\"input\":             []map[string]string{{\"role\": \"system\", \"content\": request.System}, {\"role\": \"user\", \"content\": request.Prompt}},\n+\t\t\"max_output_tokens\": request.MaxOutputTokens,\n+\t}\n+\tendpoint := p.Endpoint\n+\tif endpoint == \"\" {\n+\t\tendpoint = \"https://api.openai.com/v1/responses\"\n+\t}\n+\tvar decoded struct {\n+\t\tID     string `json:\"id\"`\n+\t\tOutput []struct {\n+\t\t\tContent []struct {\n+\t\t\t\tText string `json:\"text\"`\n+\t\t\t} `json:\"content\"`\n+\t\t} `json:\"output\"`\n+\t\tUsage struct {\n+\t\t\tInputTokens  int64 `json:\"input_tokens\"`\n+\t\t\tOutputTokens int64 `json:\"output_tokens\"`\n+\t\t\tInputDetails struct {\n+\t\t\t\tCachedTokens int64 `json:\"cached_tokens\"`\n+\t\t\t} `json:\"input_tokens_details\"`\n+\t\t} `json:\"usage\"`\n+\t}\n+\tif err := postJSON(ctx, p.HTTP, endpoint, map[string]string{\"Authorization\": \"Bearer \" + p.APIKey}, payload, \u0026decoded, \"openai\"); err != nil {\n+\t\treturn Response{}, err\n+\t}\n+\tvar text strings.Builder\n+\tfor _, output := range decoded.Output {\n+\t\tfor _, content := range output.Content {\n+\t\t\ttext.WriteString(content.Text)\n+\t\t}\n+\t}\n+\treturn Response{Text: text.String(), RequestID: decoded.ID, Usage: Usage{InputTokens: decoded.Usage.InputTokens, OutputTokens: decoded.Usage.OutputTokens, CacheReadTokens: decoded.Usage.InputDetails.CachedTokens}}, nil\n+}\n+\n+type AnthropicProvider struct {\n+\tAPIKey   string\n+\tEndpoint string\n+\tVersion  string\n+\tHTTP     *http.Client\n+}\n+\n+func (AnthropicProvider) Name() string { return \"anthropic\" }\n+\n+func (p AnthropicProvider) Complete(ctx context.Context, request Request) (Response, error) {\n+\tpayload := map[string]any{\n+\t\t\"model\": request.Model, \"system\": request.System,\n+\t\t\"messages\":   []map[string]string{{\"role\": \"user\", \"content\": request.Prompt}},\n+\t\t\"max_tokens\": request.MaxOutputTokens, \"temperature\": request.Temperature,\n+\t}\n+\tendpoint := p.Endpoint\n+\tif endpoint == \"\" {\n+\t\tendpoint = \"https://api.anthropic.com/v1/messages\"\n+\t}\n+\tversion := p.Version\n+\tif version == \"\" {\n+\t\tversion = \"2023-06-01\"\n+\t}\n+\tvar decoded struct {\n+\t\tID      string `json:\"id\"`\n+\t\tContent []struct {\n+\t\t\tText string `json:\"text\"`\n+\t\t} `json:\"content\"`\n+\t\tUsage struct {\n+\t\t\tInputTokens          int64 `json:\"input_tokens\"`\n+\t\t\tOutputTokens         int64 `json:\"output_tokens\"`\n+\t\t\tCacheReadInputTokens int64 `json:\"cache_read_input_tokens\"`\n+\t\t} `json:\"usage\"`\n+\t}\n+\tif err := postJSON(ctx, p.HTTP, endpoint, map[string]string{\"x-api-key\": p.APIKey, \"anthropic-version\": version}, payload, \u0026decoded, \"anthropic\"); err != nil {\n+\t\treturn Response{}, err\n+\t}\n+\tvar text strings.Builder\n+\tfor _, content := range decoded.Content {\n+\t\ttext.WriteString(content.Text)\n+\t}\n+\treturn Response{Text: text.String(), RequestID: decoded.ID, Usage: Usage{InputTokens: decoded.Usage.InputTokens, OutputTokens: decoded.Usage.OutputTokens, CacheReadTokens: decoded.Usage.CacheReadInputTokens}}, nil\n+}\n+\n+// BedrockInvoker is implemented by the deployment's AWS SDK adapter. Keeping\n+// signing outside this package makes the gateway testable and avoids handling\n+// long-lived AWS credentials.\n+type BedrockInvoker interface {\n+\tInvokeModel(context.Context, string, Request) (Response, error)\n+}\n+\n+type BedrockProvider struct{ Invoker BedrockInvoker }\n+\n+func (BedrockProvider) Name() string { return \"bedrock\" }\n+\n+func (p BedrockProvider) Complete(ctx context.Context, request Request) (Response, error) {\n+\tif p.Invoker == nil {\n+\t\treturn Response{}, fmt.Errorf(\"bedrock invoker is required\")\n+\t}\n+\treturn p.Invoker.InvokeModel(ctx, request.Model, request)\n+}\n+\n+func postJSON(ctx context.Context, client *http.Client, endpoint string, headers map[string]string, payload any, output any, provider string) error {\n+\tbody, err := json.Marshal(payload)\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\trequest, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\trequest.Header.Set(\"Content-Type\", \"application/json\")\n+\tfor name, value := range headers {\n+\t\trequest.Header.Set(name, value)\n+\t}\n+\tif client == nil {\n+\t\tclient = http.DefaultClient\n+\t}\n+\tresponse, err := client.Do(request)\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\tdefer response.Body.Close()\n+\tif response.StatusCode \u003c 200 || response.StatusCode \u003e= 300 {\n+\t\t_, _ = io.Copy(io.Discard, response.Body)\n+\t\treturn ProviderError{ProviderName: provider, StatusCode: response.StatusCode, Retry: response.StatusCode == http.StatusTooManyRequests || response.StatusCode \u003e= 500}\n+\t}\n+\tif err := json.NewDecoder(io.LimitReader(response.Body, 8\u003c\u003c20)).Decode(output); err != nil {\n+\t\treturn fmt.Errorf(\"decode %s LLM response: %w\", provider, err)\n+\t}\n+\treturn nil\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-4f435243611fb64b",
+          "header": "@@ -0,0 +1,161 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package llm"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"bytes\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"io\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"net/http\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "type ProviderError struct {"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tProviderName string"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tStatusCode   int"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tRetry        bool"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "func (e ProviderError) Error() string {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\treturn fmt.Sprintf(\"%s LLM request failed with status %d\", e.ProviderName, e.StatusCode)"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "func (e ProviderError) Temporary() bool { return e.Retry }"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "type OpenAIProvider struct {"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tAPIKey   string"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tEndpoint string"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tHTTP     *http.Client"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "func (OpenAIProvider) Name() string { return \"openai\" }"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "func (p OpenAIProvider) Complete(ctx context.Context, request Request) (Response, error) {"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tpayload := map[string]any{"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t\t\"model\":             request.Model,"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t\t\"input\":             []map[string]string{{\"role\": \"system\", \"content\": request.System}, {\"role\": \"user\", \"content\": request.Prompt}},"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t\t\"max_output_tokens\": request.MaxOutputTokens,"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tendpoint := p.Endpoint"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tif endpoint == \"\" {"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t\tendpoint = \"https://api.openai.com/v1/responses\""
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tvar decoded struct {"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t\tID     string `json:\"id\"`"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t\tOutput []struct {"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t\t\tContent []struct {"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\t\t\tText string `json:\"text\"`"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\t\t} `json:\"content\"`"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\t} `json:\"output\"`"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t\tUsage struct {"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t\t\tInputTokens  int64 `json:\"input_tokens\"`"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\t\tOutputTokens int64 `json:\"output_tokens\"`"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t\t\tInputDetails struct {"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\t\t\tCachedTokens int64 `json:\"cached_tokens\"`"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t\t\t} `json:\"input_tokens_details\"`"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t\t} `json:\"usage\"`"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\tif err := postJSON(ctx, p.HTTP, endpoint, map[string]string{\"Authorization\": \"Bearer \" + p.APIKey}, payload, \u0026decoded, \"openai\"); err != nil {"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t\treturn Response{}, err"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\tvar text strings.Builder"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\tfor _, output := range decoded.Output {"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t\tfor _, content := range output.Content {"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t\t\ttext.WriteString(content.Text)"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\treturn Response{Text: text.String(), RequestID: decoded.ID, Usage: Usage{InputTokens: decoded.Usage.InputTokens, OutputTokens: decoded.Usage.OutputTokens, CacheReadTokens: decoded.Usage.InputDetails.CachedTokens}}, nil"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "type AnthropicProvider struct {"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\tAPIKey   string"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\tEndpoint string"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\tVersion  string"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\tHTTP     *http.Client"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "func (AnthropicProvider) Name() string { return \"anthropic\" }"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "func (p AnthropicProvider) Complete(ctx context.Context, request Request) (Response, error) {"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\tpayload := map[string]any{"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\t\t\"model\": request.Model, \"system\": request.System,"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\t\t\"messages\":   []map[string]string{{\"role\": \"user\", \"content\": request.Prompt}},"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t\t\"max_tokens\": request.MaxOutputTokens, \"temperature\": request.Temperature,"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\tendpoint := p.Endpoint"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\tif endpoint == \"\" {"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\t\tendpoint = \"https://api.anthropic.com/v1/messages\""
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\tversion := p.Version"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\tif version == \"\" {"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t\tversion = \"2023-06-01\""
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\tvar decoded struct {"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t\tID      string `json:\"id\"`"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t\tContent []struct {"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\t\t\tText string `json:\"text\"`"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t\t} `json:\"content\"`"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t\tUsage struct {"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\t\t\tInputTokens          int64 `json:\"input_tokens\"`"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\t\t\tOutputTokens         int64 `json:\"output_tokens\"`"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\t\t\tCacheReadInputTokens int64 `json:\"cache_read_input_tokens\"`"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\t\t} `json:\"usage\"`"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\tif err := postJSON(ctx, p.HTTP, endpoint, map[string]string{\"x-api-key\": p.APIKey, \"anthropic-version\": version}, payload, \u0026decoded, \"anthropic\"); err != nil {"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\t\treturn Response{}, err"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\tvar text strings.Builder"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\tfor _, content := range decoded.Content {"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\t\ttext.WriteString(content.Text)"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\treturn Response{Text: text.String(), RequestID: decoded.ID, Usage: Usage{InputTokens: decoded.Usage.InputTokens, OutputTokens: decoded.Usage.OutputTokens, CacheReadTokens: decoded.Usage.CacheReadInputTokens}}, nil"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "// BedrockInvoker is implemented by the deployment's AWS SDK adapter. Keeping"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "// signing outside this package makes the gateway testable and avoids handling"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "// long-lived AWS credentials."
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "type BedrockInvoker interface {"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\tInvokeModel(context.Context, string, Request) (Response, error)"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "type BedrockProvider struct{ Invoker BedrockInvoker }"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "func (BedrockProvider) Name() string { return \"bedrock\" }"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "func (p BedrockProvider) Complete(ctx context.Context, request Request) (Response, error) {"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\tif p.Invoker == nil {"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\t\treturn Response{}, fmt.Errorf(\"bedrock invoker is required\")"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\treturn p.Invoker.InvokeModel(ctx, request.Model, request)"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "func postJSON(ctx context.Context, client *http.Client, endpoint string, headers map[string]string, payload any, output any, provider string) error {"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\tbody, err := json.Marshal(payload)"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\trequest, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "\trequest.Header.Set(\"Content-Type\", \"application/json\")"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "\tfor name, value := range headers {"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "\t\trequest.Header.Set(name, value)"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\tif client == nil {"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\t\tclient = http.DefaultClient"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "\tresponse, err := client.Do(request)"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "\tdefer response.Body.Close()"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "\tif response.StatusCode \u003c 200 || response.StatusCode \u003e= 300 {"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "\t\t_, _ = io.Copy(io.Discard, response.Body)"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "\t\treturn ProviderError{ProviderName: provider, StatusCode: response.StatusCode, Retry: response.StatusCode == http.StatusTooManyRequests || response.StatusCode \u003e= 500}"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "\tif err := json.NewDecoder(io.LimitReader(response.Body, 8\u003c\u003c20)).Decode(output); err != nil {"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "\t\treturn fmt.Errorf(\"decode %s LLM response: %w\", provider, err)"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-f3c8040f392dfbe9",
+      "title": "Gateway changes",
+      "summary": "3 related files share the \"gateway\" change signal.",
+      "paths": [
+        "internal/hosted/llm/gateway.go",
+        "internal/hosted/llm/gateway_test.go",
+        "internal/hosted/llm/providers.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-2c21071b1387d2b8",
+      "path": "internal/hosted/llm/gateway.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/llm/gateway_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-9cbd70bb387e7508",
+      "path": "internal/hosted/llm/gateway.go",
+      "line": 80,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func (g Gateway) Complete(ctx context.Context, request Request) (response Response, err error) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    },
+    {
+      "id": "inspect-357d571087bc3f14",
+      "path": "internal/hosted/llm/providers.go",
+      "line": 19,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func (e ProviderError) Error() string {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 3,
+    "filesAnalyzed": 3,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "gateway-controls",
+      "path": "internal/hosted/llm/gateway.go",
+      "lineStart": 80,
+      "lineEnd": 150,
+      "title": "Bounded provider calls",
+      "summary": "Calls now validate required inputs, apply a timeout to each provider attempt, and retry temporary failures with backoff. By default, the gateway allows two retries."
+    },
+    {
+      "id": "call-recording",
+      "path": "internal/hosted/llm/gateway.go",
+      "lineStart": 92,
+      "lineEnd": 104,
+      "title": "Observable usage and cost",
+      "summary": "Each validated call is recorded with its duration, attempts, usage, estimated cost, cache status, and any error. Cached calls are recorded with zero cost."
+    },
+    {
+      "id": "prompt-cache",
+      "path": "internal/hosted/llm/gateway.go",
+      "lineStart": 106,
+      "lineEnd": 181,
+      "title": "Prompt response caching",
+      "summary": "The gateway caches successful responses using a key derived from the provider, model, prompt settings, and token limit. The default cache lifetime is 15 minutes; a cache hit skips the provider call."
+    },
+    {
+      "id": "provider-adapters",
+      "path": "internal/hosted/llm/providers.go",
+      "lineStart": 25,
+      "lineEnd": 161,
+      "title": "Multiple provider adapters",
+      "summary": "The package adds OpenAI and Anthropic HTTP adapters that translate provider responses into a common text, request ID, and token-usage format, plus a Bedrock adapter that delegates invocation to an injected implementation."
+    },
+    {
+      "id": "http-retries",
+      "path": "internal/hosted/llm/providers.go",
+      "lineStart": 147,
+      "lineEnd": 161,
+      "title": "Retryable HTTP failures",
+      "summary": "HTTP 429 and 5xx responses are marked as retryable, so the gateway can retry those provider failures while leaving other HTTP status errors non-retryable."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "07ebf231a9edf64291529cccba3e6a91ba8dd402",
+      "revision": "57b83bb73624166476e3e85412cbb07655a8c40e",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "07ebf231a9edf64291529cccba3e6a91ba8dd402",
+      "revision": "57b83bb73624166476e3e85412cbb07655a8c40e",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "57b83bb73624166476e3e85412cbb07655a8c40e",
+      "detail": "5 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "57b83bb73624166476e3e85412cbb07655a8c40e",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-9d6afc6e2d5434cb",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/llm/gateway.go",
+      "line": 80,
+      "evidence": "func (g Gateway) Complete(ctx context.Context, request Request) (response Response, err error) {"
+    },
+    {
+      "id": "attention-ffd42cfac96d4081",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/llm/providers.go",
+      "line": 19,
+      "evidence": "func (e ProviderError) Error() string {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "57b83bb73624166476e3e85412cbb07655a8c40e",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40031969986",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40031969986/job/120682426579",
+        "startedAt": "2026-10-23T22:12:09Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40031969970/job/120682143027",
+        "startedAt": "2026-10-23T22:11:22Z"
+      }
+    ]
+  }
+}
