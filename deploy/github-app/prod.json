@@ -1,0 +1,29 @@
+{
+  "name": "px1",
+  "url": "https://app.px1.dev",
+  "hook_attributes": {
+    "url": "https://api.px1.dev/webhooks/github",
+    "active": true
+  },
+  "redirect_url": "https://app.px1.dev/setup/github/manifest/callback",
+  "callback_urls": ["https://app.px1.dev/auth/github/callback"],
+  "setup_url": "https://app.px1.dev/setup/github/installation",
+  "request_oauth_on_install": true,
+  "setup_on_update": true,
+  "public": true,
+  "default_permissions": {
+    "checks": "write",
+    "contents": "read",
+    "issues": "write",
+    "metadata": "read",
+    "pull_requests": "write"
+  },
+  "default_events": [
+    "installation",
+    "installation_repositories",
+    "issue_comment",
+    "pull_request",
+    "pull_request_review_comment",
+    "push"
+  ]
+}
