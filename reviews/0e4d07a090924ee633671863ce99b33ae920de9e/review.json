@@ -1,0 +1,1310 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "07ebf231a9edf64291529cccba3e6a91ba8dd402",
+  "head": "0e4d07a090924ee633671863ce99b33ae920de9e",
+  "generatedAt": "2026-10-23T22:11:40.571020293Z",
+  "files": [
+    {
+      "path": "AGENT.md",
+      "status": "M",
+      "diff": "diff --git a/AGENT.md b/AGENT.md\nindex ca6873a..03dfb45 100644\n--- a/AGENT.md\n+++ b/AGENT.md\n@@ -5,17 +5,19 @@ Prioritize human inspection and decisions, including code without findings.\n Keep file-review progress independent of automated finding acknowledgements;\n neither is proof of correctness or a GitHub approval.\n \n-px1 has one product shape: GitHub Actions generates a commit-pinned static\n-review artifact, then a PR comment links to either an access-controlled Actions\n-download or a deliberately published GitHub Pages report.\n+px1 has two compatible product shapes. The free GitHub Action generates a\n+commit-pinned static review artifact. The hosted product adds a GitHub App,\n+repository indexing, evidence-backed AI findings, and authenticated report\n+hosting while preserving that report and the human file-review workflow.\n \n-Keep changes inside that boundary. Do not reintroduce a local server, workspace\n-browser, mutable review sessions, agent editing, self-hosted imports, accounts,\n-or hosted application state.\n+Hosted changes must keep tenant boundaries explicit and must not execute pull\n+request code. Local agent editing and automatic approval remain outside the v1\n+hosted scope. The free Action stays maintained for open-source and self-run use.\n \n Every product change should preserve explicit base/head identity, avoid\n-executing PR code, and keep approval in GitHub. Update the README, product\n-vision, roadmap, contracts, and fixture tests when behavior changes.\n+executing PR code, and keep approval in GitHub. AI findings must expose their\n+evidence and verifier result rather than acting as proof. Update the README,\n+product vision, roadmap, contracts, and fixture tests when behavior changes.\n \n Before opening a PR, run `go test ./...`, `go test -race ./...`, `go vet ./...`,\n and generate one report from two commits.\n",
+      "hunks": [
+        {
+          "id": "diff-44e78e479313576a",
+          "header": "@@ -5,17 +5,19 @@ Prioritize human inspection and decisions, including code without findings.",
+          "lines": [
+            {
+              "oldLine": 5,
+              "newLine": 5,
+              "kind": "context",
+              "text": "Keep file-review progress independent of automated finding acknowledgements;"
+            },
+            {
+              "oldLine": 6,
+              "newLine": 6,
+              "kind": "context",
+              "text": "neither is proof of correctness or a GitHub approval."
+            },
+            {
+              "oldLine": 7,
+              "newLine": 7,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 8,
+              "kind": "removed",
+              "text": "px1 has one product shape: GitHub Actions generates a commit-pinned static"
+            },
+            {
+              "oldLine": 9,
+              "kind": "removed",
+              "text": "review artifact, then a PR comment links to either an access-controlled Actions"
+            },
+            {
+              "oldLine": 10,
+              "kind": "removed",
+              "text": "download or a deliberately published GitHub Pages report."
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "px1 has two compatible product shapes. The free GitHub Action generates a"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "commit-pinned static review artifact. The hosted product adds a GitHub App,"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "repository indexing, evidence-backed AI findings, and authenticated report"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "hosting while preserving that report and the human file-review workflow."
+            },
+            {
+              "oldLine": 11,
+              "newLine": 12,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 12,
+              "kind": "removed",
+              "text": "Keep changes inside that boundary. Do not reintroduce a local server, workspace"
+            },
+            {
+              "oldLine": 13,
+              "kind": "removed",
+              "text": "browser, mutable review sessions, agent editing, self-hosted imports, accounts,"
+            },
+            {
+              "oldLine": 14,
+              "kind": "removed",
+              "text": "or hosted application state."
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "Hosted changes must keep tenant boundaries explicit and must not execute pull"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "request code. Local agent editing and automatic approval remain outside the v1"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "hosted scope. The free Action stays maintained for open-source and self-run use."
+            },
+            {
+              "oldLine": 15,
+              "newLine": 16,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 16,
+              "newLine": 17,
+              "kind": "context",
+              "text": "Every product change should preserve explicit base/head identity, avoid"
+            },
+            {
+              "oldLine": 17,
+              "kind": "removed",
+              "text": "executing PR code, and keep approval in GitHub. Update the README, product"
+            },
+            {
+              "oldLine": 18,
+              "kind": "removed",
+              "text": "vision, roadmap, contracts, and fixture tests when behavior changes."
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "executing PR code, and keep approval in GitHub. AI findings must expose their"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "evidence and verifier result rather than acting as proof. Update the README,"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "product vision, roadmap, contracts, and fixture tests when behavior changes."
+            },
+            {
+              "oldLine": 19,
+              "newLine": 21,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 20,
+              "newLine": 22,
+              "kind": "context",
+              "text": "Before opening a PR, run `go test ./...`, `go test -race ./...`, `go vet ./...`,"
+            },
+            {
+              "oldLine": 21,
+              "newLine": 23,
+              "kind": "context",
+              "text": "and generate one report from two commits."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "README.md",
+      "status": "M",
+      "diff": "diff --git a/README.md b/README.md\nindex 2b15bbd..733d30f 100644\n--- a/README.md\n+++ b/README.md\n@@ -18,9 +18,13 @@ generates the static report for exact base and head commits; a PR comment links\n to either an authenticated Actions download or a deliberately published GitHub\n Pages report.\n \n-px1 does not host a SaaS, start a local application, edit code, or replace\n-GitHub review decisions. It creates context; approval and change requests stay\n-in GitHub.\n+The released px1 Action does not require a SaaS, start a local application, edit\n+code, or replace GitHub review decisions. A hosted GitHub App is the next\n+roadmap checkpoint; the Action remains the free self-run mode. In both modes,\n+approval and change requests stay in GitHub.\n+\n+See [the hosted v1 architecture decision](docs/HOSTED_ARCHITECTURE.md) for the\n+planned GitHub App, indexing, queue, storage, and security boundaries.\n \n ## What reviewers get\n \n",
+      "hunks": [
+        {
+          "id": "diff-ed7063647e89e259",
+          "header": "@@ -18,9 +18,13 @@ generates the static report for exact base and head commits; a PR comment links",
+          "lines": [
+            {
+              "oldLine": 18,
+              "newLine": 18,
+              "kind": "context",
+              "text": "to either an authenticated Actions download or a deliberately published GitHub"
+            },
+            {
+              "oldLine": 19,
+              "newLine": 19,
+              "kind": "context",
+              "text": "Pages report."
+            },
+            {
+              "oldLine": 20,
+              "newLine": 20,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 21,
+              "kind": "removed",
+              "text": "px1 does not host a SaaS, start a local application, edit code, or replace"
+            },
+            {
+              "oldLine": 22,
+              "kind": "removed",
+              "text": "GitHub review decisions. It creates context; approval and change requests stay"
+            },
+            {
+              "oldLine": 23,
+              "kind": "removed",
+              "text": "in GitHub."
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "The released px1 Action does not require a SaaS, start a local application, edit"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "code, or replace GitHub review decisions. A hosted GitHub App is the next"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "roadmap checkpoint; the Action remains the free self-run mode. In both modes,"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "approval and change requests stay in GitHub."
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "See [the hosted v1 architecture decision](docs/HOSTED_ARCHITECTURE.md) for the"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "planned GitHub App, indexing, queue, storage, and security boundaries."
+            },
+            {
+              "oldLine": 24,
+              "newLine": 28,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 25,
+              "newLine": 29,
+              "kind": "context",
+              "text": "## What reviewers get"
+            },
+            {
+              "oldLine": 26,
+              "newLine": 30,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/ROADMAP.md b/ROADMAP.md\nindex 13a042d..697a672 100644\n--- a/ROADMAP.md\n+++ b/ROADMAP.md\n@@ -7,14 +7,39 @@ coding to an agent. Acknowledging AI findings is insufficient: reviewers need\n to challenge incorrect findings and inspect code with no findings. The roadmap\n prioritizes that outcome over expanding automated detection.\n \n-px1 has one product shape with two explicit delivery choices:\n+px1 currently ships one Action-based product shape with two delivery choices:\n \n ```text\n push PR → GitHub Action → static review artifact → authenticated download or deliberate Pages publication → PR link\n ```\n \n-Local code browsing, local review sessions, agent editing, self-hosted imports,\n-accounts, and a managed SaaS are outside the product.\n+The Action remains the free, self-run mode. The next product checkpoint adds a\n+hosted GitHub App without removing the commit-pinned report or human review\n+progress that make px1 auditable.\n+\n+## Hosted v1: context-aware PR bot\n+\n+The hosted v1 is built in small, independently reviewable changes. Its first\n+backend-foundation tasks are:\n+\n+1. [x] **Choose the hosted stack.** Go API and workers, PostgreSQL 16 with\n+   pgvector, River for transactional jobs, and S3-compatible object storage.\n+   See [the hosted architecture decision](docs/HOSTED_ARCHITECTURE.md).\n+2. [ ] **Prepare GitHub App registration.** Separate development and production\n+   manifests, least-privilege permissions, webhook subscriptions, and a\n+   secrets-manager handoff for private keys.\n+3. [ ] **Build webhook ingestion.** Verify HMAC-SHA256 signatures, deduplicate\n+   delivery IDs, enqueue accepted events, and acknowledge within one second.\n+4. [ ] **Create the hosted schema.** Installations, repositories, indexed files\n+   and chunks, pull requests, reviews, findings, comments, feedback, and jobs.\n+5. [ ] **Add the GitHub installation client.** Mint and cache installation\n+   tokens, respect primary and secondary rate limits, and retry safely.\n+6. [ ] **Add the LLM gateway.** One bounded interface for OpenAI, Anthropic, and\n+   Bedrock with timeout, retry, prompt-cache, token, and cost telemetry.\n+\n+The v1 review pipeline, indexing, report hosting, evaluation, and launch gates\n+follow these foundations. AI findings must remain auditable: evidence,\n+retrieved context, confidence inputs, and verifier disposition are visible.\n \n ## Current foundation\n \n@@ -106,8 +131,10 @@ are no longer active roadmap work.\n ## Product constraints\n \n - Never execute code from an untrusted PR head.\n-- Never require an account or px1-hosted backend.\n+- Keep the GitHub Action usable without a px1 account or hosted backend.\n - Keep reports tied to one full head SHA.\n - Keep approval and requests for changes in GitHub.\n-- Treat AI output as explanation, not proof.\n+- Treat AI output as a finding to verify, never as proof.\n - Prefer evidence visible in the diff over opaque scores.\n+- Put a tenant identifier on every hosted data row and test isolation.\n+- Never execute pull-request code during review or indexing.\n",
+      "hunks": [
+        {
+          "id": "diff-c0901603fc0f5ad8",
+          "header": "@@ -7,14 +7,39 @@ coding to an agent. Acknowledging AI findings is insufficient: reviewers need",
+          "lines": [
+            {
+              "oldLine": 7,
+              "newLine": 7,
+              "kind": "context",
+              "text": "to challenge incorrect findings and inspect code with no findings. The roadmap"
+            },
+            {
+              "oldLine": 8,
+              "newLine": 8,
+              "kind": "context",
+              "text": "prioritizes that outcome over expanding automated detection."
+            },
+            {
+              "oldLine": 9,
+              "newLine": 9,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 10,
+              "kind": "removed",
+              "text": "px1 has one product shape with two explicit delivery choices:"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "px1 currently ships one Action-based product shape with two delivery choices:"
+            },
+            {
+              "oldLine": 11,
+              "newLine": 11,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 12,
+              "newLine": 12,
+              "kind": "context",
+              "text": "```text"
+            },
+            {
+              "oldLine": 13,
+              "newLine": 13,
+              "kind": "context",
+              "text": "push PR → GitHub Action → static review artifact → authenticated download or deliberate Pages publication → PR link"
+            },
+            {
+              "oldLine": 14,
+              "newLine": 14,
+              "kind": "context",
+              "text": "```"
+            },
+            {
+              "oldLine": 15,
+              "newLine": 15,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 16,
+              "kind": "removed",
+              "text": "Local code browsing, local review sessions, agent editing, self-hosted imports,"
+            },
+            {
+              "oldLine": 17,
+              "kind": "removed",
+              "text": "accounts, and a managed SaaS are outside the product."
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "The Action remains the free, self-run mode. The next product checkpoint adds a"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "hosted GitHub App without removing the commit-pinned report or human review"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "progress that make px1 auditable."
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "## Hosted v1: context-aware PR bot"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "The hosted v1 is built in small, independently reviewable changes. Its first"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "backend-foundation tasks are:"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "1. [x] **Choose the hosted stack.** Go API and workers, PostgreSQL 16 with"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "   pgvector, River for transactional jobs, and S3-compatible object storage."
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "   See [the hosted architecture decision](docs/HOSTED_ARCHITECTURE.md)."
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "2. [ ] **Prepare GitHub App registration.** Separate development and production"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "   manifests, least-privilege permissions, webhook subscriptions, and a"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "   secrets-manager handoff for private keys."
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "3. [ ] **Build webhook ingestion.** Verify HMAC-SHA256 signatures, deduplicate"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "   delivery IDs, enqueue accepted events, and acknowledge within one second."
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "4. [ ] **Create the hosted schema.** Installations, repositories, indexed files"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "   and chunks, pull requests, reviews, findings, comments, feedback, and jobs."
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "5. [ ] **Add the GitHub installation client.** Mint and cache installation"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "   tokens, respect primary and secondary rate limits, and retry safely."
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "6. [ ] **Add the LLM gateway.** One bounded interface for OpenAI, Anthropic, and"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "   Bedrock with timeout, retry, prompt-cache, token, and cost telemetry."
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "The v1 review pipeline, indexing, report hosting, evaluation, and launch gates"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "follow these foundations. AI findings must remain auditable: evidence,"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "retrieved context, confidence inputs, and verifier disposition are visible."
+            },
+            {
+              "oldLine": 18,
+              "newLine": 43,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 19,
+              "newLine": 44,
+              "kind": "context",
+              "text": "## Current foundation"
+            },
+            {
+              "oldLine": 20,
+              "newLine": 45,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        },
+        {
+          "id": "diff-28205102e2d2facc",
+          "header": "@@ -106,8 +131,10 @@ are no longer active roadmap work.",
+          "lines": [
+            {
+              "oldLine": 106,
+              "newLine": 131,
+              "kind": "context",
+              "text": "## Product constraints"
+            },
+            {
+              "oldLine": 107,
+              "newLine": 132,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 108,
+              "newLine": 133,
+              "kind": "context",
+              "text": "- Never execute code from an untrusted PR head."
+            },
+            {
+              "oldLine": 109,
+              "kind": "removed",
+              "text": "- Never require an account or px1-hosted backend."
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "- Keep the GitHub Action usable without a px1 account or hosted backend."
+            },
+            {
+              "oldLine": 110,
+              "newLine": 135,
+              "kind": "context",
+              "text": "- Keep reports tied to one full head SHA."
+            },
+            {
+              "oldLine": 111,
+              "newLine": 136,
+              "kind": "context",
+              "text": "- Keep approval and requests for changes in GitHub."
+            },
+            {
+              "oldLine": 112,
+              "kind": "removed",
+              "text": "- Treat AI output as explanation, not proof."
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "- Treat AI output as a finding to verify, never as proof."
+            },
+            {
+              "oldLine": 113,
+              "newLine": 138,
+              "kind": "context",
+              "text": "- Prefer evidence visible in the diff over opaque scores."
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "- Put a tenant identifier on every hosted data row and test isolation."
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "- Never execute pull-request code during review or indexing."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/HOSTED_ARCHITECTURE.md",
+      "status": "A",
+      "diff": "diff --git a/docs/HOSTED_ARCHITECTURE.md b/docs/HOSTED_ARCHITECTURE.md\nnew file mode 100644\nindex 0000000..69a3332\n--- /dev/null\n+++ b/docs/HOSTED_ARCHITECTURE.md\n@@ -0,0 +1,54 @@\n+# Hosted v1 architecture decision\n+\n+Status: accepted for the hosted v1 foundation.\n+\n+px1's hosted product is a GitHub App that indexes repositories and reviews pull\n+requests while retaining the existing commit-pinned report and file-by-file\n+human review workflow. The free GitHub Action remains a separate self-run mode.\n+\n+## Stack\n+\n+| Layer | Decision | Boundary |\n+| --- | --- | --- |\n+| API and workers | Go | Reuse diff, rules, evidence, and report code. |\n+| Database | PostgreSQL 16 with pgvector | Tenant-scoped metadata, chunks, findings, and feedback. |\n+| Queue | River on PostgreSQL | Transactional enqueue without another broker. |\n+| Object storage | S3-compatible API | Commit-pinned reports and bounded shallow clones. |\n+| Repository parsing | tree-sitter, with line-window fallback | Parse data only; never execute pull-request code. |\n+| Observability | OpenTelemetry traces plus structured logs | Correlate webhook, index, review, and LLM calls. |\n+\n+## Service boundary\n+\n+The first deployment has one Go codebase with independently scalable process\n+roles:\n+\n+- `web`: health, OAuth callbacks, authenticated report access, and API traffic;\n+- `webhook`: signature verification, delivery deduplication, and enqueue only;\n+- `indexer`: default-branch cloning, parsing, chunking, and embedding;\n+- `reviewer`: pull-request context assembly, deterministic analysis, model\n+  findings, verification, GitHub comments, and report generation;\n+- `learner`: feedback ingestion and later memory/rule-proposal jobs.\n+\n+All work flows through PostgreSQL transactions and River jobs. Workers use\n+S3-compatible storage through an interface so development, cloud, and future\n+self-hosted deployments do not depend on one vendor.\n+\n+## Security invariants\n+\n+1. Every hosted row carries an installation or organization tenant key.\n+2. Webhooks are authenticated before parsing or enqueueing.\n+3. Installation tokens and model credentials never enter logs or reports.\n+4. Pull-request heads are fetched as data and are never executed.\n+5. Reports remain tied to an exact base and full head SHA.\n+6. Findings expose line evidence and verifier status; approval stays in GitHub.\n+\n+## Initial operating limits\n+\n+- 50,000 files or 2 GB of source per repository;\n+- webhook acknowledgement target under one second;\n+- review context capped before model transfer;\n+- shallow, filtered clones in isolated temporary directories;\n+- separate development and production GitHub Apps and secrets.\n+\n+These are product limits, not claims that the hosted service is already\n+deployed. Each subsequent roadmap PR adds one tested boundary.\n",
+      "hunks": [
+        {
+          "id": "diff-21658bb10f2721d8",
+          "header": "@@ -0,0 +1,54 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "# Hosted v1 architecture decision"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "Status: accepted for the hosted v1 foundation."
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "px1's hosted product is a GitHub App that indexes repositories and reviews pull"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "requests while retaining the existing commit-pinned report and file-by-file"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "human review workflow. The free GitHub Action remains a separate self-run mode."
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "## Stack"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "| Layer | Decision | Boundary |"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "| --- | --- | --- |"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "| API and workers | Go | Reuse diff, rules, evidence, and report code. |"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "| Database | PostgreSQL 16 with pgvector | Tenant-scoped metadata, chunks, findings, and feedback. |"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "| Queue | River on PostgreSQL | Transactional enqueue without another broker. |"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "| Object storage | S3-compatible API | Commit-pinned reports and bounded shallow clones. |"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "| Repository parsing | tree-sitter, with line-window fallback | Parse data only; never execute pull-request code. |"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "| Observability | OpenTelemetry traces plus structured logs | Correlate webhook, index, review, and LLM calls. |"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "## Service boundary"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "The first deployment has one Go codebase with independently scalable process"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "roles:"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "- `web`: health, OAuth callbacks, authenticated report access, and API traffic;"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "- `webhook`: signature verification, delivery deduplication, and enqueue only;"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "- `indexer`: default-branch cloning, parsing, chunking, and embedding;"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "- `reviewer`: pull-request context assembly, deterministic analysis, model"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "  findings, verification, GitHub comments, and report generation;"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "- `learner`: feedback ingestion and later memory/rule-proposal jobs."
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "All work flows through PostgreSQL transactions and River jobs. Workers use"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "S3-compatible storage through an interface so development, cloud, and future"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "self-hosted deployments do not depend on one vendor."
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "## Security invariants"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "1. Every hosted row carries an installation or organization tenant key."
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "2. Webhooks are authenticated before parsing or enqueueing."
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "3. Installation tokens and model credentials never enter logs or reports."
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "4. Pull-request heads are fetched as data and are never executed."
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "5. Reports remain tied to an exact base and full head SHA."
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "6. Findings expose line evidence and verifier status; approval stays in GitHub."
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "## Initial operating limits"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "- 50,000 files or 2 GB of source per repository;"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "- webhook acknowledgement target under one second;"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "- review context capped before model transfer;"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "- shallow, filtered clones in isolated temporary directories;"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "- separate development and production GitHub Apps and secrets."
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "These are product limits, not claims that the hosted service is already"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "deployed. Each subsequent roadmap PR adds one tested boundary."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/PRODUCT_VISION.md",
+      "status": "M",
+      "diff": "diff --git a/docs/PRODUCT_VISION.md b/docs/PRODUCT_VISION.md\nindex acef2a2..2aaf561 100644\n--- a/docs/PRODUCT_VISION.md\n+++ b/docs/PRODUCT_VISION.md\n@@ -28,7 +28,7 @@ understanding and decisions, repeated use, and insight into where agent-written\n changes confuse reviewers. Feature counts and acknowledgement clicks alone do\n not establish that advantage.\n \n-## The product\n+## The product today\n \n When a pull request opens or changes, GitHub Actions generates a static report\n for that exact head commit. A sticky PR comment links to either an authenticated\n@@ -53,6 +53,17 @@ it records a declaration, not verified comprehension. Finding acknowledgements\n never complete the human review. The report remains a snapshot; approval\n requires checking the current PR in GitHub.\n \n+## Hosted direction\n+\n+The next product checkpoint adds a GitHub App that indexes the repository and\n+posts evidence-backed P0-P2 findings on pull requests. The static report remains\n+the place where a person can inspect every changed file, including code with no\n+finding, and see the context and verifier result behind each AI claim.\n+\n+The hosted service is additive. The free GitHub Action remains available for\n+open-source and self-run use. Hosted indexing and review never execute pull\n+request code, every stored row is tenant-scoped, and approval remains in GitHub.\n+\n ## Public launch priorities\n \n Explicit review progress, behavioral inspection questions, source-by-source\n@@ -69,26 +80,27 @@ implementation uses patterns and file globs. The longer-term goal is narrowly\n scoped semantic rules written in ordinary language, with evidence and explicit\n uncertainty.\n \n-## AI is optional context\n+## AI findings remain auditable\n \n-Model-generated explanations should clarify mechanics, dependencies, and\n-review impact. They must not invent author intent or label code safe. Provider\n-keys stay in GitHub Actions secrets; only validated, commit-pinned output enters\n-the static report. Enabling explanations transfers bounded, non-excluded diff\n-content to the configured model provider; path exclusions are not redaction.\n+The Action's model-generated explanations remain optional context. The hosted\n+reviewer may produce findings, but every finding must show line evidence,\n+retrieved context, confidence inputs, and its verifier disposition. It must not\n+invent author intent or label code safe.\n \n Without a model, px1 still provides diffs, rules, CI evidence, and deterministic\n attention signals.\n \n ## Product boundary\n \n-px1 is not:\n+Hosted v1 is not:\n \n - a local IDE or code browser;\n - an agent editor or task runner;\n-- a mutable review-session service;\n-- a self-hosted web application;\n-- a replacement for GitHub comments or approvals; or\n-- a px1-operated SaaS.\n-\n-The product is the artifact attached to the PR.\n+- an agent that edits the repository;\n+- a test runner for untrusted pull-request code;\n+- an automatic approval system; or\n+- a replacement for GitHub comments or approvals.\n+\n+The product is an auditable review workflow: findings return to GitHub, while\n+the commit-pinned report makes the evidence and the human's inspection progress\n+visible. The Action is the self-run mode; the GitHub App is the hosted mode.\n",
+      "hunks": [
+        {
+          "id": "diff-9cee27d54e60e3ce",
+          "header": "@@ -28,7 +28,7 @@ understanding and decisions, repeated use, and insight into where agent-written",
+          "lines": [
+            {
+              "oldLine": 28,
+              "newLine": 28,
+              "kind": "context",
+              "text": "changes confuse reviewers. Feature counts and acknowledgement clicks alone do"
+            },
+            {
+              "oldLine": 29,
+              "newLine": 29,
+              "kind": "context",
+              "text": "not establish that advantage."
+            },
+            {
+              "oldLine": 30,
+              "newLine": 30,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 31,
+              "kind": "removed",
+              "text": "## The product"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "## The product today"
+            },
+            {
+              "oldLine": 32,
+              "newLine": 32,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 33,
+              "newLine": 33,
+              "kind": "context",
+              "text": "When a pull request opens or changes, GitHub Actions generates a static report"
+            },
+            {
+              "oldLine": 34,
+              "newLine": 34,
+              "kind": "context",
+              "text": "for that exact head commit. A sticky PR comment links to either an authenticated"
+            }
+          ]
+        },
+        {
+          "id": "diff-11b2300a15cc0233",
+          "header": "@@ -53,6 +53,17 @@ it records a declaration, not verified comprehension. Finding acknowledgements",
+          "lines": [
+            {
+              "oldLine": 53,
+              "newLine": 53,
+              "kind": "context",
+              "text": "never complete the human review. The report remains a snapshot; approval"
+            },
+            {
+              "oldLine": 54,
+              "newLine": 54,
+              "kind": "context",
+              "text": "requires checking the current PR in GitHub."
+            },
+            {
+              "oldLine": 55,
+              "newLine": 55,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "## Hosted direction"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "The next product checkpoint adds a GitHub App that indexes the repository and"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "posts evidence-backed P0-P2 findings on pull requests. The static report remains"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "the place where a person can inspect every changed file, including code with no"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "finding, and see the context and verifier result behind each AI claim."
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "The hosted service is additive. The free GitHub Action remains available for"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "open-source and self-run use. Hosted indexing and review never execute pull"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "request code, every stored row is tenant-scoped, and approval remains in GitHub."
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 56,
+              "newLine": 67,
+              "kind": "context",
+              "text": "## Public launch priorities"
+            },
+            {
+              "oldLine": 57,
+              "newLine": 68,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 58,
+              "newLine": 69,
+              "kind": "context",
+              "text": "Explicit review progress, behavioral inspection questions, source-by-source"
+            }
+          ]
+        },
+        {
+          "id": "diff-10cb5158b90f7534",
+          "header": "@@ -69,26 +80,27 @@ implementation uses patterns and file globs. The longer-term goal is narrowly",
+          "lines": [
+            {
+              "oldLine": 69,
+              "newLine": 80,
+              "kind": "context",
+              "text": "scoped semantic rules written in ordinary language, with evidence and explicit"
+            },
+            {
+              "oldLine": 70,
+              "newLine": 81,
+              "kind": "context",
+              "text": "uncertainty."
+            },
+            {
+              "oldLine": 71,
+              "newLine": 82,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 72,
+              "kind": "removed",
+              "text": "## AI is optional context"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "## AI findings remain auditable"
+            },
+            {
+              "oldLine": 73,
+              "newLine": 84,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 74,
+              "kind": "removed",
+              "text": "Model-generated explanations should clarify mechanics, dependencies, and"
+            },
+            {
+              "oldLine": 75,
+              "kind": "removed",
+              "text": "review impact. They must not invent author intent or label code safe. Provider"
+            },
+            {
+              "oldLine": 76,
+              "kind": "removed",
+              "text": "keys stay in GitHub Actions secrets; only validated, commit-pinned output enters"
+            },
+            {
+              "oldLine": 77,
+              "kind": "removed",
+              "text": "the static report. Enabling explanations transfers bounded, non-excluded diff"
+            },
+            {
+              "oldLine": 78,
+              "kind": "removed",
+              "text": "content to the configured model provider; path exclusions are not redaction."
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "The Action's model-generated explanations remain optional context. The hosted"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "reviewer may produce findings, but every finding must show line evidence,"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "retrieved context, confidence inputs, and its verifier disposition. It must not"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "invent author intent or label code safe."
+            },
+            {
+              "oldLine": 79,
+              "newLine": 89,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 80,
+              "newLine": 90,
+              "kind": "context",
+              "text": "Without a model, px1 still provides diffs, rules, CI evidence, and deterministic"
+            },
+            {
+              "oldLine": 81,
+              "newLine": 91,
+              "kind": "context",
+              "text": "attention signals."
+            },
+            {
+              "oldLine": 82,
+              "newLine": 92,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 83,
+              "newLine": 93,
+              "kind": "context",
+              "text": "## Product boundary"
+            },
+            {
+              "oldLine": 84,
+              "newLine": 94,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 85,
+              "kind": "removed",
+              "text": "px1 is not:"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "Hosted v1 is not:"
+            },
+            {
+              "oldLine": 86,
+              "newLine": 96,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 87,
+              "newLine": 97,
+              "kind": "context",
+              "text": "- a local IDE or code browser;"
+            },
+            {
+              "oldLine": 88,
+              "newLine": 98,
+              "kind": "context",
+              "text": "- an agent editor or task runner;"
+            },
+            {
+              "oldLine": 89,
+              "kind": "removed",
+              "text": "- a mutable review-session service;"
+            },
+            {
+              "oldLine": 90,
+              "kind": "removed",
+              "text": "- a self-hosted web application;"
+            },
+            {
+              "oldLine": 91,
+              "kind": "removed",
+              "text": "- a replacement for GitHub comments or approvals; or"
+            },
+            {
+              "oldLine": 92,
+              "kind": "removed",
+              "text": "- a px1-operated SaaS."
+            },
+            {
+              "oldLine": 93,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 94,
+              "kind": "removed",
+              "text": "The product is the artifact attached to the PR."
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "- an agent that edits the repository;"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "- a test runner for untrusted pull-request code;"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "- an automatic approval system; or"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "- a replacement for GitHub comments or approvals."
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "The product is an auditable review workflow: findings return to GitHub, while"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "the commit-pinned report makes the evidence and the human's inspection progress"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "visible. The Action is the self-run mode; the GitHub App is the hosted mode."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-0cdaf007b64d6740",
+      "title": "Action changes",
+      "summary": "5 related files share the \"action\" change signal.",
+      "paths": [
+        "AGENT.md",
+        "README.md",
+        "ROADMAP.md",
+        "docs/HOSTED_ARCHITECTURE.md",
+        "docs/PRODUCT_VISION.md"
+      ]
+    }
+  ],
+  "inspectionQuestions": [],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 5,
+    "filesAnalyzed": 5,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "07ebf231a9edf64291529cccba3e6a91ba8dd402",
+      "revision": "0e4d07a090924ee633671863ce99b33ae920de9e",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "07ebf231a9edf64291529cccba3e6a91ba8dd402",
+      "revision": "0e4d07a090924ee633671863ce99b33ae920de9e",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "0e4d07a090924ee633671863ce99b33ae920de9e",
+      "detail": "0 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "0e4d07a090924ee633671863ce99b33ae920de9e",
+      "detail": "1 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "0e4d07a090924ee633671863ce99b33ae920de9e",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40031938012",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40031938012/job/120682035368",
+        "startedAt": "2026-10-23T22:11:06Z"
+      }
+    ]
+  }
+}
