@@ -52,6 +52,7 @@ h1{font:600 20px/1.3 var(--sans);margin:0;text-wrap:balance}
 .verdict{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .chip{display:inline-flex;align-items:center;gap:4px;padding:1.5px 8px;border-radius:999px;font-size:12px;font-weight:500;line-height:1.5;white-space:nowrap;background:var(--well);color:var(--dim);border:0}
 .chip-note{background:var(--note-tint);color:var(--note)}
+.chip-finding{background:var(--note-tint);color:var(--note);border-color:color-mix(in srgb,var(--note) 55%,var(--line))}
 .chip-attention{background:var(--attention-tint);color:var(--attention)}
 .chip-danger{background:var(--danger-tint);color:var(--danger)}
 button.chip:hover{filter:brightness(1.12)}
@@ -127,6 +128,7 @@ body.resizing{cursor:col-resize;user-select:none}
 .file .delta{grid-column:1/-1;font:var(--fs-fine) var(--mono);color:var(--faint)}
 .mark{font:500 var(--fs-fine) var(--mono);padding:0 6px;border-radius:999px;background:var(--well);color:var(--dim)}
 .mark.n{background:var(--note-tint);color:var(--note)}
+.mark.f{background:var(--note-tint);color:var(--note)}
 .mark.r{background:var(--danger-tint);color:var(--danger)}.mark.a{background:var(--attention-tint);color:var(--attention)}
 
 .main{display:flex;flex-direction:column;gap:16px;min-width:0}

@@ -98,7 +98,7 @@ func TestGenerateStaticReviewUsesPinnedCommits(t *testing.T) {
 	if report.Verification.Available || report.Verification.Error != "" || len(report.Verification.Checks) != 0 {
 		t.Fatalf("verification = %#v", report.Verification)
 	}
-	if len(report.Evidence) != 4 {
+	if len(report.Evidence) != 5 {
 		t.Fatalf("evidence = %#v", report.Evidence)
 	}
 	byID := map[string]staticEvidenceSource{}
@@ -182,7 +182,7 @@ func TestGenerateStaticReviewUsesPinnedCommits(t *testing.T) {
 func TestStaticEvidenceDistinguishesAttachedEmptySources(t *testing.T) {
 	head := strings.Repeat("b", 40)
 	verification := verificationResponse{Available: true, Revision: head, Checks: []verificationCheck{}}
-	sources := staticEvidence(strings.Repeat("a", 40), head, true, []staticExplanation{}, verification, staticInspectionAnalysis{}, staticAttentionAnalysis{})
+	sources := staticEvidence(strings.Repeat("a", 40), head, true, []staticExplanation{}, false, nil, verification, staticInspectionAnalysis{}, staticAttentionAnalysis{})
 	byID := map[string]staticEvidenceSource{}
 	for _, source := range sources {
 		byID[source.ID] = source
@@ -197,7 +197,7 @@ func TestStaticEvidenceDistinguishesAttachedEmptySources(t *testing.T) {
 
 func TestStaticEvidenceAggregatesAnalysisLimits(t *testing.T) {
 	head := strings.Repeat("b", 40)
-	sources := staticEvidence(strings.Repeat("a", 40), head, false, nil, verificationResponse{},
+	sources := staticEvidence(strings.Repeat("a", 40), head, false, nil, false, nil, verificationResponse{},
 		staticInspectionAnalysis{Truncated: true, Limits: []string{"questions capped"}},
 		staticAttentionAnalysis{Truncated: true, Limits: []string{"content skipped"}})
 	automated := sources[1]
