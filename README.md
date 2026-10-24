@@ -26,6 +26,10 @@ approval and change requests stay in GitHub.
 See [the hosted v1 architecture decision](docs/HOSTED_ARCHITECTURE.md) for the
 planned GitHub App, indexing, queue, storage, and security boundaries.
 
+Hosted launch documentation: [installation](docs/HOSTED_INSTALL.md),
+[privacy](docs/PRIVACY_POLICY.md), [terms](docs/TERMS.md), and
+[data retention](docs/DATA_RETENTION.md).
+
 ## What reviewers get
 
 - Explicit file states: unreviewed, reviewed, or needs follow-up
