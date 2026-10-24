@@ -1,0 +1,1081 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "4b26d7d1e924b5e421e98af0ce7e22ac182d35ab",
+  "head": "34417a3d9053c24513fc159897f587ca7c6db855",
+  "generatedAt": "2026-10-24T19:09:54.551594221Z",
+  "files": [
+    {
+      "path": "ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/ROADMAP.md b/ROADMAP.md\nindex 263f967..0dd3c16 100644\n--- a/ROADMAP.md\n+++ b/ROADMAP.md\n@@ -75,16 +75,28 @@ backend-foundation tasks are:\n    failed check runs with a retry action.\n 25. [x] **Authorize review commands.** Parse supported `@px1` issue-comment\n    commands and require repository write access before any work is enqueued.\n-26. [ ] **Re-review incrementally.** Diff from the last reviewed SHA, resolve\n+26. [x] **Re-review incrementally.** Diff from the last reviewed SHA, resolve\n    fixed threads, and carry dismissed finding fingerprints forward.\n-27. [ ] **Publish commit-pinned reports.** Run the exporter in the worker and\n+27. [x] **Publish commit-pinned reports.** Run the exporter in the worker and\n    upload an immutable report bundle under the full head SHA.\n-28. [ ] **Gate report access.** Require GitHub OAuth and confirm repository read\n+28. [x] **Gate report access.** Require GitHub OAuth and confirm repository read\n    access before returning private review artifacts.\n-29. [ ] **Show hosted findings in reports.** Keep AI findings visibly separate\n+29. [x] **Show hosted findings in reports.** Keep AI findings visibly separate\n    from deterministic evidence and browser-local human review progress.\n 30. [ ] **Create the v1 evaluation set.** Define auditable historical and seeded\n    benchmark cases across public repositories.\n+31. [x] **Gate review quality with evals.** Measure precision, recall, cost, and\n+   latency and reject prompt or model changes that regress quality by 3 points.\n+32. [ ] **Publish launch and legal documentation.** Cover hosted installation,\n+   privacy, terms, and the 30-day post-uninstall retention policy.\n+33. [ ] **Run the dogfood programme.** Capture two weeks of comparable evidence\n+   from px1 and three friendly repositories before opening the waitlist.\n+34. [ ] **Protect the free Action mode.** Keep the account-free, self-run Action\n+   as a tested compatibility contract for open-source users.\n+35. [ ] **Create the symbol graph schema.** Store tenant-scoped symbols and\n+   typed edges for bounded two-hop traversal.\n+36. [ ] **Define language graph queries.** Add tree-sitter queries for\n+   definitions, references, imports, and calls across supported languages.\n \n The v1 review pipeline, indexing, report hosting, evaluation, and launch gates\n follow these foundations. AI findings must remain auditable: evidence,\n",
+      "hunks": [
+        {
+          "id": "diff-9fc3b8303e925be2",
+          "header": "@@ -75,16 +75,28 @@ backend-foundation tasks are:",
+          "lines": [
+            {
+              "oldLine": 75,
+              "newLine": 75,
+              "kind": "context",
+              "text": "   failed check runs with a retry action."
+            },
+            {
+              "oldLine": 76,
+              "newLine": 76,
+              "kind": "context",
+              "text": "25. [x] **Authorize review commands.** Parse supported `@px1` issue-comment"
+            },
+            {
+              "oldLine": 77,
+              "newLine": 77,
+              "kind": "context",
+              "text": "   commands and require repository write access before any work is enqueued."
+            },
+            {
+              "oldLine": 78,
+              "kind": "removed",
+              "text": "26. [ ] **Re-review incrementally.** Diff from the last reviewed SHA, resolve"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "26. [x] **Re-review incrementally.** Diff from the last reviewed SHA, resolve"
+            },
+            {
+              "oldLine": 79,
+              "newLine": 79,
+              "kind": "context",
+              "text": "   fixed threads, and carry dismissed finding fingerprints forward."
+            },
+            {
+              "oldLine": 80,
+              "kind": "removed",
+              "text": "27. [ ] **Publish commit-pinned reports.** Run the exporter in the worker and"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "27. [x] **Publish commit-pinned reports.** Run the exporter in the worker and"
+            },
+            {
+              "oldLine": 81,
+              "newLine": 81,
+              "kind": "context",
+              "text": "   upload an immutable report bundle under the full head SHA."
+            },
+            {
+              "oldLine": 82,
+              "kind": "removed",
+              "text": "28. [ ] **Gate report access.** Require GitHub OAuth and confirm repository read"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "28. [x] **Gate report access.** Require GitHub OAuth and confirm repository read"
+            },
+            {
+              "oldLine": 83,
+              "newLine": 83,
+              "kind": "context",
+              "text": "   access before returning private review artifacts."
+            },
+            {
+              "oldLine": 84,
+              "kind": "removed",
+              "text": "29. [ ] **Show hosted findings in reports.** Keep AI findings visibly separate"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "29. [x] **Show hosted findings in reports.** Keep AI findings visibly separate"
+            },
+            {
+              "oldLine": 85,
+              "newLine": 85,
+              "kind": "context",
+              "text": "   from deterministic evidence and browser-local human review progress."
+            },
+            {
+              "oldLine": 86,
+              "newLine": 86,
+              "kind": "context",
+              "text": "30. [ ] **Create the v1 evaluation set.** Define auditable historical and seeded"
+            },
+            {
+              "oldLine": 87,
+              "newLine": 87,
+              "kind": "context",
+              "text": "   benchmark cases across public repositories."
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "31. [x] **Gate review quality with evals.** Measure precision, recall, cost, and"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "   latency and reject prompt or model changes that regress quality by 3 points."
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "32. [ ] **Publish launch and legal documentation.** Cover hosted installation,"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "   privacy, terms, and the 30-day post-uninstall retention policy."
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "33. [ ] **Run the dogfood programme.** Capture two weeks of comparable evidence"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "   from px1 and three friendly repositories before opening the waitlist."
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "34. [ ] **Protect the free Action mode.** Keep the account-free, self-run Action"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "   as a tested compatibility contract for open-source users."
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "35. [ ] **Create the symbol graph schema.** Store tenant-scoped symbols and"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "   typed edges for bounded two-hop traversal."
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "36. [ ] **Define language graph queries.** Add tree-sitter queries for"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "   definitions, references, imports, and calls across supported languages."
+            },
+            {
+              "oldLine": 88,
+              "newLine": 100,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 89,
+              "newLine": 101,
+              "kind": "context",
+              "text": "The v1 review pipeline, indexing, report hosting, evaluation, and launch gates"
+            },
+            {
+              "oldLine": 90,
+              "newLine": 102,
+              "kind": "context",
+              "text": "follow these foundations. AI findings must remain auditable: evidence,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/eval/harness.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/eval/harness.go b/internal/hosted/eval/harness.go\nnew file mode 100644\nindex 0000000..9cf45f8\n--- /dev/null\n+++ b/internal/hosted/eval/harness.go\n@@ -0,0 +1,105 @@\n+package eval\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"sort\"\n+\t\"time\"\n+)\n+\n+type Finding struct {\n+\tPath, Severity     string\n+\tStartLine, EndLine int\n+}\n+type ReviewResult struct {\n+\tFindings     []Finding\n+\tCostMicrousd int64\n+\tLatency      time.Duration\n+}\n+type Reviewer interface {\n+\tReview(context.Context, Case) (ReviewResult, error)\n+}\n+type Metrics struct {\n+\tPrecision, Recall float64\n+\tCostMicrousd      int64\n+\tMedianLatency     time.Duration\n+\tCases             int\n+}\n+\n+func Run(ctx context.Context, dataset Dataset, reviewer Reviewer) (Metrics, error) {\n+\tif reviewer == nil {\n+\t\treturn Metrics{}, errors.New(\"reviewer is required\")\n+\t}\n+\tif err := dataset.Validate(); err != nil {\n+\t\treturn Metrics{}, err\n+\t}\n+\tvar matchedFindings, totalFindings, matchedLabels, totalLabels int\n+\tvar totalCost int64\n+\tlatencies := make([]time.Duration, 0, len(dataset.Cases))\n+\tfor _, benchmark := range dataset.Cases {\n+\t\tresult, err := reviewer.Review(ctx, benchmark)\n+\t\tif err != nil {\n+\t\t\treturn Metrics{}, fmt.Errorf(\"review case %s: %w\", benchmark.ID, err)\n+\t\t}\n+\t\ttotalCost += result.CostMicrousd\n+\t\tlatencies = append(latencies, result.Latency)\n+\t\ttotalFindings += len(result.Findings)\n+\t\ttotalLabels += len(benchmark.Labels)\n+\t\tfor _, finding := range result.Findings {\n+\t\t\tif matchesAny(finding, benchmark.Labels) {\n+\t\t\t\tmatchedFindings++\n+\t\t\t}\n+\t\t}\n+\t\tfor _, label := range benchmark.Labels {\n+\t\t\tif labelMatched(label, result.Findings) {\n+\t\t\t\tmatchedLabels++\n+\t\t\t}\n+\t\t}\n+\t}\n+\tsort.Slice(latencies, func(i, j int) bool { return latencies[i] \u003c latencies[j] })\n+\tmetrics := Metrics{CostMicrousd: totalCost, Cases: len(dataset.Cases)}\n+\tif totalFindings \u003e 0 {\n+\t\tmetrics.Precision = float64(matchedFindings) / float64(totalFindings)\n+\t}\n+\tif totalLabels \u003e 0 {\n+\t\tmetrics.Recall = float64(matchedLabels) / float64(totalLabels)\n+\t}\n+\tif len(latencies) \u003e 0 {\n+\t\tmetrics.MedianLatency = latencies[len(latencies)/2]\n+\t}\n+\treturn metrics, nil\n+}\n+\n+func GateRegression(current, baseline Metrics, maxDrop float64) error {\n+\tif maxDrop \u003c= 0 {\n+\t\tmaxDrop = .03\n+\t}\n+\tif baseline.Precision-current.Precision \u003e maxDrop {\n+\t\treturn fmt.Errorf(\"precision regressed %.1f points\", (baseline.Precision-current.Precision)*100)\n+\t}\n+\tif baseline.Recall-current.Recall \u003e maxDrop {\n+\t\treturn fmt.Errorf(\"recall regressed %.1f points\", (baseline.Recall-current.Recall)*100)\n+\t}\n+\treturn nil\n+}\n+\n+func matchesAny(f Finding, labels []Label) bool {\n+\tfor _, l := range labels {\n+\t\tif overlap(f, l) {\n+\t\t\treturn true\n+\t\t}\n+\t}\n+\treturn false\n+}\n+func labelMatched(l Label, findings []Finding) bool {\n+\tfor _, f := range findings {\n+\t\tif overlap(f, l) {\n+\t\t\treturn true\n+\t\t}\n+\t}\n+\treturn false\n+}\n+func overlap(f Finding, l Label) bool {\n+\treturn f.Path == l.Path \u0026\u0026 f.StartLine \u003c= l.EndLine \u0026\u0026 l.StartLine \u003c= f.EndLine\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-417aa718ff74530e",
+          "header": "@@ -0,0 +1,105 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package eval"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"sort\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "type Finding struct {"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\tPath, Severity     string"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\tStartLine, EndLine int"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "type ReviewResult struct {"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tFindings     []Finding"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tCostMicrousd int64"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tLatency      time.Duration"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "type Reviewer interface {"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tReview(context.Context, Case) (ReviewResult, error)"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "type Metrics struct {"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tPrecision, Recall float64"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tCostMicrousd      int64"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tMedianLatency     time.Duration"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tCases             int"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "func Run(ctx context.Context, dataset Dataset, reviewer Reviewer) (Metrics, error) {"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tif reviewer == nil {"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t\treturn Metrics{}, errors.New(\"reviewer is required\")"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tif err := dataset.Validate(); err != nil {"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t\treturn Metrics{}, err"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\tvar matchedFindings, totalFindings, matchedLabels, totalLabels int"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tvar totalCost int64"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tlatencies := make([]time.Duration, 0, len(dataset.Cases))"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tfor _, benchmark := range dataset.Cases {"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t\tresult, err := reviewer.Review(ctx, benchmark)"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t\t\treturn Metrics{}, fmt.Errorf(\"review case %s: %w\", benchmark.ID, err)"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t\ttotalCost += result.CostMicrousd"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t\tlatencies = append(latencies, result.Latency)"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\ttotalFindings += len(result.Findings)"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\ttotalLabels += len(benchmark.Labels)"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\tfor _, finding := range result.Findings {"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t\t\tif matchesAny(finding, benchmark.Labels) {"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t\t\t\tmatchedFindings++"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\tfor _, label := range benchmark.Labels {"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t\t\tif labelMatched(label, result.Findings) {"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t\t\t\tmatchedLabels++"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\tsort.Slice(latencies, func(i, j int) bool { return latencies[i] \u003c latencies[j] })"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\tmetrics := Metrics{CostMicrousd: totalCost, Cases: len(dataset.Cases)}"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\tif totalFindings \u003e 0 {"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t\tmetrics.Precision = float64(matchedFindings) / float64(totalFindings)"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\tif totalLabels \u003e 0 {"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\tmetrics.Recall = float64(matchedLabels) / float64(totalLabels)"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\tif len(latencies) \u003e 0 {"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\tmetrics.MedianLatency = latencies[len(latencies)/2]"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\treturn metrics, nil"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "func GateRegression(current, baseline Metrics, maxDrop float64) error {"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\tif maxDrop \u003c= 0 {"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t\tmaxDrop = .03"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\tif baseline.Precision-current.Precision \u003e maxDrop {"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\t\treturn fmt.Errorf(\"precision regressed %.1f points\", (baseline.Precision-current.Precision)*100)"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\tif baseline.Recall-current.Recall \u003e maxDrop {"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\t\treturn fmt.Errorf(\"recall regressed %.1f points\", (baseline.Recall-current.Recall)*100)"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "func matchesAny(f Finding, labels []Label) bool {"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\tfor _, l := range labels {"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\t\tif overlap(f, l) {"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t\t\treturn true"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\treturn false"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "func labelMatched(l Label, findings []Finding) bool {"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\tfor _, f := range findings {"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t\tif overlap(f, l) {"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t\t\treturn true"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\treturn false"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "func overlap(f Finding, l Label) bool {"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\treturn f.Path == l.Path \u0026\u0026 f.StartLine \u003c= l.EndLine \u0026\u0026 l.StartLine \u003c= f.EndLine"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/eval/harness_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/eval/harness_test.go b/internal/hosted/eval/harness_test.go\nnew file mode 100644\nindex 0000000..9424190\n--- /dev/null\n+++ b/internal/hosted/eval/harness_test.go\n@@ -0,0 +1,38 @@\n+package eval\n+\n+import (\n+\t\"context\"\n+\t\"strings\"\n+\t\"testing\"\n+\t\"time\"\n+)\n+\n+type reviewerFunc func(context.Context, Case) (ReviewResult, error)\n+\n+func (f reviewerFunc) Review(ctx context.Context, c Case) (ReviewResult, error) { return f(ctx, c) }\n+\n+func TestRunMeasuresPrecisionRecallCostAndMedianLatency(t *testing.T) {\n+\tcases := []Case{}\n+\tfor i := 0; i \u003c 3; i++ {\n+\t\tcases = append(cases, Case{ID: string(rune('a' + i)), Kind: \"seeded\", Repository: \"https://github.com/acme/repo\", PullRequestURL: \"https://github.com/acme/repo/pull/1\", BaseSHA: strings.Repeat(\"a\", 40), HeadSHA: strings.Repeat(\"b\", 40), MutationID: \"m\", Labels: []Label{{Path: \"a.go\", BugClass: \"logic\", StartLine: 5, EndLine: 5}}})\n+\t}\n+\tmetrics, err := Run(context.Background(), Dataset{Version: 1, Cases: cases}, reviewerFunc(func(_ context.Context, c Case) (ReviewResult, error) {\n+\t\treturn ReviewResult{Findings: []Finding{{Path: \"a.go\", StartLine: 5, EndLine: 5}, {Path: \"b.go\", StartLine: 1, EndLine: 1}}, CostMicrousd: 10, Latency: time.Duration(c.ID[0]-'a'+1) * time.Second}, nil\n+\t}))\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif metrics.Precision != .5 || metrics.Recall != 1 || metrics.CostMicrousd != 30 || metrics.MedianLatency != 2*time.Second {\n+\t\tt.Fatalf(\"metrics = %#v\", metrics)\n+\t}\n+}\n+\n+func TestGateRegressionBlocksThreePointQualityDrop(t *testing.T) {\n+\tbaseline := Metrics{Precision: .8, Recall: .7}\n+\tif GateRegression(Metrics{Precision: .78, Recall: .68}, baseline, .03) != nil {\n+\t\tt.Fatal(\"blocked acceptable change\")\n+\t}\n+\tif GateRegression(Metrics{Precision: .75, Recall: .7}, baseline, .03) == nil {\n+\t\tt.Fatal(\"accepted precision regression\")\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-9519d3e07c081a5f",
+          "header": "@@ -0,0 +1,38 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package eval"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "type reviewerFunc func(context.Context, Case) (ReviewResult, error)"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "func (f reviewerFunc) Review(ctx context.Context, c Case) (ReviewResult, error) { return f(ctx, c) }"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "func TestRunMeasuresPrecisionRecallCostAndMedianLatency(t *testing.T) {"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tcases := []Case{}"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tfor i := 0; i \u003c 3; i++ {"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t\tcases = append(cases, Case{ID: string(rune('a' + i)), Kind: \"seeded\", Repository: \"https://github.com/acme/repo\", PullRequestURL: \"https://github.com/acme/repo/pull/1\", BaseSHA: strings.Repeat(\"a\", 40), HeadSHA: strings.Repeat(\"b\", 40), MutationID: \"m\", Labels: []Label{{Path: \"a.go\", BugClass: \"logic\", StartLine: 5, EndLine: 5}}})"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tmetrics, err := Run(context.Background(), Dataset{Version: 1, Cases: cases}, reviewerFunc(func(_ context.Context, c Case) (ReviewResult, error) {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t\treturn ReviewResult{Findings: []Finding{{Path: \"a.go\", StartLine: 5, EndLine: 5}, {Path: \"b.go\", StartLine: 1, EndLine: 1}}, CostMicrousd: 10, Latency: time.Duration(c.ID[0]-'a'+1) * time.Second}, nil"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t}))"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tif metrics.Precision != .5 || metrics.Recall != 1 || metrics.CostMicrousd != 30 || metrics.MedianLatency != 2*time.Second {"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"metrics = %#v\", metrics)"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "func TestGateRegressionBlocksThreePointQualityDrop(t *testing.T) {"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tbaseline := Metrics{Precision: .8, Recall: .7}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tif GateRegression(Metrics{Precision: .78, Recall: .68}, baseline, .03) != nil {"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"blocked acceptable change\")"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tif GateRegression(Metrics{Precision: .75, Recall: .7}, baseline, .03) == nil {"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"accepted precision regression\")"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-e4dc1da338d0853e",
+      "title": "Findings changes",
+      "summary": "3 related files share the \"findings\" change signal.",
+      "paths": [
+        "ROADMAP.md",
+        "internal/hosted/eval/harness.go",
+        "internal/hosted/eval/harness_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-82e003d89780f7e5",
+      "path": "internal/hosted/eval/harness.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/eval/harness_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-bc2a9e2dcb459241",
+      "path": "internal/hosted/eval/harness.go",
+      "line": 30,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func Run(ctx context.Context, dataset Dataset, reviewer Reviewer) (Metrics, error) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 3,
+    "filesAnalyzed": 3,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "eval-metrics",
+      "path": "internal/hosted/eval/harness.go",
+      "lineStart": 26,
+      "lineEnd": 68,
+      "title": "Measure review quality and performance",
+      "summary": "Adds a reusable evaluation runner that reviews every validated dataset case and reports aggregate precision, recall, total cost, and median latency. A reviewer error stops the run and identifies the failing case."
+    },
+    {
+      "id": "eval-gate",
+      "path": "internal/hosted/eval/harness.go",
+      "lineStart": 70,
+      "lineEnd": 81,
+      "title": "Check for quality regressions",
+      "summary": "Adds a quality regression check that returns an error when precision or recall falls by more than the configured threshold (3 percentage points by default). Cost and latency are measured by the runner but do not affect this check."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "4b26d7d1e924b5e421e98af0ce7e22ac182d35ab",
+      "revision": "34417a3d9053c24513fc159897f587ca7c6db855",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "4b26d7d1e924b5e421e98af0ce7e22ac182d35ab",
+      "revision": "34417a3d9053c24513fc159897f587ca7c6db855",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "34417a3d9053c24513fc159897f587ca7c6db855",
+      "detail": "2 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "34417a3d9053c24513fc159897f587ca7c6db855",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-852674cbcdc98746",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/eval/harness.go",
+      "line": 30,
+      "evidence": "func Run(ctx context.Context, dataset Dataset, reviewer Reviewer) (Metrics, error) {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "34417a3d9053c24513fc159897f587ca7c6db855",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40123983869",
+    "checks": [
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40123984707/job/120961358186",
+        "startedAt": "2026-10-24T19:09:17Z"
+      },
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40123983869/job/120961356756",
+        "startedAt": "2026-10-24T19:09:18Z"
+      }
+    ]
+  }
+}
