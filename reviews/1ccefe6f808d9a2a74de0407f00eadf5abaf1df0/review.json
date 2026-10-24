@@ -1,0 +1,1100 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "20008181cbb88f1084167122124fde0719467d60",
+  "head": "1ccefe6f808d9a2a74de0407f00eadf5abaf1df0",
+  "generatedAt": "2026-10-24T18:06:58.644083152Z",
+  "files": [
+    {
+      "path": "ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/ROADMAP.md b/ROADMAP.md\nindex fa6b7e2..263f967 100644\n--- a/ROADMAP.md\n+++ b/ROADMAP.md\n@@ -63,16 +63,28 @@ backend-foundation tasks are:\n    and drop unsupported or sub-0.6-confidence output.\n 19. [x] **Deduplicate and rank findings.** Collapse overlapping, similarly titled\n    findings, order by severity then confidence, and cap inline delivery.\n-20. [ ] **Render an auditable review summary.** Keep deterministic signals\n+20. [x] **Render an auditable review summary.** Keep deterministic signals\n    verbatim beside bounded model prose.\n-21. [ ] **Map findings to diff lines.** Deliver only comments whose ranges are\n+21. [x] **Map findings to diff lines.** Deliver only comments whose ranges are\n    valid on the current diff and retain the rest in the summary.\n-22. [ ] **Post one review per run.** Send all inline findings through GitHub's\n+22. [x] **Post one review per run.** Send all inline findings through GitHub's\n    Create Review API instead of emitting one notification per comment.\n-23. [ ] **Maintain one sticky summary.** Find the bot-owned marker and edit the\n+23. [x] **Maintain one sticky summary.** Find the bot-owned marker and edit the\n    existing PR summary in place.\n-24. [ ] **Expose review check status.** Publish in-progress, completed, and\n+24. [x] **Expose review check status.** Publish in-progress, completed, and\n    failed check runs with a retry action.\n+25. [x] **Authorize review commands.** Parse supported `@px1` issue-comment\n+   commands and require repository write access before any work is enqueued.\n+26. [ ] **Re-review incrementally.** Diff from the last reviewed SHA, resolve\n+   fixed threads, and carry dismissed finding fingerprints forward.\n+27. [ ] **Publish commit-pinned reports.** Run the exporter in the worker and\n+   upload an immutable report bundle under the full head SHA.\n+28. [ ] **Gate report access.** Require GitHub OAuth and confirm repository read\n+   access before returning private review artifacts.\n+29. [ ] **Show hosted findings in reports.** Keep AI findings visibly separate\n+   from deterministic evidence and browser-local human review progress.\n+30. [ ] **Create the v1 evaluation set.** Define auditable historical and seeded\n+   benchmark cases across public repositories.\n \n The v1 review pipeline, indexing, report hosting, evaluation, and launch gates\n follow these foundations. AI findings must remain auditable: evidence,\n",
+      "hunks": [
+        {
+          "id": "diff-12fe62cef32e1057",
+          "header": "@@ -63,16 +63,28 @@ backend-foundation tasks are:",
+          "lines": [
+            {
+              "oldLine": 63,
+              "newLine": 63,
+              "kind": "context",
+              "text": "   and drop unsupported or sub-0.6-confidence output."
+            },
+            {
+              "oldLine": 64,
+              "newLine": 64,
+              "kind": "context",
+              "text": "19. [x] **Deduplicate and rank findings.** Collapse overlapping, similarly titled"
+            },
+            {
+              "oldLine": 65,
+              "newLine": 65,
+              "kind": "context",
+              "text": "   findings, order by severity then confidence, and cap inline delivery."
+            },
+            {
+              "oldLine": 66,
+              "kind": "removed",
+              "text": "20. [ ] **Render an auditable review summary.** Keep deterministic signals"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "20. [x] **Render an auditable review summary.** Keep deterministic signals"
+            },
+            {
+              "oldLine": 67,
+              "newLine": 67,
+              "kind": "context",
+              "text": "   verbatim beside bounded model prose."
+            },
+            {
+              "oldLine": 68,
+              "kind": "removed",
+              "text": "21. [ ] **Map findings to diff lines.** Deliver only comments whose ranges are"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "21. [x] **Map findings to diff lines.** Deliver only comments whose ranges are"
+            },
+            {
+              "oldLine": 69,
+              "newLine": 69,
+              "kind": "context",
+              "text": "   valid on the current diff and retain the rest in the summary."
+            },
+            {
+              "oldLine": 70,
+              "kind": "removed",
+              "text": "22. [ ] **Post one review per run.** Send all inline findings through GitHub's"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "22. [x] **Post one review per run.** Send all inline findings through GitHub's"
+            },
+            {
+              "oldLine": 71,
+              "newLine": 71,
+              "kind": "context",
+              "text": "   Create Review API instead of emitting one notification per comment."
+            },
+            {
+              "oldLine": 72,
+              "kind": "removed",
+              "text": "23. [ ] **Maintain one sticky summary.** Find the bot-owned marker and edit the"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "23. [x] **Maintain one sticky summary.** Find the bot-owned marker and edit the"
+            },
+            {
+              "oldLine": 73,
+              "newLine": 73,
+              "kind": "context",
+              "text": "   existing PR summary in place."
+            },
+            {
+              "oldLine": 74,
+              "kind": "removed",
+              "text": "24. [ ] **Expose review check status.** Publish in-progress, completed, and"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "24. [x] **Expose review check status.** Publish in-progress, completed, and"
+            },
+            {
+              "oldLine": 75,
+              "newLine": 75,
+              "kind": "context",
+              "text": "   failed check runs with a retry action."
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "25. [x] **Authorize review commands.** Parse supported `@px1` issue-comment"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "   commands and require repository write access before any work is enqueued."
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "26. [ ] **Re-review incrementally.** Diff from the last reviewed SHA, resolve"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "   fixed threads, and carry dismissed finding fingerprints forward."
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "27. [ ] **Publish commit-pinned reports.** Run the exporter in the worker and"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "   upload an immutable report bundle under the full head SHA."
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "28. [ ] **Gate report access.** Require GitHub OAuth and confirm repository read"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "   access before returning private review artifacts."
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "29. [ ] **Show hosted findings in reports.** Keep AI findings visibly separate"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "   from deterministic evidence and browser-local human review progress."
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "30. [ ] **Create the v1 evaluation set.** Define auditable historical and seeded"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "   benchmark cases across public repositories."
+            },
+            {
+              "oldLine": 76,
+              "newLine": 88,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 77,
+              "newLine": 89,
+              "kind": "context",
+              "text": "The v1 review pipeline, indexing, report hosting, evaluation, and launch gates"
+            },
+            {
+              "oldLine": 78,
+              "newLine": 90,
+              "kind": "context",
+              "text": "follow these foundations. AI findings must remain auditable: evidence,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/githubapp/commands.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/githubapp/commands.go b/internal/hosted/githubapp/commands.go\nnew file mode 100644\nindex 0000000..3c6b3b3\n--- /dev/null\n+++ b/internal/hosted/githubapp/commands.go\n@@ -0,0 +1,97 @@\n+package githubapp\n+\n+import (\n+\t\"context\"\n+\t\"encoding/json\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"io\"\n+\t\"net/http\"\n+\t\"net/url\"\n+\t\"path/filepath\"\n+\t\"strings\"\n+)\n+\n+type Command struct {\n+\tName string\n+\tPath string\n+}\n+\n+// ParseCommand accepts one explicit command on the first non-empty line.\n+func ParseCommand(body string) (Command, bool) {\n+\tvar line string\n+\tfor _, candidate := range strings.Split(body, \"\\n\") {\n+\t\tif strings.TrimSpace(candidate) != \"\" {\n+\t\t\tline = strings.TrimSpace(candidate)\n+\t\t\tbreak\n+\t\t}\n+\t}\n+\tfields := strings.Fields(line)\n+\tif len(fields) \u003c 2 || !strings.EqualFold(fields[0], \"@px1\") {\n+\t\treturn Command{}, false\n+\t}\n+\tswitch strings.ToLower(fields[1]) {\n+\tcase \"review\", \"ignore\", \"why\":\n+\t\tif len(fields) != 2 {\n+\t\t\treturn Command{}, false\n+\t\t}\n+\t\treturn Command{Name: strings.ToLower(fields[1])}, true\n+\tcase \"explain\":\n+\t\tif len(fields) != 3 || !validCommandPath(fields[2]) {\n+\t\t\treturn Command{}, false\n+\t\t}\n+\t\treturn Command{Name: \"explain\", Path: filepath.ToSlash(filepath.Clean(fields[2]))}, true\n+\tdefault:\n+\t\treturn Command{}, false\n+\t}\n+}\n+\n+type CommandAuthorizer struct {\n+\tClient  APIClient\n+\tBaseURL string\n+}\n+\n+// Authorize returns a parsed command only when GitHub reports write, maintain,\n+// or admin access for the commenter. The caller must not enqueue before this.\n+func (a CommandAuthorizer) Authorize(ctx context.Context, installationID int64, owner, repo, actor, body string) (Command, error) {\n+\tcommand, ok := ParseCommand(body)\n+\tif !ok {\n+\t\treturn Command{}, errors.New(\"comment does not contain a supported px1 command\")\n+\t}\n+\tif a.Client == nil || installationID \u003c= 0 || !validSlug(owner) || !validSlug(repo) || !validSlug(actor) {\n+\t\treturn Command{}, errors.New(\"GitHub client and valid command identity are required\")\n+\t}\n+\tbaseURL := strings.TrimRight(a.BaseURL, \"/\")\n+\tif baseURL == \"\" {\n+\t\tbaseURL = \"https://api.github.com\"\n+\t}\n+\tendpoint := fmt.Sprintf(\"%s/repos/%s/%s/collaborators/%s/permission\", baseURL, url.PathEscape(owner), url.PathEscape(repo), url.PathEscape(actor))\n+\trequest, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)\n+\tif err != nil {\n+\t\treturn Command{}, err\n+\t}\n+\tresponse, err := a.Client.Do(ctx, installationID, request)\n+\tif err != nil {\n+\t\treturn Command{}, fmt.Errorf(\"check command permission: %w\", err)\n+\t}\n+\tdefer response.Body.Close()\n+\tif response.StatusCode != http.StatusOK {\n+\t\t_, _ = io.Copy(io.Discard, response.Body)\n+\t\treturn Command{}, fmt.Errorf(\"check command permission: status %d\", response.StatusCode)\n+\t}\n+\tvar result struct {\n+\t\tPermission string `json:\"permission\"`\n+\t}\n+\tif err := json.NewDecoder(io.LimitReader(response.Body, 1\u003c\u003c20)).Decode(\u0026result); err != nil {\n+\t\treturn Command{}, fmt.Errorf(\"decode command permission: %w\", err)\n+\t}\n+\tif !map[string]bool{\"write\": true, \"maintain\": true, \"admin\": true}[result.Permission] {\n+\t\treturn Command{}, errors.New(\"commenter does not have repository write access\")\n+\t}\n+\treturn command, nil\n+}\n+\n+func validCommandPath(value string) bool {\n+\tclean := filepath.ToSlash(filepath.Clean(value))\n+\treturn value != \"\" \u0026\u0026 !filepath.IsAbs(value) \u0026\u0026 clean != \".\" \u0026\u0026 clean != \"..\" \u0026\u0026 !strings.HasPrefix(clean, \"../\")\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-0937d39aa2b0ca79",
+          "header": "@@ -0,0 +1,97 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package githubapp"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"io\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"net/http\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"net/url\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"path/filepath\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "type Command struct {"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tName string"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tPath string"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "// ParseCommand accepts one explicit command on the first non-empty line."
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "func ParseCommand(body string) (Command, bool) {"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tvar line string"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tfor _, candidate := range strings.Split(body, \"\\n\") {"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\tif strings.TrimSpace(candidate) != \"\" {"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t\t\tline = strings.TrimSpace(candidate)"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t\t\tbreak"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tfields := strings.Fields(line)"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tif len(fields) \u003c 2 || !strings.EqualFold(fields[0], \"@px1\") {"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t\treturn Command{}, false"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tswitch strings.ToLower(fields[1]) {"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tcase \"review\", \"ignore\", \"why\":"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t\tif len(fields) != 2 {"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t\t\treturn Command{}, false"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\t\treturn Command{Name: strings.ToLower(fields[1])}, true"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tcase \"explain\":"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t\tif len(fields) != 3 || !validCommandPath(fields[2]) {"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t\t\treturn Command{}, false"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t\treturn Command{Name: \"explain\", Path: filepath.ToSlash(filepath.Clean(fields[2]))}, true"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tdefault:"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t\treturn Command{}, false"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "type CommandAuthorizer struct {"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\tClient  APIClient"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\tBaseURL string"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "// Authorize returns a parsed command only when GitHub reports write, maintain,"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "// or admin access for the commenter. The caller must not enqueue before this."
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "func (a CommandAuthorizer) Authorize(ctx context.Context, installationID int64, owner, repo, actor, body string) (Command, error) {"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\tcommand, ok := ParseCommand(body)"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\tif !ok {"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t\treturn Command{}, errors.New(\"comment does not contain a supported px1 command\")"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\tif a.Client == nil || installationID \u003c= 0 || !validSlug(owner) || !validSlug(repo) || !validSlug(actor) {"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t\treturn Command{}, errors.New(\"GitHub client and valid command identity are required\")"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\tbaseURL := strings.TrimRight(a.BaseURL, \"/\")"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\tif baseURL == \"\" {"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\tbaseURL = \"https://api.github.com\""
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\tendpoint := fmt.Sprintf(\"%s/repos/%s/%s/collaborators/%s/permission\", baseURL, url.PathEscape(owner), url.PathEscape(repo), url.PathEscape(actor))"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\trequest, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\treturn Command{}, err"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\tresponse, err := a.Client.Do(ctx, installationID, request)"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\t\treturn Command{}, fmt.Errorf(\"check command permission: %w\", err)"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\tdefer response.Body.Close()"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\tif response.StatusCode != http.StatusOK {"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\t\t_, _ = io.Copy(io.Discard, response.Body)"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t\treturn Command{}, fmt.Errorf(\"check command permission: status %d\", response.StatusCode)"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\tvar result struct {"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t\tPermission string `json:\"permission\"`"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\tif err := json.NewDecoder(io.LimitReader(response.Body, 1\u003c\u003c20)).Decode(\u0026result); err != nil {"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\t\treturn Command{}, fmt.Errorf(\"decode command permission: %w\", err)"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\tif !map[string]bool{\"write\": true, \"maintain\": true, \"admin\": true}[result.Permission] {"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\t\treturn Command{}, errors.New(\"commenter does not have repository write access\")"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\treturn command, nil"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "func validCommandPath(value string) bool {"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\tclean := filepath.ToSlash(filepath.Clean(value))"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\treturn value != \"\" \u0026\u0026 !filepath.IsAbs(value) \u0026\u0026 clean != \".\" \u0026\u0026 clean != \"..\" \u0026\u0026 !strings.HasPrefix(clean, \"../\")"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/githubapp/commands_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/githubapp/commands_test.go b/internal/hosted/githubapp/commands_test.go\nnew file mode 100644\nindex 0000000..6c8d55f\n--- /dev/null\n+++ b/internal/hosted/githubapp/commands_test.go\n@@ -0,0 +1,51 @@\n+package githubapp\n+\n+import (\n+\t\"context\"\n+\t\"io\"\n+\t\"net/http\"\n+\t\"strings\"\n+\t\"testing\"\n+)\n+\n+type commandAPIFake struct {\n+\tpermission string\n+\tcalls      int\n+}\n+\n+func (f *commandAPIFake) Do(_ context.Context, _ int64, _ *http.Request) (*http.Response, error) {\n+\tf.calls++\n+\treturn \u0026http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(`{\"permission\":\"` + f.permission + `\"}`))}, nil\n+}\n+\n+func TestParseCommand(t *testing.T) {\n+\tfor input, want := range map[string]Command{\n+\t\t\"@px1 review\": {Name: \"review\"}, \"hello\\n@px1 why\": {},\n+\t\t\"\\n @PX1 explain internal/api.go\\nmore\": {Name: \"explain\", Path: \"internal/api.go\"},\n+\t} {\n+\t\tgot, ok := ParseCommand(input)\n+\t\tif want.Name == \"\" {\n+\t\t\tif ok {\n+\t\t\t\tt.Fatalf(\"ParseCommand(%q) unexpectedly accepted\", input)\n+\t\t\t}\n+\t\t} else if !ok || got != want {\n+\t\t\tt.Fatalf(\"ParseCommand(%q) = %#v, %v\", input, got, ok)\n+\t\t}\n+\t}\n+\tif _, ok := ParseCommand(\"@px1 explain ../secret\"); ok {\n+\t\tt.Fatal(\"accepted escaping path\")\n+\t}\n+}\n+\n+func TestCommandAuthorizerRequiresWriteAccess(t *testing.T) {\n+\tfor permission, allowed := range map[string]bool{\"read\": false, \"triage\": false, \"write\": true, \"maintain\": true, \"admin\": true} {\n+\t\tapi := \u0026commandAPIFake{permission: permission}\n+\t\tgot, err := (CommandAuthorizer{Client: api, BaseURL: \"https://github.test\"}).Authorize(context.Background(), 1, \"acme\", \"widget\", \"octocat\", \"@px1 review\")\n+\t\tif allowed \u0026\u0026 (err != nil || got.Name != \"review\") {\n+\t\t\tt.Fatalf(\"permission %s: got %#v, %v\", permission, got, err)\n+\t\t}\n+\t\tif !allowed \u0026\u0026 err == nil {\n+\t\t\tt.Fatalf(\"permission %s was allowed\", permission)\n+\t\t}\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-9881278f519a23ce",
+          "header": "@@ -0,0 +1,51 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package githubapp"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"io\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"net/http\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "type commandAPIFake struct {"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\tpermission string"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\tcalls      int"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "func (f *commandAPIFake) Do(_ context.Context, _ int64, _ *http.Request) (*http.Response, error) {"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tf.calls++"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\treturn \u0026http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(`{\"permission\":\"` + f.permission + `\"}`))}, nil"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "func TestParseCommand(t *testing.T) {"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tfor input, want := range map[string]Command{"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t\t\"@px1 review\": {Name: \"review\"}, \"hello\\n@px1 why\": {},"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\t\"\\n @PX1 explain internal/api.go\\nmore\": {Name: \"explain\", Path: \"internal/api.go\"},"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t} {"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t\tgot, ok := ParseCommand(input)"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t\tif want.Name == \"\" {"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t\t\tif ok {"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t\t\t\tt.Fatalf(\"ParseCommand(%q) unexpectedly accepted\", input)"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t\t} else if !ok || got != want {"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"ParseCommand(%q) = %#v, %v\", input, got, ok)"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tif _, ok := ParseCommand(\"@px1 explain ../secret\"); ok {"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"accepted escaping path\")"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "func TestCommandAuthorizerRequiresWriteAccess(t *testing.T) {"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\tfor permission, allowed := range map[string]bool{\"read\": false, \"triage\": false, \"write\": true, \"maintain\": true, \"admin\": true} {"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t\tapi := \u0026commandAPIFake{permission: permission}"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t\tgot, err := (CommandAuthorizer{Client: api, BaseURL: \"https://github.test\"}).Authorize(context.Background(), 1, \"acme\", \"widget\", \"octocat\", \"@px1 review\")"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t\tif allowed \u0026\u0026 (err != nil || got.Name != \"review\") {"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"permission %s: got %#v, %v\", permission, got, err)"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\tif !allowed \u0026\u0026 err == nil {"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"permission %s was allowed\", permission)"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-f32096205231d8b9",
+      "title": "Authorize changes",
+      "summary": "3 related files share the \"authorize\" change signal.",
+      "paths": [
+        "ROADMAP.md",
+        "internal/hosted/githubapp/commands.go",
+        "internal/hosted/githubapp/commands_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-0d310804c29a9ab6",
+      "path": "internal/hosted/githubapp/commands.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/githubapp/commands_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-2423d59a7f68f7ce",
+      "path": "internal/hosted/githubapp/commands.go",
+      "line": 21,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func ParseCommand(body string) (Command, bool) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 3,
+    "filesAnalyzed": 3,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "command-parsing",
+      "path": "internal/hosted/githubapp/commands.go",
+      "lineStart": 18,
+      "lineEnd": 42,
+      "title": "Parse supported review commands",
+      "summary": "Only a supported command on the first non-empty line is accepted: `review`, `ignore`, `why`, or `explain \u003cpath\u003e`. Explain paths that are absolute or escape the repository are rejected."
+    },
+    {
+      "id": "command-authorization",
+      "path": "internal/hosted/githubapp/commands.go",
+      "lineStart": 55,
+      "lineEnd": 91,
+      "title": "Require repository write access",
+      "summary": "A parsed command is returned only when GitHub confirms the commenter has write, maintain, or admin permission. Permission lookup failures and insufficient access are rejected."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "20008181cbb88f1084167122124fde0719467d60",
+      "revision": "1ccefe6f808d9a2a74de0407f00eadf5abaf1df0",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "20008181cbb88f1084167122124fde0719467d60",
+      "revision": "1ccefe6f808d9a2a74de0407f00eadf5abaf1df0",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "1ccefe6f808d9a2a74de0407f00eadf5abaf1df0",
+      "detail": "2 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "1ccefe6f808d9a2a74de0407f00eadf5abaf1df0",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-7235c20559207150",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/githubapp/commands.go",
+      "line": 21,
+      "evidence": "func ParseCommand(body string) (Command, bool) {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "1ccefe6f808d9a2a74de0407f00eadf5abaf1df0",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40119167998",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40119167998/job/120946743240",
+        "startedAt": "2026-10-24T18:06:26Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40119168004/job/120946742339",
+        "startedAt": "2026-10-24T18:06:24Z"
+      }
+    ]
+  }
+}
