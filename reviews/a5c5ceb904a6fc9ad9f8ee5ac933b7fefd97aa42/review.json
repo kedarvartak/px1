@@ -1,0 +1,1743 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "4921da6eb117a96e17b998b554461f7b9cc9902d",
+  "head": "a5c5ceb904a6fc9ad9f8ee5ac933b7fefd97aa42",
+  "generatedAt": "2026-10-24T17:19:29.953945332Z",
+  "files": [
+    {
+      "path": "deploy/github-app/dev.json",
+      "status": "M",
+      "diff": "diff --git a/deploy/github-app/dev.json b/deploy/github-app/dev.json\nindex 700a208..62b18a8 100644\n--- a/deploy/github-app/dev.json\n+++ b/deploy/github-app/dev.json\n@@ -19,6 +19,7 @@\n     \"pull_requests\": \"write\"\n   },\n   \"default_events\": [\n+    \"check_run\",\n     \"installation\",\n     \"installation_repositories\",\n     \"issue_comment\",\n",
+      "hunks": [
+        {
+          "id": "diff-09716a7b2cd1233b",
+          "header": "@@ -19,6 +19,7 @@",
+          "lines": [
+            {
+              "oldLine": 19,
+              "newLine": 19,
+              "kind": "context",
+              "text": "    \"pull_requests\": \"write\""
+            },
+            {
+              "oldLine": 20,
+              "newLine": 20,
+              "kind": "context",
+              "text": "  },"
+            },
+            {
+              "oldLine": 21,
+              "newLine": 21,
+              "kind": "context",
+              "text": "  \"default_events\": ["
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "    \"check_run\","
+            },
+            {
+              "oldLine": 22,
+              "newLine": 23,
+              "kind": "context",
+              "text": "    \"installation\","
+            },
+            {
+              "oldLine": 23,
+              "newLine": 24,
+              "kind": "context",
+              "text": "    \"installation_repositories\","
+            },
+            {
+              "oldLine": 24,
+              "newLine": 25,
+              "kind": "context",
+              "text": "    \"issue_comment\","
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "deploy/github-app/prod.json",
+      "status": "M",
+      "diff": "diff --git a/deploy/github-app/prod.json b/deploy/github-app/prod.json\nindex 9559aa0..8357aba 100644\n--- a/deploy/github-app/prod.json\n+++ b/deploy/github-app/prod.json\n@@ -19,6 +19,7 @@\n     \"pull_requests\": \"write\"\n   },\n   \"default_events\": [\n+    \"check_run\",\n     \"installation\",\n     \"installation_repositories\",\n     \"issue_comment\",\n",
+      "hunks": [
+        {
+          "id": "diff-042fa226f2ab3621",
+          "header": "@@ -19,6 +19,7 @@",
+          "lines": [
+            {
+              "oldLine": 19,
+              "newLine": 19,
+              "kind": "context",
+              "text": "    \"pull_requests\": \"write\""
+            },
+            {
+              "oldLine": 20,
+              "newLine": 20,
+              "kind": "context",
+              "text": "  },"
+            },
+            {
+              "oldLine": 21,
+              "newLine": 21,
+              "kind": "context",
+              "text": "  \"default_events\": ["
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "    \"check_run\","
+            },
+            {
+              "oldLine": 22,
+              "newLine": 23,
+              "kind": "context",
+              "text": "    \"installation\","
+            },
+            {
+              "oldLine": 23,
+              "newLine": 24,
+              "kind": "context",
+              "text": "    \"installation_repositories\","
+            },
+            {
+              "oldLine": 24,
+              "newLine": 25,
+              "kind": "context",
+              "text": "    \"issue_comment\","
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "github_app_manifest_test.go",
+      "status": "M",
+      "diff": "diff --git a/github_app_manifest_test.go b/github_app_manifest_test.go\nindex f19f9d4..94fbaa7 100644\n--- a/github_app_manifest_test.go\n+++ b/github_app_manifest_test.go\n@@ -31,7 +31,7 @@ func TestGitHubAppManifestsKeepLeastPrivilegeContract(t *testing.T) {\n \t\t\"metadata\": \"read\", \"pull_requests\": \"write\",\n \t}\n \twantEvents := []string{\n-\t\t\"installation\", \"installation_repositories\", \"issue_comment\",\n+\t\t\"check_run\", \"installation\", \"installation_repositories\", \"issue_comment\",\n \t\t\"pull_request\", \"pull_request_review_comment\", \"push\",\n \t}\n \tfor _, path := range []string{\"deploy/github-app/dev.json\", \"deploy/github-app/prod.json\"} {\n",
+      "hunks": [
+        {
+          "id": "diff-10125dcb8d9ea89e",
+          "header": "@@ -31,7 +31,7 @@ func TestGitHubAppManifestsKeepLeastPrivilegeContract(t *testing.T) {",
+          "lines": [
+            {
+              "oldLine": 31,
+              "newLine": 31,
+              "kind": "context",
+              "text": "\t\t\"metadata\": \"read\", \"pull_requests\": \"write\","
+            },
+            {
+              "oldLine": 32,
+              "newLine": 32,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 33,
+              "newLine": 33,
+              "kind": "context",
+              "text": "\twantEvents := []string{"
+            },
+            {
+              "oldLine": 34,
+              "kind": "removed",
+              "text": "\t\t\"installation\", \"installation_repositories\", \"issue_comment\","
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t\t\"check_run\", \"installation\", \"installation_repositories\", \"issue_comment\","
+            },
+            {
+              "oldLine": 35,
+              "newLine": 35,
+              "kind": "context",
+              "text": "\t\t\"pull_request\", \"pull_request_review_comment\", \"push\","
+            },
+            {
+              "oldLine": 36,
+              "newLine": 36,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 37,
+              "newLine": 37,
+              "kind": "context",
+              "text": "\tfor _, path := range []string{\"deploy/github-app/dev.json\", \"deploy/github-app/prod.json\"} {"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/githubapp/checks.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/githubapp/checks.go b/internal/hosted/githubapp/checks.go\nnew file mode 100644\nindex 0000000..1ddd731\n--- /dev/null\n+++ b/internal/hosted/githubapp/checks.go\n@@ -0,0 +1,176 @@\n+package githubapp\n+\n+import (\n+\t\"bytes\"\n+\t\"context\"\n+\t\"encoding/json\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"io\"\n+\t\"net/http\"\n+\t\"net/url\"\n+\t\"strings\"\n+\t\"time\"\n+)\n+\n+const RetryReviewAction = \"retry_review\"\n+\n+type CheckAPIClient interface {\n+\tDo(context.Context, int64, *http.Request) (*http.Response, error)\n+}\n+\n+type CheckRunPublisher struct {\n+\tClient  CheckAPIClient\n+\tBaseURL string\n+\tNow     func() time.Time\n+}\n+\n+type CheckRunStart struct {\n+\tHeadSHA    string\n+\tRunID      string\n+\tDetailsURL string\n+\tSummary    string\n+}\n+\n+type CheckRunResult struct {\n+\tConclusion string\n+\tTitle      string\n+\tSummary    string\n+}\n+\n+type checkOutput struct {\n+\tTitle   string `json:\"title\"`\n+\tSummary string `json:\"summary\"`\n+}\n+\n+type checkAction struct {\n+\tLabel       string `json:\"label\"`\n+\tDescription string `json:\"description\"`\n+\tIdentifier  string `json:\"identifier\"`\n+}\n+\n+func (p CheckRunPublisher) Start(ctx context.Context, installationID int64, owner, repo string, input CheckRunStart) (int64, error) {\n+\tif err := p.validate(installationID, owner, repo); err != nil {\n+\t\treturn 0, err\n+\t}\n+\tif !validCheckSHA(input.HeadSHA) || strings.TrimSpace(input.RunID) == \"\" || !validHTTPURL(input.DetailsURL) {\n+\t\treturn 0, errors.New(\"full head SHA, run ID, and details URL are required\")\n+\t}\n+\tpayload := map[string]any{\n+\t\t\"name\": \"px1 review\", \"head_sha\": input.HeadSHA, \"status\": \"in_progress\",\n+\t\t\"external_id\": input.RunID, \"details_url\": input.DetailsURL,\n+\t\t\"output\": checkOutput{Title: \"px1 review in progress\", Summary: boundedCheckText(input.Summary)},\n+\t}\n+\tresponse, err := p.send(ctx, installationID, http.MethodPost, fmt.Sprintf(\"/repos/%s/%s/check-runs\", url.PathEscape(owner), url.PathEscape(repo)), payload)\n+\tif err != nil {\n+\t\treturn 0, err\n+\t}\n+\tdefer response.Body.Close()\n+\tvar created struct {\n+\t\tID int64 `json:\"id\"`\n+\t}\n+\tif err := json.NewDecoder(io.LimitReader(response.Body, 1\u003c\u003c20)).Decode(\u0026created); err != nil || created.ID \u003c= 0 {\n+\t\treturn 0, errors.New(\"GitHub returned an invalid check run ID\")\n+\t}\n+\treturn created.ID, nil\n+}\n+\n+func (p CheckRunPublisher) Complete(ctx context.Context, installationID int64, owner, repo string, checkRunID int64, result CheckRunResult) error {\n+\tif err := p.validate(installationID, owner, repo); err != nil {\n+\t\treturn err\n+\t}\n+\tif checkRunID \u003c= 0 || (result.Conclusion != \"neutral\" \u0026\u0026 result.Conclusion != \"failure\") || strings.TrimSpace(result.Title) == \"\" {\n+\t\treturn errors.New(\"check run ID, neutral or failure conclusion, and title are required\")\n+\t}\n+\tnow := time.Now\n+\tif p.Now != nil {\n+\t\tnow = p.Now\n+\t}\n+\tpayload := map[string]any{\n+\t\t\"status\": \"completed\", \"conclusion\": result.Conclusion, \"completed_at\": now().UTC().Format(time.RFC3339),\n+\t\t\"output\":  checkOutput{Title: result.Title, Summary: boundedCheckText(result.Summary)},\n+\t\t\"actions\": []checkAction{{Label: \"Retry review\", Description: \"Run px1 again for this pull request head\", Identifier: RetryReviewAction}},\n+\t}\n+\tresponse, err := p.send(ctx, installationID, http.MethodPatch, fmt.Sprintf(\"/repos/%s/%s/check-runs/%d\", url.PathEscape(owner), url.PathEscape(repo), checkRunID), payload)\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\tdefer response.Body.Close()\n+\treturn nil\n+}\n+\n+func ReviewConclusion(hasP0, failOnP0 bool) string {\n+\tif hasP0 \u0026\u0026 failOnP0 {\n+\t\treturn \"failure\"\n+\t}\n+\treturn \"neutral\"\n+}\n+\n+func (p CheckRunPublisher) validate(installationID int64, owner, repo string) error {\n+\tif p.Client == nil || installationID \u003c= 0 || !validCheckSlug(owner) || !validCheckSlug(repo) {\n+\t\treturn errors.New(\"GitHub client, installation, and repository are required\")\n+\t}\n+\treturn nil\n+}\n+\n+func (p CheckRunPublisher) send(ctx context.Context, installationID int64, method, path string, payload any) (*http.Response, error) {\n+\tbody, err := json.Marshal(payload)\n+\tif err != nil {\n+\t\treturn nil, err\n+\t}\n+\tbaseURL := strings.TrimRight(p.BaseURL, \"/\")\n+\tif baseURL == \"\" {\n+\t\tbaseURL = \"https://api.github.com\"\n+\t}\n+\trequest, err := http.NewRequestWithContext(ctx, method, baseURL+path, bytes.NewReader(body))\n+\tif err != nil {\n+\t\treturn nil, err\n+\t}\n+\trequest.Header.Set(\"Content-Type\", \"application/json\")\n+\tresponse, err := p.Client.Do(ctx, installationID, request)\n+\tif err != nil {\n+\t\treturn nil, fmt.Errorf(\"publish GitHub check run: %w\", err)\n+\t}\n+\tif response.StatusCode \u003c 200 || response.StatusCode \u003e= 300 {\n+\t\tresponse.Body.Close()\n+\t\treturn nil, fmt.Errorf(\"publish GitHub check run: status %d\", response.StatusCode)\n+\t}\n+\treturn response, nil\n+}\n+\n+func boundedCheckText(value string) string {\n+\tconst maxBytes = 60_000\n+\tif len(value) \u003c= maxBytes {\n+\t\treturn value\n+\t}\n+\treturn value[:maxBytes] + \"\\n\\n[truncated by px1]\"\n+}\n+\n+func validHTTPURL(value string) bool {\n+\tparsed, err := url.Parse(value)\n+\treturn err == nil \u0026\u0026 (parsed.Scheme == \"https\" || parsed.Scheme == \"http\") \u0026\u0026 parsed.Host != \"\"\n+}\n+\n+func validCheckSHA(value string) bool {\n+\tif len(value) != 40 {\n+\t\treturn false\n+\t}\n+\tfor _, r := range value {\n+\t\tif !((r \u003e= '0' \u0026\u0026 r \u003c= '9') || (r \u003e= 'a' \u0026\u0026 r \u003c= 'f') || (r \u003e= 'A' \u0026\u0026 r \u003c= 'F')) {\n+\t\t\treturn false\n+\t\t}\n+\t}\n+\treturn true\n+}\n+\n+func validCheckSlug(value string) bool {\n+\tif value == \"\" || value == \".\" || value == \"..\" {\n+\t\treturn false\n+\t}\n+\tfor _, r := range value {\n+\t\tif !((r \u003e= 'a' \u0026\u0026 r \u003c= 'z') || (r \u003e= 'A' \u0026\u0026 r \u003c= 'Z') || (r \u003e= '0' \u0026\u0026 r \u003c= '9') || r == '-' || r == '_' || r == '.') {\n+\t\t\treturn false\n+\t\t}\n+\t}\n+\treturn true\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-dc23c1d718f6fdd8",
+          "header": "@@ -0,0 +1,176 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package githubapp"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"bytes\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"io\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"net/http\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"net/url\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "const RetryReviewAction = \"retry_review\""
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "type CheckAPIClient interface {"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tDo(context.Context, int64, *http.Request) (*http.Response, error)"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "type CheckRunPublisher struct {"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tClient  CheckAPIClient"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tBaseURL string"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tNow     func() time.Time"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "type CheckRunStart struct {"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tHeadSHA    string"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tRunID      string"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tDetailsURL string"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tSummary    string"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "type CheckRunResult struct {"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tConclusion string"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\tTitle      string"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tSummary    string"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "type checkOutput struct {"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tTitle   string `json:\"title\"`"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tSummary string `json:\"summary\"`"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "type checkAction struct {"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\tLabel       string `json:\"label\"`"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\tDescription string `json:\"description\"`"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\tIdentifier  string `json:\"identifier\"`"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "func (p CheckRunPublisher) Start(ctx context.Context, installationID int64, owner, repo string, input CheckRunStart) (int64, error) {"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\tif err := p.validate(installationID, owner, repo); err != nil {"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\treturn 0, err"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\tif !validCheckSHA(input.HeadSHA) || strings.TrimSpace(input.RunID) == \"\" || !validHTTPURL(input.DetailsURL) {"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\treturn 0, errors.New(\"full head SHA, run ID, and details URL are required\")"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\tpayload := map[string]any{"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t\t\"name\": \"px1 review\", \"head_sha\": input.HeadSHA, \"status\": \"in_progress\","
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t\t\"external_id\": input.RunID, \"details_url\": input.DetailsURL,"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t\t\"output\": checkOutput{Title: \"px1 review in progress\", Summary: boundedCheckText(input.Summary)},"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\tresponse, err := p.send(ctx, installationID, http.MethodPost, fmt.Sprintf(\"/repos/%s/%s/check-runs\", url.PathEscape(owner), url.PathEscape(repo)), payload)"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\treturn 0, err"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\tdefer response.Body.Close()"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\tvar created struct {"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\tID int64 `json:\"id\"`"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\tif err := json.NewDecoder(io.LimitReader(response.Body, 1\u003c\u003c20)).Decode(\u0026created); err != nil || created.ID \u003c= 0 {"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\treturn 0, errors.New(\"GitHub returned an invalid check run ID\")"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\treturn created.ID, nil"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "func (p CheckRunPublisher) Complete(ctx context.Context, installationID int64, owner, repo string, checkRunID int64, result CheckRunResult) error {"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\tif err := p.validate(installationID, owner, repo); err != nil {"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\tif checkRunID \u003c= 0 || (result.Conclusion != \"neutral\" \u0026\u0026 result.Conclusion != \"failure\") || strings.TrimSpace(result.Title) == \"\" {"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"check run ID, neutral or failure conclusion, and title are required\")"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\tnow := time.Now"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\tif p.Now != nil {"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\t\tnow = p.Now"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\tpayload := map[string]any{"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t\t\"status\": \"completed\", \"conclusion\": result.Conclusion, \"completed_at\": now().UTC().Format(time.RFC3339),"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t\t\"output\":  checkOutput{Title: result.Title, Summary: boundedCheckText(result.Summary)},"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\t\t\"actions\": []checkAction{{Label: \"Retry review\", Description: \"Run px1 again for this pull request head\", Identifier: RetryReviewAction}},"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\tresponse, err := p.send(ctx, installationID, http.MethodPatch, fmt.Sprintf(\"/repos/%s/%s/check-runs/%d\", url.PathEscape(owner), url.PathEscape(repo), checkRunID), payload)"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\tdefer response.Body.Close()"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "func ReviewConclusion(hasP0, failOnP0 bool) string {"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\tif hasP0 \u0026\u0026 failOnP0 {"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t\treturn \"failure\""
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\treturn \"neutral\""
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "func (p CheckRunPublisher) validate(installationID int64, owner, repo string) error {"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\tif p.Client == nil || installationID \u003c= 0 || !validCheckSlug(owner) || !validCheckSlug(repo) {"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"GitHub client, installation, and repository are required\")"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "func (p CheckRunPublisher) send(ctx context.Context, installationID int64, method, path string, payload any) (*http.Response, error) {"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\tbody, err := json.Marshal(payload)"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\tbaseURL := strings.TrimRight(p.BaseURL, \"/\")"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\tif baseURL == \"\" {"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "\t\tbaseURL = \"https://api.github.com\""
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\trequest, err := http.NewRequestWithContext(ctx, method, baseURL+path, bytes.NewReader(body))"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\trequest.Header.Set(\"Content-Type\", \"application/json\")"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\tresponse, err := p.Client.Do(ctx, installationID, request)"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\t\treturn nil, fmt.Errorf(\"publish GitHub check run: %w\", err)"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\tif response.StatusCode \u003c 200 || response.StatusCode \u003e= 300 {"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\t\tresponse.Body.Close()"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\t\treturn nil, fmt.Errorf(\"publish GitHub check run: status %d\", response.StatusCode)"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\treturn response, nil"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "func boundedCheckText(value string) string {"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "\tconst maxBytes = 60_000"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "\tif len(value) \u003c= maxBytes {"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\t\treturn value"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\treturn value[:maxBytes] + \"\\n\\n[truncated by px1]\""
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "func validHTTPURL(value string) bool {"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "\tparsed, err := url.Parse(value)"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "\treturn err == nil \u0026\u0026 (parsed.Scheme == \"https\" || parsed.Scheme == \"http\") \u0026\u0026 parsed.Host != \"\""
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "func validCheckSHA(value string) bool {"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "\tif len(value) != 40 {"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "\t\treturn false"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "\tfor _, r := range value {"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "\t\tif !((r \u003e= '0' \u0026\u0026 r \u003c= '9') || (r \u003e= 'a' \u0026\u0026 r \u003c= 'f') || (r \u003e= 'A' \u0026\u0026 r \u003c= 'F')) {"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "\t\t\treturn false"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "\treturn true"
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "func validCheckSlug(value string) bool {"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": "\tif value == \"\" || value == \".\" || value == \"..\" {"
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": "\t\treturn false"
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "\tfor _, r := range value {"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "\t\tif !((r \u003e= 'a' \u0026\u0026 r \u003c= 'z') || (r \u003e= 'A' \u0026\u0026 r \u003c= 'Z') || (r \u003e= '0' \u0026\u0026 r \u003c= '9') || r == '-' || r == '_' || r == '.') {"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "\t\t\treturn false"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "\treturn true"
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/githubapp/checks_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/githubapp/checks_test.go b/internal/hosted/githubapp/checks_test.go\nnew file mode 100644\nindex 0000000..4ab6b83\n--- /dev/null\n+++ b/internal/hosted/githubapp/checks_test.go\n@@ -0,0 +1,70 @@\n+package githubapp\n+\n+import (\n+\t\"context\"\n+\t\"encoding/json\"\n+\t\"io\"\n+\t\"net/http\"\n+\t\"strings\"\n+\t\"testing\"\n+\t\"time\"\n+)\n+\n+type checkAPIFake struct {\n+\tmethods []string\n+\tpaths   []string\n+\tbodies  [][]byte\n+}\n+\n+func (f *checkAPIFake) Do(_ context.Context, _ int64, request *http.Request) (*http.Response, error) {\n+\tbody, _ := io.ReadAll(request.Body)\n+\tf.methods = append(f.methods, request.Method)\n+\tf.paths = append(f.paths, request.URL.Path)\n+\tf.bodies = append(f.bodies, body)\n+\tresponse := `{}`\n+\tstatus := http.StatusOK\n+\tif request.Method == http.MethodPost {\n+\t\tresponse = `{\"id\":42}`\n+\t\tstatus = http.StatusCreated\n+\t}\n+\treturn \u0026http.Response{StatusCode: status, Body: io.NopCloser(strings.NewReader(response))}, nil\n+}\n+\n+func TestCheckRunLifecycleIncludesRetryAction(t *testing.T) {\n+\tapi := \u0026checkAPIFake{}\n+\tpublisher := CheckRunPublisher{Client: api, BaseURL: \"https://github.test\", Now: func() time.Time { return time.Unix(10, 0) }}\n+\tid, err := publisher.Start(context.Background(), 7, \"acme\", \"widget\", CheckRunStart{\n+\t\tHeadSHA: strings.Repeat(\"a\", 40), RunID: \"run-9\", DetailsURL: \"https://px1.test/reviews/run-9\", Summary: \"Queued\",\n+\t})\n+\tif err != nil || id != 42 {\n+\t\tt.Fatalf(\"id = %d, err = %v\", id, err)\n+\t}\n+\tif err := publisher.Complete(context.Background(), 7, \"acme\", \"widget\", id, CheckRunResult{Conclusion: \"neutral\", Title: \"Review ready\", Summary: \"Inspect the findings.\"}); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif len(api.methods) != 2 || api.methods[0] != http.MethodPost || api.methods[1] != http.MethodPatch || api.paths[1] != \"/repos/acme/widget/check-runs/42\" {\n+\t\tt.Fatalf(\"methods = %#v, paths = %#v\", api.methods, api.paths)\n+\t}\n+\tvar completed map[string]any\n+\tif err := json.Unmarshal(api.bodies[1], \u0026completed); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tactions := completed[\"actions\"].([]any)\n+\tif actions[0].(map[string]any)[\"identifier\"] != RetryReviewAction || completed[\"conclusion\"] != \"neutral\" {\n+\t\tt.Fatalf(\"completed payload = %#v\", completed)\n+\t}\n+}\n+\n+func TestReviewConclusionIsConfigurable(t *testing.T) {\n+\tif ReviewConclusion(true, true) != \"failure\" || ReviewConclusion(true, false) != \"neutral\" || ReviewConclusion(false, true) != \"neutral\" {\n+\t\tt.Fatal(\"unexpected conclusion policy\")\n+\t}\n+}\n+\n+func TestCheckRunRejectsInvalidHeadBeforePublishing(t *testing.T) {\n+\tapi := \u0026checkAPIFake{}\n+\t_, err := (CheckRunPublisher{Client: api}).Start(context.Background(), 1, \"acme\", \"widget\", CheckRunStart{HeadSHA: \"main\", RunID: \"run\", DetailsURL: \"https://px1.test\"})\n+\tif err == nil || len(api.methods) != 0 {\n+\t\tt.Fatalf(\"err = %v, calls = %d\", err, len(api.methods))\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-b1c6baf5ef59a7ca",
+          "header": "@@ -0,0 +1,70 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package githubapp"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"io\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"net/http\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "type checkAPIFake struct {"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tmethods []string"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tpaths   []string"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tbodies  [][]byte"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "func (f *checkAPIFake) Do(_ context.Context, _ int64, request *http.Request) (*http.Response, error) {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tbody, _ := io.ReadAll(request.Body)"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tf.methods = append(f.methods, request.Method)"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tf.paths = append(f.paths, request.URL.Path)"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tf.bodies = append(f.bodies, body)"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tresponse := `{}`"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tstatus := http.StatusOK"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tif request.Method == http.MethodPost {"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t\tresponse = `{\"id\":42}`"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t\tstatus = http.StatusCreated"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\treturn \u0026http.Response{StatusCode: status, Body: io.NopCloser(strings.NewReader(response))}, nil"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "func TestCheckRunLifecycleIncludesRetryAction(t *testing.T) {"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tapi := \u0026checkAPIFake{}"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tpublisher := CheckRunPublisher{Client: api, BaseURL: \"https://github.test\", Now: func() time.Time { return time.Unix(10, 0) }}"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tid, err := publisher.Start(context.Background(), 7, \"acme\", \"widget\", CheckRunStart{"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t\tHeadSHA: strings.Repeat(\"a\", 40), RunID: \"run-9\", DetailsURL: \"https://px1.test/reviews/run-9\", Summary: \"Queued\","
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\t})"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tif err != nil || id != 42 {"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"id = %d, err = %v\", id, err)"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tif err := publisher.Complete(context.Background(), 7, \"acme\", \"widget\", id, CheckRunResult{Conclusion: \"neutral\", Title: \"Review ready\", Summary: \"Inspect the findings.\"}); err != nil {"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\tif len(api.methods) != 2 || api.methods[0] != http.MethodPost || api.methods[1] != http.MethodPatch || api.paths[1] != \"/repos/acme/widget/check-runs/42\" {"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"methods = %#v, paths = %#v\", api.methods, api.paths)"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\tvar completed map[string]any"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\tif err := json.Unmarshal(api.bodies[1], \u0026completed); err != nil {"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\tactions := completed[\"actions\"].([]any)"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\tif actions[0].(map[string]any)[\"identifier\"] != RetryReviewAction || completed[\"conclusion\"] != \"neutral\" {"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"completed payload = %#v\", completed)"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "func TestReviewConclusionIsConfigurable(t *testing.T) {"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\tif ReviewConclusion(true, true) != \"failure\" || ReviewConclusion(true, false) != \"neutral\" || ReviewConclusion(false, true) != \"neutral\" {"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"unexpected conclusion policy\")"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "func TestCheckRunRejectsInvalidHeadBeforePublishing(t *testing.T) {"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\tapi := \u0026checkAPIFake{}"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t_, err := (CheckRunPublisher{Client: api}).Start(context.Background(), 1, \"acme\", \"widget\", CheckRunStart{HeadSHA: \"main\", RunID: \"run\", DetailsURL: \"https://px1.test\"})"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\tif err == nil || len(api.methods) != 0 {"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"err = %v, calls = %d\", err, len(api.methods))"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/webhook/handler.go",
+      "status": "M",
+      "diff": "diff --git a/internal/hosted/webhook/handler.go b/internal/hosted/webhook/handler.go\nindex 66ab942..454d2c4 100644\n--- a/internal/hosted/webhook/handler.go\n+++ b/internal/hosted/webhook/handler.go\n@@ -18,6 +18,7 @@ import (\n const defaultMaxBodyBytes int64 = 10 \u003c\u003c 20\n \n var defaultEvents = map[string]bool{\n+\t\"check_run\":                   true,\n \t\"installation\":                true,\n \t\"installation_repositories\":   true,\n \t\"issue_comment\":               true,\n",
+      "hunks": [
+        {
+          "id": "diff-c2815ddafd1b8b8f",
+          "header": "@@ -18,6 +18,7 @@ import (",
+          "lines": [
+            {
+              "oldLine": 18,
+              "newLine": 18,
+              "kind": "context",
+              "text": "const defaultMaxBodyBytes int64 = 10 \u003c\u003c 20"
+            },
+            {
+              "oldLine": 19,
+              "newLine": 19,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 20,
+              "newLine": 20,
+              "kind": "context",
+              "text": "var defaultEvents = map[string]bool{"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t\"check_run\":                   true,"
+            },
+            {
+              "oldLine": 21,
+              "newLine": 22,
+              "kind": "context",
+              "text": "\t\"installation\":                true,"
+            },
+            {
+              "oldLine": 22,
+              "newLine": 23,
+              "kind": "context",
+              "text": "\t\"installation_repositories\":   true,"
+            },
+            {
+              "oldLine": 23,
+              "newLine": 24,
+              "kind": "context",
+              "text": "\t\"issue_comment\":               true,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/webhook/handler_test.go",
+      "status": "M",
+      "diff": "diff --git a/internal/hosted/webhook/handler_test.go b/internal/hosted/webhook/handler_test.go\nindex 024c526..7aa7ed5 100644\n--- a/internal/hosted/webhook/handler_test.go\n+++ b/internal/hosted/webhook/handler_test.go\n@@ -62,6 +62,16 @@ func TestHandlerAuthenticatesDeduplicatesAndEnqueues(t *testing.T) {\n \t}\n }\n \n+func TestHandlerAcceptsCheckRunRetryActions(t *testing.T) {\n+\tsecret := []byte(\"development-secret\")\n+\tsink := \u0026memorySink{}\n+\tresponse := httptest.NewRecorder()\n+\tHandler{Secret: secret, Sink: sink}.ServeHTTP(response, request(secret, \"retry-1\", \"check_run\", `{\"action\":\"requested_action\",\"requested_action\":{\"identifier\":\"retry_review\"}}`))\n+\tif response.Code != http.StatusOK || len(sink.deliveries) != 1 || sink.deliveries[0].Event != \"check_run\" {\n+\t\tt.Fatalf(\"status = %d, deliveries = %#v\", response.Code, sink.deliveries)\n+\t}\n+}\n+\n func TestHandlerRejectsInvalidRequestsBeforeReservation(t *testing.T) {\n \tsecret := []byte(\"development-secret\")\n \tsink := \u0026memorySink{}\n",
+      "hunks": [
+        {
+          "id": "diff-e0aaed2a82f482e5",
+          "header": "@@ -62,6 +62,16 @@ func TestHandlerAuthenticatesDeduplicatesAndEnqueues(t *testing.T) {",
+          "lines": [
+            {
+              "oldLine": 62,
+              "newLine": 62,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 63,
+              "newLine": 63,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 64,
+              "newLine": 64,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "func TestHandlerAcceptsCheckRunRetryActions(t *testing.T) {"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\tsecret := []byte(\"development-secret\")"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\tsink := \u0026memorySink{}"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\tresponse := httptest.NewRecorder()"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\tHandler{Secret: secret, Sink: sink}.ServeHTTP(response, request(secret, \"retry-1\", \"check_run\", `{\"action\":\"requested_action\",\"requested_action\":{\"identifier\":\"retry_review\"}}`))"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\tif response.Code != http.StatusOK || len(sink.deliveries) != 1 || sink.deliveries[0].Event != \"check_run\" {"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"status = %d, deliveries = %#v\", response.Code, sink.deliveries)"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 65,
+              "newLine": 75,
+              "kind": "context",
+              "text": "func TestHandlerRejectsInvalidRequestsBeforeReservation(t *testing.T) {"
+            },
+            {
+              "oldLine": 66,
+              "newLine": 76,
+              "kind": "context",
+              "text": "\tsecret := []byte(\"development-secret\")"
+            },
+            {
+              "oldLine": 67,
+              "newLine": 77,
+              "kind": "context",
+              "text": "\tsink := \u0026memorySink{}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-214247d9cab89535",
+      "title": "Func changes",
+      "summary": "3 related files share the \"func\" change signal.",
+      "paths": [
+        "internal/hosted/githubapp/checks.go",
+        "internal/hosted/githubapp/checks_test.go",
+        "internal/hosted/webhook/handler_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-1b3326ba967c8203",
+      "path": "internal/hosted/githubapp/checks.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/githubapp/checks_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-3b7bed6699b72841",
+      "path": "internal/hosted/githubapp/checks.go",
+      "line": 52,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func (p CheckRunPublisher) Start(ctx context.Context, installationID int64, owner, repo string, input CheckRunStart) (int64, error) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    },
+    {
+      "id": "inspect-762c61bbd8a11b7a",
+      "path": "internal/hosted/webhook/handler.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/webhook/handler_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 7,
+    "filesAnalyzed": 7,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "check-run-publishing",
+      "path": "internal/hosted/githubapp/checks.go",
+      "lineStart": 52,
+      "lineEnd": 100,
+      "title": "Publish review check runs",
+      "summary": "Adds a reusable check-run lifecycle publisher: callers can create an in-progress check for a review and complete it with a result. Completed checks include a `retry_review` action."
+    },
+    {
+      "id": "check-conclusion-policy",
+      "path": "internal/hosted/githubapp/checks.go",
+      "lineStart": 102,
+      "lineEnd": 107,
+      "title": "Make P0 check failures configurable",
+      "summary": "A P0 finding yields a failing check only when `failOnP0` is enabled; otherwise the result is neutral."
+    },
+    {
+      "id": "check-run-webhooks",
+      "path": "internal/hosted/webhook/handler.go",
+      "lineStart": 21,
+      "lineEnd": 21,
+      "title": "Accept check-run events",
+      "summary": "The webhook receiver now accepts `check_run` deliveries, so GitHub can send check-run events to the app for normal processing."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "4921da6eb117a96e17b998b554461f7b9cc9902d",
+      "revision": "a5c5ceb904a6fc9ad9f8ee5ac933b7fefd97aa42",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "4921da6eb117a96e17b998b554461f7b9cc9902d",
+      "revision": "a5c5ceb904a6fc9ad9f8ee5ac933b7fefd97aa42",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "a5c5ceb904a6fc9ad9f8ee5ac933b7fefd97aa42",
+      "detail": "3 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "a5c5ceb904a6fc9ad9f8ee5ac933b7fefd97aa42",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-5602a0e58f08ffee",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/githubapp/checks.go",
+      "line": 52,
+      "evidence": "func (p CheckRunPublisher) Start(ctx context.Context, installationID int64, owner, repo string, input CheckRunStart) (int64, error) {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "a5c5ceb904a6fc9ad9f8ee5ac933b7fefd97aa42",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40115486910",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40115486910/job/120935953197",
+        "startedAt": "2026-10-24T17:18:51Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40115487859/job/120935782822",
+        "startedAt": "2026-10-24T17:18:03Z"
+      }
+    ]
+  }
+}
