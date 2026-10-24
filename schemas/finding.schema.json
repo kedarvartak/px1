@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "px1 finding",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["path", "start_line", "end_line", "severity", "type", "title", "body", "evidence", "confidence"],
+  "properties": {
+    "path": {"type": "string", "minLength": 1},
+    "start_line": {"type": "integer", "minimum": 1},
+    "end_line": {"type": "integer", "minimum": 1},
+    "severity": {"enum": ["P0", "P1", "P2"]},
+    "type": {"enum": ["logic", "syntax", "style", "security"]},
+    "title": {"type": "string", "minLength": 1, "maxLength": 200},
+    "body": {"type": "string", "minLength": 1, "maxLength": 16000},
+    "evidence": {"type": "string", "minLength": 1, "maxLength": 8000},
+    "suggestion": {"type": "string", "maxLength": 16000},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "rule_id": {"type": "string"}
+  }
+}
