@@ -63,16 +63,28 @@ backend-foundation tasks are:
    and drop unsupported or sub-0.6-confidence output.
 19. [x] **Deduplicate and rank findings.** Collapse overlapping, similarly titled
    findings, order by severity then confidence, and cap inline delivery.
-20. [ ] **Render an auditable review summary.** Keep deterministic signals
+20. [x] **Render an auditable review summary.** Keep deterministic signals
    verbatim beside bounded model prose.
-21. [ ] **Map findings to diff lines.** Deliver only comments whose ranges are
+21. [x] **Map findings to diff lines.** Deliver only comments whose ranges are
    valid on the current diff and retain the rest in the summary.
-22. [ ] **Post one review per run.** Send all inline findings through GitHub's
+22. [x] **Post one review per run.** Send all inline findings through GitHub's
    Create Review API instead of emitting one notification per comment.
-23. [ ] **Maintain one sticky summary.** Find the bot-owned marker and edit the
+23. [x] **Maintain one sticky summary.** Find the bot-owned marker and edit the
    existing PR summary in place.
-24. [ ] **Expose review check status.** Publish in-progress, completed, and
+24. [x] **Expose review check status.** Publish in-progress, completed, and
    failed check runs with a retry action.
+25. [x] **Authorize review commands.** Parse supported `@px1` issue-comment
+   commands and require repository write access before any work is enqueued.
+26. [ ] **Re-review incrementally.** Diff from the last reviewed SHA, resolve
+   fixed threads, and carry dismissed finding fingerprints forward.
+27. [ ] **Publish commit-pinned reports.** Run the exporter in the worker and
+   upload an immutable report bundle under the full head SHA.
+28. [ ] **Gate report access.** Require GitHub OAuth and confirm repository read
+   access before returning private review artifacts.
+29. [ ] **Show hosted findings in reports.** Keep AI findings visibly separate
+   from deterministic evidence and browser-local human review progress.
+30. [ ] **Create the v1 evaluation set.** Define auditable historical and seeded
+   benchmark cases across public repositories.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,
