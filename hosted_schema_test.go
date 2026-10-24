@@ -29,6 +29,9 @@ func TestHostedSchemaDefinesCoreTenantScopedTables(t *testing.T) {
 		"FORCE ROW LEVEL SECURITY",
 		"current_setting('px1.installation_id', true)",
 		"FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id)",
+		"FOREIGN KEY (installation_id, repository_id, pull_request_id) REFERENCES pull_requests(installation_id, repository_id, id)",
+		"FOREIGN KEY (installation_id, repository_id, review_id) REFERENCES reviews(installation_id, repository_id, id)",
+		"FOREIGN KEY (installation_id, repository_id, finding_id) REFERENCES findings(installation_id, repository_id, id)",
 	} {
 		if !strings.Contains(sql, required) {
 			t.Errorf("schema missing %q", required)

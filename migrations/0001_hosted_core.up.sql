@@ -73,6 +73,7 @@ CREATE TABLE pull_requests (
     updated_at timestamptz NOT NULL DEFAULT now(),
     UNIQUE (repository_id, number),
     UNIQUE (installation_id, id),
+    UNIQUE (installation_id, repository_id, id),
     FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE
 );
 
@@ -95,8 +96,9 @@ CREATE TABLE reviews (
     created_at timestamptz NOT NULL DEFAULT now(),
     UNIQUE (pull_request_id, head_sha),
     UNIQUE (installation_id, id),
+    UNIQUE (installation_id, repository_id, id),
     FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE,
-    FOREIGN KEY (installation_id, pull_request_id) REFERENCES pull_requests(installation_id, id) ON DELETE CASCADE
+    FOREIGN KEY (installation_id, repository_id, pull_request_id) REFERENCES pull_requests(installation_id, repository_id, id) ON DELETE CASCADE
 );
 
 CREATE TABLE findings (
@@ -120,8 +122,9 @@ CREATE TABLE findings (
     created_at timestamptz NOT NULL DEFAULT now(),
     UNIQUE (review_id, fingerprint),
     UNIQUE (installation_id, id),
+    UNIQUE (installation_id, repository_id, id),
     FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE,
-    FOREIGN KEY (installation_id, review_id) REFERENCES reviews(installation_id, id) ON DELETE CASCADE
+    FOREIGN KEY (installation_id, repository_id, review_id) REFERENCES reviews(installation_id, repository_id, id) ON DELETE CASCADE
 );
 
 CREATE TABLE comments (
@@ -136,7 +139,7 @@ CREATE TABLE comments (
     updated_at timestamptz NOT NULL DEFAULT now(),
     UNIQUE (repository_id, github_comment_id),
     FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE,
-    FOREIGN KEY (installation_id, finding_id) REFERENCES findings(installation_id, id)
+    FOREIGN KEY (installation_id, repository_id, finding_id) REFERENCES findings(installation_id, repository_id, id)
 );
 
 CREATE TABLE feedback_events (
@@ -150,7 +153,7 @@ CREATE TABLE feedback_events (
     occurred_at timestamptz NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE,
-    FOREIGN KEY (installation_id, finding_id) REFERENCES findings(installation_id, id)
+    FOREIGN KEY (installation_id, repository_id, finding_id) REFERENCES findings(installation_id, repository_id, id)
 );
 
 CREATE TABLE jobs (
