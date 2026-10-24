@@ -1,0 +1,1568 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "07ebf231a9edf64291529cccba3e6a91ba8dd402",
+  "head": "0bdc82bd7127ad8e147b6729d7c596cfe3ddf665",
+  "generatedAt": "2026-10-24T13:37:12.887516398Z",
+  "files": [
+    {
+      "path": "hosted_schema_test.go",
+      "status": "A",
+      "diff": "diff --git a/hosted_schema_test.go b/hosted_schema_test.go\nnew file mode 100644\nindex 0000000..2a4c1f5\n--- /dev/null\n+++ b/hosted_schema_test.go\n@@ -0,0 +1,58 @@\n+package main\n+\n+import (\n+\t\"os\"\n+\t\"regexp\"\n+\t\"strings\"\n+\t\"testing\"\n+)\n+\n+func TestHostedSchemaDefinesCoreTenantScopedTables(t *testing.T) {\n+\tbody, err := os.ReadFile(\"migrations/0001_hosted_core.up.sql\")\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tsql := string(body)\n+\tfor _, table := range []string{\n+\t\t\"installations\", \"repositories\", \"files\", \"chunks\", \"pull_requests\",\n+\t\t\"reviews\", \"findings\", \"comments\", \"feedback_events\", \"jobs\",\n+\t} {\n+\t\tif !strings.Contains(sql, \"CREATE TABLE \"+table+\" (\") {\n+\t\t\tt.Errorf(\"missing %s table\", table)\n+\t\t}\n+\t}\n+\tfor _, required := range []string{\n+\t\t\"CREATE EXTENSION IF NOT EXISTS vector\",\n+\t\t\"embedding vector(1536) NOT NULL\",\n+\t\t\"USING hnsw (embedding vector_cosine_ops)\",\n+\t\t\"ENABLE ROW LEVEL SECURITY\",\n+\t\t\"FORCE ROW LEVEL SECURITY\",\n+\t\t\"current_setting('px1.installation_id', true)\",\n+\t\t\"FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id)\",\n+\t\t\"FOREIGN KEY (installation_id, repository_id, pull_request_id) REFERENCES pull_requests(installation_id, repository_id, id)\",\n+\t\t\"FOREIGN KEY (installation_id, repository_id, review_id) REFERENCES reviews(installation_id, repository_id, id)\",\n+\t\t\"FOREIGN KEY (installation_id, repository_id, finding_id) REFERENCES findings(installation_id, repository_id, id)\",\n+\t} {\n+\t\tif !strings.Contains(sql, required) {\n+\t\t\tt.Errorf(\"schema missing %q\", required)\n+\t\t}\n+\t}\n+}\n+\n+func TestEveryHostedChildTableCarriesInstallationID(t *testing.T) {\n+\tbody, err := os.ReadFile(\"migrations/0001_hosted_core.up.sql\")\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tsql := string(body)\n+\tfor _, table := range []string{\n+\t\t\"repositories\", \"files\", \"chunks\", \"pull_requests\", \"reviews\",\n+\t\t\"findings\", \"comments\", \"feedback_events\", \"jobs\",\n+\t} {\n+\t\tpattern := regexp.MustCompile(`(?s)CREATE TABLE ` + regexp.QuoteMeta(table) + ` \\((.*?)\\);`)\n+\t\tmatch := pattern.FindStringSubmatch(sql)\n+\t\tif len(match) != 2 || !strings.Contains(match[1], \"installation_id bigint\") {\n+\t\t\tt.Errorf(\"%s must carry installation_id\", table)\n+\t\t}\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-da0618ad598ac867",
+          "header": "@@ -0,0 +1,58 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package main"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"regexp\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "func TestHostedSchemaDefinesCoreTenantScopedTables(t *testing.T) {"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\tbody, err := os.ReadFile(\"migrations/0001_hosted_core.up.sql\")"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tsql := string(body)"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tfor _, table := range []string{"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t\t\"installations\", \"repositories\", \"files\", \"chunks\", \"pull_requests\","
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t\t\"reviews\", \"findings\", \"comments\", \"feedback_events\", \"jobs\","
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t} {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t\tif !strings.Contains(sql, \"CREATE TABLE \"+table+\" (\") {"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"missing %s table\", table)"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tfor _, required := range []string{"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t\t\"CREATE EXTENSION IF NOT EXISTS vector\","
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t\t\"embedding vector(1536) NOT NULL\","
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t\t\"USING hnsw (embedding vector_cosine_ops)\","
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t\t\"ENABLE ROW LEVEL SECURITY\","
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t\t\"FORCE ROW LEVEL SECURITY\","
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t\t\"current_setting('px1.installation_id', true)\","
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t\t\"FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id)\","
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t\t\"FOREIGN KEY (installation_id, repository_id, pull_request_id) REFERENCES pull_requests(installation_id, repository_id, id)\","
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t\t\"FOREIGN KEY (installation_id, repository_id, review_id) REFERENCES reviews(installation_id, repository_id, id)\","
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t\t\"FOREIGN KEY (installation_id, repository_id, finding_id) REFERENCES findings(installation_id, repository_id, id)\","
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t} {"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t\tif !strings.Contains(sql, required) {"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"schema missing %q\", required)"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "func TestEveryHostedChildTableCarriesInstallationID(t *testing.T) {"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tbody, err := os.ReadFile(\"migrations/0001_hosted_core.up.sql\")"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\tsql := string(body)"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\tfor _, table := range []string{"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\t\"repositories\", \"files\", \"chunks\", \"pull_requests\", \"reviews\","
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t\t\"findings\", \"comments\", \"feedback_events\", \"jobs\","
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t} {"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\tpattern := regexp.MustCompile(`(?s)CREATE TABLE ` + regexp.QuoteMeta(table) + ` \\((.*?)\\);`)"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t\tmatch := pattern.FindStringSubmatch(sql)"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\tif len(match) != 2 || !strings.Contains(match[1], \"installation_id bigint\") {"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"%s must carry installation_id\", table)"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "migrations/0001_hosted_core.down.sql",
+      "status": "A",
+      "diff": "diff --git a/migrations/0001_hosted_core.down.sql b/migrations/0001_hosted_core.down.sql\nnew file mode 100644\nindex 0000000..906193d\n--- /dev/null\n+++ b/migrations/0001_hosted_core.down.sql\n@@ -0,0 +1,12 @@\n+BEGIN;\n+DROP TABLE IF EXISTS jobs;\n+DROP TABLE IF EXISTS feedback_events;\n+DROP TABLE IF EXISTS comments;\n+DROP TABLE IF EXISTS findings;\n+DROP TABLE IF EXISTS reviews;\n+DROP TABLE IF EXISTS pull_requests;\n+DROP TABLE IF EXISTS chunks;\n+DROP TABLE IF EXISTS files;\n+DROP TABLE IF EXISTS repositories;\n+DROP TABLE IF EXISTS installations;\n+COMMIT;\n",
+      "hunks": [
+        {
+          "id": "diff-5d0afd5457be3696",
+          "header": "@@ -0,0 +1,12 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "BEGIN;"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "DROP TABLE IF EXISTS jobs;"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "DROP TABLE IF EXISTS feedback_events;"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "DROP TABLE IF EXISTS comments;"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "DROP TABLE IF EXISTS findings;"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "DROP TABLE IF EXISTS reviews;"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "DROP TABLE IF EXISTS pull_requests;"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "DROP TABLE IF EXISTS chunks;"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "DROP TABLE IF EXISTS files;"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "DROP TABLE IF EXISTS repositories;"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "DROP TABLE IF EXISTS installations;"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "COMMIT;"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "migrations/0001_hosted_core.up.sql",
+      "status": "A",
+      "diff": "diff --git a/migrations/0001_hosted_core.up.sql b/migrations/0001_hosted_core.up.sql\nnew file mode 100644\nindex 0000000..95fb5a2\n--- /dev/null\n+++ b/migrations/0001_hosted_core.up.sql\n@@ -0,0 +1,202 @@\n+BEGIN;\n+\n+CREATE EXTENSION IF NOT EXISTS vector;\n+\n+CREATE TABLE installations (\n+    id bigint PRIMARY KEY,\n+    account_login text NOT NULL,\n+    account_type text NOT NULL,\n+    suspended_at timestamptz,\n+    created_at timestamptz NOT NULL DEFAULT now(),\n+    updated_at timestamptz NOT NULL DEFAULT now()\n+);\n+\n+CREATE TABLE repositories (\n+    id bigint PRIMARY KEY,\n+    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,\n+    owner text NOT NULL,\n+    name text NOT NULL,\n+    default_branch text NOT NULL,\n+    private boolean NOT NULL,\n+    indexing_state text NOT NULL DEFAULT 'pending' CHECK (indexing_state IN ('pending', 'indexing', 'ready', 'partial', 'failed')),\n+    indexed_head_sha char(40),\n+    created_at timestamptz NOT NULL DEFAULT now(),\n+    updated_at timestamptz NOT NULL DEFAULT now(),\n+    UNIQUE (installation_id, owner, name),\n+    UNIQUE (installation_id, id)\n+);\n+\n+CREATE TABLE files (\n+    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,\n+    repository_id bigint NOT NULL,\n+    path text NOT NULL,\n+    blob_sha char(40) NOT NULL,\n+    language text,\n+    summary text,\n+    generated boolean NOT NULL DEFAULT false,\n+    indexed_at timestamptz NOT NULL DEFAULT now(),\n+    PRIMARY KEY (repository_id, path),\n+    FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE\n+);\n+\n+CREATE TABLE chunks (\n+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n+    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,\n+    repository_id bigint NOT NULL,\n+    path text NOT NULL,\n+    blob_sha char(40) NOT NULL,\n+    symbol text,\n+    start_line integer NOT NULL CHECK (start_line \u003e 0),\n+    end_line integer NOT NULL CHECK (end_line \u003e= start_line),\n+    content text NOT NULL,\n+    token_count integer NOT NULL CHECK (token_count \u003e= 0),\n+    embedding_model text NOT NULL,\n+    embedding vector(1536) NOT NULL,\n+    created_at timestamptz NOT NULL DEFAULT now(),\n+    UNIQUE (repository_id, path, blob_sha, start_line, end_line, embedding_model),\n+    FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE\n+);\n+\n+CREATE INDEX chunks_embedding_hnsw ON chunks USING hnsw (embedding vector_cosine_ops);\n+CREATE INDEX chunks_repository_path ON chunks (repository_id, path);\n+\n+CREATE TABLE pull_requests (\n+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n+    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,\n+    repository_id bigint NOT NULL,\n+    number integer NOT NULL CHECK (number \u003e 0),\n+    base_sha char(40) NOT NULL,\n+    head_sha char(40) NOT NULL,\n+    author_login text NOT NULL,\n+    state text NOT NULL CHECK (state IN ('open', 'closed', 'merged')),\n+    created_at timestamptz NOT NULL DEFAULT now(),\n+    updated_at timestamptz NOT NULL DEFAULT now(),\n+    UNIQUE (repository_id, number),\n+    UNIQUE (installation_id, id),\n+    UNIQUE (installation_id, repository_id, id),\n+    FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE\n+);\n+\n+CREATE TABLE reviews (\n+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n+    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,\n+    repository_id bigint NOT NULL,\n+    pull_request_id bigint NOT NULL,\n+    base_sha char(40) NOT NULL,\n+    head_sha char(40) NOT NULL,\n+    status text NOT NULL CHECK (status IN ('queued', 'running', 'completed', 'failed', 'cancelled')),\n+    verifier_status text NOT NULL DEFAULT 'pending' CHECK (verifier_status IN ('pending', 'passed', 'failed', 'partial')),\n+    model text,\n+    prompt_version text,\n+    input_tokens bigint NOT NULL DEFAULT 0,\n+    output_tokens bigint NOT NULL DEFAULT 0,\n+    cost_microusd bigint NOT NULL DEFAULT 0,\n+    started_at timestamptz,\n+    completed_at timestamptz,\n+    created_at timestamptz NOT NULL DEFAULT now(),\n+    UNIQUE (pull_request_id, head_sha),\n+    UNIQUE (installation_id, id),\n+    UNIQUE (installation_id, repository_id, id),\n+    FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE,\n+    FOREIGN KEY (installation_id, repository_id, pull_request_id) REFERENCES pull_requests(installation_id, repository_id, id) ON DELETE CASCADE\n+);\n+\n+CREATE TABLE findings (\n+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n+    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,\n+    repository_id bigint NOT NULL,\n+    review_id uuid NOT NULL,\n+    path text NOT NULL,\n+    start_line integer NOT NULL CHECK (start_line \u003e 0),\n+    end_line integer NOT NULL CHECK (end_line \u003e= start_line),\n+    severity text NOT NULL CHECK (severity IN ('P0', 'P1', 'P2')),\n+    finding_type text NOT NULL,\n+    title text NOT NULL,\n+    body text NOT NULL,\n+    evidence text NOT NULL,\n+    suggestion text,\n+    confidence real NOT NULL CHECK (confidence \u003e= 0 AND confidence \u003c= 1),\n+    rule_id text,\n+    fingerprint text NOT NULL,\n+    status text NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'resolved', 'dismissed')),\n+    created_at timestamptz NOT NULL DEFAULT now(),\n+    UNIQUE (review_id, fingerprint),\n+    UNIQUE (installation_id, id),\n+    UNIQUE (installation_id, repository_id, id),\n+    FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE,\n+    FOREIGN KEY (installation_id, repository_id, review_id) REFERENCES reviews(installation_id, repository_id, id) ON DELETE CASCADE\n+);\n+\n+CREATE TABLE comments (\n+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n+    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,\n+    repository_id bigint NOT NULL,\n+    finding_id uuid,\n+    github_comment_id bigint NOT NULL,\n+    github_thread_id text,\n+    state text NOT NULL DEFAULT 'open' CHECK (state IN ('open', 'resolved', 'deleted')),\n+    created_at timestamptz NOT NULL DEFAULT now(),\n+    updated_at timestamptz NOT NULL DEFAULT now(),\n+    UNIQUE (repository_id, github_comment_id),\n+    FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE,\n+    FOREIGN KEY (installation_id, repository_id, finding_id) REFERENCES findings(installation_id, repository_id, id)\n+);\n+\n+CREATE TABLE feedback_events (\n+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n+    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,\n+    repository_id bigint NOT NULL,\n+    finding_id uuid,\n+    github_actor_id bigint,\n+    kind text NOT NULL CHECK (kind IN ('thumbs_up', 'thumbs_down', 'reply', 'resolved', 'line_changed')),\n+    payload jsonb NOT NULL DEFAULT '{}'::jsonb,\n+    occurred_at timestamptz NOT NULL,\n+    created_at timestamptz NOT NULL DEFAULT now(),\n+    FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE,\n+    FOREIGN KEY (installation_id, repository_id, finding_id) REFERENCES findings(installation_id, repository_id, id)\n+);\n+\n+CREATE TABLE jobs (\n+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n+    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,\n+    repository_id bigint,\n+    delivery_id text,\n+    kind text NOT NULL,\n+    state text NOT NULL DEFAULT 'queued' CHECK (state IN ('queued', 'running', 'completed', 'failed', 'cancelled')),\n+    args jsonb NOT NULL DEFAULT '{}'::jsonb,\n+    attempts integer NOT NULL DEFAULT 0 CHECK (attempts \u003e= 0),\n+    available_at timestamptz NOT NULL DEFAULT now(),\n+    created_at timestamptz NOT NULL DEFAULT now(),\n+    updated_at timestamptz NOT NULL DEFAULT now(),\n+    UNIQUE (installation_id, delivery_id),\n+    FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE\n+);\n+\n+CREATE INDEX repositories_installation ON repositories (installation_id);\n+CREATE INDEX pull_requests_repository ON pull_requests (repository_id, updated_at DESC);\n+CREATE INDEX reviews_pull_request ON reviews (pull_request_id, created_at DESC);\n+CREATE INDEX findings_review_status ON findings (review_id, status, severity);\n+CREATE INDEX feedback_events_finding ON feedback_events (finding_id, occurred_at DESC);\n+CREATE INDEX jobs_ready ON jobs (state, available_at) WHERE state = 'queued';\n+\n+ALTER TABLE installations ENABLE ROW LEVEL SECURITY;\n+ALTER TABLE installations FORCE ROW LEVEL SECURITY;\n+CREATE POLICY tenant_installations ON installations\n+    USING (id = current_setting('px1.installation_id', true)::bigint);\n+\n+DO $policies$\n+DECLARE table_name text;\n+BEGIN\n+    FOREACH table_name IN ARRAY ARRAY['repositories', 'files', 'chunks', 'pull_requests', 'reviews', 'findings', 'comments', 'feedback_events', 'jobs']\n+    LOOP\n+        EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', table_name);\n+        EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', table_name);\n+        EXECUTE format(\n+            'CREATE POLICY tenant_isolation ON %I USING (installation_id = current_setting(''px1.installation_id'', true)::bigint) WITH CHECK (installation_id = current_setting(''px1.installation_id'', true)::bigint)',\n+            table_name\n+        );\n+    END LOOP;\n+END\n+$policies$;\n+\n+COMMIT;\n",
+      "hunks": [
+        {
+          "id": "diff-487990ef00877bc8",
+          "header": "@@ -0,0 +1,202 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "BEGIN;"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "CREATE EXTENSION IF NOT EXISTS vector;"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "CREATE TABLE installations ("
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "    id bigint PRIMARY KEY,"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "    account_login text NOT NULL,"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "    account_type text NOT NULL,"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "    suspended_at timestamptz,"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "    created_at timestamptz NOT NULL DEFAULT now(),"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "    updated_at timestamptz NOT NULL DEFAULT now()"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ");"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "CREATE TABLE repositories ("
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "    id bigint PRIMARY KEY,"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "    owner text NOT NULL,"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "    name text NOT NULL,"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "    default_branch text NOT NULL,"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "    private boolean NOT NULL,"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "    indexing_state text NOT NULL DEFAULT 'pending' CHECK (indexing_state IN ('pending', 'indexing', 'ready', 'partial', 'failed')),"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "    indexed_head_sha char(40),"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "    created_at timestamptz NOT NULL DEFAULT now(),"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "    updated_at timestamptz NOT NULL DEFAULT now(),"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "    UNIQUE (installation_id, owner, name),"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "    UNIQUE (installation_id, id)"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": ");"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "CREATE TABLE files ("
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "    repository_id bigint NOT NULL,"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "    path text NOT NULL,"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "    blob_sha char(40) NOT NULL,"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "    language text,"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "    summary text,"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "    generated boolean NOT NULL DEFAULT false,"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "    indexed_at timestamptz NOT NULL DEFAULT now(),"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "    PRIMARY KEY (repository_id, path),"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "    FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": ");"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "CREATE TABLE chunks ("
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "    repository_id bigint NOT NULL,"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "    path text NOT NULL,"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "    blob_sha char(40) NOT NULL,"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "    symbol text,"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "    start_line integer NOT NULL CHECK (start_line \u003e 0),"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "    end_line integer NOT NULL CHECK (end_line \u003e= start_line),"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "    content text NOT NULL,"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "    token_count integer NOT NULL CHECK (token_count \u003e= 0),"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "    embedding_model text NOT NULL,"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "    embedding vector(1536) NOT NULL,"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "    created_at timestamptz NOT NULL DEFAULT now(),"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "    UNIQUE (repository_id, path, blob_sha, start_line, end_line, embedding_model),"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "    FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": ");"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "CREATE INDEX chunks_embedding_hnsw ON chunks USING hnsw (embedding vector_cosine_ops);"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "CREATE INDEX chunks_repository_path ON chunks (repository_id, path);"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "CREATE TABLE pull_requests ("
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "    repository_id bigint NOT NULL,"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "    number integer NOT NULL CHECK (number \u003e 0),"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "    base_sha char(40) NOT NULL,"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "    head_sha char(40) NOT NULL,"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "    author_login text NOT NULL,"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "    state text NOT NULL CHECK (state IN ('open', 'closed', 'merged')),"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "    created_at timestamptz NOT NULL DEFAULT now(),"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "    updated_at timestamptz NOT NULL DEFAULT now(),"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "    UNIQUE (repository_id, number),"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "    UNIQUE (installation_id, id),"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "    UNIQUE (installation_id, repository_id, id),"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "    FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": ");"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "CREATE TABLE reviews ("
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "    repository_id bigint NOT NULL,"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "    pull_request_id bigint NOT NULL,"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "    base_sha char(40) NOT NULL,"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "    head_sha char(40) NOT NULL,"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "    status text NOT NULL CHECK (status IN ('queued', 'running', 'completed', 'failed', 'cancelled')),"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "    verifier_status text NOT NULL DEFAULT 'pending' CHECK (verifier_status IN ('pending', 'passed', 'failed', 'partial')),"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "    model text,"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "    prompt_version text,"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "    input_tokens bigint NOT NULL DEFAULT 0,"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "    output_tokens bigint NOT NULL DEFAULT 0,"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "    cost_microusd bigint NOT NULL DEFAULT 0,"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "    started_at timestamptz,"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "    completed_at timestamptz,"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "    created_at timestamptz NOT NULL DEFAULT now(),"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "    UNIQUE (pull_request_id, head_sha),"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "    UNIQUE (installation_id, id),"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "    UNIQUE (installation_id, repository_id, id),"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "    FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE,"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "    FOREIGN KEY (installation_id, repository_id, pull_request_id) REFERENCES pull_requests(installation_id, repository_id, id) ON DELETE CASCADE"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": ");"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "CREATE TABLE findings ("
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "    repository_id bigint NOT NULL,"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "    review_id uuid NOT NULL,"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "    path text NOT NULL,"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "    start_line integer NOT NULL CHECK (start_line \u003e 0),"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "    end_line integer NOT NULL CHECK (end_line \u003e= start_line),"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "    severity text NOT NULL CHECK (severity IN ('P0', 'P1', 'P2')),"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "    finding_type text NOT NULL,"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "    title text NOT NULL,"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "    body text NOT NULL,"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "    evidence text NOT NULL,"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "    suggestion text,"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "    confidence real NOT NULL CHECK (confidence \u003e= 0 AND confidence \u003c= 1),"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "    rule_id text,"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "    fingerprint text NOT NULL,"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "    status text NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'resolved', 'dismissed')),"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "    created_at timestamptz NOT NULL DEFAULT now(),"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "    UNIQUE (review_id, fingerprint),"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "    UNIQUE (installation_id, id),"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "    UNIQUE (installation_id, repository_id, id),"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "    FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE,"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "    FOREIGN KEY (installation_id, repository_id, review_id) REFERENCES reviews(installation_id, repository_id, id) ON DELETE CASCADE"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": ");"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "CREATE TABLE comments ("
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "    repository_id bigint NOT NULL,"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "    finding_id uuid,"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "    github_comment_id bigint NOT NULL,"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "    github_thread_id text,"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "    state text NOT NULL DEFAULT 'open' CHECK (state IN ('open', 'resolved', 'deleted')),"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "    created_at timestamptz NOT NULL DEFAULT now(),"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "    updated_at timestamptz NOT NULL DEFAULT now(),"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "    UNIQUE (repository_id, github_comment_id),"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "    FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE,"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "    FOREIGN KEY (installation_id, repository_id, finding_id) REFERENCES findings(installation_id, repository_id, id)"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": ");"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "CREATE TABLE feedback_events ("
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "    repository_id bigint NOT NULL,"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "    finding_id uuid,"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "    github_actor_id bigint,"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "    kind text NOT NULL CHECK (kind IN ('thumbs_up', 'thumbs_down', 'reply', 'resolved', 'line_changed')),"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "    payload jsonb NOT NULL DEFAULT '{}'::jsonb,"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "    occurred_at timestamptz NOT NULL,"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "    created_at timestamptz NOT NULL DEFAULT now(),"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "    FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE,"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "    FOREIGN KEY (installation_id, repository_id, finding_id) REFERENCES findings(installation_id, repository_id, id)"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": ");"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "CREATE TABLE jobs ("
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "    repository_id bigint,"
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "    delivery_id text,"
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "    kind text NOT NULL,"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": "    state text NOT NULL DEFAULT 'queued' CHECK (state IN ('queued', 'running', 'completed', 'failed', 'cancelled')),"
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "    args jsonb NOT NULL DEFAULT '{}'::jsonb,"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": "    attempts integer NOT NULL DEFAULT 0 CHECK (attempts \u003e= 0),"
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": "    available_at timestamptz NOT NULL DEFAULT now(),"
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "    created_at timestamptz NOT NULL DEFAULT now(),"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "    updated_at timestamptz NOT NULL DEFAULT now(),"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "    UNIQUE (installation_id, delivery_id),"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "    FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": ");"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "CREATE INDEX repositories_installation ON repositories (installation_id);"
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "CREATE INDEX pull_requests_repository ON pull_requests (repository_id, updated_at DESC);"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": "CREATE INDEX reviews_pull_request ON reviews (pull_request_id, created_at DESC);"
+            },
+            {
+              "newLine": 178,
+              "kind": "added",
+              "text": "CREATE INDEX findings_review_status ON findings (review_id, status, severity);"
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": "CREATE INDEX feedback_events_finding ON feedback_events (finding_id, occurred_at DESC);"
+            },
+            {
+              "newLine": 180,
+              "kind": "added",
+              "text": "CREATE INDEX jobs_ready ON jobs (state, available_at) WHERE state = 'queued';"
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": "ALTER TABLE installations ENABLE ROW LEVEL SECURITY;"
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": "ALTER TABLE installations FORCE ROW LEVEL SECURITY;"
+            },
+            {
+              "newLine": 184,
+              "kind": "added",
+              "text": "CREATE POLICY tenant_installations ON installations"
+            },
+            {
+              "newLine": 185,
+              "kind": "added",
+              "text": "    USING (id = current_setting('px1.installation_id', true)::bigint);"
+            },
+            {
+              "newLine": 186,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "DO $policies$"
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": "DECLARE table_name text;"
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "BEGIN"
+            },
+            {
+              "newLine": 190,
+              "kind": "added",
+              "text": "    FOREACH table_name IN ARRAY ARRAY['repositories', 'files', 'chunks', 'pull_requests', 'reviews', 'findings', 'comments', 'feedback_events', 'jobs']"
+            },
+            {
+              "newLine": 191,
+              "kind": "added",
+              "text": "    LOOP"
+            },
+            {
+              "newLine": 192,
+              "kind": "added",
+              "text": "        EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', table_name);"
+            },
+            {
+              "newLine": 193,
+              "kind": "added",
+              "text": "        EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', table_name);"
+            },
+            {
+              "newLine": 194,
+              "kind": "added",
+              "text": "        EXECUTE format("
+            },
+            {
+              "newLine": 195,
+              "kind": "added",
+              "text": "            'CREATE POLICY tenant_isolation ON %I USING (installation_id = current_setting(''px1.installation_id'', true)::bigint) WITH CHECK (installation_id = current_setting(''px1.installation_id'', true)::bigint)',"
+            },
+            {
+              "newLine": 196,
+              "kind": "added",
+              "text": "            table_name"
+            },
+            {
+              "newLine": 197,
+              "kind": "added",
+              "text": "        );"
+            },
+            {
+              "newLine": 198,
+              "kind": "added",
+              "text": "    END LOOP;"
+            },
+            {
+              "newLine": 199,
+              "kind": "added",
+              "text": "END"
+            },
+            {
+              "newLine": 200,
+              "kind": "added",
+              "text": "$policies$;"
+            },
+            {
+              "newLine": 201,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 202,
+              "kind": "added",
+              "text": "COMMIT;"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-ae5015220b574f5e",
+      "title": "Hosted_core changes",
+      "summary": "3 related files share the \"hosted_core\" change signal.",
+      "paths": [
+        "hosted_schema_test.go",
+        "migrations/0001_hosted_core.down.sql",
+        "migrations/0001_hosted_core.up.sql"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-644e91f70e845ac3",
+      "path": "migrations/0001_hosted_core.down.sql",
+      "kind": "schema",
+      "observation": "The changed path is migration, schema, or SQL-related: migrations/0001_hosted_core.down.sql.",
+      "question": "What happens to existing data during deploy, rollback, and mixed-version operation?",
+      "related": []
+    },
+    {
+      "id": "inspect-67de77469eaded61",
+      "path": "migrations/0001_hosted_core.up.sql",
+      "kind": "schema",
+      "observation": "The changed path is migration, schema, or SQL-related: migrations/0001_hosted_core.up.sql.",
+      "question": "What happens to existing data during deploy, rollback, and mixed-version operation?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 3,
+    "filesAnalyzed": 3,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "rollback",
+      "path": "migrations/0001_hosted_core.down.sql",
+      "lineStart": 1,
+      "lineEnd": 12,
+      "title": "Makes the hosted schema reversible",
+      "summary": "Adds a rollback that removes the hosted tables in dependency order, allowing the core schema migration to be reverted."
+    },
+    {
+      "id": "embedding-search",
+      "path": "migrations/0001_hosted_core.up.sql",
+      "lineStart": 3,
+      "lineEnd": 60,
+      "title": "Enables vector search for code chunks",
+      "summary": "Stores 1536-dimensional chunk embeddings and adds an HNSW cosine index, enabling database-backed similarity search over indexed code."
+    },
+    {
+      "id": "tenant-storage",
+      "path": "migrations/0001_hosted_core.up.sql",
+      "lineStart": 5,
+      "lineEnd": 173,
+      "title": "Adds hosted review and indexing data",
+      "summary": "Adds persistent storage for installations, repositories, indexed source, pull requests, reviews, findings, comments, feedback, and jobs. Constraints restrict valid states and ranges, and foreign keys keep related records within the same installation and repository."
+    },
+    {
+      "id": "tenant-isolation",
+      "path": "migrations/0001_hosted_core.up.sql",
+      "lineStart": 182,
+      "lineEnd": 200,
+      "title": "Enforces tenant isolation in the database",
+      "summary": "Enables and forces row-level security across the hosted tables. Reads and writes are scoped to the installation ID set in the database session, so queries without a matching tenant context cannot access tenant rows."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "07ebf231a9edf64291529cccba3e6a91ba8dd402",
+      "revision": "0bdc82bd7127ad8e147b6729d7c596cfe3ddf665",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "07ebf231a9edf64291529cccba3e6a91ba8dd402",
+      "revision": "0bdc82bd7127ad8e147b6729d7c596cfe3ddf665",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "0bdc82bd7127ad8e147b6729d7c596cfe3ddf665",
+      "detail": "4 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "0bdc82bd7127ad8e147b6729d7c596cfe3ddf665",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-189120028b444fb8",
+      "rule": "schema",
+      "title": "Schema or migration",
+      "reason": "Schema and migration changes can affect stored data and deployment order.",
+      "path": "hosted_schema_test.go",
+      "evidence": "hosted_schema_test.go"
+    },
+    {
+      "id": "attention-55aa0d8e28940f67",
+      "rule": "schema",
+      "title": "Schema or migration",
+      "reason": "Schema and migration changes can affect stored data and deployment order.",
+      "path": "migrations/0001_hosted_core.down.sql",
+      "evidence": "migrations/0001_hosted_core.down.sql"
+    },
+    {
+      "id": "attention-98b79c3422054e0f",
+      "rule": "schema",
+      "title": "Schema or migration",
+      "reason": "Schema and migration changes can affect stored data and deployment order.",
+      "path": "migrations/0001_hosted_core.up.sql",
+      "evidence": "migrations/0001_hosted_core.up.sql"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "0bdc82bd7127ad8e147b6729d7c596cfe3ddf665",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40098863485",
+    "checks": [
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40098865112/job/120886697540",
+        "startedAt": "2026-10-24T13:36:28Z"
+      },
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40098863485/job/120886693982",
+        "startedAt": "2026-10-24T13:36:29Z"
+      }
+    ]
+  }
+}
