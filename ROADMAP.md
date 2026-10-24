@@ -51,16 +51,28 @@ backend-foundation tasks are:
     source files over 50 lines while skipping generated and binary content.
 13. [x] **Re-index incrementally.** Compare default-branch blob SHAs and mutate
     only added, changed, or deleted file chunks in one indexed-head transaction.
-14. [ ] **Enforce repository limits.** Cap v1 indexing at 50,000 files or 2 GiB
+14. [x] **Enforce repository limits.** Cap v1 indexing at 50,000 files or 2 GiB
     and expose partial-index state wherever review context is summarized.
-15. [ ] **Make diff grouping worker-callable.** Move deterministic change-block
+15. [x] **Make diff grouping worker-callable.** Move deterministic change-block
     grouping behind a reusable review package without changing Action output.
-16. [ ] **Assemble bounded review context.** Combine diff, functions, retrieval,
+16. [x] **Assemble bounded review context.** Combine diff, functions, retrieval,
     relationships, tests, summaries, and rules within a 60k-token budget.
-17. [ ] **Define strict finding JSON.** Validate auditable P0-P2 findings before
+17. [x] **Define strict finding JSON.** Validate auditable P0-P2 findings before
     persistence or GitHub delivery.
-18. [ ] **Verify proposed findings.** Re-read each finding against its evidence
-    and drop unsupported or sub-0.6-confidence output.
+18. [x] **Verify proposed findings.** Re-read each finding against its evidence
+   and drop unsupported or sub-0.6-confidence output.
+19. [x] **Deduplicate and rank findings.** Collapse overlapping, similarly titled
+   findings, order by severity then confidence, and cap inline delivery.
+20. [ ] **Render an auditable review summary.** Keep deterministic signals
+   verbatim beside bounded model prose.
+21. [ ] **Map findings to diff lines.** Deliver only comments whose ranges are
+   valid on the current diff and retain the rest in the summary.
+22. [ ] **Post one review per run.** Send all inline findings through GitHub's
+   Create Review API instead of emitting one notification per comment.
+23. [ ] **Maintain one sticky summary.** Find the bot-owned marker and edit the
+   existing PR summary in place.
+24. [ ] **Expose review check status.** Publish in-progress, completed, and
+   failed check runs with a retry action.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,
