@@ -1,0 +1,1062 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "20008181cbb88f1084167122124fde0719467d60",
+  "head": "1f69630269773e53df895e97f72339e3725ee190",
+  "generatedAt": "2026-10-24T18:07:54.723746353Z",
+  "files": [
+    {
+      "path": "docs/EVALUATION_SET.md",
+      "status": "A",
+      "diff": "diff --git a/docs/EVALUATION_SET.md b/docs/EVALUATION_SET.md\nnew file mode 100644\nindex 0000000..2bbc073\n--- /dev/null\n+++ b/docs/EVALUATION_SET.md\n@@ -0,0 +1,18 @@\n+# v1 review evaluation set\n+\n+The hosted reviewer uses a versioned JSON manifest rather than copying source\n+code into this repository. Every case pins a public GitHub repository, pull\n+request, base commit, reviewed commit, and one or more labelled bug ranges.\n+\n+Historical cases must also pin the later bug-fix commit that establishes the\n+label. Seeded cases identify the deterministic mutation recipe so the injected\n+bug can be reproduced and removed. `ValidateV1Coverage` rejects a launch set\n+with fewer than 50 historical cases, 20 seeded cases, or 10 repositories.\n+\n+Labels record a bug class and exact line range. Review output is scored against\n+those labels; clean/noise cases will be added as a separate gate rather than\n+silently treating unlabelled historical changes as correct.\n+\n+Do not add private source, access tokens, model output, or mutable branch names\n+to a dataset manifest. Commit identities and human grading decisions should be\n+reviewed through normal pull requests.\n",
+      "hunks": [
+        {
+          "id": "diff-eec721c1fb38e64d",
+          "header": "@@ -0,0 +1,18 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "# v1 review evaluation set"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "The hosted reviewer uses a versioned JSON manifest rather than copying source"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "code into this repository. Every case pins a public GitHub repository, pull"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "request, base commit, reviewed commit, and one or more labelled bug ranges."
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "Historical cases must also pin the later bug-fix commit that establishes the"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "label. Seeded cases identify the deterministic mutation recipe so the injected"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "bug can be reproduced and removed. `ValidateV1Coverage` rejects a launch set"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "with fewer than 50 historical cases, 20 seeded cases, or 10 repositories."
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "Labels record a bug class and exact line range. Review output is scored against"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "those labels; clean/noise cases will be added as a separate gate rather than"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "silently treating unlabelled historical changes as correct."
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "Do not add private source, access tokens, model output, or mutable branch names"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "to a dataset manifest. Commit identities and human grading decisions should be"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "reviewed through normal pull requests."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/eval/dataset.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/eval/dataset.go b/internal/hosted/eval/dataset.go\nnew file mode 100644\nindex 0000000..00383f1\n--- /dev/null\n+++ b/internal/hosted/eval/dataset.go\n@@ -0,0 +1,122 @@\n+// Package eval defines the auditable benchmark input used to gate review\n+// prompt and model changes.\n+package eval\n+\n+import (\n+\t\"bytes\"\n+\t\"encoding/json\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"io\"\n+\t\"net/url\"\n+\t\"strings\"\n+)\n+\n+type Dataset struct {\n+\tVersion int    `json:\"version\"`\n+\tCases   []Case `json:\"cases\"`\n+}\n+type Case struct {\n+\tID             string  `json:\"id\"`\n+\tKind           string  `json:\"kind\"`\n+\tRepository     string  `json:\"repository\"`\n+\tPullRequestURL string  `json:\"pull_request_url\"`\n+\tBaseSHA        string  `json:\"base_sha\"`\n+\tHeadSHA        string  `json:\"head_sha\"`\n+\tBugFixSHA      string  `json:\"bug_fix_sha,omitempty\"`\n+\tMutationID     string  `json:\"mutation_id,omitempty\"`\n+\tLabels         []Label `json:\"labels\"`\n+}\n+type Label struct {\n+\tPath      string `json:\"path\"`\n+\tBugClass  string `json:\"bug_class\"`\n+\tStartLine int    `json:\"start_line\"`\n+\tEndLine   int    `json:\"end_line\"`\n+}\n+\n+func Decode(data []byte) (Dataset, error) {\n+\tdecoder := json.NewDecoder(bytes.NewReader(data))\n+\tdecoder.DisallowUnknownFields()\n+\tvar dataset Dataset\n+\tif err := decoder.Decode(\u0026dataset); err != nil {\n+\t\treturn Dataset{}, fmt.Errorf(\"decode eval set: %w\", err)\n+\t}\n+\tvar extra any\n+\tif err := decoder.Decode(\u0026extra); err != io.EOF {\n+\t\treturn Dataset{}, errors.New(\"eval set contains trailing data\")\n+\t}\n+\tif err := dataset.Validate(); err != nil {\n+\t\treturn Dataset{}, err\n+\t}\n+\treturn dataset, nil\n+}\n+\n+func (d Dataset) Validate() error {\n+\tif d.Version != 1 {\n+\t\treturn errors.New(\"eval set version must be 1\")\n+\t}\n+\tseen := map[string]bool{}\n+\tfor i, c := range d.Cases {\n+\t\tif c.ID == \"\" || seen[c.ID] {\n+\t\t\treturn fmt.Errorf(\"case %d has missing or duplicate ID\", i)\n+\t\t}\n+\t\tseen[c.ID] = true\n+\t\tif c.Kind != \"historical\" \u0026\u0026 c.Kind != \"seeded\" {\n+\t\t\treturn fmt.Errorf(\"case %s has unsupported kind\", c.ID)\n+\t\t}\n+\t\tif !githubURL(c.Repository) || !githubURL(c.PullRequestURL) || !sha(c.BaseSHA) || !sha(c.HeadSHA) || c.BaseSHA == c.HeadSHA {\n+\t\t\treturn fmt.Errorf(\"case %s has invalid provenance\", c.ID)\n+\t\t}\n+\t\tif c.Kind == \"historical\" \u0026\u0026 (!sha(c.BugFixSHA) || c.BugFixSHA == c.HeadSHA) {\n+\t\t\treturn fmt.Errorf(\"historical case %s requires a later bug-fix SHA\", c.ID)\n+\t\t}\n+\t\tif c.Kind == \"seeded\" \u0026\u0026 strings.TrimSpace(c.MutationID) == \"\" {\n+\t\t\treturn fmt.Errorf(\"seeded case %s requires a mutation ID\", c.ID)\n+\t\t}\n+\t\tif len(c.Labels) == 0 {\n+\t\t\treturn fmt.Errorf(\"case %s requires at least one bug label\", c.ID)\n+\t\t}\n+\t\tfor _, label := range c.Labels {\n+\t\t\tif label.Path == \"\" || label.BugClass == \"\" || label.StartLine \u003c= 0 || label.EndLine \u003c label.StartLine {\n+\t\t\t\treturn fmt.Errorf(\"case %s has invalid label\", c.ID)\n+\t\t\t}\n+\t\t}\n+\t}\n+\treturn nil\n+}\n+\n+// ValidateV1Coverage enforces the launch benchmark floor from the roadmap.\n+func (d Dataset) ValidateV1Coverage() error {\n+\tif err := d.Validate(); err != nil {\n+\t\treturn err\n+\t}\n+\thistorical, seeded, repos := 0, 0, map[string]bool{}\n+\tfor _, c := range d.Cases {\n+\t\trepos[c.Repository] = true\n+\t\tif c.Kind == \"historical\" {\n+\t\t\thistorical++\n+\t\t} else {\n+\t\t\tseeded++\n+\t\t}\n+\t}\n+\tif historical \u003c 50 || seeded \u003c 20 || len(repos) \u003c 10 {\n+\t\treturn fmt.Errorf(\"v1 eval coverage is %d historical, %d seeded, %d repositories; require 50, 20, 10\", historical, seeded, len(repos))\n+\t}\n+\treturn nil\n+}\n+\n+func githubURL(value string) bool {\n+\tparsed, err := url.Parse(value)\n+\treturn err == nil \u0026\u0026 parsed.Scheme == \"https\" \u0026\u0026 strings.EqualFold(parsed.Host, \"github.com\") \u0026\u0026 strings.Trim(parsed.Path, \"/\") != \"\"\n+}\n+func sha(value string) bool {\n+\tif len(value) != 40 {\n+\t\treturn false\n+\t}\n+\tfor _, r := range strings.ToLower(value) {\n+\t\tif !((r \u003e= '0' \u0026\u0026 r \u003c= '9') || (r \u003e= 'a' \u0026\u0026 r \u003c= 'f')) {\n+\t\t\treturn false\n+\t\t}\n+\t}\n+\treturn true\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-971a1fadfd011472",
+          "header": "@@ -0,0 +1,122 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "// Package eval defines the auditable benchmark input used to gate review"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "// prompt and model changes."
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "package eval"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"bytes\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"io\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"net/url\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "type Dataset struct {"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tVersion int    `json:\"version\"`"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tCases   []Case `json:\"cases\"`"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "type Case struct {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tID             string  `json:\"id\"`"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tKind           string  `json:\"kind\"`"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tRepository     string  `json:\"repository\"`"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tPullRequestURL string  `json:\"pull_request_url\"`"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tBaseSHA        string  `json:\"base_sha\"`"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tHeadSHA        string  `json:\"head_sha\"`"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tBugFixSHA      string  `json:\"bug_fix_sha,omitempty\"`"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tMutationID     string  `json:\"mutation_id,omitempty\"`"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tLabels         []Label `json:\"labels\"`"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "type Label struct {"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tPath      string `json:\"path\"`"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tBugClass  string `json:\"bug_class\"`"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tStartLine int    `json:\"start_line\"`"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tEndLine   int    `json:\"end_line\"`"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "func Decode(data []byte) (Dataset, error) {"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tdecoder := json.NewDecoder(bytes.NewReader(data))"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tdecoder.DisallowUnknownFields()"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tvar dataset Dataset"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\tif err := decoder.Decode(\u0026dataset); err != nil {"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t\treturn Dataset{}, fmt.Errorf(\"decode eval set: %w\", err)"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tvar extra any"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\tif err := decoder.Decode(\u0026extra); err != io.EOF {"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t\treturn Dataset{}, errors.New(\"eval set contains trailing data\")"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\tif err := dataset.Validate(); err != nil {"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\treturn Dataset{}, err"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\treturn dataset, nil"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "func (d Dataset) Validate() error {"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\tif d.Version != 1 {"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"eval set version must be 1\")"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\tseen := map[string]bool{}"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\tfor i, c := range d.Cases {"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t\tif c.ID == \"\" || seen[c.ID] {"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t\t\treturn fmt.Errorf(\"case %d has missing or duplicate ID\", i)"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t\tseen[c.ID] = true"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t\tif c.Kind != \"historical\" \u0026\u0026 c.Kind != \"seeded\" {"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t\t\treturn fmt.Errorf(\"case %s has unsupported kind\", c.ID)"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\tif !githubURL(c.Repository) || !githubURL(c.PullRequestURL) || !sha(c.BaseSHA) || !sha(c.HeadSHA) || c.BaseSHA == c.HeadSHA {"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\t\treturn fmt.Errorf(\"case %s has invalid provenance\", c.ID)"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\tif c.Kind == \"historical\" \u0026\u0026 (!sha(c.BugFixSHA) || c.BugFixSHA == c.HeadSHA) {"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\t\treturn fmt.Errorf(\"historical case %s requires a later bug-fix SHA\", c.ID)"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\tif c.Kind == \"seeded\" \u0026\u0026 strings.TrimSpace(c.MutationID) == \"\" {"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t\t\treturn fmt.Errorf(\"seeded case %s requires a mutation ID\", c.ID)"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t\tif len(c.Labels) == 0 {"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t\t\treturn fmt.Errorf(\"case %s requires at least one bug label\", c.ID)"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\t\tfor _, label := range c.Labels {"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t\t\tif label.Path == \"\" || label.BugClass == \"\" || label.StartLine \u003c= 0 || label.EndLine \u003c label.StartLine {"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\t\t\t\treturn fmt.Errorf(\"case %s has invalid label\", c.ID)"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "// ValidateV1Coverage enforces the launch benchmark floor from the roadmap."
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "func (d Dataset) ValidateV1Coverage() error {"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\tif err := d.Validate(); err != nil {"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\thistorical, seeded, repos := 0, 0, map[string]bool{}"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\tfor _, c := range d.Cases {"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t\trepos[c.Repository] = true"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\t\tif c.Kind == \"historical\" {"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t\t\thistorical++"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t\t} else {"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\t\t\tseeded++"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\tif historical \u003c 50 || seeded \u003c 20 || len(repos) \u003c 10 {"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t\treturn fmt.Errorf(\"v1 eval coverage is %d historical, %d seeded, %d repositories; require 50, 20, 10\", historical, seeded, len(repos))"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "func githubURL(value string) bool {"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\tparsed, err := url.Parse(value)"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\treturn err == nil \u0026\u0026 parsed.Scheme == \"https\" \u0026\u0026 strings.EqualFold(parsed.Host, \"github.com\") \u0026\u0026 strings.Trim(parsed.Path, \"/\") != \"\""
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "func sha(value string) bool {"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\tif len(value) != 40 {"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "\t\treturn false"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "\tfor _, r := range strings.ToLower(value) {"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\t\tif !((r \u003e= '0' \u0026\u0026 r \u003c= '9') || (r \u003e= 'a' \u0026\u0026 r \u003c= 'f')) {"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\t\t\treturn false"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\treturn true"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/eval/dataset_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/eval/dataset_test.go b/internal/hosted/eval/dataset_test.go\nnew file mode 100644\nindex 0000000..51759e0\n--- /dev/null\n+++ b/internal/hosted/eval/dataset_test.go\n@@ -0,0 +1,34 @@\n+package eval\n+\n+import (\n+\t\"fmt\"\n+\t\"strings\"\n+\t\"testing\"\n+)\n+\n+func TestValidateV1CoverageRequiresRoadmapMinimums(t *testing.T) {\n+\tdataset := Dataset{Version: 1}\n+\tfor i := 0; i \u003c 70; i++ {\n+\t\tkind := \"historical\"\n+\t\tmutation, fix := \"\", strings.Repeat(\"c\", 40)\n+\t\tif i \u003e= 50 {\n+\t\t\tkind, mutation, fix = \"seeded\", fmt.Sprintf(\"mutation-%d\", i), \"\"\n+\t\t}\n+\t\trepo := fmt.Sprintf(\"https://github.com/acme/repo-%d\", i%10)\n+\t\tdataset.Cases = append(dataset.Cases, Case{ID: fmt.Sprintf(\"case-%d\", i), Kind: kind, Repository: repo, PullRequestURL: repo + \"/pull/1\", BaseSHA: strings.Repeat(\"a\", 40), HeadSHA: strings.Repeat(\"b\", 40), BugFixSHA: fix, MutationID: mutation, Labels: []Label{{Path: \"api.go\", BugClass: \"wrong-error-handling\", StartLine: 4, EndLine: 4}}})\n+\t}\n+\tif err := dataset.ValidateV1Coverage(); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tdataset.Cases = dataset.Cases[:69]\n+\tif err := dataset.ValidateV1Coverage(); err == nil {\n+\t\tt.Fatal(\"accepted undersized dataset\")\n+\t}\n+}\n+\n+func TestDecodeRejectsUnauditableCase(t *testing.T) {\n+\t_, err := Decode([]byte(`{\"version\":1,\"cases\":[{\"ID\":\"x\"}]}`))\n+\tif err == nil {\n+\t\tt.Fatal(\"accepted unauditable case\")\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-f0d29261d644685c",
+          "header": "@@ -0,0 +1,34 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package eval"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "func TestValidateV1CoverageRequiresRoadmapMinimums(t *testing.T) {"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\tdataset := Dataset{Version: 1}"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\tfor i := 0; i \u003c 70; i++ {"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\tkind := \"historical\""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t\tmutation, fix := \"\", strings.Repeat(\"c\", 40)"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\t\tif i \u003e= 50 {"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\t\t\tkind, mutation, fix = \"seeded\", fmt.Sprintf(\"mutation-%d\", i), \"\""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t\trepo := fmt.Sprintf(\"https://github.com/acme/repo-%d\", i%10)"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t\tdataset.Cases = append(dataset.Cases, Case{ID: fmt.Sprintf(\"case-%d\", i), Kind: kind, Repository: repo, PullRequestURL: repo + \"/pull/1\", BaseSHA: strings.Repeat(\"a\", 40), HeadSHA: strings.Repeat(\"b\", 40), BugFixSHA: fix, MutationID: mutation, Labels: []Label{{Path: \"api.go\", BugClass: \"wrong-error-handling\", StartLine: 4, EndLine: 4}}})"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tif err := dataset.ValidateV1Coverage(); err != nil {"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tdataset.Cases = dataset.Cases[:69]"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tif err := dataset.ValidateV1Coverage(); err == nil {"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"accepted undersized dataset\")"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "func TestDecodeRejectsUnauditableCase(t *testing.T) {"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t_, err := Decode([]byte(`{\"version\":1,\"cases\":[{\"ID\":\"x\"}]}`))"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tif err == nil {"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"accepted unauditable case\")"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-712b8ddd7561c6f9",
+      "title": "Dataset changes",
+      "summary": "3 related files share the \"dataset\" change signal.",
+      "paths": [
+        "docs/EVALUATION_SET.md",
+        "internal/hosted/eval/dataset.go",
+        "internal/hosted/eval/dataset_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-a61a0d453bb2f42f",
+      "path": "internal/hosted/eval/dataset.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/eval/dataset_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-57a6341347dc7902",
+      "path": "internal/hosted/eval/dataset.go",
+      "line": 37,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func Decode(data []byte) (Dataset, error) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 3,
+    "filesAnalyzed": 3,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "strict-decoding",
+      "path": "internal/hosted/eval/dataset.go",
+      "lineStart": 29,
+      "lineEnd": 48,
+      "title": "Manifest decoding is strict",
+      "summary": "Manifest loading now rejects unknown fields and trailing JSON, then validates the decoded dataset before returning it. This prevents unrecognized or appended data from being silently ignored."
+    },
+    {
+      "id": "case-validation",
+      "path": "internal/hosted/eval/dataset.go",
+      "lineStart": 53,
+      "lineEnd": 89,
+      "title": "Cases must meet provenance and label requirements",
+      "summary": "Datasets now require unique case IDs, supported case kinds, pinned-looking GitHub URLs and commit SHAs, and valid bug labels. Historical and seeded cases also have different required provenance fields."
+    },
+    {
+      "id": "coverage-gate",
+      "path": "internal/hosted/eval/dataset.go",
+      "lineStart": 92,
+      "lineEnd": 109,
+      "title": "V1 evaluation coverage has a minimum threshold",
+      "summary": "A separate v1 launch check now rejects otherwise valid datasets that do not meet the minimum counts for historical cases, seeded cases, and distinct repositories."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "20008181cbb88f1084167122124fde0719467d60",
+      "revision": "1f69630269773e53df895e97f72339e3725ee190",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "20008181cbb88f1084167122124fde0719467d60",
+      "revision": "1f69630269773e53df895e97f72339e3725ee190",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "1f69630269773e53df895e97f72339e3725ee190",
+      "detail": "3 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "1f69630269773e53df895e97f72339e3725ee190",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-06c7989d701b5b37",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/eval/dataset.go",
+      "line": 37,
+      "evidence": "func Decode(data []byte) (Dataset, error) {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "1f69630269773e53df895e97f72339e3725ee190",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40119183847",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40119183847/job/120946945714",
+        "startedAt": "2026-10-24T18:07:18Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40119183899/job/120946790877",
+        "startedAt": "2026-10-24T18:06:37Z"
+      }
+    ]
+  }
+}
