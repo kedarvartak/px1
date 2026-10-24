@@ -1,0 +1,2227 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "c1d07eb0721a11f655cffff8d93db9ab0be85c7d",
+  "head": "0bf2ed5af66d5ae5229bf842a0d67043371b8229",
+  "generatedAt": "2026-10-24T13:52:38.426369526Z",
+  "files": [
+    {
+      "path": "docs/LANGUAGE_PARSING.md",
+      "status": "A",
+      "diff": "diff --git a/docs/LANGUAGE_PARSING.md b/docs/LANGUAGE_PARSING.md\nnew file mode 100644\nindex 0000000..c45024e\n--- /dev/null\n+++ b/docs/LANGUAGE_PARSING.md\n@@ -0,0 +1,10 @@\n+# Language parsing boundary\n+\n+The hosted indexer registers native tree-sitter grammars for Go, JavaScript,\n+TypeScript, TSX, Python, Ruby, Rust, Java, C, C++, C#, and PHP, with a small\n+shebang fallback. Parser errors, unregistered grammars, and unknown text formats\n+fall back to explicit bounded line windows. Inputs over one MiB and binary\n+content are rejected before a parser sees them.\n+\n+Parsing extracts data only. It does not load repository plugins, compilers,\n+language servers, package managers, or other repository-controlled programs.\n",
+      "hunks": [
+        {
+          "id": "diff-6715a2f9c10d98ad",
+          "header": "@@ -0,0 +1,10 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "# Language parsing boundary"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "The hosted indexer registers native tree-sitter grammars for Go, JavaScript,"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "TypeScript, TSX, Python, Ruby, Rust, Java, C, C++, C#, and PHP, with a small"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "shebang fallback. Parser errors, unregistered grammars, and unknown text formats"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "fall back to explicit bounded line windows. Inputs over one MiB and binary"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "content are rejected before a parser sees them."
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "Parsing extracts data only. It does not load repository plugins, compilers,"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "language servers, package managers, or other repository-controlled programs."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "go.mod",
+      "status": "M",
+      "diff": "diff --git a/go.mod b/go.mod\nindex c512c53..ae75903 100644\n--- a/go.mod\n+++ b/go.mod\n@@ -1,3 +1,20 @@\n module px1\n \n go 1.25\n+\n+require (\n+\tgithub.com/tree-sitter/go-tree-sitter v0.25.0\n+\tgithub.com/tree-sitter/tree-sitter-c v0.24.2\n+\tgithub.com/tree-sitter/tree-sitter-c-sharp v0.23.5\n+\tgithub.com/tree-sitter/tree-sitter-cpp v0.23.4\n+\tgithub.com/tree-sitter/tree-sitter-go v0.25.0\n+\tgithub.com/tree-sitter/tree-sitter-java v0.23.5\n+\tgithub.com/tree-sitter/tree-sitter-javascript v0.25.0\n+\tgithub.com/tree-sitter/tree-sitter-php v0.25.1\n+\tgithub.com/tree-sitter/tree-sitter-python v0.25.0\n+\tgithub.com/tree-sitter/tree-sitter-ruby v0.23.1\n+\tgithub.com/tree-sitter/tree-sitter-rust v0.24.2\n+\tgithub.com/tree-sitter/tree-sitter-typescript v0.23.2\n+)\n+\n+require github.com/mattn/go-pointer v0.0.1 // indirect\n",
+      "hunks": [
+        {
+          "id": "diff-22df629b5d4fa95c",
+          "header": "@@ -1,3 +1,20 @@",
+          "lines": [
+            {
+              "oldLine": 1,
+              "newLine": 1,
+              "kind": "context",
+              "text": "module px1"
+            },
+            {
+              "oldLine": 2,
+              "newLine": 2,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 3,
+              "newLine": 3,
+              "kind": "context",
+              "text": "go 1.25"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "require ("
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\tgithub.com/tree-sitter/go-tree-sitter v0.25.0"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\tgithub.com/tree-sitter/tree-sitter-c v0.24.2"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\tgithub.com/tree-sitter/tree-sitter-c-sharp v0.23.5"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\tgithub.com/tree-sitter/tree-sitter-cpp v0.23.4"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\tgithub.com/tree-sitter/tree-sitter-go v0.25.0"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\tgithub.com/tree-sitter/tree-sitter-java v0.23.5"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\tgithub.com/tree-sitter/tree-sitter-javascript v0.25.0"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\tgithub.com/tree-sitter/tree-sitter-php v0.25.1"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tgithub.com/tree-sitter/tree-sitter-python v0.25.0"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tgithub.com/tree-sitter/tree-sitter-ruby v0.23.1"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tgithub.com/tree-sitter/tree-sitter-rust v0.24.2"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tgithub.com/tree-sitter/tree-sitter-typescript v0.23.2"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "require github.com/mattn/go-pointer v0.0.1 // indirect"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "go.sum",
+      "status": "A",
+      "diff": "diff --git a/go.sum b/go.sum\nnew file mode 100644\nindex 0000000..1abc7e0\n--- /dev/null\n+++ b/go.sum\n@@ -0,0 +1,40 @@\n+github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=\n+github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=\n+github.com/mattn/go-pointer v0.0.1 h1:n+XhsuGeVO6MEAp7xyEukFINEa+Quek5psIR/ylA6o0=\n+github.com/mattn/go-pointer v0.0.1/go.mod h1:2zXcozF6qYGgmsG+SeTZz3oAbFLdD3OWqnUbNvJZAlc=\n+github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=\n+github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=\n+github.com/stretchr/testify v1.10.0 h1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=\n+github.com/stretchr/testify v1.10.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=\n+github.com/tree-sitter/go-tree-sitter v0.25.0 h1:sx6kcg8raRFCvc9BnXglke6axya12krCJF5xJ2sftRU=\n+github.com/tree-sitter/go-tree-sitter v0.25.0/go.mod h1:r77ig7BikoZhHrrsjAnv8RqGti5rtSyvDHPzgTPsUuU=\n+github.com/tree-sitter/tree-sitter-c v0.24.2 h1:nW+M6BnPUa/fBwks8nqf1NiVvu7nltaC+5bR/lTtJCs=\n+github.com/tree-sitter/tree-sitter-c v0.24.2/go.mod h1:/SpJlv2BuiCgFA5xvtgukFGi51WxctByPUGDxPl60fc=\n+github.com/tree-sitter/tree-sitter-c-sharp v0.23.5 h1:EeUc2WJE5G1pD6YEqera2yVHYeroeR+/MakKX2a+0xQ=\n+github.com/tree-sitter/tree-sitter-c-sharp v0.23.5/go.mod h1:H7/aFm5vR1A8Yn5VIOfLWPdlKuJsMgZ5eDmaJdv8bY0=\n+github.com/tree-sitter/tree-sitter-cpp v0.23.4 h1:LaWZsiqQKvR65yHgKmnaqA+uz6tlDJTJFCyFIeZU/8w=\n+github.com/tree-sitter/tree-sitter-cpp v0.23.4/go.mod h1:doqNW64BriC7WBCQ1klf0KmJpdEvfxyXtoEybnBo6v8=\n+github.com/tree-sitter/tree-sitter-embedded-template v0.23.2 h1:nFkkH6Sbe56EXLmZBqHHcamTpmz3TId97I16EnGy4rg=\n+github.com/tree-sitter/tree-sitter-embedded-template v0.23.2/go.mod h1:HNPOhN0qF3hWluYLdxWs5WbzP/iE4aaRVPMsdxuzIaQ=\n+github.com/tree-sitter/tree-sitter-go v0.25.0 h1:cEB0Q3LHgZtS+ECHx9wcP7AwzoOddJFQCVmytX42cVU=\n+github.com/tree-sitter/tree-sitter-go v0.25.0/go.mod h1:Jrx8QqYN0v7npv1fJRH1AznddllYiCMUChtVjxPK040=\n+github.com/tree-sitter/tree-sitter-html v0.23.2 h1:1UYDV+Yd05GGRhVnTcbP58GkKLSHHZwVaN+lBZV11Lc=\n+github.com/tree-sitter/tree-sitter-html v0.23.2/go.mod h1:gpUv/dG3Xl/eebqgeYeFMt+JLOY9cgFinb/Nw08a9og=\n+github.com/tree-sitter/tree-sitter-java v0.23.5 h1:J9YeMGMwXYlKSP3K4Us8CitC6hjtMjqpeOf2GGo6tig=\n+github.com/tree-sitter/tree-sitter-java v0.23.5/go.mod h1:NRKlI8+EznxA7t1Yt3xtraPk1Wzqh3GAIC46wxvc320=\n+github.com/tree-sitter/tree-sitter-javascript v0.25.0 h1:ZkWETb66/w8cc13yhfnNuHOLDQWl3BnKlH6f9AdR88c=\n+github.com/tree-sitter/tree-sitter-javascript v0.25.0/go.mod h1:lmGD1EJdCA+v0S1u2fFgepMg/opzSg/4pgFym2FPGAs=\n+github.com/tree-sitter/tree-sitter-json v0.24.8 h1:tV5rMkihgtiOe14a9LHfDY5kzTl5GNUYe6carZBn0fQ=\n+github.com/tree-sitter/tree-sitter-json v0.24.8/go.mod h1:F351KK0KGvCaYbZ5zxwx/gWWvZhIDl0eMtn+1r+gQbo=\n+github.com/tree-sitter/tree-sitter-php v0.25.1 h1:68pRzvCOYIxsVa/tIeE7If6Pks+giK3qfeahBnXlKCQ=\n+github.com/tree-sitter/tree-sitter-php v0.25.1/go.mod h1:cEzabPRy4doSxaP9CF9u4FXc3L9Q3Mek3XPVCfqJQRw=\n+github.com/tree-sitter/tree-sitter-python v0.25.0 h1:O6XD9v8U1LOcRc3cNj9nM7XufrtEBezE6VrpRrHZDf0=\n+github.com/tree-sitter/tree-sitter-python v0.25.0/go.mod h1:cpdthSy/Yoa28aJFBscFHlGiU+cnSiSh1kuDVtI8YeM=\n+github.com/tree-sitter/tree-sitter-ruby v0.23.1 h1:T/NKHUA+iVbHM440hFx+lzVOzS4dV6z8Qw8ai+72bYo=\n+github.com/tree-sitter/tree-sitter-ruby v0.23.1/go.mod h1:kUS4kCCQloFcdX6sdpr8p6r2rogbM6ZjTox5ZOQy8cA=\n+github.com/tree-sitter/tree-sitter-rust v0.24.2 h1:NL4nF67ib21RMzzfvkmXlVwe45vvhW10DVyO+D0z/W0=\n+github.com/tree-sitter/tree-sitter-rust v0.24.2/go.mod h1:hfeGWic9BAfgTrc7Xf6FaOAguCFJRo3RBbs7QJ6D7MI=\n+github.com/tree-sitter/tree-sitter-typescript v0.23.2 h1:/Odvphn18PniVixb9e97X0DbNVsU6Qocv9mfkyzdXwU=\n+github.com/tree-sitter/tree-sitter-typescript v0.23.2/go.mod h1:zjzMXT/Ulffel2xfOcAkQQkiAkmgnbtPGlFQw/5X4xA=\n+gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=\n+gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=\n",
+      "hunks": [
+        {
+          "id": "diff-ad4dbbf78ca62834",
+          "header": "@@ -0,0 +1,40 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c="
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38="
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "github.com/mattn/go-pointer v0.0.1 h1:n+XhsuGeVO6MEAp7xyEukFINEa+Quek5psIR/ylA6o0="
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "github.com/mattn/go-pointer v0.0.1/go.mod h1:2zXcozF6qYGgmsG+SeTZz3oAbFLdD3OWqnUbNvJZAlc="
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM="
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4="
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "github.com/stretchr/testify v1.10.0 h1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA="
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "github.com/stretchr/testify v1.10.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY="
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "github.com/tree-sitter/go-tree-sitter v0.25.0 h1:sx6kcg8raRFCvc9BnXglke6axya12krCJF5xJ2sftRU="
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "github.com/tree-sitter/go-tree-sitter v0.25.0/go.mod h1:r77ig7BikoZhHrrsjAnv8RqGti5rtSyvDHPzgTPsUuU="
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-c v0.24.2 h1:nW+M6BnPUa/fBwks8nqf1NiVvu7nltaC+5bR/lTtJCs="
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-c v0.24.2/go.mod h1:/SpJlv2BuiCgFA5xvtgukFGi51WxctByPUGDxPl60fc="
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-c-sharp v0.23.5 h1:EeUc2WJE5G1pD6YEqera2yVHYeroeR+/MakKX2a+0xQ="
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-c-sharp v0.23.5/go.mod h1:H7/aFm5vR1A8Yn5VIOfLWPdlKuJsMgZ5eDmaJdv8bY0="
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-cpp v0.23.4 h1:LaWZsiqQKvR65yHgKmnaqA+uz6tlDJTJFCyFIeZU/8w="
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-cpp v0.23.4/go.mod h1:doqNW64BriC7WBCQ1klf0KmJpdEvfxyXtoEybnBo6v8="
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-embedded-template v0.23.2 h1:nFkkH6Sbe56EXLmZBqHHcamTpmz3TId97I16EnGy4rg="
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-embedded-template v0.23.2/go.mod h1:HNPOhN0qF3hWluYLdxWs5WbzP/iE4aaRVPMsdxuzIaQ="
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-go v0.25.0 h1:cEB0Q3LHgZtS+ECHx9wcP7AwzoOddJFQCVmytX42cVU="
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-go v0.25.0/go.mod h1:Jrx8QqYN0v7npv1fJRH1AznddllYiCMUChtVjxPK040="
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-html v0.23.2 h1:1UYDV+Yd05GGRhVnTcbP58GkKLSHHZwVaN+lBZV11Lc="
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-html v0.23.2/go.mod h1:gpUv/dG3Xl/eebqgeYeFMt+JLOY9cgFinb/Nw08a9og="
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-java v0.23.5 h1:J9YeMGMwXYlKSP3K4Us8CitC6hjtMjqpeOf2GGo6tig="
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-java v0.23.5/go.mod h1:NRKlI8+EznxA7t1Yt3xtraPk1Wzqh3GAIC46wxvc320="
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-javascript v0.25.0 h1:ZkWETb66/w8cc13yhfnNuHOLDQWl3BnKlH6f9AdR88c="
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-javascript v0.25.0/go.mod h1:lmGD1EJdCA+v0S1u2fFgepMg/opzSg/4pgFym2FPGAs="
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-json v0.24.8 h1:tV5rMkihgtiOe14a9LHfDY5kzTl5GNUYe6carZBn0fQ="
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-json v0.24.8/go.mod h1:F351KK0KGvCaYbZ5zxwx/gWWvZhIDl0eMtn+1r+gQbo="
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-php v0.25.1 h1:68pRzvCOYIxsVa/tIeE7If6Pks+giK3qfeahBnXlKCQ="
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-php v0.25.1/go.mod h1:cEzabPRy4doSxaP9CF9u4FXc3L9Q3Mek3XPVCfqJQRw="
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-python v0.25.0 h1:O6XD9v8U1LOcRc3cNj9nM7XufrtEBezE6VrpRrHZDf0="
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-python v0.25.0/go.mod h1:cpdthSy/Yoa28aJFBscFHlGiU+cnSiSh1kuDVtI8YeM="
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-ruby v0.23.1 h1:T/NKHUA+iVbHM440hFx+lzVOzS4dV6z8Qw8ai+72bYo="
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-ruby v0.23.1/go.mod h1:kUS4kCCQloFcdX6sdpr8p6r2rogbM6ZjTox5ZOQy8cA="
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-rust v0.24.2 h1:NL4nF67ib21RMzzfvkmXlVwe45vvhW10DVyO+D0z/W0="
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-rust v0.24.2/go.mod h1:hfeGWic9BAfgTrc7Xf6FaOAguCFJRo3RBbs7QJ6D7MI="
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-typescript v0.23.2 h1:/Odvphn18PniVixb9e97X0DbNVsU6Qocv9mfkyzdXwU="
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "github.com/tree-sitter/tree-sitter-typescript v0.23.2/go.mod h1:zjzMXT/Ulffel2xfOcAkQQkiAkmgnbtPGlFQw/5X4xA="
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA="
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM="
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/indexer/language.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/indexer/language.go b/internal/hosted/indexer/language.go\nnew file mode 100644\nindex 0000000..b535ae4\n--- /dev/null\n+++ b/internal/hosted/indexer/language.go\n@@ -0,0 +1,143 @@\n+package indexer\n+\n+import (\n+\t\"bytes\"\n+\t\"context\"\n+\t\"errors\"\n+\t\"path/filepath\"\n+\t\"strings\"\n+)\n+\n+type Language string\n+\n+const (\n+\tLanguageUnknown    Language = \"unknown\"\n+\tLanguageGo         Language = \"go\"\n+\tLanguageJavaScript Language = \"javascript\"\n+\tLanguageTypeScript Language = \"typescript\"\n+\tLanguageTSX        Language = \"tsx\"\n+\tLanguagePython     Language = \"python\"\n+\tLanguageRuby       Language = \"ruby\"\n+\tLanguageRust       Language = \"rust\"\n+\tLanguageJava       Language = \"java\"\n+\tLanguageC          Language = \"c\"\n+\tLanguageCSharp     Language = \"csharp\"\n+\tLanguageCPP        Language = \"cpp\"\n+\tLanguagePHP        Language = \"php\"\n+)\n+\n+var extensionLanguages = map[string]Language{\n+\t\".go\": LanguageGo, \".js\": LanguageJavaScript, \".jsx\": LanguageJavaScript,\n+\t\".mjs\": LanguageJavaScript, \".cjs\": LanguageJavaScript, \".ts\": LanguageTypeScript,\n+\t\".mts\": LanguageTypeScript, \".cts\": LanguageTypeScript, \".tsx\": LanguageTSX,\n+\t\".py\": LanguagePython, \".rb\": LanguageRuby, \".rs\": LanguageRust,\n+\t\".java\": LanguageJava, \".c\": LanguageC, \".h\": LanguageC,\n+\t\".cs\": LanguageCSharp, \".cc\": LanguageCPP, \".cpp\": LanguageCPP,\n+\t\".cxx\": LanguageCPP, \".hh\": LanguageCPP, \".hpp\": LanguageCPP, \".php\": LanguagePHP,\n+}\n+\n+func DetectLanguage(path string, content []byte) Language {\n+\tif language := extensionLanguages[strings.ToLower(filepath.Ext(path))]; language != \"\" {\n+\t\treturn language\n+\t}\n+\tname := strings.ToLower(filepath.Base(path))\n+\tif name == \"gemfile\" || name == \"rakefile\" {\n+\t\treturn LanguageRuby\n+\t}\n+\tfirstLine, _, _ := bytes.Cut(content, []byte(\"\\n\"))\n+\tif bytes.HasPrefix(firstLine, []byte(\"#!\")) {\n+\t\tline := strings.ToLower(string(firstLine))\n+\t\tfor marker, language := range map[string]Language{\n+\t\t\t\"python\": LanguagePython, \"ruby\": LanguageRuby, \"node\": LanguageJavaScript, \"php\": LanguagePHP,\n+\t\t} {\n+\t\t\tif strings.Contains(line, marker) {\n+\t\t\t\treturn language\n+\t\t\t}\n+\t\t}\n+\t}\n+\treturn LanguageUnknown\n+}\n+\n+type SyntaxNode struct {\n+\tKind      string\n+\tName      string\n+\tStartByte int\n+\tEndByte   int\n+\tStartLine int\n+\tEndLine   int\n+}\n+\n+type TreeSitterParser interface {\n+\tParse(context.Context, []byte) ([]SyntaxNode, error)\n+}\n+\n+type ParseResult struct {\n+\tLanguage Language\n+\tMode     string\n+\tReason   string\n+\tNodes    []SyntaxNode\n+}\n+\n+type ParserRegistry struct {\n+\tParsers     map[Language]TreeSitterParser\n+\tMaxBytes    int\n+\tWindowLines int\n+\tMaxWindows  int\n+}\n+\n+func (r ParserRegistry) Parse(ctx context.Context, path string, content []byte) (ParseResult, error) {\n+\tmaxBytes := r.MaxBytes\n+\tif maxBytes \u003c= 0 {\n+\t\tmaxBytes = 1 \u003c\u003c 20\n+\t}\n+\tif len(content) \u003e maxBytes {\n+\t\treturn ParseResult{}, errors.New(\"source exceeds parser byte limit\")\n+\t}\n+\tif bytes.IndexByte(content, 0) \u003e= 0 {\n+\t\treturn ParseResult{}, errors.New(\"binary content is not parsed\")\n+\t}\n+\tlanguage := DetectLanguage(path, content)\n+\tparser := r.Parsers[language]\n+\tif parser != nil {\n+\t\tnodes, err := parser.Parse(ctx, content)\n+\t\tif err == nil {\n+\t\t\treturn ParseResult{Language: language, Mode: \"tree-sitter\", Nodes: nodes}, nil\n+\t\t}\n+\t\tif ctx.Err() != nil {\n+\t\t\treturn ParseResult{}, ctx.Err()\n+\t\t}\n+\t\treturn ParseResult{Language: language, Mode: \"line-window\", Reason: \"tree-sitter parse failed\", Nodes: r.lineWindows(content)}, nil\n+\t}\n+\treason := \"language is not supported\"\n+\tif language != LanguageUnknown {\n+\t\treason = \"tree-sitter parser is not registered\"\n+\t}\n+\treturn ParseResult{Language: language, Mode: \"line-window\", Reason: reason, Nodes: r.lineWindows(content)}, nil\n+}\n+\n+func (r ParserRegistry) lineWindows(content []byte) []SyntaxNode {\n+\tif len(content) == 0 {\n+\t\treturn nil\n+\t}\n+\twindow := r.WindowLines\n+\tif window \u003c= 0 {\n+\t\twindow = 200\n+\t}\n+\tlimit := r.MaxWindows\n+\tif limit \u003c= 0 {\n+\t\tlimit = 500\n+\t}\n+\tlines := bytes.SplitAfter(content, []byte(\"\\n\"))\n+\tnodes := make([]SyntaxNode, 0, min((len(lines)+window-1)/window, limit))\n+\toffset := 0\n+\tfor start := 0; start \u003c len(lines) \u0026\u0026 len(nodes) \u003c limit; start += window {\n+\t\tend := min(start+window, len(lines))\n+\t\tlength := 0\n+\t\tfor _, line := range lines[start:end] {\n+\t\t\tlength += len(line)\n+\t\t}\n+\t\tnodes = append(nodes, SyntaxNode{Kind: \"line_window\", StartByte: offset, EndByte: offset + length, StartLine: start + 1, EndLine: end})\n+\t\toffset += length\n+\t}\n+\treturn nodes\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-bce568ad905ce7ec",
+          "header": "@@ -0,0 +1,143 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package indexer"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"bytes\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"path/filepath\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "type Language string"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "const ("
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tLanguageUnknown    Language = \"unknown\""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tLanguageGo         Language = \"go\""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tLanguageJavaScript Language = \"javascript\""
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tLanguageTypeScript Language = \"typescript\""
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tLanguageTSX        Language = \"tsx\""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tLanguagePython     Language = \"python\""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tLanguageRuby       Language = \"ruby\""
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tLanguageRust       Language = \"rust\""
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tLanguageJava       Language = \"java\""
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tLanguageC          Language = \"c\""
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tLanguageCSharp     Language = \"csharp\""
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tLanguageCPP        Language = \"cpp\""
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tLanguagePHP        Language = \"php\""
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "var extensionLanguages = map[string]Language{"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t\".go\": LanguageGo, \".js\": LanguageJavaScript, \".jsx\": LanguageJavaScript,"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t\".mjs\": LanguageJavaScript, \".cjs\": LanguageJavaScript, \".ts\": LanguageTypeScript,"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t\".mts\": LanguageTypeScript, \".cts\": LanguageTypeScript, \".tsx\": LanguageTSX,"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t\".py\": LanguagePython, \".rb\": LanguageRuby, \".rs\": LanguageRust,"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t\".java\": LanguageJava, \".c\": LanguageC, \".h\": LanguageC,"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t\".cs\": LanguageCSharp, \".cc\": LanguageCPP, \".cpp\": LanguageCPP,"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t\".cxx\": LanguageCPP, \".hh\": LanguageCPP, \".hpp\": LanguageCPP, \".php\": LanguagePHP,"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "func DetectLanguage(path string, content []byte) Language {"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tif language := extensionLanguages[strings.ToLower(filepath.Ext(path))]; language != \"\" {"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t\treturn language"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tname := strings.ToLower(filepath.Base(path))"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tif name == \"gemfile\" || name == \"rakefile\" {"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t\treturn LanguageRuby"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\tfirstLine, _, _ := bytes.Cut(content, []byte(\"\\n\"))"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\tif bytes.HasPrefix(firstLine, []byte(\"#!\")) {"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\tline := strings.ToLower(string(firstLine))"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t\tfor marker, language := range map[string]Language{"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t\t\t\"python\": LanguagePython, \"ruby\": LanguageRuby, \"node\": LanguageJavaScript, \"php\": LanguagePHP,"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\t} {"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t\t\tif strings.Contains(line, marker) {"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\t\t\treturn language"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\treturn LanguageUnknown"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "type SyntaxNode struct {"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\tKind      string"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\tName      string"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\tStartByte int"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\tEndByte   int"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\tStartLine int"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\tEndLine   int"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "type TreeSitterParser interface {"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\tParse(context.Context, []byte) ([]SyntaxNode, error)"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "type ParseResult struct {"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\tLanguage Language"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\tMode     string"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\tReason   string"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\tNodes    []SyntaxNode"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "type ParserRegistry struct {"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\tParsers     map[Language]TreeSitterParser"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\tMaxBytes    int"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\tWindowLines int"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\tMaxWindows  int"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "func (r ParserRegistry) Parse(ctx context.Context, path string, content []byte) (ParseResult, error) {"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\tmaxBytes := r.MaxBytes"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\tif maxBytes \u003c= 0 {"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t\tmaxBytes = 1 \u003c\u003c 20"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\tif len(content) \u003e maxBytes {"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t\treturn ParseResult{}, errors.New(\"source exceeds parser byte limit\")"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\tif bytes.IndexByte(content, 0) \u003e= 0 {"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t\treturn ParseResult{}, errors.New(\"binary content is not parsed\")"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\tlanguage := DetectLanguage(path, content)"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\tparser := r.Parsers[language]"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\tif parser != nil {"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\t\tnodes, err := parser.Parse(ctx, content)"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t\tif err == nil {"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t\t\treturn ParseResult{Language: language, Mode: \"tree-sitter\", Nodes: nodes}, nil"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\t\tif ctx.Err() != nil {"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\t\t\treturn ParseResult{}, ctx.Err()"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\t\treturn ParseResult{Language: language, Mode: \"line-window\", Reason: \"tree-sitter parse failed\", Nodes: r.lineWindows(content)}, nil"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\treason := \"language is not supported\""
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\tif language != LanguageUnknown {"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\t\treason = \"tree-sitter parser is not registered\""
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "\treturn ParseResult{Language: language, Mode: \"line-window\", Reason: reason, Nodes: r.lineWindows(content)}, nil"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "func (r ParserRegistry) lineWindows(content []byte) []SyntaxNode {"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\tif len(content) == 0 {"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\t\treturn nil"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\twindow := r.WindowLines"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "\tif window \u003c= 0 {"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\t\twindow = 200"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\tlimit := r.MaxWindows"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\tif limit \u003c= 0 {"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\t\tlimit = 500"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\tlines := bytes.SplitAfter(content, []byte(\"\\n\"))"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\tnodes := make([]SyntaxNode, 0, min((len(lines)+window-1)/window, limit))"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\toffset := 0"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\tfor start := 0; start \u003c len(lines) \u0026\u0026 len(nodes) \u003c limit; start += window {"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\t\tend := min(start+window, len(lines))"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\t\tlength := 0"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\t\tfor _, line := range lines[start:end] {"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\t\t\tlength += len(line)"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\t\tnodes = append(nodes, SyntaxNode{Kind: \"line_window\", StartByte: offset, EndByte: offset + length, StartLine: start + 1, EndLine: end})"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "\t\toffset += length"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "\treturn nodes"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/indexer/language_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/indexer/language_test.go b/internal/hosted/indexer/language_test.go\nnew file mode 100644\nindex 0000000..21fac47\n--- /dev/null\n+++ b/internal/hosted/indexer/language_test.go\n@@ -0,0 +1,86 @@\n+package indexer\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"testing\"\n+)\n+\n+type parserStub struct{ err error }\n+\n+func (p parserStub) Parse(_ context.Context, content []byte) ([]SyntaxNode, error) {\n+\tif p.err != nil {\n+\t\treturn nil, p.err\n+\t}\n+\treturn []SyntaxNode{{Kind: \"function\", Name: \"main\", StartByte: 0, EndByte: len(content), StartLine: 1, EndLine: 1}}, nil\n+}\n+\n+func TestDetectLanguageUsesExtensionAndShebang(t *testing.T) {\n+\tfor _, test := range []struct {\n+\t\tpath string\n+\t\tbody string\n+\t\twant Language\n+\t}{\n+\t\t{\"main.go\", \"package main\", LanguageGo},\n+\t\t{\"component.tsx\", \"export const A = () =\u003e null\", LanguageTSX},\n+\t\t{\"tool\", \"#!/usr/bin/env python3\\n\", LanguagePython},\n+\t\t{\"Gemfile\", \"source 'https://rubygems.org'\", LanguageRuby},\n+\t} {\n+\t\tif got := DetectLanguage(test.path, []byte(test.body)); got != test.want {\n+\t\t\tt.Errorf(\"DetectLanguage(%q) = %q, want %q\", test.path, got, test.want)\n+\t\t}\n+\t}\n+}\n+\n+func TestRegistryUsesParserAndExplicitFallback(t *testing.T) {\n+\tregistry := ParserRegistry{Parsers: map[Language]TreeSitterParser{LanguageGo: parserStub{}}}\n+\tparsed, err := registry.Parse(context.Background(), \"main.go\", []byte(\"package main\"))\n+\tif err != nil || parsed.Mode != \"tree-sitter\" || len(parsed.Nodes) != 1 {\n+\t\tt.Fatalf(\"parsed = %+v, err = %v\", parsed, err)\n+\t}\n+\n+\tregistry.Parsers[LanguageGo] = parserStub{err: errors.New(\"bad tree\")}\n+\tfallback, err := registry.Parse(context.Background(), \"main.go\", []byte(\"package main\"))\n+\tif err != nil || fallback.Mode != \"line-window\" || fallback.Reason == \"\" {\n+\t\tt.Fatalf(\"fallback = %+v, err = %v\", fallback, err)\n+\t}\n+}\n+\n+func TestRegistryBoundsInputAndFallbackWindows(t *testing.T) {\n+\tregistry := ParserRegistry{MaxBytes: 4, WindowLines: 2, MaxWindows: 2}\n+\tif _, err := registry.Parse(context.Background(), \"a.py\", []byte(\"12345\")); err == nil {\n+\t\tt.Fatal(\"expected byte limit error\")\n+\t}\n+\tregistry.MaxBytes = 100\n+\tparsed, err := registry.Parse(context.Background(), \"notes.txt\", []byte(\"1\\n2\\n3\\n4\\n5\\n\"))\n+\tif err != nil || len(parsed.Nodes) != 2 {\n+\t\tt.Fatalf(\"parsed = %+v, err = %v\", parsed, err)\n+\t}\n+}\n+\n+func TestDefaultRegistryParsesAllInitialLanguages(t *testing.T) {\n+\tregistry := NewParserRegistry()\n+\ttests := []struct {\n+\t\tpath string\n+\t\tbody string\n+\t}{\n+\t\t{\"main.go\", \"package demo\\nfunc Run() {}\"},\n+\t\t{\"main.js\", \"function run() {}\"},\n+\t\t{\"main.ts\", \"function run(): void {}\"},\n+\t\t{\"view.tsx\", \"function View() { return \u003cdiv /\u003e }\"},\n+\t\t{\"main.py\", \"def run():\\n    pass\\n\"},\n+\t\t{\"main.rb\", \"def run\\nend\\n\"},\n+\t\t{\"main.rs\", \"fn run() {}\"},\n+\t\t{\"Main.java\", \"class Main { void run() {} }\"},\n+\t\t{\"main.c\", \"void run(void) {}\"},\n+\t\t{\"main.cpp\", \"void run() {}\"},\n+\t\t{\"Main.cs\", \"class Main { void Run() {} }\"},\n+\t\t{\"main.php\", \"\u003c?php function run() {}\"},\n+\t}\n+\tfor _, test := range tests {\n+\t\tparsed, err := registry.Parse(context.Background(), test.path, []byte(test.body))\n+\t\tif err != nil || parsed.Mode != \"tree-sitter\" || len(parsed.Nodes) == 0 {\n+\t\t\tt.Errorf(\"%s: parsed = %+v, err = %v\", test.path, parsed, err)\n+\t\t}\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-7579eafc3c68d84c",
+          "header": "@@ -0,0 +1,86 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package indexer"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "type parserStub struct{ err error }"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "func (p parserStub) Parse(_ context.Context, content []byte) ([]SyntaxNode, error) {"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\tif p.err != nil {"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t\treturn nil, p.err"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\treturn []SyntaxNode{{Kind: \"function\", Name: \"main\", StartByte: 0, EndByte: len(content), StartLine: 1, EndLine: 1}}, nil"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "func TestDetectLanguageUsesExtensionAndShebang(t *testing.T) {"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tfor _, test := range []struct {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t\tpath string"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t\tbody string"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\t\twant Language"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t}{"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\t{\"main.go\", \"package main\", LanguageGo},"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t\t{\"component.tsx\", \"export const A = () =\u003e null\", LanguageTSX},"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t\t{\"tool\", \"#!/usr/bin/env python3\\n\", LanguagePython},"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t\t{\"Gemfile\", \"source 'https://rubygems.org'\", LanguageRuby},"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t} {"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t\tif got := DetectLanguage(test.path, []byte(test.body)); got != test.want {"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"DetectLanguage(%q) = %q, want %q\", test.path, got, test.want)"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "func TestRegistryUsesParserAndExplicitFallback(t *testing.T) {"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tregistry := ParserRegistry{Parsers: map[Language]TreeSitterParser{LanguageGo: parserStub{}}}"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\tparsed, err := registry.Parse(context.Background(), \"main.go\", []byte(\"package main\"))"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tif err != nil || parsed.Mode != \"tree-sitter\" || len(parsed.Nodes) != 1 {"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"parsed = %+v, err = %v\", parsed, err)"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tregistry.Parsers[LanguageGo] = parserStub{err: errors.New(\"bad tree\")}"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tfallback, err := registry.Parse(context.Background(), \"main.go\", []byte(\"package main\"))"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tif err != nil || fallback.Mode != \"line-window\" || fallback.Reason == \"\" {"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"fallback = %+v, err = %v\", fallback, err)"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "func TestRegistryBoundsInputAndFallbackWindows(t *testing.T) {"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\tregistry := ParserRegistry{MaxBytes: 4, WindowLines: 2, MaxWindows: 2}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\tif _, err := registry.Parse(context.Background(), \"a.py\", []byte(\"12345\")); err == nil {"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"expected byte limit error\")"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\tregistry.MaxBytes = 100"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\tparsed, err := registry.Parse(context.Background(), \"notes.txt\", []byte(\"1\\n2\\n3\\n4\\n5\\n\"))"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\tif err != nil || len(parsed.Nodes) != 2 {"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"parsed = %+v, err = %v\", parsed, err)"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "func TestDefaultRegistryParsesAllInitialLanguages(t *testing.T) {"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\tregistry := NewParserRegistry()"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\ttests := []struct {"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t\tpath string"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t\tbody string"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t}{"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\t{\"main.go\", \"package demo\\nfunc Run() {}\"},"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\t{\"main.js\", \"function run() {}\"},"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\t{\"main.ts\", \"function run(): void {}\"},"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\t{\"view.tsx\", \"function View() { return \u003cdiv /\u003e }\"},"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\t{\"main.py\", \"def run():\\n    pass\\n\"},"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t\t{\"main.rb\", \"def run\\nend\\n\"},"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\t{\"main.rs\", \"fn run() {}\"},"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t\t{\"Main.java\", \"class Main { void run() {} }\"},"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\t\t{\"main.c\", \"void run(void) {}\"},"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t\t{\"main.cpp\", \"void run() {}\"},"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t\t{\"Main.cs\", \"class Main { void Run() {} }\"},"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t\t{\"main.php\", \"\u003c?php function run() {}\"},"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\tfor _, test := range tests {"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\t\tparsed, err := registry.Parse(context.Background(), test.path, []byte(test.body))"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\t\tif err != nil || parsed.Mode != \"tree-sitter\" || len(parsed.Nodes) == 0 {"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"%s: parsed = %+v, err = %v\", test.path, parsed, err)"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/indexer/tree_sitter.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/indexer/tree_sitter.go b/internal/hosted/indexer/tree_sitter.go\nnew file mode 100644\nindex 0000000..8c8994c\n--- /dev/null\n+++ b/internal/hosted/indexer/tree_sitter.go\n@@ -0,0 +1,89 @@\n+package indexer\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\n+\ttreesitter \"github.com/tree-sitter/go-tree-sitter\"\n+\ttscsharp \"github.com/tree-sitter/tree-sitter-c-sharp/bindings/go\"\n+\ttsc \"github.com/tree-sitter/tree-sitter-c/bindings/go\"\n+\ttscpp \"github.com/tree-sitter/tree-sitter-cpp/bindings/go\"\n+\ttsgo \"github.com/tree-sitter/tree-sitter-go/bindings/go\"\n+\ttsjava \"github.com/tree-sitter/tree-sitter-java/bindings/go\"\n+\ttsjavascript \"github.com/tree-sitter/tree-sitter-javascript/bindings/go\"\n+\ttsphp \"github.com/tree-sitter/tree-sitter-php/bindings/go\"\n+\ttspython \"github.com/tree-sitter/tree-sitter-python/bindings/go\"\n+\ttsruby \"github.com/tree-sitter/tree-sitter-ruby/bindings/go\"\n+\ttsrust \"github.com/tree-sitter/tree-sitter-rust/bindings/go\"\n+\ttstypescript \"github.com/tree-sitter/tree-sitter-typescript/bindings/go\"\n+)\n+\n+func NewParserRegistry() ParserRegistry {\n+\treturn ParserRegistry{Parsers: map[Language]TreeSitterParser{\n+\t\tLanguageGo:         nativeParser{treesitter.NewLanguage(tsgo.Language())},\n+\t\tLanguageJavaScript: nativeParser{treesitter.NewLanguage(tsjavascript.Language())},\n+\t\tLanguageTypeScript: nativeParser{treesitter.NewLanguage(tstypescript.LanguageTypescript())},\n+\t\tLanguageTSX:        nativeParser{treesitter.NewLanguage(tstypescript.LanguageTSX())},\n+\t\tLanguagePython:     nativeParser{treesitter.NewLanguage(tspython.Language())},\n+\t\tLanguageRuby:       nativeParser{treesitter.NewLanguage(tsruby.Language())},\n+\t\tLanguageRust:       nativeParser{treesitter.NewLanguage(tsrust.Language())},\n+\t\tLanguageJava:       nativeParser{treesitter.NewLanguage(tsjava.Language())},\n+\t\tLanguageC:          nativeParser{treesitter.NewLanguage(tsc.Language())},\n+\t\tLanguageCPP:        nativeParser{treesitter.NewLanguage(tscpp.Language())},\n+\t\tLanguageCSharp:     nativeParser{treesitter.NewLanguage(tscsharp.Language())},\n+\t\tLanguagePHP:        nativeParser{treesitter.NewLanguage(tsphp.LanguagePHP())},\n+\t}}\n+}\n+\n+type nativeParser struct{ language *treesitter.Language }\n+\n+func (p nativeParser) Parse(ctx context.Context, content []byte) ([]SyntaxNode, error) {\n+\tparser := treesitter.NewParser()\n+\tdefer parser.Close()\n+\tif err := parser.SetLanguage(p.language); err != nil {\n+\t\treturn nil, err\n+\t}\n+\ttree := parser.ParseCtx(ctx, content, nil)\n+\tif tree == nil {\n+\t\tif err := ctx.Err(); err != nil {\n+\t\t\treturn nil, err\n+\t\t}\n+\t\treturn nil, errors.New(\"tree-sitter returned no syntax tree\")\n+\t}\n+\tdefer tree.Close()\n+\troot := tree.RootNode()\n+\tnodes := make([]SyntaxNode, 0, root.NamedChildCount())\n+\tcollectDeclarations(root, content, \u0026nodes)\n+\tif len(nodes) == 0 {\n+\t\tfor index := uint(0); index \u003c root.NamedChildCount(); index++ {\n+\t\t\tappendSyntaxNode(root.NamedChild(index), \"\", \u0026nodes)\n+\t\t}\n+\t}\n+\treturn nodes, nil\n+}\n+\n+func collectDeclarations(node *treesitter.Node, content []byte, nodes *[]SyntaxNode) {\n+\tfor index := uint(0); index \u003c node.NamedChildCount(); index++ {\n+\t\tchild := node.NamedChild(index)\n+\t\tif nameNode := child.ChildByFieldName(\"name\"); nameNode != nil {\n+\t\t\tstart, end := int(nameNode.StartByte()), int(nameNode.EndByte())\n+\t\t\tname := \"\"\n+\t\t\tif start \u003e= 0 \u0026\u0026 end \u003e= start \u0026\u0026 end \u003c= len(content) \u0026\u0026 end-start \u003c= 200 {\n+\t\t\t\tname = string(content[start:end])\n+\t\t\t}\n+\t\t\tappendSyntaxNode(child, name, nodes)\n+\t\t\tcontinue\n+\t\t}\n+\t\tcollectDeclarations(child, content, nodes)\n+\t}\n+}\n+\n+func appendSyntaxNode(node *treesitter.Node, name string, nodes *[]SyntaxNode) {\n+\tif node == nil || node.EndByte() \u003c= node.StartByte() {\n+\t\treturn\n+\t}\n+\t*nodes = append(*nodes, SyntaxNode{\n+\t\tKind: node.Kind(), Name: name, StartByte: int(node.StartByte()), EndByte: int(node.EndByte()),\n+\t\tStartLine: int(node.StartPosition().Row) + 1, EndLine: int(node.EndPosition().Row) + 1,\n+\t})\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-a7bc0cde708c83b6",
+          "header": "@@ -0,0 +1,89 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package indexer"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\ttreesitter \"github.com/tree-sitter/go-tree-sitter\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\ttscsharp \"github.com/tree-sitter/tree-sitter-c-sharp/bindings/go\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\ttsc \"github.com/tree-sitter/tree-sitter-c/bindings/go\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\ttscpp \"github.com/tree-sitter/tree-sitter-cpp/bindings/go\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\ttsgo \"github.com/tree-sitter/tree-sitter-go/bindings/go\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\ttsjava \"github.com/tree-sitter/tree-sitter-java/bindings/go\""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\ttsjavascript \"github.com/tree-sitter/tree-sitter-javascript/bindings/go\""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\ttsphp \"github.com/tree-sitter/tree-sitter-php/bindings/go\""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\ttspython \"github.com/tree-sitter/tree-sitter-python/bindings/go\""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\ttsruby \"github.com/tree-sitter/tree-sitter-ruby/bindings/go\""
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\ttsrust \"github.com/tree-sitter/tree-sitter-rust/bindings/go\""
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\ttstypescript \"github.com/tree-sitter/tree-sitter-typescript/bindings/go\""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "func NewParserRegistry() ParserRegistry {"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\treturn ParserRegistry{Parsers: map[Language]TreeSitterParser{"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t\tLanguageGo:         nativeParser{treesitter.NewLanguage(tsgo.Language())},"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\tLanguageJavaScript: nativeParser{treesitter.NewLanguage(tsjavascript.Language())},"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t\tLanguageTypeScript: nativeParser{treesitter.NewLanguage(tstypescript.LanguageTypescript())},"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t\tLanguageTSX:        nativeParser{treesitter.NewLanguage(tstypescript.LanguageTSX())},"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t\tLanguagePython:     nativeParser{treesitter.NewLanguage(tspython.Language())},"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t\tLanguageRuby:       nativeParser{treesitter.NewLanguage(tsruby.Language())},"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t\tLanguageRust:       nativeParser{treesitter.NewLanguage(tsrust.Language())},"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t\tLanguageJava:       nativeParser{treesitter.NewLanguage(tsjava.Language())},"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t\tLanguageC:          nativeParser{treesitter.NewLanguage(tsc.Language())},"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t\tLanguageCPP:        nativeParser{treesitter.NewLanguage(tscpp.Language())},"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t\tLanguageCSharp:     nativeParser{treesitter.NewLanguage(tscsharp.Language())},"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t\tLanguagePHP:        nativeParser{treesitter.NewLanguage(tsphp.LanguagePHP())},"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t}}"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "type nativeParser struct{ language *treesitter.Language }"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "func (p nativeParser) Parse(ctx context.Context, content []byte) ([]SyntaxNode, error) {"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\tparser := treesitter.NewParser()"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tdefer parser.Close()"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tif err := parser.SetLanguage(p.language); err != nil {"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\ttree := parser.ParseCtx(ctx, content, nil)"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\tif tree == nil {"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\tif err := ctx.Err(); err != nil {"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\t\treturn nil, err"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t\treturn nil, errors.New(\"tree-sitter returned no syntax tree\")"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\tdefer tree.Close()"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\troot := tree.RootNode()"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\tnodes := make([]SyntaxNode, 0, root.NamedChildCount())"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\tcollectDeclarations(root, content, \u0026nodes)"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\tif len(nodes) == 0 {"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t\tfor index := uint(0); index \u003c root.NamedChildCount(); index++ {"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t\t\tappendSyntaxNode(root.NamedChild(index), \"\", \u0026nodes)"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\treturn nodes, nil"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "func collectDeclarations(node *treesitter.Node, content []byte, nodes *[]SyntaxNode) {"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\tfor index := uint(0); index \u003c node.NamedChildCount(); index++ {"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\tchild := node.NamedChild(index)"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\tif nameNode := child.ChildByFieldName(\"name\"); nameNode != nil {"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\t\tstart, end := int(nameNode.StartByte()), int(nameNode.EndByte())"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\t\tname := \"\""
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\t\tif start \u003e= 0 \u0026\u0026 end \u003e= start \u0026\u0026 end \u003c= len(content) \u0026\u0026 end-start \u003c= 200 {"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t\t\t\tname = string(content[start:end])"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t\t\tappendSyntaxNode(child, name, nodes)"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t\tcollectDeclarations(child, content, nodes)"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "func appendSyntaxNode(node *treesitter.Node, name string, nodes *[]SyntaxNode) {"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\tif node == nil || node.EndByte() \u003c= node.StartByte() {"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t\treturn"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\t*nodes = append(*nodes, SyntaxNode{"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\t\tKind: node.Kind(), Name: name, StartByte: int(node.StartByte()), EndByte: int(node.EndByte()),"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\t\tStartLine: int(node.StartPosition().Row) + 1, EndLine: int(node.EndPosition().Row) + 1,"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\t})"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-2960d1ed652a67ce",
+      "title": "Java changes",
+      "summary": "6 related files share the \"java\" change signal.",
+      "paths": [
+        "docs/LANGUAGE_PARSING.md",
+        "go.mod",
+        "go.sum",
+        "internal/hosted/indexer/language.go",
+        "internal/hosted/indexer/language_test.go",
+        "internal/hosted/indexer/tree_sitter.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-8bab732796dddbfe",
+      "path": "go.mod",
+      "kind": "dependency",
+      "observation": "A dependency manifest or lockfile changed: go.mod.",
+      "question": "Which runtime behavior requires this dependency change, and do the manifest and lockfile agree?",
+      "related": []
+    },
+    {
+      "id": "inspect-b6bb00db8c228c4c",
+      "path": "go.sum",
+      "kind": "dependency",
+      "observation": "A dependency manifest or lockfile changed: go.sum.",
+      "question": "Which runtime behavior requires this dependency change, and do the manifest and lockfile agree?",
+      "related": []
+    },
+    {
+      "id": "inspect-bd9e0eaed8748cb4",
+      "path": "internal/hosted/indexer/language.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/indexer/language_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-2930f6f0a55874c9",
+      "path": "internal/hosted/indexer/language.go",
+      "line": 39,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func DetectLanguage(path string, content []byte) Language {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    },
+    {
+      "id": "inspect-bbaff58bb60028b8",
+      "path": "internal/hosted/indexer/tree_sitter.go",
+      "line": 21,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func NewParserRegistry() ParserRegistry {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 6,
+    "filesAnalyzed": 6,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "language-detection",
+      "path": "internal/hosted/indexer/language.go",
+      "lineStart": 26,
+      "lineEnd": 53,
+      "title": "Adds language detection",
+      "summary": "Files are classified by extension, with special handling for Gemfile/Rakefile and a small set of shebangs. Unrecognized files are treated as unknown and use the fallback path."
+    },
+    {
+      "id": "bounded-fallback",
+      "path": "internal/hosted/indexer/language.go",
+      "lineStart": 87,
+      "lineEnd": 141,
+      "title": "Bounds parsing and adds fallback windows",
+      "summary": "Parsing now rejects inputs above the configured byte limit and content containing NUL bytes. Unsupported languages or parser failures produce bounded line-window nodes instead; window size and count have defaults and can be configured."
+    },
+    {
+      "id": "native-parsing",
+      "path": "internal/hosted/indexer/tree_sitter.go",
+      "lineStart": 20,
+      "lineEnd": 60,
+      "title": "Parses supported source languages",
+      "summary": "The default registry wires native tree-sitter parsers for the supported languages and returns declaration nodes, including their kind, name, and source range, where available."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "c1d07eb0721a11f655cffff8d93db9ab0be85c7d",
+      "revision": "0bf2ed5af66d5ae5229bf842a0d67043371b8229",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "c1d07eb0721a11f655cffff8d93db9ab0be85c7d",
+      "revision": "0bf2ed5af66d5ae5229bf842a0d67043371b8229",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "0bf2ed5af66d5ae5229bf842a0d67043371b8229",
+      "detail": "3 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "0bf2ed5af66d5ae5229bf842a0d67043371b8229",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-db601018401b6a01",
+      "rule": "dependency",
+      "title": "Dependency change",
+      "reason": "Dependency manifests and lockfiles can alter code throughout the build.",
+      "path": "go.mod",
+      "evidence": "go.mod"
+    },
+    {
+      "id": "attention-ab6aa2d63ea959ec",
+      "rule": "dependency",
+      "title": "Dependency change",
+      "reason": "Dependency manifests and lockfiles can alter code throughout the build.",
+      "path": "go.sum",
+      "evidence": "go.sum"
+    },
+    {
+      "id": "attention-49bd0afde90b70c2",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/indexer/language.go",
+      "line": 39,
+      "evidence": "func DetectLanguage(path string, content []byte) Language {"
+    },
+    {
+      "id": "attention-cd9eb1cb439a5fc6",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/indexer/tree_sitter.go",
+      "line": 21,
+      "evidence": "func NewParserRegistry() ParserRegistry {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "0bf2ed5af66d5ae5229bf842a0d67043371b8229",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40099978235",
+    "checks": [
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40099979542/job/120889950812",
+        "startedAt": "2026-10-24T13:52:01Z"
+      },
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40099978235/job/120889948178",
+        "startedAt": "2026-10-24T13:52:01Z"
+      }
+    ]
+  }
+}
