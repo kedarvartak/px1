@@ -1,12 +1,11 @@
 package main
 
 import (
-	"crypto/sha256"
-	"fmt"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
+
+	hostedreview "px1/internal/hosted/review"
 )
 
 // staticReviewBlock links files that appear to participate in the same
@@ -34,61 +33,21 @@ type reviewBlockSignals struct {
 }
 
 func relatedReviewBlocks(files []staticReviewFile) []staticReviewBlock {
-	if len(files) < 2 {
-		return []staticReviewBlock{}
-	}
-	signals := make([]reviewBlockSignals, len(files))
+	workerFiles := make([]hostedreview.File, len(files))
 	for i, file := range files {
-		signals[i] = blockSignals(file)
-	}
-	parent := make([]int, len(files))
-	for i := range parent {
-		parent[i] = i
-	}
-	var find func(int) int
-	find = func(i int) int {
-		if parent[i] != i {
-			parent[i] = find(parent[i])
-		}
-		return parent[i]
-	}
-	union := func(a, b int) {
-		a, b = find(a), find(b)
-		if a != b {
-			parent[b] = a
-		}
-	}
-	for i := range files {
-		for j := i + 1; j < len(files); j++ {
-			if shareSignal(signals[i], signals[j]) {
-				union(i, j)
+		workerFiles[i].Path = file.Path
+		for _, hunk := range file.Hunks {
+			workerHunk := hostedreview.Hunk{}
+			for _, line := range hunk.Lines {
+				workerHunk.Lines = append(workerHunk.Lines, hostedreview.DiffLine{Kind: line.Kind, Text: line.Text})
 			}
+			workerFiles[i].Hunks = append(workerFiles[i].Hunks, workerHunk)
 		}
 	}
-	groups := map[int][]int{}
-	for i := range files {
-		groups[find(i)] = append(groups[find(i)], i)
-	}
-	blocks := make([]staticReviewBlock, 0, len(groups))
-	for _, indexes := range groups {
-		if len(indexes) < 2 {
-			continue
-		}
-		paths := make([]string, 0, len(indexes))
-		for _, index := range indexes {
-			paths = append(paths, files[index].Path)
-		}
-		sort.Strings(paths)
-		topic := groupTopic(indexes, signals)
-		sum := sha256.Sum256([]byte(strings.Join(paths, "\x00")))
-		blocks = append(blocks, staticReviewBlock{
-			ID: fmt.Sprintf("change-%x", sum[:8]), Title: humanizeTopic(topic),
-			Summary: fmt.Sprintf("%d related files share the %q change signal.", len(paths), topic), Paths: paths,
-		})
-	}
-	sort.Slice(blocks, func(i, j int) bool { return blocks[i].Paths[0] < blocks[j].Paths[0] })
-	if blocks == nil {
-		return []staticReviewBlock{}
+	workerBlocks := hostedreview.GroupBlocks(workerFiles)
+	blocks := make([]staticReviewBlock, len(workerBlocks))
+	for i, block := range workerBlocks {
+		blocks[i] = staticReviewBlock{ID: block.ID, Title: block.Title, Summary: block.Summary, Paths: block.Paths}
 	}
 	return blocks
 }
