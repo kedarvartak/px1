@@ -1,0 +1,964 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "b45379878089bf5170a8fd9fc44fc1b6da7fb0a6",
+  "head": "ebc809b277cc9146939ad11444b1bd3d75501b74",
+  "generatedAt": "2026-10-24T15:05:22.384946122Z",
+  "files": [
+    {
+      "path": "ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/ROADMAP.md b/ROADMAP.md\nindex aab44f0..8ae75ef 100644\n--- a/ROADMAP.md\n+++ b/ROADMAP.md\n@@ -39,16 +39,28 @@ backend-foundation tasks are:\n 7. [x] **Prepare staging and production deployment.** Ship isolated Fly\n    manifests, role-aware health endpoints, structured logs, OpenTelemetry trace\n    export, and Sentry error reporting with required hosted configuration.\n-8. [ ] **Clone repositories as untrusted data.** Use bounded, filtered shallow\n+8. [x] **Clone repositories as untrusted data.** Use bounded, filtered shallow\n    clones in disposable directories and never execute repository code.\n-9. [ ] **Detect and parse source languages.** Recognize the initial language\n+9. [x] **Detect and parse source languages.** Recognize the initial language\n    set, use registered tree-sitter parsers, and fall back to bounded line data.\n-10. [ ] **Chunk at symbol boundaries.** Produce retrieval chunks of roughly\n+10. [x] **Chunk at symbol boundaries.** Produce retrieval chunks of roughly\n     200–800 tokens without silently discarding oversized symbols.\n-11. [ ] **Embed in bounded batches.** Persist provider model and version with\n+11. [x] **Embed in bounded batches.** Persist provider model and version with\n     every vector so indexes can be migrated safely.\n-12. [ ] **Summarize substantial files.** Create bounded, low-cost summaries for\n+12. [x] **Summarize substantial files.** Create bounded, low-cost summaries for\n     source files over 50 lines while skipping generated and binary content.\n+13. [x] **Re-index incrementally.** Compare default-branch blob SHAs and mutate\n+    only added, changed, or deleted file chunks in one indexed-head transaction.\n+14. [ ] **Enforce repository limits.** Cap v1 indexing at 50,000 files or 2 GiB\n+    and expose partial-index state wherever review context is summarized.\n+15. [ ] **Make diff grouping worker-callable.** Move deterministic change-block\n+    grouping behind a reusable review package without changing Action output.\n+16. [ ] **Assemble bounded review context.** Combine diff, functions, retrieval,\n+    relationships, tests, summaries, and rules within a 60k-token budget.\n+17. [ ] **Define strict finding JSON.** Validate auditable P0-P2 findings before\n+    persistence or GitHub delivery.\n+18. [ ] **Verify proposed findings.** Re-read each finding against its evidence\n+    and drop unsupported or sub-0.6-confidence output.\n \n The v1 review pipeline, indexing, report hosting, evaluation, and launch gates\n follow these foundations. AI findings must remain auditable: evidence,\n",
+      "hunks": [
+        {
+          "id": "diff-fb2d1ff3eca31b35",
+          "header": "@@ -39,16 +39,28 @@ backend-foundation tasks are:",
+          "lines": [
+            {
+              "oldLine": 39,
+              "newLine": 39,
+              "kind": "context",
+              "text": "7. [x] **Prepare staging and production deployment.** Ship isolated Fly"
+            },
+            {
+              "oldLine": 40,
+              "newLine": 40,
+              "kind": "context",
+              "text": "   manifests, role-aware health endpoints, structured logs, OpenTelemetry trace"
+            },
+            {
+              "oldLine": 41,
+              "newLine": 41,
+              "kind": "context",
+              "text": "   export, and Sentry error reporting with required hosted configuration."
+            },
+            {
+              "oldLine": 42,
+              "kind": "removed",
+              "text": "8. [ ] **Clone repositories as untrusted data.** Use bounded, filtered shallow"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "8. [x] **Clone repositories as untrusted data.** Use bounded, filtered shallow"
+            },
+            {
+              "oldLine": 43,
+              "newLine": 43,
+              "kind": "context",
+              "text": "   clones in disposable directories and never execute repository code."
+            },
+            {
+              "oldLine": 44,
+              "kind": "removed",
+              "text": "9. [ ] **Detect and parse source languages.** Recognize the initial language"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "9. [x] **Detect and parse source languages.** Recognize the initial language"
+            },
+            {
+              "oldLine": 45,
+              "newLine": 45,
+              "kind": "context",
+              "text": "   set, use registered tree-sitter parsers, and fall back to bounded line data."
+            },
+            {
+              "oldLine": 46,
+              "kind": "removed",
+              "text": "10. [ ] **Chunk at symbol boundaries.** Produce retrieval chunks of roughly"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "10. [x] **Chunk at symbol boundaries.** Produce retrieval chunks of roughly"
+            },
+            {
+              "oldLine": 47,
+              "newLine": 47,
+              "kind": "context",
+              "text": "    200–800 tokens without silently discarding oversized symbols."
+            },
+            {
+              "oldLine": 48,
+              "kind": "removed",
+              "text": "11. [ ] **Embed in bounded batches.** Persist provider model and version with"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "11. [x] **Embed in bounded batches.** Persist provider model and version with"
+            },
+            {
+              "oldLine": 49,
+              "newLine": 49,
+              "kind": "context",
+              "text": "    every vector so indexes can be migrated safely."
+            },
+            {
+              "oldLine": 50,
+              "kind": "removed",
+              "text": "12. [ ] **Summarize substantial files.** Create bounded, low-cost summaries for"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "12. [x] **Summarize substantial files.** Create bounded, low-cost summaries for"
+            },
+            {
+              "oldLine": 51,
+              "newLine": 51,
+              "kind": "context",
+              "text": "    source files over 50 lines while skipping generated and binary content."
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "13. [x] **Re-index incrementally.** Compare default-branch blob SHAs and mutate"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "    only added, changed, or deleted file chunks in one indexed-head transaction."
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "14. [ ] **Enforce repository limits.** Cap v1 indexing at 50,000 files or 2 GiB"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "    and expose partial-index state wherever review context is summarized."
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "15. [ ] **Make diff grouping worker-callable.** Move deterministic change-block"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "    grouping behind a reusable review package without changing Action output."
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "16. [ ] **Assemble bounded review context.** Combine diff, functions, retrieval,"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "    relationships, tests, summaries, and rules within a 60k-token budget."
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "17. [ ] **Define strict finding JSON.** Validate auditable P0-P2 findings before"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "    persistence or GitHub delivery."
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "18. [ ] **Verify proposed findings.** Re-read each finding against its evidence"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "    and drop unsupported or sub-0.6-confidence output."
+            },
+            {
+              "oldLine": 52,
+              "newLine": 64,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 53,
+              "newLine": 65,
+              "kind": "context",
+              "text": "The v1 review pipeline, indexing, report hosting, evaluation, and launch gates"
+            },
+            {
+              "oldLine": 54,
+              "newLine": 66,
+              "kind": "context",
+              "text": "follow these foundations. AI findings must remain auditable: evidence,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/INCREMENTAL_REINDEX.md",
+      "status": "A",
+      "diff": "diff --git a/docs/INCREMENTAL_REINDEX.md b/docs/INCREMENTAL_REINDEX.md\nnew file mode 100644\nindex 0000000..3a4d08f\n--- /dev/null\n+++ b/docs/INCREMENTAL_REINDEX.md\n@@ -0,0 +1,7 @@\n+# Incremental repository indexing\n+\n+Default-branch push jobs compare the current path-to-blob-SHA inventory with the\n+last indexed inventory. Only new or changed blobs are re-parsed, re-chunked and\n+re-embedded; deleted paths are removed, and identical blobs are untouched. The\n+store applies file/chunk mutations and the new indexed head in one transaction,\n+so a retry cannot expose a head SHA with only part of its mutations.\n",
+      "hunks": [
+        {
+          "id": "diff-bc4d52c06a16341c",
+          "header": "@@ -0,0 +1,7 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "# Incremental repository indexing"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "Default-branch push jobs compare the current path-to-blob-SHA inventory with the"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "last indexed inventory. Only new or changed blobs are re-parsed, re-chunked and"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "re-embedded; deleted paths are removed, and identical blobs are untouched. The"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "store applies file/chunk mutations and the new indexed head in one transaction,"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "so a retry cannot expose a head SHA with only part of its mutations."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/indexer/reindex.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/indexer/reindex.go b/internal/hosted/indexer/reindex.go\nnew file mode 100644\nindex 0000000..144c320\n--- /dev/null\n+++ b/internal/hosted/indexer/reindex.go\n@@ -0,0 +1,74 @@\n+package indexer\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"sort\"\n+)\n+\n+type BlobFile struct {\n+\tPath string\n+\tSHA  string\n+\tSize int64\n+}\n+\n+type ReindexPlan struct {\n+\tUpsert    []BlobFile\n+\tDelete    []string\n+\tUnchanged int\n+}\n+\n+func PlanReindex(previous map[string]string, current []BlobFile) (ReindexPlan, error) {\n+\tfor path, sha := range previous {\n+\t\tif path == \"\" || sha == \"\" {\n+\t\t\treturn ReindexPlan{}, errors.New(\"previous blob inventory requires paths and SHAs\")\n+\t\t}\n+\t}\n+\tseen := make(map[string]bool, len(current))\n+\tplan := ReindexPlan{}\n+\tfor _, file := range current {\n+\t\tif file.Path == \"\" || file.SHA == \"\" || file.Size \u003c 0 {\n+\t\t\treturn ReindexPlan{}, errors.New(\"indexed blobs require path, SHA, and non-negative size\")\n+\t\t}\n+\t\tif seen[file.Path] {\n+\t\t\treturn ReindexPlan{}, fmt.Errorf(\"duplicate blob path %q\", file.Path)\n+\t\t}\n+\t\tseen[file.Path] = true\n+\t\tif previous[file.Path] == file.SHA {\n+\t\t\tplan.Unchanged++\n+\t\t\tcontinue\n+\t\t}\n+\t\tplan.Upsert = append(plan.Upsert, file)\n+\t}\n+\tfor path := range previous {\n+\t\tif !seen[path] {\n+\t\t\tplan.Delete = append(plan.Delete, path)\n+\t\t}\n+\t}\n+\tsort.Slice(plan.Upsert, func(i, j int) bool { return plan.Upsert[i].Path \u003c plan.Upsert[j].Path })\n+\tsort.Strings(plan.Delete)\n+\treturn plan, nil\n+}\n+\n+type ReindexMutation struct {\n+\tInstallationID int64\n+\tRepositoryID   int64\n+\tHeadSHA        string\n+\tUpsert         []BlobFile\n+\tDelete         []string\n+}\n+\n+type ReindexStore interface {\n+\tApplyReindex(context.Context, ReindexMutation) error\n+}\n+\n+func ApplyReindex(ctx context.Context, store ReindexStore, installationID, repositoryID int64, headSHA string, plan ReindexPlan) error {\n+\tif store == nil || installationID \u003c= 0 || repositoryID \u003c= 0 || headSHA == \"\" {\n+\t\treturn errors.New(\"store, tenant, repository, and head SHA are required\")\n+\t}\n+\treturn store.ApplyReindex(ctx, ReindexMutation{\n+\t\tInstallationID: installationID, RepositoryID: repositoryID, HeadSHA: headSHA,\n+\t\tUpsert: append([]BlobFile(nil), plan.Upsert...), Delete: append([]string(nil), plan.Delete...),\n+\t})\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-ecffcb06306f253b",
+          "header": "@@ -0,0 +1,74 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package indexer"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"sort\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "type BlobFile struct {"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\tPath string"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\tSHA  string"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\tSize int64"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "type ReindexPlan struct {"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tUpsert    []BlobFile"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tDelete    []string"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tUnchanged int"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "func PlanReindex(previous map[string]string, current []BlobFile) (ReindexPlan, error) {"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tfor path, sha := range previous {"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\tif path == \"\" || sha == \"\" {"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t\t\treturn ReindexPlan{}, errors.New(\"previous blob inventory requires paths and SHAs\")"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tseen := make(map[string]bool, len(current))"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tplan := ReindexPlan{}"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tfor _, file := range current {"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t\tif file.Path == \"\" || file.SHA == \"\" || file.Size \u003c 0 {"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t\t\treturn ReindexPlan{}, errors.New(\"indexed blobs require path, SHA, and non-negative size\")"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t\tif seen[file.Path] {"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t\t\treturn ReindexPlan{}, fmt.Errorf(\"duplicate blob path %q\", file.Path)"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t\tseen[file.Path] = true"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\t\tif previous[file.Path] == file.SHA {"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t\t\tplan.Unchanged++"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t\tplan.Upsert = append(plan.Upsert, file)"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tfor path := range previous {"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t\tif !seen[path] {"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t\t\tplan.Delete = append(plan.Delete, path)"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\tsort.Slice(plan.Upsert, func(i, j int) bool { return plan.Upsert[i].Path \u003c plan.Upsert[j].Path })"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\tsort.Strings(plan.Delete)"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\treturn plan, nil"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "type ReindexMutation struct {"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\tInstallationID int64"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\tRepositoryID   int64"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\tHeadSHA        string"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\tUpsert         []BlobFile"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\tDelete         []string"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "type ReindexStore interface {"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\tApplyReindex(context.Context, ReindexMutation) error"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "func ApplyReindex(ctx context.Context, store ReindexStore, installationID, repositoryID int64, headSHA string, plan ReindexPlan) error {"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\tif store == nil || installationID \u003c= 0 || repositoryID \u003c= 0 || headSHA == \"\" {"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"store, tenant, repository, and head SHA are required\")"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\treturn store.ApplyReindex(ctx, ReindexMutation{"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\tInstallationID: installationID, RepositoryID: repositoryID, HeadSHA: headSHA,"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t\tUpsert: append([]BlobFile(nil), plan.Upsert...), Delete: append([]string(nil), plan.Delete...),"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t})"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/indexer/reindex_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/indexer/reindex_test.go b/internal/hosted/indexer/reindex_test.go\nnew file mode 100644\nindex 0000000..3f373c3\n--- /dev/null\n+++ b/internal/hosted/indexer/reindex_test.go\n@@ -0,0 +1,37 @@\n+package indexer\n+\n+import (\n+\t\"context\"\n+\t\"reflect\"\n+\t\"testing\"\n+)\n+\n+func TestPlanReindexTouchesOnlyChangedBlobs(t *testing.T) {\n+\tplan, err := PlanReindex(map[string]string{\"a.go\": \"same\", \"b.go\": \"old\", \"gone.go\": \"gone\"}, []BlobFile{\n+\t\t{Path: \"b.go\", SHA: \"new\", Size: 20}, {Path: \"a.go\", SHA: \"same\", Size: 10}, {Path: \"c.go\", SHA: \"added\", Size: 30},\n+\t})\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif plan.Unchanged != 1 || !reflect.DeepEqual(plan.Delete, []string{\"gone.go\"}) || len(plan.Upsert) != 2 || plan.Upsert[0].Path != \"b.go\" {\n+\t\tt.Fatalf(\"plan = %+v\", plan)\n+\t}\n+}\n+\n+type reindexStoreStub struct{ mutation ReindexMutation }\n+\n+func (s *reindexStoreStub) ApplyReindex(_ context.Context, mutation ReindexMutation) error {\n+\ts.mutation = mutation\n+\treturn nil\n+}\n+\n+func TestApplyReindexCarriesTenantAndNewHeadAtomically(t *testing.T) {\n+\tstore := \u0026reindexStoreStub{}\n+\tplan := ReindexPlan{Upsert: []BlobFile{{Path: \"a.go\", SHA: \"new\"}}, Delete: []string{\"old.go\"}}\n+\tif err := ApplyReindex(context.Background(), store, 7, 9, \"head\", plan); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif store.mutation.InstallationID != 7 || store.mutation.RepositoryID != 9 || store.mutation.HeadSHA != \"head\" {\n+\t\tt.Fatalf(\"mutation = %+v\", store.mutation)\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-e2d06cdcd0c2d88c",
+          "header": "@@ -0,0 +1,37 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package indexer"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"reflect\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "func TestPlanReindexTouchesOnlyChangedBlobs(t *testing.T) {"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\tplan, err := PlanReindex(map[string]string{\"a.go\": \"same\", \"b.go\": \"old\", \"gone.go\": \"gone\"}, []BlobFile{"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\t{Path: \"b.go\", SHA: \"new\", Size: 20}, {Path: \"a.go\", SHA: \"same\", Size: 10}, {Path: \"c.go\", SHA: \"added\", Size: 30},"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t})"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tif plan.Unchanged != 1 || !reflect.DeepEqual(plan.Delete, []string{\"gone.go\"}) || len(plan.Upsert) != 2 || plan.Upsert[0].Path != \"b.go\" {"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"plan = %+v\", plan)"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "type reindexStoreStub struct{ mutation ReindexMutation }"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "func (s *reindexStoreStub) ApplyReindex(_ context.Context, mutation ReindexMutation) error {"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\ts.mutation = mutation"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "func TestApplyReindexCarriesTenantAndNewHeadAtomically(t *testing.T) {"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tstore := \u0026reindexStoreStub{}"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tplan := ReindexPlan{Upsert: []BlobFile{{Path: \"a.go\", SHA: \"new\"}}, Delete: []string{\"old.go\"}}"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tif err := ApplyReindex(context.Background(), store, 7, 9, \"head\", plan); err != nil {"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tif store.mutation.InstallationID != 7 || store.mutation.RepositoryID != 9 || store.mutation.HeadSHA != \"head\" {"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"mutation = %+v\", store.mutation)"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-b057b4a3ffa4111c",
+      "title": "Head changes",
+      "summary": "4 related files share the \"head\" change signal.",
+      "paths": [
+        "ROADMAP.md",
+        "docs/INCREMENTAL_REINDEX.md",
+        "internal/hosted/indexer/reindex.go",
+        "internal/hosted/indexer/reindex_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-def30fa003738f05",
+      "path": "internal/hosted/indexer/reindex.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/indexer/reindex_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-b81be42d378373d9",
+      "path": "internal/hosted/indexer/reindex.go",
+      "line": 22,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func PlanReindex(previous map[string]string, current []BlobFile) (ReindexPlan, error) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 4,
+    "filesAnalyzed": 4,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "reindex-plan",
+      "path": "internal/hosted/indexer/reindex.go",
+      "lineStart": 24,
+      "lineEnd": 53,
+      "title": "Plan only changed blobs",
+      "summary": "The indexer can now compare a current path-to-SHA inventory with the previous one and produce a deterministic plan: unchanged files are skipped, changed or new files are upserted, and missing files are deleted. Invalid entries and duplicate current paths are rejected."
+    },
+    {
+      "id": "reindex-apply",
+      "path": "internal/hosted/indexer/reindex.go",
+      "lineStart": 61,
+      "lineEnd": 74,
+      "title": "Apply the delta with its indexed head",
+      "summary": "A planned delta and the new head SHA are passed to the store together with installation and repository IDs in a single call. This lets a store implementation apply the mutations and advance the indexed head as one operation; required identifiers are validated first."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "b45379878089bf5170a8fd9fc44fc1b6da7fb0a6",
+      "revision": "ebc809b277cc9146939ad11444b1bd3d75501b74",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "b45379878089bf5170a8fd9fc44fc1b6da7fb0a6",
+      "revision": "ebc809b277cc9146939ad11444b1bd3d75501b74",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "ebc809b277cc9146939ad11444b1bd3d75501b74",
+      "detail": "2 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "ebc809b277cc9146939ad11444b1bd3d75501b74",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-4da1ac0e5e51f3d8",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/indexer/reindex.go",
+      "line": 22,
+      "evidence": "func PlanReindex(previous map[string]string, current []BlobFile) (ReindexPlan, error) {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "ebc809b277cc9146939ad11444b1bd3d75501b74",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40105328100",
+    "checks": [
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40105329226/job/120905727187",
+        "startedAt": "2026-10-24T15:04:47Z"
+      },
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40105328100/job/120905724438",
+        "startedAt": "2026-10-24T15:04:48Z"
+      }
+    ]
+  }
+}
