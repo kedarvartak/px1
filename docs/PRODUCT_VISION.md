@@ -28,7 +28,7 @@ understanding and decisions, repeated use, and insight into where agent-written
 changes confuse reviewers. Feature counts and acknowledgement clicks alone do
 not establish that advantage.
 
-## The product
+## The product today
 
 When a pull request opens or changes, GitHub Actions generates a static report
 for that exact head commit. A sticky PR comment links to either an authenticated
@@ -53,6 +53,17 @@ it records a declaration, not verified comprehension. Finding acknowledgements
 never complete the human review. The report remains a snapshot; approval
 requires checking the current PR in GitHub.
 
+## Hosted direction
+
+The next product checkpoint adds a GitHub App that indexes the repository and
+posts evidence-backed P0-P2 findings on pull requests. The static report remains
+the place where a person can inspect every changed file, including code with no
+finding, and see the context and verifier result behind each AI claim.
+
+The hosted service is additive. The free GitHub Action remains available for
+open-source and self-run use. Hosted indexing and review never execute pull
+request code, every stored row is tenant-scoped, and approval remains in GitHub.
+
 ## Public launch priorities
 
 Explicit review progress, behavioral inspection questions, source-by-source
@@ -69,26 +80,27 @@ implementation uses patterns and file globs. The longer-term goal is narrowly
 scoped semantic rules written in ordinary language, with evidence and explicit
 uncertainty.
 
-## AI is optional context
+## AI findings remain auditable
 
-Model-generated explanations should clarify mechanics, dependencies, and
-review impact. They must not invent author intent or label code safe. Provider
-keys stay in GitHub Actions secrets; only validated, commit-pinned output enters
-the static report. Enabling explanations transfers bounded, non-excluded diff
-content to the configured model provider; path exclusions are not redaction.
+The Action's model-generated explanations remain optional context. The hosted
+reviewer may produce findings, but every finding must show line evidence,
+retrieved context, confidence inputs, and its verifier disposition. It must not
+invent author intent or label code safe.
 
 Without a model, px1 still provides diffs, rules, CI evidence, and deterministic
 attention signals.
 
 ## Product boundary
 
-px1 is not:
+Hosted v1 is not:
 
 - a local IDE or code browser;
 - an agent editor or task runner;
-- a mutable review-session service;
-- a self-hosted web application;
-- a replacement for GitHub comments or approvals; or
-- a px1-operated SaaS.
+- an agent that edits the repository;
+- a test runner for untrusted pull-request code;
+- an automatic approval system; or
+- a replacement for GitHub comments or approvals.
 
-The product is the artifact attached to the PR.
+The product is an auditable review workflow: findings return to GitHub, while
+the commit-pinned report makes the evidence and the human's inspection progress
+visible. The Action is the self-run mode; the GitHub App is the hosted mode.

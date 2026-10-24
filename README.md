@@ -18,9 +18,13 @@ generates the static report for exact base and head commits; a PR comment links
 to either an authenticated Actions download or a deliberately published GitHub
 Pages report.
 
-px1 does not host a SaaS, start a local application, edit code, or replace
-GitHub review decisions. It creates context; approval and change requests stay
-in GitHub.
+The released px1 Action does not require a SaaS, start a local application, edit
+code, or replace GitHub review decisions. A hosted GitHub App is the next
+roadmap checkpoint; the Action remains the free self-run mode. In both modes,
+approval and change requests stay in GitHub.
+
+See [the hosted v1 architecture decision](docs/HOSTED_ARCHITECTURE.md) for the
+planned GitHub App, indexing, queue, storage, and security boundaries.
 
 ## What reviewers get
 

@@ -7,14 +7,39 @@ coding to an agent. Acknowledging AI findings is insufficient: reviewers need
 to challenge incorrect findings and inspect code with no findings. The roadmap
 prioritizes that outcome over expanding automated detection.
 
-px1 has one product shape with two explicit delivery choices:
+px1 currently ships one Action-based product shape with two delivery choices:
 
 ```text
 push PR → GitHub Action → static review artifact → authenticated download or deliberate Pages publication → PR link
 ```
 
-Local code browsing, local review sessions, agent editing, self-hosted imports,
-accounts, and a managed SaaS are outside the product.
+The Action remains the free, self-run mode. The next product checkpoint adds a
+hosted GitHub App without removing the commit-pinned report or human review
+progress that make px1 auditable.
+
+## Hosted v1: context-aware PR bot
+
+The hosted v1 is built in small, independently reviewable changes. Its first
+backend-foundation tasks are:
+
+1. [x] **Choose the hosted stack.** Go API and workers, PostgreSQL 16 with
+   pgvector, River for transactional jobs, and S3-compatible object storage.
+   See [the hosted architecture decision](docs/HOSTED_ARCHITECTURE.md).
+2. [ ] **Prepare GitHub App registration.** Separate development and production
+   manifests, least-privilege permissions, webhook subscriptions, and a
+   secrets-manager handoff for private keys.
+3. [ ] **Build webhook ingestion.** Verify HMAC-SHA256 signatures, deduplicate
+   delivery IDs, enqueue accepted events, and acknowledge within one second.
+4. [ ] **Create the hosted schema.** Installations, repositories, indexed files
+   and chunks, pull requests, reviews, findings, comments, feedback, and jobs.
+5. [ ] **Add the GitHub installation client.** Mint and cache installation
+   tokens, respect primary and secondary rate limits, and retry safely.
+6. [ ] **Add the LLM gateway.** One bounded interface for OpenAI, Anthropic, and
+   Bedrock with timeout, retry, prompt-cache, token, and cost telemetry.
+
+The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
+follow these foundations. AI findings must remain auditable: evidence,
+retrieved context, confidence inputs, and verifier disposition are visible.
 
 ## Current foundation
 
@@ -106,8 +131,10 @@ are no longer active roadmap work.
 ## Product constraints
 
 - Never execute code from an untrusted PR head.
-- Never require an account or px1-hosted backend.
+- Keep the GitHub Action usable without a px1 account or hosted backend.
 - Keep reports tied to one full head SHA.
 - Keep approval and requests for changes in GitHub.
-- Treat AI output as explanation, not proof.
+- Treat AI output as a finding to verify, never as proof.
 - Prefer evidence visible in the diff over opaque scores.
+- Put a tenant identifier on every hosted data row and test isolation.
+- Never execute pull-request code during review or indexing.
