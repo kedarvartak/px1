@@ -1,0 +1,2643 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "c1d07eb0721a11f655cffff8d93db9ab0be85c7d",
+  "head": "1ae47d6469b26590bbbd953cce90b809bd2ea29d",
+  "generatedAt": "2026-10-24T13:53:39.911685065Z",
+  "files": [
+    {
+      "path": "Dockerfile.hosted",
+      "status": "A",
+      "diff": "diff --git a/Dockerfile.hosted b/Dockerfile.hosted\nnew file mode 100644\nindex 0000000..8ba6a91\n--- /dev/null\n+++ b/Dockerfile.hosted\n@@ -0,0 +1,12 @@\n+FROM golang:1.25-bookworm AS build\n+WORKDIR /src\n+COPY go.mod go.sum ./\n+RUN go mod download\n+COPY . .\n+RUN CGO_ENABLED=1 go build -trimpath -ldflags=\"-s -w\" -o /px1d ./cmd/px1d\n+\n+FROM gcr.io/distroless/cc-debian12:nonroot\n+COPY --from=build /px1d /px1d\n+EXPOSE 8080\n+USER nonroot:nonroot\n+ENTRYPOINT [\"/px1d\"]\n",
+      "hunks": [
+        {
+          "id": "diff-18f0079135918c37",
+          "header": "@@ -0,0 +1,12 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "FROM golang:1.25-bookworm AS build"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "WORKDIR /src"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "COPY go.mod go.sum ./"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "RUN go mod download"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "COPY . ."
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "RUN CGO_ENABLED=1 go build -trimpath -ldflags=\"-s -w\" -o /px1d ./cmd/px1d"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "FROM gcr.io/distroless/cc-debian12:nonroot"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "COPY --from=build /px1d /px1d"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "EXPOSE 8080"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "USER nonroot:nonroot"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "ENTRYPOINT [\"/px1d\"]"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/ROADMAP.md b/ROADMAP.md\nindex 697a672..aab44f0 100644\n--- a/ROADMAP.md\n+++ b/ROADMAP.md\n@@ -25,17 +25,30 @@ backend-foundation tasks are:\n 1. [x] **Choose the hosted stack.** Go API and workers, PostgreSQL 16 with\n    pgvector, River for transactional jobs, and S3-compatible object storage.\n    See [the hosted architecture decision](docs/HOSTED_ARCHITECTURE.md).\n-2. [ ] **Prepare GitHub App registration.** Separate development and production\n+2. [x] **Prepare GitHub App registration.** Separate development and production\n    manifests, least-privilege permissions, webhook subscriptions, and a\n    secrets-manager handoff for private keys.\n-3. [ ] **Build webhook ingestion.** Verify HMAC-SHA256 signatures, deduplicate\n+3. [x] **Build webhook ingestion.** Verify HMAC-SHA256 signatures, deduplicate\n    delivery IDs, enqueue accepted events, and acknowledge within one second.\n-4. [ ] **Create the hosted schema.** Installations, repositories, indexed files\n+4. [x] **Create the hosted schema.** Installations, repositories, indexed files\n    and chunks, pull requests, reviews, findings, comments, feedback, and jobs.\n-5. [ ] **Add the GitHub installation client.** Mint and cache installation\n+5. [x] **Add the GitHub installation client.** Mint and cache installation\n    tokens, respect primary and secondary rate limits, and retry safely.\n-6. [ ] **Add the LLM gateway.** One bounded interface for OpenAI, Anthropic, and\n+6. [x] **Add the LLM gateway.** One bounded interface for OpenAI, Anthropic, and\n    Bedrock with timeout, retry, prompt-cache, token, and cost telemetry.\n+7. [x] **Prepare staging and production deployment.** Ship isolated Fly\n+   manifests, role-aware health endpoints, structured logs, OpenTelemetry trace\n+   export, and Sentry error reporting with required hosted configuration.\n+8. [ ] **Clone repositories as untrusted data.** Use bounded, filtered shallow\n+   clones in disposable directories and never execute repository code.\n+9. [ ] **Detect and parse source languages.** Recognize the initial language\n+   set, use registered tree-sitter parsers, and fall back to bounded line data.\n+10. [ ] **Chunk at symbol boundaries.** Produce retrieval chunks of roughly\n+    200–800 tokens without silently discarding oversized symbols.\n+11. [ ] **Embed in bounded batches.** Persist provider model and version with\n+    every vector so indexes can be migrated safely.\n+12. [ ] **Summarize substantial files.** Create bounded, low-cost summaries for\n+    source files over 50 lines while skipping generated and binary content.\n \n The v1 review pipeline, indexing, report hosting, evaluation, and launch gates\n follow these foundations. AI findings must remain auditable: evidence,\n",
+      "hunks": [
+        {
+          "id": "diff-30c62a8d8abdb85b",
+          "header": "@@ -25,17 +25,30 @@ backend-foundation tasks are:",
+          "lines": [
+            {
+              "oldLine": 25,
+              "newLine": 25,
+              "kind": "context",
+              "text": "1. [x] **Choose the hosted stack.** Go API and workers, PostgreSQL 16 with"
+            },
+            {
+              "oldLine": 26,
+              "newLine": 26,
+              "kind": "context",
+              "text": "   pgvector, River for transactional jobs, and S3-compatible object storage."
+            },
+            {
+              "oldLine": 27,
+              "newLine": 27,
+              "kind": "context",
+              "text": "   See [the hosted architecture decision](docs/HOSTED_ARCHITECTURE.md)."
+            },
+            {
+              "oldLine": 28,
+              "kind": "removed",
+              "text": "2. [ ] **Prepare GitHub App registration.** Separate development and production"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "2. [x] **Prepare GitHub App registration.** Separate development and production"
+            },
+            {
+              "oldLine": 29,
+              "newLine": 29,
+              "kind": "context",
+              "text": "   manifests, least-privilege permissions, webhook subscriptions, and a"
+            },
+            {
+              "oldLine": 30,
+              "newLine": 30,
+              "kind": "context",
+              "text": "   secrets-manager handoff for private keys."
+            },
+            {
+              "oldLine": 31,
+              "kind": "removed",
+              "text": "3. [ ] **Build webhook ingestion.** Verify HMAC-SHA256 signatures, deduplicate"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "3. [x] **Build webhook ingestion.** Verify HMAC-SHA256 signatures, deduplicate"
+            },
+            {
+              "oldLine": 32,
+              "newLine": 32,
+              "kind": "context",
+              "text": "   delivery IDs, enqueue accepted events, and acknowledge within one second."
+            },
+            {
+              "oldLine": 33,
+              "kind": "removed",
+              "text": "4. [ ] **Create the hosted schema.** Installations, repositories, indexed files"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "4. [x] **Create the hosted schema.** Installations, repositories, indexed files"
+            },
+            {
+              "oldLine": 34,
+              "newLine": 34,
+              "kind": "context",
+              "text": "   and chunks, pull requests, reviews, findings, comments, feedback, and jobs."
+            },
+            {
+              "oldLine": 35,
+              "kind": "removed",
+              "text": "5. [ ] **Add the GitHub installation client.** Mint and cache installation"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "5. [x] **Add the GitHub installation client.** Mint and cache installation"
+            },
+            {
+              "oldLine": 36,
+              "newLine": 36,
+              "kind": "context",
+              "text": "   tokens, respect primary and secondary rate limits, and retry safely."
+            },
+            {
+              "oldLine": 37,
+              "kind": "removed",
+              "text": "6. [ ] **Add the LLM gateway.** One bounded interface for OpenAI, Anthropic, and"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "6. [x] **Add the LLM gateway.** One bounded interface for OpenAI, Anthropic, and"
+            },
+            {
+              "oldLine": 38,
+              "newLine": 38,
+              "kind": "context",
+              "text": "   Bedrock with timeout, retry, prompt-cache, token, and cost telemetry."
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "7. [x] **Prepare staging and production deployment.** Ship isolated Fly"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "   manifests, role-aware health endpoints, structured logs, OpenTelemetry trace"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "   export, and Sentry error reporting with required hosted configuration."
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "8. [ ] **Clone repositories as untrusted data.** Use bounded, filtered shallow"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "   clones in disposable directories and never execute repository code."
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "9. [ ] **Detect and parse source languages.** Recognize the initial language"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "   set, use registered tree-sitter parsers, and fall back to bounded line data."
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "10. [ ] **Chunk at symbol boundaries.** Produce retrieval chunks of roughly"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "    200–800 tokens without silently discarding oversized symbols."
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "11. [ ] **Embed in bounded batches.** Persist provider model and version with"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "    every vector so indexes can be migrated safely."
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "12. [ ] **Summarize substantial files.** Create bounded, low-cost summaries for"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "    source files over 50 lines while skipping generated and binary content."
+            },
+            {
+              "oldLine": 39,
+              "newLine": 52,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 40,
+              "newLine": 53,
+              "kind": "context",
+              "text": "The v1 review pipeline, indexing, report hosting, evaluation, and launch gates"
+            },
+            {
+              "oldLine": 41,
+              "newLine": 54,
+              "kind": "context",
+              "text": "follow these foundations. AI findings must remain auditable: evidence,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "cmd/px1d/main.go",
+      "status": "A",
+      "diff": "diff --git a/cmd/px1d/main.go b/cmd/px1d/main.go\nnew file mode 100644\nindex 0000000..882da76\n--- /dev/null\n+++ b/cmd/px1d/main.go\n@@ -0,0 +1,61 @@\n+package main\n+\n+import (\n+\t\"context\"\n+\t\"flag\"\n+\t\"log/slog\"\n+\t\"net/http\"\n+\t\"os\"\n+\t\"os/signal\"\n+\t\"syscall\"\n+\t\"time\"\n+\n+\t\"github.com/getsentry/sentry-go\"\n+\t\"github.com/getsentry/sentry-go/http\"\n+\t\"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp\"\n+\n+\thostedruntime \"px1/internal/hosted/runtime\"\n+)\n+\n+func main() {\n+\trole := flag.String(\"role\", \"\", \"hosted process role\")\n+\tflag.Parse()\n+\tcfg, err := hostedruntime.LoadConfig(*role)\n+\tif err != nil {\n+\t\tslog.Error(\"invalid configuration\", \"error\", err)\n+\t\tos.Exit(1)\n+\t}\n+\tctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)\n+\tdefer stop()\n+\tshutdownTelemetry, err := hostedruntime.StartTelemetry(ctx, cfg)\n+\tif err != nil {\n+\t\tslog.Error(\"telemetry startup failed\", \"error\", err)\n+\t\tos.Exit(1)\n+\t}\n+\tdefer func() {\n+\t\tshutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)\n+\t\tdefer cancel()\n+\t\tif err := shutdownTelemetry(shutdownCtx); err != nil {\n+\t\t\tslog.Error(\"telemetry shutdown failed\", \"error\", err)\n+\t\t}\n+\t}()\n+\n+\tmux := http.NewServeMux()\n+\tmux.HandleFunc(\"GET /healthz\", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })\n+\tmux.HandleFunc(\"GET /readyz\", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })\n+\tsentryMiddleware := sentryhttp.New(sentryhttp.Options{Repanic: true})\n+\thandler := otelhttp.NewHandler(sentryMiddleware.Handle(mux), \"px1.http\")\n+\tserver := \u0026http.Server{Addr: cfg.Address, Handler: handler, ReadHeaderTimeout: 5 * time.Second}\n+\tgo func() {\n+\t\t\u003c-ctx.Done()\n+\t\tshutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)\n+\t\tdefer cancel()\n+\t\t_ = server.Shutdown(shutdownCtx)\n+\t}()\n+\tslog.Info(\"hosted process ready\", \"role\", cfg.Role, \"environment\", cfg.Environment, \"release\", cfg.Release)\n+\tif err := server.ListenAndServe(); err != nil \u0026\u0026 err != http.ErrServerClosed {\n+\t\tsentry.CaptureException(err)\n+\t\tslog.Error(\"server stopped\", \"error\", err)\n+\t\tos.Exit(1)\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-579cf7ac31fb4c87",
+          "header": "@@ -0,0 +1,61 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package main"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"flag\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"log/slog\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"net/http\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"os/signal\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"syscall\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t\"github.com/getsentry/sentry-go\""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\t\"github.com/getsentry/sentry-go/http\""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\t\"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp\""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\thostedruntime \"px1/internal/hosted/runtime\""
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "func main() {"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\trole := flag.String(\"role\", \"\", \"hosted process role\")"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tflag.Parse()"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tcfg, err := hostedruntime.LoadConfig(*role)"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t\tslog.Error(\"invalid configuration\", \"error\", err)"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t\tos.Exit(1)"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tdefer stop()"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tshutdownTelemetry, err := hostedruntime.StartTelemetry(ctx, cfg)"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t\tslog.Error(\"telemetry startup failed\", \"error\", err)"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t\tos.Exit(1)"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tdefer func() {"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t\tshutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t\tdefer cancel()"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\t\tif err := shutdownTelemetry(shutdownCtx); err != nil {"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t\t\tslog.Error(\"telemetry shutdown failed\", \"error\", err)"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t}()"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tmux := http.NewServeMux()"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tmux.HandleFunc(\"GET /healthz\", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\tmux.HandleFunc(\"GET /readyz\", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\tsentryMiddleware := sentryhttp.New(sentryhttp.Options{Repanic: true})"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\thandler := otelhttp.NewHandler(sentryMiddleware.Handle(mux), \"px1.http\")"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\tserver := \u0026http.Server{Addr: cfg.Address, Handler: handler, ReadHeaderTimeout: 5 * time.Second}"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\tgo func() {"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t\t\u003c-ctx.Done()"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t\tshutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\tdefer cancel()"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t\t_ = server.Shutdown(shutdownCtx)"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t}()"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\tslog.Info(\"hosted process ready\", \"role\", cfg.Role, \"environment\", cfg.Environment, \"release\", cfg.Release)"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\tif err := server.ListenAndServe(); err != nil \u0026\u0026 err != http.ErrServerClosed {"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\tsentry.CaptureException(err)"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t\tslog.Error(\"server stopped\", \"error\", err)"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t\tos.Exit(1)"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "deploy/fly/README.md",
+      "status": "A",
+      "diff": "diff --git a/deploy/fly/README.md b/deploy/fly/README.md\nnew file mode 100644\nindex 0000000..80d453b\n--- /dev/null\n+++ b/deploy/fly/README.md\n@@ -0,0 +1,17 @@\n+# Hosted deployment\n+\n+Staging and production are separate Fly applications and must use separate\n+PostgreSQL, object-store, GitHub App, OTLP, and Sentry credentials. Set\n+`DATABASE_URL`, `PX1_OBJECT_STORE_URL`, `OTEL_EXPORTER_OTLP_ENDPOINT`, and\n+`SENTRY_DSN` as Fly secrets before deploying. Provider and GitHub private keys\n+remain secrets and must never be placed in these manifests.\n+\n+Deploy staging first:\n+\n+```sh\n+flyctl deploy --config deploy/fly/staging.toml\n+```\n+\n+Promote the same tested image digest to production with the production config.\n+Each process exposes `/healthz` and `/readyz`; structured startup logs, OTLP\n+traces, and Sentry errors identify the environment, role, and release.\n",
+      "hunks": [
+        {
+          "id": "diff-2c8c1e5e5c6e410c",
+          "header": "@@ -0,0 +1,17 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "# Hosted deployment"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "Staging and production are separate Fly applications and must use separate"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "PostgreSQL, object-store, GitHub App, OTLP, and Sentry credentials. Set"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "`DATABASE_URL`, `PX1_OBJECT_STORE_URL`, `OTEL_EXPORTER_OTLP_ENDPOINT`, and"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "`SENTRY_DSN` as Fly secrets before deploying. Provider and GitHub private keys"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "remain secrets and must never be placed in these manifests."
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "Deploy staging first:"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "```sh"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "flyctl deploy --config deploy/fly/staging.toml"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "```"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "Promote the same tested image digest to production with the production config."
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "Each process exposes `/healthz` and `/readyz`; structured startup logs, OTLP"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "traces, and Sentry errors identify the environment, role, and release."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "deploy/fly/production.toml",
+      "status": "A",
+      "diff": "diff --git a/deploy/fly/production.toml b/deploy/fly/production.toml\nnew file mode 100644\nindex 0000000..e3d1807\n--- /dev/null\n+++ b/deploy/fly/production.toml\n@@ -0,0 +1,26 @@\n+app = \"px1-production\"\n+primary_region = \"iad\"\n+\n+[build]\n+dockerfile = \"Dockerfile.hosted\"\n+\n+[env]\n+PX1_ENVIRONMENT = \"production\"\n+PX1_ADDRESS = \":8080\"\n+\n+[processes]\n+web = \"/px1d -role=web\"\n+webhook = \"/px1d -role=webhook\"\n+indexer = \"/px1d -role=indexer\"\n+reviewer = \"/px1d -role=reviewer\"\n+learner = \"/px1d -role=learner\"\n+\n+[http_service]\n+internal_port = 8080\n+force_https = true\n+processes = [\"web\", \"webhook\"]\n+\n+[[vm]]\n+memory = \"1gb\"\n+cpu_kind = \"shared\"\n+cpus = 2\n",
+      "hunks": [
+        {
+          "id": "diff-f00036c548c743ce",
+          "header": "@@ -0,0 +1,26 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "app = \"px1-production\""
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "primary_region = \"iad\""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "[build]"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "dockerfile = \"Dockerfile.hosted\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "[env]"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "PX1_ENVIRONMENT = \"production\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "PX1_ADDRESS = \":8080\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "[processes]"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "web = \"/px1d -role=web\""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "webhook = \"/px1d -role=webhook\""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "indexer = \"/px1d -role=indexer\""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "reviewer = \"/px1d -role=reviewer\""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "learner = \"/px1d -role=learner\""
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "[http_service]"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "internal_port = 8080"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "force_https = true"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "processes = [\"web\", \"webhook\"]"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "[[vm]]"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "memory = \"1gb\""
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "cpu_kind = \"shared\""
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "cpus = 2"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "deploy/fly/staging.toml",
+      "status": "A",
+      "diff": "diff --git a/deploy/fly/staging.toml b/deploy/fly/staging.toml\nnew file mode 100644\nindex 0000000..49a55aa\n--- /dev/null\n+++ b/deploy/fly/staging.toml\n@@ -0,0 +1,26 @@\n+app = \"px1-staging\"\n+primary_region = \"iad\"\n+\n+[build]\n+dockerfile = \"Dockerfile.hosted\"\n+\n+[env]\n+PX1_ENVIRONMENT = \"staging\"\n+PX1_ADDRESS = \":8080\"\n+\n+[processes]\n+web = \"/px1d -role=web\"\n+webhook = \"/px1d -role=webhook\"\n+indexer = \"/px1d -role=indexer\"\n+reviewer = \"/px1d -role=reviewer\"\n+learner = \"/px1d -role=learner\"\n+\n+[http_service]\n+internal_port = 8080\n+force_https = true\n+processes = [\"web\", \"webhook\"]\n+\n+[[vm]]\n+memory = \"512mb\"\n+cpu_kind = \"shared\"\n+cpus = 1\n",
+      "hunks": [
+        {
+          "id": "diff-753842d92e647fd8",
+          "header": "@@ -0,0 +1,26 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "app = \"px1-staging\""
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "primary_region = \"iad\""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "[build]"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "dockerfile = \"Dockerfile.hosted\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "[env]"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "PX1_ENVIRONMENT = \"staging\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "PX1_ADDRESS = \":8080\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "[processes]"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "web = \"/px1d -role=web\""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "webhook = \"/px1d -role=webhook\""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "indexer = \"/px1d -role=indexer\""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "reviewer = \"/px1d -role=reviewer\""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "learner = \"/px1d -role=learner\""
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "[http_service]"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "internal_port = 8080"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "force_https = true"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "processes = [\"web\", \"webhook\"]"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "[[vm]]"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "memory = \"512mb\""
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "cpu_kind = \"shared\""
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "cpus = 1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "go.mod",
+      "status": "M",
+      "diff": "diff --git a/go.mod b/go.mod\nindex c512c53..437d8be 100644\n--- a/go.mod\n+++ b/go.mod\n@@ -1,3 +1,32 @@\n module px1\n \n go 1.25\n+\n+require (\n+\tgithub.com/getsentry/sentry-go v0.36.0\n+\tgo.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.63.0\n+\tgo.opentelemetry.io/otel v1.38.0\n+\tgo.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.38.0\n+\tgo.opentelemetry.io/otel/sdk v1.38.0\n+)\n+\n+require (\n+\tgithub.com/cenkalti/backoff/v5 v5.0.3 // indirect\n+\tgithub.com/felixge/httpsnoop v1.0.4 // indirect\n+\tgithub.com/go-logr/logr v1.4.3 // indirect\n+\tgithub.com/go-logr/stdr v1.2.2 // indirect\n+\tgithub.com/google/uuid v1.6.0 // indirect\n+\tgithub.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2 // indirect\n+\tgo.opentelemetry.io/auto/sdk v1.1.0 // indirect\n+\tgo.opentelemetry.io/otel/exporters/otlp/otlptrace v1.38.0 // indirect\n+\tgo.opentelemetry.io/otel/metric v1.38.0 // indirect\n+\tgo.opentelemetry.io/otel/trace v1.38.0 // indirect\n+\tgo.opentelemetry.io/proto/otlp v1.7.1 // indirect\n+\tgolang.org/x/net v0.43.0 // indirect\n+\tgolang.org/x/sys v0.35.0 // indirect\n+\tgolang.org/x/text v0.28.0 // indirect\n+\tgoogle.golang.org/genproto/googleapis/api v0.0.0-20250825161204-c5933d9347a5 // indirect\n+\tgoogle.golang.org/genproto/googleapis/rpc v0.0.0-20250825161204-c5933d9347a5 // indirect\n+\tgoogle.golang.org/grpc v1.75.0 // indirect\n+\tgoogle.golang.org/protobuf v1.36.8 // indirect\n+)\n",
+      "hunks": [
+        {
+          "id": "diff-8e8a0e8b09940d4c",
+          "header": "@@ -1,3 +1,32 @@",
+          "lines": [
+            {
+              "oldLine": 1,
+              "newLine": 1,
+              "kind": "context",
+              "text": "module px1"
+            },
+            {
+              "oldLine": 2,
+              "newLine": 2,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 3,
+              "newLine": 3,
+              "kind": "context",
+              "text": "go 1.25"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "require ("
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\tgithub.com/getsentry/sentry-go v0.36.0"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\tgo.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.63.0"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\tgo.opentelemetry.io/otel v1.38.0"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\tgo.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.38.0"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\tgo.opentelemetry.io/otel/sdk v1.38.0"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "require ("
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tgithub.com/cenkalti/backoff/v5 v5.0.3 // indirect"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tgithub.com/felixge/httpsnoop v1.0.4 // indirect"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tgithub.com/go-logr/logr v1.4.3 // indirect"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tgithub.com/go-logr/stdr v1.2.2 // indirect"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tgithub.com/google/uuid v1.6.0 // indirect"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tgithub.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2 // indirect"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tgo.opentelemetry.io/auto/sdk v1.1.0 // indirect"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tgo.opentelemetry.io/otel/exporters/otlp/otlptrace v1.38.0 // indirect"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tgo.opentelemetry.io/otel/metric v1.38.0 // indirect"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tgo.opentelemetry.io/otel/trace v1.38.0 // indirect"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tgo.opentelemetry.io/proto/otlp v1.7.1 // indirect"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tgolang.org/x/net v0.43.0 // indirect"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tgolang.org/x/sys v0.35.0 // indirect"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tgolang.org/x/text v0.28.0 // indirect"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tgoogle.golang.org/genproto/googleapis/api v0.0.0-20250825161204-c5933d9347a5 // indirect"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tgoogle.golang.org/genproto/googleapis/rpc v0.0.0-20250825161204-c5933d9347a5 // indirect"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tgoogle.golang.org/grpc v1.75.0 // indirect"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tgoogle.golang.org/protobuf v1.36.8 // indirect"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": ")"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "go.sum",
+      "status": "A",
+      "diff": "diff --git a/go.sum b/go.sum\nnew file mode 100644\nindex 0000000..20dca37\n--- /dev/null\n+++ b/go.sum\n@@ -0,0 +1,71 @@\n+github.com/cenkalti/backoff/v5 v5.0.3 h1:ZN+IMa753KfX5hd8vVaMixjnqRZ3y8CuJKRKj1xcsSM=\n+github.com/cenkalti/backoff/v5 v5.0.3/go.mod h1:rkhZdG3JZukswDf7f0cwqPNk4K0sa+F97BxZthm/crw=\n+github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=\n+github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=\n+github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2Wg=\n+github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=\n+github.com/getsentry/sentry-go v0.36.0 h1:UkCk0zV28PiGf+2YIONSSYiYhxwlERE5Li3JPpZqEns=\n+github.com/getsentry/sentry-go v0.36.0/go.mod h1:p5Im24mJBeruET8Q4bbcMfCQ+F+Iadc4L48tB1apo2c=\n+github.com/go-errors/errors v1.4.2 h1:J6MZopCL4uSllY1OfXM374weqZFFItUbrImctkmUxIA=\n+github.com/go-errors/errors v1.4.2/go.mod h1:sIVyrIiJhuEF+Pj9Ebtd6P/rEYROXFi3BopGUQ5a5Og=\n+github.com/go-logr/logr v1.2.2/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=\n+github.com/go-logr/logr v1.4.3 h1:CjnDlHq8ikf6E492q6eKboGOC0T8CDaOvkHCIg8idEI=\n+github.com/go-logr/logr v1.4.3/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=\n+github.com/go-logr/stdr v1.2.2 h1:hSWxHoqTgW2S2qGc0LTAI563KZ5YKYRhT3MFKZMbjag=\n+github.com/go-logr/stdr v1.2.2/go.mod h1:mMo/vtBO5dYbehREoey6XUKy/eSumjCCveDpRre4VKE=\n+github.com/golang/protobuf v1.5.4 h1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=\n+github.com/golang/protobuf v1.5.4/go.mod h1:lnTiLA8Wa4RWRcIUkrtSVa5nRhsEGBg48fD6rSs7xps=\n+github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=\n+github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=\n+github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=\n+github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=\n+github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2 h1:8Tjv8EJ+pM1xP8mK6egEbD1OgnVTyacbefKhmbLhIhU=\n+github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2/go.mod h1:pkJQ2tZHJ0aFOVEEot6oZmaVEZcRme73eIFmhiVuRWs=\n+github.com/pingcap/errors v0.11.4 h1:lFuQV/oaUMGcD2tqt+01ROSmJs75VG1ToEOkZIZ4nE4=\n+github.com/pingcap/errors v0.11.4/go.mod h1:Oi8TUi2kEtXXLMJk9l1cGmz20kV3TaQ0usTwv5KuLY8=\n+github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=\n+github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=\n+github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=\n+github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=\n+github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=\n+github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=\n+go.opentelemetry.io/auto/sdk v1.1.0 h1:cH53jehLUN6UFLY71z+NDOiNJqDdPRaXzTel0sJySYA=\n+go.opentelemetry.io/auto/sdk v1.1.0/go.mod h1:3wSPjt5PWp2RhlCcmmOial7AvC4DQqZb7a7wCow3W8A=\n+go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.63.0 h1:RbKq8BG0FI8OiXhBfcRtqqHcZcka+gU3cskNuf05R18=\n+go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.63.0/go.mod h1:h06DGIukJOevXaj/xrNjhi/2098RZzcLTbc0jDAUbsg=\n+go.opentelemetry.io/otel v1.38.0 h1:RkfdswUDRimDg0m2Az18RKOsnI8UDzppJAtj01/Ymk8=\n+go.opentelemetry.io/otel v1.38.0/go.mod h1:zcmtmQ1+YmQM9wrNsTGV/q/uyusom3P8RxwExxkZhjM=\n+go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.38.0 h1:GqRJVj7UmLjCVyVJ3ZFLdPRmhDUp2zFmQe3RHIOsw24=\n+go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.38.0/go.mod h1:ri3aaHSmCTVYu2AWv44YMauwAQc0aqI9gHKIcSbI1pU=\n+go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.38.0 h1:aTL7F04bJHUlztTsNGJ2l+6he8c+y/b//eR0jjjemT4=\n+go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.38.0/go.mod h1:kldtb7jDTeol0l3ewcmd8SDvx3EmIE7lyvqbasU3QC4=\n+go.opentelemetry.io/otel/metric v1.38.0 h1:Kl6lzIYGAh5M159u9NgiRkmoMKjvbsKtYRwgfrA6WpA=\n+go.opentelemetry.io/otel/metric v1.38.0/go.mod h1:kB5n/QoRM8YwmUahxvI3bO34eVtQf2i4utNVLr9gEmI=\n+go.opentelemetry.io/otel/sdk v1.38.0 h1:l48sr5YbNf2hpCUj/FoGhW9yDkl+Ma+LrVl8qaM5b+E=\n+go.opentelemetry.io/otel/sdk v1.38.0/go.mod h1:ghmNdGlVemJI3+ZB5iDEuk4bWA3GkTpW+DOoZMYBVVg=\n+go.opentelemetry.io/otel/sdk/metric v1.38.0 h1:aSH66iL0aZqo//xXzQLYozmWrXxyFkBJ6qT5wthqPoM=\n+go.opentelemetry.io/otel/sdk/metric v1.38.0/go.mod h1:dg9PBnW9XdQ1Hd6ZnRz689CbtrUp0wMMs9iPcgT9EZA=\n+go.opentelemetry.io/otel/trace v1.38.0 h1:Fxk5bKrDZJUH+AMyyIXGcFAPah0oRcT+LuNtJrmcNLE=\n+go.opentelemetry.io/otel/trace v1.38.0/go.mod h1:j1P9ivuFsTceSWe1oY+EeW3sc+Pp42sO++GHkg4wwhs=\n+go.opentelemetry.io/proto/otlp v1.7.1 h1:gTOMpGDb0WTBOP8JaO72iL3auEZhVmAQg4ipjOVAtj4=\n+go.opentelemetry.io/proto/otlp v1.7.1/go.mod h1:b2rVh6rfI/s2pHWNlB7ILJcRALpcNDzKhACevjI+ZnE=\n+go.uber.org/goleak v1.3.0 h1:2K3zAYmnTNqV73imy9J1T3WC+gmCePx2hEGkimedGto=\n+go.uber.org/goleak v1.3.0/go.mod h1:CoHD4mav9JJNrW/WLlf7HGZPjdw8EucARQHekz1X6bE=\n+golang.org/x/net v0.43.0 h1:lat02VYK2j4aLzMzecihNvTlJNQUq316m2Mr9rnM6YE=\n+golang.org/x/net v0.43.0/go.mod h1:vhO1fvI4dGsIjh73sWfUVjj3N7CA9WkKJNQm2svM6Jg=\n+golang.org/x/sys v0.35.0 h1:vz1N37gP5bs89s7He8XuIYXpyY0+QlsKmzipCbUtyxI=\n+golang.org/x/sys v0.35.0/go.mod h1:BJP2sWEmIv4KK5OTEluFJCKSidICx8ciO85XgH3Ak8k=\n+golang.org/x/text v0.28.0 h1:rhazDwis8INMIwQ4tpjLDzUhx6RlXqZNPEM0huQojng=\n+golang.org/x/text v0.28.0/go.mod h1:U8nCwOR8jO/marOQ0QbDiOngZVEBB7MAiitBuMjXiNU=\n+gonum.org/v1/gonum v0.16.0 h1:5+ul4Swaf3ESvrOnidPp4GZbzf0mxVQpDCYUQE7OJfk=\n+gonum.org/v1/gonum v0.16.0/go.mod h1:fef3am4MQ93R2HHpKnLk4/Tbh/s0+wqD5nfa6Pnwy4E=\n+google.golang.org/genproto/googleapis/api v0.0.0-20250825161204-c5933d9347a5 h1:BIRfGDEjiHRrk0QKZe3Xv2ieMhtgRGeLcZQ0mIVn4EY=\n+google.golang.org/genproto/googleapis/api v0.0.0-20250825161204-c5933d9347a5/go.mod h1:j3QtIyytwqGr1JUDtYXwtMXWPKsEa5LtzIFN1Wn5WvE=\n+google.golang.org/genproto/googleapis/rpc v0.0.0-20250825161204-c5933d9347a5 h1:eaY8u2EuxbRv7c3NiGK0/NedzVsCcV6hDuU5qPX5EGE=\n+google.golang.org/genproto/googleapis/rpc v0.0.0-20250825161204-c5933d9347a5/go.mod h1:M4/wBTSeyLxupu3W3tJtOgB14jILAS/XWPSSa3TAlJc=\n+google.golang.org/grpc v1.75.0 h1:+TW+dqTd2Biwe6KKfhE5JpiYIBWq865PhKGSXiivqt4=\n+google.golang.org/grpc v1.75.0/go.mod h1:JtPAzKiq4v1xcAB2hydNlWI2RnF85XXcV0mhKXr2ecQ=\n+google.golang.org/protobuf v1.36.8 h1:xHScyCOEuuwZEc6UtSOvPbAT4zRh0xcNRYekJwfqyMc=\n+google.golang.org/protobuf v1.36.8/go.mod h1:fuxRtAxBytpl4zzqUh6/eyUujkJdNiuEkXntxiD/uRU=\n+gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=\n+gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=\n",
+      "hunks": [
+        {
+          "id": "diff-3fd533931946da52",
+          "header": "@@ -0,0 +1,71 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "github.com/cenkalti/backoff/v5 v5.0.3 h1:ZN+IMa753KfX5hd8vVaMixjnqRZ3y8CuJKRKj1xcsSM="
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "github.com/cenkalti/backoff/v5 v5.0.3/go.mod h1:rkhZdG3JZukswDf7f0cwqPNk4K0sa+F97BxZthm/crw="
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c="
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38="
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2Wg="
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U="
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "github.com/getsentry/sentry-go v0.36.0 h1:UkCk0zV28PiGf+2YIONSSYiYhxwlERE5Li3JPpZqEns="
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "github.com/getsentry/sentry-go v0.36.0/go.mod h1:p5Im24mJBeruET8Q4bbcMfCQ+F+Iadc4L48tB1apo2c="
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "github.com/go-errors/errors v1.4.2 h1:J6MZopCL4uSllY1OfXM374weqZFFItUbrImctkmUxIA="
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "github.com/go-errors/errors v1.4.2/go.mod h1:sIVyrIiJhuEF+Pj9Ebtd6P/rEYROXFi3BopGUQ5a5Og="
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "github.com/go-logr/logr v1.2.2/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A="
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "github.com/go-logr/logr v1.4.3 h1:CjnDlHq8ikf6E492q6eKboGOC0T8CDaOvkHCIg8idEI="
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "github.com/go-logr/logr v1.4.3/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY="
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "github.com/go-logr/stdr v1.2.2 h1:hSWxHoqTgW2S2qGc0LTAI563KZ5YKYRhT3MFKZMbjag="
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "github.com/go-logr/stdr v1.2.2/go.mod h1:mMo/vtBO5dYbehREoey6XUKy/eSumjCCveDpRre4VKE="
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "github.com/golang/protobuf v1.5.4 h1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek="
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "github.com/golang/protobuf v1.5.4/go.mod h1:lnTiLA8Wa4RWRcIUkrtSVa5nRhsEGBg48fD6rSs7xps="
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8="
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU="
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0="
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo="
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2 h1:8Tjv8EJ+pM1xP8mK6egEbD1OgnVTyacbefKhmbLhIhU="
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2/go.mod h1:pkJQ2tZHJ0aFOVEEot6oZmaVEZcRme73eIFmhiVuRWs="
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "github.com/pingcap/errors v0.11.4 h1:lFuQV/oaUMGcD2tqt+01ROSmJs75VG1ToEOkZIZ4nE4="
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "github.com/pingcap/errors v0.11.4/go.mod h1:Oi8TUi2kEtXXLMJk9l1cGmz20kV3TaQ0usTwv5KuLY8="
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4="
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0="
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM="
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4="
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U="
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U="
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "go.opentelemetry.io/auto/sdk v1.1.0 h1:cH53jehLUN6UFLY71z+NDOiNJqDdPRaXzTel0sJySYA="
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "go.opentelemetry.io/auto/sdk v1.1.0/go.mod h1:3wSPjt5PWp2RhlCcmmOial7AvC4DQqZb7a7wCow3W8A="
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.63.0 h1:RbKq8BG0FI8OiXhBfcRtqqHcZcka+gU3cskNuf05R18="
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.63.0/go.mod h1:h06DGIukJOevXaj/xrNjhi/2098RZzcLTbc0jDAUbsg="
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "go.opentelemetry.io/otel v1.38.0 h1:RkfdswUDRimDg0m2Az18RKOsnI8UDzppJAtj01/Ymk8="
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "go.opentelemetry.io/otel v1.38.0/go.mod h1:zcmtmQ1+YmQM9wrNsTGV/q/uyusom3P8RxwExxkZhjM="
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.38.0 h1:GqRJVj7UmLjCVyVJ3ZFLdPRmhDUp2zFmQe3RHIOsw24="
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.38.0/go.mod h1:ri3aaHSmCTVYu2AWv44YMauwAQc0aqI9gHKIcSbI1pU="
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.38.0 h1:aTL7F04bJHUlztTsNGJ2l+6he8c+y/b//eR0jjjemT4="
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.38.0/go.mod h1:kldtb7jDTeol0l3ewcmd8SDvx3EmIE7lyvqbasU3QC4="
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "go.opentelemetry.io/otel/metric v1.38.0 h1:Kl6lzIYGAh5M159u9NgiRkmoMKjvbsKtYRwgfrA6WpA="
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "go.opentelemetry.io/otel/metric v1.38.0/go.mod h1:kB5n/QoRM8YwmUahxvI3bO34eVtQf2i4utNVLr9gEmI="
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "go.opentelemetry.io/otel/sdk v1.38.0 h1:l48sr5YbNf2hpCUj/FoGhW9yDkl+Ma+LrVl8qaM5b+E="
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "go.opentelemetry.io/otel/sdk v1.38.0/go.mod h1:ghmNdGlVemJI3+ZB5iDEuk4bWA3GkTpW+DOoZMYBVVg="
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "go.opentelemetry.io/otel/sdk/metric v1.38.0 h1:aSH66iL0aZqo//xXzQLYozmWrXxyFkBJ6qT5wthqPoM="
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "go.opentelemetry.io/otel/sdk/metric v1.38.0/go.mod h1:dg9PBnW9XdQ1Hd6ZnRz689CbtrUp0wMMs9iPcgT9EZA="
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "go.opentelemetry.io/otel/trace v1.38.0 h1:Fxk5bKrDZJUH+AMyyIXGcFAPah0oRcT+LuNtJrmcNLE="
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "go.opentelemetry.io/otel/trace v1.38.0/go.mod h1:j1P9ivuFsTceSWe1oY+EeW3sc+Pp42sO++GHkg4wwhs="
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "go.opentelemetry.io/proto/otlp v1.7.1 h1:gTOMpGDb0WTBOP8JaO72iL3auEZhVmAQg4ipjOVAtj4="
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "go.opentelemetry.io/proto/otlp v1.7.1/go.mod h1:b2rVh6rfI/s2pHWNlB7ILJcRALpcNDzKhACevjI+ZnE="
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "go.uber.org/goleak v1.3.0 h1:2K3zAYmnTNqV73imy9J1T3WC+gmCePx2hEGkimedGto="
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "go.uber.org/goleak v1.3.0/go.mod h1:CoHD4mav9JJNrW/WLlf7HGZPjdw8EucARQHekz1X6bE="
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "golang.org/x/net v0.43.0 h1:lat02VYK2j4aLzMzecihNvTlJNQUq316m2Mr9rnM6YE="
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "golang.org/x/net v0.43.0/go.mod h1:vhO1fvI4dGsIjh73sWfUVjj3N7CA9WkKJNQm2svM6Jg="
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "golang.org/x/sys v0.35.0 h1:vz1N37gP5bs89s7He8XuIYXpyY0+QlsKmzipCbUtyxI="
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "golang.org/x/sys v0.35.0/go.mod h1:BJP2sWEmIv4KK5OTEluFJCKSidICx8ciO85XgH3Ak8k="
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "golang.org/x/text v0.28.0 h1:rhazDwis8INMIwQ4tpjLDzUhx6RlXqZNPEM0huQojng="
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "golang.org/x/text v0.28.0/go.mod h1:U8nCwOR8jO/marOQ0QbDiOngZVEBB7MAiitBuMjXiNU="
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "gonum.org/v1/gonum v0.16.0 h1:5+ul4Swaf3ESvrOnidPp4GZbzf0mxVQpDCYUQE7OJfk="
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "gonum.org/v1/gonum v0.16.0/go.mod h1:fef3am4MQ93R2HHpKnLk4/Tbh/s0+wqD5nfa6Pnwy4E="
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "google.golang.org/genproto/googleapis/api v0.0.0-20250825161204-c5933d9347a5 h1:BIRfGDEjiHRrk0QKZe3Xv2ieMhtgRGeLcZQ0mIVn4EY="
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "google.golang.org/genproto/googleapis/api v0.0.0-20250825161204-c5933d9347a5/go.mod h1:j3QtIyytwqGr1JUDtYXwtMXWPKsEa5LtzIFN1Wn5WvE="
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "google.golang.org/genproto/googleapis/rpc v0.0.0-20250825161204-c5933d9347a5 h1:eaY8u2EuxbRv7c3NiGK0/NedzVsCcV6hDuU5qPX5EGE="
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "google.golang.org/genproto/googleapis/rpc v0.0.0-20250825161204-c5933d9347a5/go.mod h1:M4/wBTSeyLxupu3W3tJtOgB14jILAS/XWPSSa3TAlJc="
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "google.golang.org/grpc v1.75.0 h1:+TW+dqTd2Biwe6KKfhE5JpiYIBWq865PhKGSXiivqt4="
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "google.golang.org/grpc v1.75.0/go.mod h1:JtPAzKiq4v1xcAB2hydNlWI2RnF85XXcV0mhKXr2ecQ="
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "google.golang.org/protobuf v1.36.8 h1:xHScyCOEuuwZEc6UtSOvPbAT4zRh0xcNRYekJwfqyMc="
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "google.golang.org/protobuf v1.36.8/go.mod h1:fuxRtAxBytpl4zzqUh6/eyUujkJdNiuEkXntxiD/uRU="
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA="
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM="
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/runtime/config.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/runtime/config.go b/internal/hosted/runtime/config.go\nnew file mode 100644\nindex 0000000..76a2174\n--- /dev/null\n+++ b/internal/hosted/runtime/config.go\n@@ -0,0 +1,74 @@\n+package runtime\n+\n+import (\n+\t\"fmt\"\n+\t\"os\"\n+\t\"strings\"\n+)\n+\n+var roles = map[string]bool{\n+\t\"web\": true, \"webhook\": true, \"indexer\": true, \"reviewer\": true, \"learner\": true,\n+}\n+\n+type Config struct {\n+\tEnvironment    string\n+\tRole           string\n+\tAddress        string\n+\tRelease        string\n+\tDatabaseURL    string\n+\tObjectStoreURL string\n+\tOTLPEndpoint   string\n+\tSentryDSN      string\n+}\n+\n+func LoadConfig(roleOverride string) (Config, error) {\n+\trole := first(roleOverride, os.Getenv(\"PX1_ROLE\"), \"web\")\n+\tcfg := Config{\n+\t\tEnvironment:    first(os.Getenv(\"PX1_ENVIRONMENT\"), \"local\"),\n+\t\tRole:           role,\n+\t\tAddress:        first(os.Getenv(\"PX1_ADDRESS\"), \":8080\"),\n+\t\tRelease:        os.Getenv(\"PX1_RELEASE\"),\n+\t\tDatabaseURL:    os.Getenv(\"DATABASE_URL\"),\n+\t\tObjectStoreURL: os.Getenv(\"PX1_OBJECT_STORE_URL\"),\n+\t\tOTLPEndpoint:   os.Getenv(\"OTEL_EXPORTER_OTLP_ENDPOINT\"),\n+\t\tSentryDSN:      os.Getenv(\"SENTRY_DSN\"),\n+\t}\n+\tif !roles[cfg.Role] {\n+\t\treturn Config{}, fmt.Errorf(\"unsupported PX1 role %q\", cfg.Role)\n+\t}\n+\tif cfg.Environment != \"local\" \u0026\u0026 cfg.Environment != \"staging\" \u0026\u0026 cfg.Environment != \"production\" {\n+\t\treturn Config{}, fmt.Errorf(\"unsupported PX1 environment %q\", cfg.Environment)\n+\t}\n+\tif cfg.Environment != \"local\" {\n+\t\tvar missing []string\n+\t\tif cfg.DatabaseURL == \"\" {\n+\t\t\tmissing = append(missing, \"DATABASE_URL\")\n+\t\t}\n+\t\tif cfg.ObjectStoreURL == \"\" {\n+\t\t\tmissing = append(missing, \"PX1_OBJECT_STORE_URL\")\n+\t\t}\n+\t\tif cfg.OTLPEndpoint == \"\" {\n+\t\t\tmissing = append(missing, \"OTEL_EXPORTER_OTLP_ENDPOINT\")\n+\t\t}\n+\t\tif cfg.SentryDSN == \"\" {\n+\t\t\tmissing = append(missing, \"SENTRY_DSN\")\n+\t\t}\n+\t\tif len(missing) \u003e 0 {\n+\t\t\treturn Config{}, fmt.Errorf(\"hosted environment is missing %s\", strings.Join(missing, \", \"))\n+\t\t}\n+\t}\n+\treturn cfg, nil\n+}\n+\n+func (c Config) PublicAttributes() map[string]string {\n+\treturn map[string]string{\"environment\": c.Environment, \"role\": c.Role, \"release\": c.Release}\n+}\n+\n+func first(values ...string) string {\n+\tfor _, value := range values {\n+\t\tif value = strings.TrimSpace(value); value != \"\" {\n+\t\t\treturn value\n+\t\t}\n+\t}\n+\treturn \"\"\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-54bb4f11564f87ee",
+          "header": "@@ -0,0 +1,74 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package runtime"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "var roles = map[string]bool{"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"web\": true, \"webhook\": true, \"indexer\": true, \"reviewer\": true, \"learner\": true,"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "type Config struct {"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tEnvironment    string"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tRole           string"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tAddress        string"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tRelease        string"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tDatabaseURL    string"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tObjectStoreURL string"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tOTLPEndpoint   string"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tSentryDSN      string"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "func LoadConfig(roleOverride string) (Config, error) {"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\trole := first(roleOverride, os.Getenv(\"PX1_ROLE\"), \"web\")"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tcfg := Config{"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t\tEnvironment:    first(os.Getenv(\"PX1_ENVIRONMENT\"), \"local\"),"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t\tRole:           role,"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t\tAddress:        first(os.Getenv(\"PX1_ADDRESS\"), \":8080\"),"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t\tRelease:        os.Getenv(\"PX1_RELEASE\"),"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t\tDatabaseURL:    os.Getenv(\"DATABASE_URL\"),"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t\tObjectStoreURL: os.Getenv(\"PX1_OBJECT_STORE_URL\"),"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t\tOTLPEndpoint:   os.Getenv(\"OTEL_EXPORTER_OTLP_ENDPOINT\"),"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t\tSentryDSN:      os.Getenv(\"SENTRY_DSN\"),"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tif !roles[cfg.Role] {"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t\treturn Config{}, fmt.Errorf(\"unsupported PX1 role %q\", cfg.Role)"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tif cfg.Environment != \"local\" \u0026\u0026 cfg.Environment != \"staging\" \u0026\u0026 cfg.Environment != \"production\" {"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t\treturn Config{}, fmt.Errorf(\"unsupported PX1 environment %q\", cfg.Environment)"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tif cfg.Environment != \"local\" {"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t\tvar missing []string"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t\tif cfg.DatabaseURL == \"\" {"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t\t\tmissing = append(missing, \"DATABASE_URL\")"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\tif cfg.ObjectStoreURL == \"\" {"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\t\tmissing = append(missing, \"PX1_OBJECT_STORE_URL\")"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t\tif cfg.OTLPEndpoint == \"\" {"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t\t\tmissing = append(missing, \"OTEL_EXPORTER_OTLP_ENDPOINT\")"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t\tif cfg.SentryDSN == \"\" {"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\t\tmissing = append(missing, \"SENTRY_DSN\")"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t\tif len(missing) \u003e 0 {"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\t\treturn Config{}, fmt.Errorf(\"hosted environment is missing %s\", strings.Join(missing, \", \"))"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\treturn cfg, nil"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "func (c Config) PublicAttributes() map[string]string {"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\treturn map[string]string{\"environment\": c.Environment, \"role\": c.Role, \"release\": c.Release}"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "func first(values ...string) string {"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\tfor _, value := range values {"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\tif value = strings.TrimSpace(value); value != \"\" {"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\t\treturn value"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\treturn \"\""
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/runtime/config_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/runtime/config_test.go b/internal/hosted/runtime/config_test.go\nnew file mode 100644\nindex 0000000..8cdfc87\n--- /dev/null\n+++ b/internal/hosted/runtime/config_test.go\n@@ -0,0 +1,30 @@\n+package runtime\n+\n+import \"testing\"\n+\n+func TestHostedConfigRequiresOperationalEndpoints(t *testing.T) {\n+\tt.Setenv(\"PX1_ENVIRONMENT\", \"staging\")\n+\tt.Setenv(\"DATABASE_URL\", \"\")\n+\tif _, err := LoadConfig(\"reviewer\"); err == nil {\n+\t\tt.Fatal(\"expected missing hosted configuration to fail\")\n+\t}\n+\tfor key, value := range map[string]string{\n+\t\t\"DATABASE_URL\": \"postgres://example\", \"PX1_OBJECT_STORE_URL\": \"s3://bucket\",\n+\t\t\"OTEL_EXPORTER_OTLP_ENDPOINT\": \"https://otel.example\", \"SENTRY_DSN\": \"https://public@sentry.example/1\",\n+\t} {\n+\t\tt.Setenv(key, value)\n+\t}\n+\tcfg, err := LoadConfig(\"reviewer\")\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif cfg.PublicAttributes()[\"role\"] != \"reviewer\" {\n+\t\tt.Fatalf(\"public attributes = %#v\", cfg.PublicAttributes())\n+\t}\n+}\n+\n+func TestConfigRejectsUnknownRole(t *testing.T) {\n+\tif _, err := LoadConfig(\"executor\"); err == nil {\n+\t\tt.Fatal(\"expected unknown role to fail\")\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-603e40481eeff734",
+          "header": "@@ -0,0 +1,30 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package runtime"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import \"testing\""
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "func TestHostedConfigRequiresOperationalEndpoints(t *testing.T) {"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\tt.Setenv(\"PX1_ENVIRONMENT\", \"staging\")"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\tt.Setenv(\"DATABASE_URL\", \"\")"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\tif _, err := LoadConfig(\"reviewer\"); err == nil {"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"expected missing hosted configuration to fail\")"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\tfor key, value := range map[string]string{"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\t\"DATABASE_URL\": \"postgres://example\", \"PX1_OBJECT_STORE_URL\": \"s3://bucket\","
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t\t\"OTEL_EXPORTER_OTLP_ENDPOINT\": \"https://otel.example\", \"SENTRY_DSN\": \"https://public@sentry.example/1\","
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\t} {"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\t\tt.Setenv(key, value)"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tcfg, err := LoadConfig(\"reviewer\")"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tif cfg.PublicAttributes()[\"role\"] != \"reviewer\" {"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"public attributes = %#v\", cfg.PublicAttributes())"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "func TestConfigRejectsUnknownRole(t *testing.T) {"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tif _, err := LoadConfig(\"executor\"); err == nil {"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"expected unknown role to fail\")"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/runtime/telemetry.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/runtime/telemetry.go b/internal/hosted/runtime/telemetry.go\nnew file mode 100644\nindex 0000000..3111b47\n--- /dev/null\n+++ b/internal/hosted/runtime/telemetry.go\n@@ -0,0 +1,56 @@\n+package runtime\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"time\"\n+\n+\t\"github.com/getsentry/sentry-go\"\n+\t\"go.opentelemetry.io/otel\"\n+\t\"go.opentelemetry.io/otel/attribute\"\n+\t\"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp\"\n+\t\"go.opentelemetry.io/otel/sdk/resource\"\n+\tsdktrace \"go.opentelemetry.io/otel/sdk/trace\"\n+\tsemconv \"go.opentelemetry.io/otel/semconv/v1.37.0\"\n+)\n+\n+func StartTelemetry(ctx context.Context, cfg Config) (func(context.Context) error, error) {\n+\tvar provider *sdktrace.TracerProvider\n+\tif cfg.OTLPEndpoint != \"\" {\n+\t\texporter, err := otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL(cfg.OTLPEndpoint))\n+\t\tif err != nil {\n+\t\t\treturn nil, err\n+\t\t}\n+\t\tres, err := resource.New(ctx, resource.WithAttributes(\n+\t\t\tsemconv.ServiceName(\"px1-\"+cfg.Role),\n+\t\t\tattribute.String(\"deployment.environment.name\", cfg.Environment),\n+\t\t\tattribute.String(\"service.version\", cfg.Release),\n+\t\t))\n+\t\tif err != nil {\n+\t\t\treturn nil, err\n+\t\t}\n+\t\tprovider = sdktrace.NewTracerProvider(sdktrace.WithBatcher(exporter), sdktrace.WithResource(res))\n+\t\totel.SetTracerProvider(provider)\n+\t}\n+\tif cfg.SentryDSN != \"\" {\n+\t\tif err := sentry.Init(sentry.ClientOptions{\n+\t\t\tDsn: cfg.SentryDSN, Environment: cfg.Environment, Release: cfg.Release,\n+\t\t\tEnableTracing: true, TracesSampleRate: 0.1,\n+\t\t}); err != nil {\n+\t\t\tif provider != nil {\n+\t\t\t\t_ = provider.Shutdown(ctx)\n+\t\t\t}\n+\t\t\treturn nil, err\n+\t\t}\n+\t}\n+\treturn func(shutdownCtx context.Context) error {\n+\t\tvar err error\n+\t\tif cfg.SentryDSN != \"\" \u0026\u0026 !sentry.Flush(5*time.Second) {\n+\t\t\terr = errors.New(\"timed out flushing Sentry events\")\n+\t\t}\n+\t\tif provider != nil {\n+\t\t\terr = errors.Join(err, provider.Shutdown(shutdownCtx))\n+\t\t}\n+\t\treturn err\n+\t}, nil\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-d647d90269a7e961",
+          "header": "@@ -0,0 +1,56 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package runtime"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"github.com/getsentry/sentry-go\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"go.opentelemetry.io/otel\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"go.opentelemetry.io/otel/attribute\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\"go.opentelemetry.io/otel/sdk/resource\""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\tsdktrace \"go.opentelemetry.io/otel/sdk/trace\""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tsemconv \"go.opentelemetry.io/otel/semconv/v1.37.0\""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "func StartTelemetry(ctx context.Context, cfg Config) (func(context.Context) error, error) {"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tvar provider *sdktrace.TracerProvider"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tif cfg.OTLPEndpoint != \"\" {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t\texporter, err := otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL(cfg.OTLPEndpoint))"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\t\t\treturn nil, err"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\tres, err := resource.New(ctx, resource.WithAttributes("
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t\t\tsemconv.ServiceName(\"px1-\"+cfg.Role),"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t\t\tattribute.String(\"deployment.environment.name\", cfg.Environment),"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t\t\tattribute.String(\"service.version\", cfg.Release),"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t\t))"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t\t\treturn nil, err"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t\tprovider = sdktrace.NewTracerProvider(sdktrace.WithBatcher(exporter), sdktrace.WithResource(res))"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t\totel.SetTracerProvider(provider)"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tif cfg.SentryDSN != \"\" {"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t\tif err := sentry.Init(sentry.ClientOptions{"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t\t\tDsn: cfg.SentryDSN, Environment: cfg.Environment, Release: cfg.Release,"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\t\t\tEnableTracing: true, TracesSampleRate: 0.1,"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t\t}); err != nil {"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t\t\tif provider != nil {"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t\t\t\t_ = provider.Shutdown(ctx)"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t\t\treturn nil, err"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\treturn func(shutdownCtx context.Context) error {"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\tvar err error"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\tif cfg.SentryDSN != \"\" \u0026\u0026 !sentry.Flush(5*time.Second) {"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\t\terr = errors.New(\"timed out flushing Sentry events\")"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t\tif provider != nil {"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\t\terr = errors.Join(err, provider.Shutdown(shutdownCtx))"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t}, nil"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-f94ffce5a59002e3",
+      "title": "Role changes",
+      "summary": "11 related files share the \"role\" change signal.",
+      "paths": [
+        "Dockerfile.hosted",
+        "ROADMAP.md",
+        "cmd/px1d/main.go",
+        "deploy/fly/README.md",
+        "deploy/fly/production.toml",
+        "deploy/fly/staging.toml",
+        "go.mod",
+        "go.sum",
+        "internal/hosted/runtime/config.go",
+        "internal/hosted/runtime/config_test.go",
+        "internal/hosted/runtime/telemetry.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-e30e836e3a2db3af",
+      "path": "cmd/px1d/main.go",
+      "line": 44,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: mux.HandleFunc(\"GET /healthz\", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }).",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    },
+    {
+      "id": "inspect-8bab732796dddbfe",
+      "path": "go.mod",
+      "kind": "dependency",
+      "observation": "A dependency manifest or lockfile changed: go.mod.",
+      "question": "Which runtime behavior requires this dependency change, and do the manifest and lockfile agree?",
+      "related": []
+    },
+    {
+      "id": "inspect-b6bb00db8c228c4c",
+      "path": "go.sum",
+      "kind": "dependency",
+      "observation": "A dependency manifest or lockfile changed: go.sum.",
+      "question": "Which runtime behavior requires this dependency change, and do the manifest and lockfile agree?",
+      "related": []
+    },
+    {
+      "id": "inspect-7c9460b05c22c391",
+      "path": "internal/hosted/runtime/config.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/runtime/config_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-c3fe201ad50e6c5d",
+      "path": "internal/hosted/runtime/config.go",
+      "kind": "configuration",
+      "observation": "A configuration-related file changed: internal/hosted/runtime/config.go.",
+      "question": "Which runtime behavior changes when this value is absent, defaulted, or overridden?",
+      "related": []
+    },
+    {
+      "id": "inspect-62efcfc97fce5801",
+      "path": "internal/hosted/runtime/config.go",
+      "line": 24,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func LoadConfig(roleOverride string) (Config, error) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    },
+    {
+      "id": "inspect-a1c1cfd6c48113b4",
+      "path": "internal/hosted/runtime/telemetry.go",
+      "line": 17,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func StartTelemetry(ctx context.Context, cfg Config) (func(context.Context) error, error) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 11,
+    "filesAnalyzed": 11,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "hosted-container",
+      "path": "Dockerfile.hosted",
+      "lineStart": 1,
+      "lineEnd": 12,
+      "title": "Adds a hosted runtime image",
+      "summary": "Adds a production container build for `px1d`: it compiles the Go service, then runs it in a smaller, non-root distroless image on port 8080."
+    },
+    {
+      "id": "http-server",
+      "path": "cmd/px1d/main.go",
+      "lineStart": 42,
+      "lineEnd": 59,
+      "title": "Runs the hosted HTTP server",
+      "summary": "Starts an HTTP server with OpenTelemetry instrumentation and Sentry error reporting, and shuts the server down when it receives a termination signal."
+    },
+    {
+      "id": "health-readiness",
+      "path": "cmd/px1d/main.go",
+      "lineStart": 43,
+      "lineEnd": 44,
+      "title": "Adds unconditional health endpoints",
+      "summary": "Adds `/healthz` and `/readyz`, but both currently return success without checking dependencies or whether the process can serve its assigned work."
+    },
+    {
+      "id": "environment-deployments",
+      "path": "deploy/fly/production.toml",
+      "lineStart": 1,
+      "lineEnd": 26,
+      "title": "Adds a production deployment",
+      "summary": "Adds a production Fly app configuration separate from staging, with its own app name, environment value, and VM sizing."
+    },
+    {
+      "id": "role-processes",
+      "path": "deploy/fly/staging.toml",
+      "lineStart": 10,
+      "lineEnd": 21,
+      "title": "Defines hosted process roles",
+      "summary": "Defines separate web, webhook, indexer, reviewer, and learner Fly processes, while routing public HTTP traffic only to web and webhook. Each process currently starts the same HTTP server; role-specific worker behavior is not implemented here."
+    },
+    {
+      "id": "config-validation",
+      "path": "internal/hosted/runtime/config.go",
+      "lineStart": 23,
+      "lineEnd": 52,
+      "title": "Validates hosted configuration",
+      "summary": "Hosted staging and production processes now fail at startup if database, object-store, OTLP, or Sentry configuration is missing. Role and environment values are also validated; local runs can use defaults."
+    },
+    {
+      "id": "telemetry",
+      "path": "internal/hosted/runtime/telemetry.go",
+      "lineStart": 17,
+      "lineEnd": 53,
+      "title": "Adds hosted telemetry",
+      "summary": "When configured, the process exports traces to OTLP and reports errors to Sentry, tagging telemetry with the role, environment, and release. Shutdown flushes Sentry and the trace exporter."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "c1d07eb0721a11f655cffff8d93db9ab0be85c7d",
+      "revision": "1ae47d6469b26590bbbd953cce90b809bd2ea29d",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "c1d07eb0721a11f655cffff8d93db9ab0be85c7d",
+      "revision": "1ae47d6469b26590bbbd953cce90b809bd2ea29d",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "1ae47d6469b26590bbbd953cce90b809bd2ea29d",
+      "detail": "7 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "1ae47d6469b26590bbbd953cce90b809bd2ea29d",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-843a20424449be0c",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "cmd/px1d/main.go",
+      "line": 44,
+      "evidence": "mux.HandleFunc(\"GET /healthz\", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })"
+    },
+    {
+      "id": "attention-db601018401b6a01",
+      "rule": "dependency",
+      "title": "Dependency change",
+      "reason": "Dependency manifests and lockfiles can alter code throughout the build.",
+      "path": "go.mod",
+      "evidence": "go.mod"
+    },
+    {
+      "id": "attention-ab6aa2d63ea959ec",
+      "rule": "dependency",
+      "title": "Dependency change",
+      "reason": "Dependency manifests and lockfiles can alter code throughout the build.",
+      "path": "go.sum",
+      "evidence": "go.sum"
+    },
+    {
+      "id": "attention-d2ac677ecd50164d",
+      "rule": "configuration",
+      "title": "Configuration change",
+      "reason": "Configuration and environment files can change runtime behavior outside this diff.",
+      "path": "internal/hosted/runtime/config.go",
+      "evidence": "internal/hosted/runtime/config.go"
+    },
+    {
+      "id": "attention-7c83a4297bcb8f49",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/runtime/config.go",
+      "line": 24,
+      "evidence": "func LoadConfig(roleOverride string) (Config, error) {"
+    },
+    {
+      "id": "attention-7045206575e4de2b",
+      "rule": "configuration",
+      "title": "Configuration change",
+      "reason": "Configuration and environment files can change runtime behavior outside this diff.",
+      "path": "internal/hosted/runtime/config_test.go",
+      "evidence": "internal/hosted/runtime/config_test.go"
+    },
+    {
+      "id": "attention-ceaf9e7e07b63142",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/runtime/telemetry.go",
+      "line": 17,
+      "evidence": "func StartTelemetry(ctx context.Context, cfg Config) (func(context.Context) error, error) {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "1ae47d6469b26590bbbd953cce90b809bd2ea29d",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40099979472",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40099979472/job/120890138290",
+        "startedAt": "2026-10-24T13:52:56Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40099980784/job/120889954599",
+        "startedAt": "2026-10-24T13:52:03Z"
+      }
+    ]
+  }
+}
