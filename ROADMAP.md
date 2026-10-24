@@ -39,16 +39,28 @@ backend-foundation tasks are:
 7. [x] **Prepare staging and production deployment.** Ship isolated Fly
    manifests, role-aware health endpoints, structured logs, OpenTelemetry trace
    export, and Sentry error reporting with required hosted configuration.
-8. [ ] **Clone repositories as untrusted data.** Use bounded, filtered shallow
+8. [x] **Clone repositories as untrusted data.** Use bounded, filtered shallow
    clones in disposable directories and never execute repository code.
-9. [ ] **Detect and parse source languages.** Recognize the initial language
+9. [x] **Detect and parse source languages.** Recognize the initial language
    set, use registered tree-sitter parsers, and fall back to bounded line data.
-10. [ ] **Chunk at symbol boundaries.** Produce retrieval chunks of roughly
+10. [x] **Chunk at symbol boundaries.** Produce retrieval chunks of roughly
     200–800 tokens without silently discarding oversized symbols.
-11. [ ] **Embed in bounded batches.** Persist provider model and version with
+11. [x] **Embed in bounded batches.** Persist provider model and version with
     every vector so indexes can be migrated safely.
-12. [ ] **Summarize substantial files.** Create bounded, low-cost summaries for
+12. [x] **Summarize substantial files.** Create bounded, low-cost summaries for
     source files over 50 lines while skipping generated and binary content.
+13. [x] **Re-index incrementally.** Compare default-branch blob SHAs and mutate
+    only added, changed, or deleted file chunks in one indexed-head transaction.
+14. [ ] **Enforce repository limits.** Cap v1 indexing at 50,000 files or 2 GiB
+    and expose partial-index state wherever review context is summarized.
+15. [ ] **Make diff grouping worker-callable.** Move deterministic change-block
+    grouping behind a reusable review package without changing Action output.
+16. [ ] **Assemble bounded review context.** Combine diff, functions, retrieval,
+    relationships, tests, summaries, and rules within a 60k-token budget.
+17. [ ] **Define strict finding JSON.** Validate auditable P0-P2 findings before
+    persistence or GitHub delivery.
+18. [ ] **Verify proposed findings.** Re-read each finding against its evidence
+    and drop unsupported or sub-0.6-confidence output.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,
