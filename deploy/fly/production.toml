@@ -1,0 +1,26 @@
+app = "px1-production"
+primary_region = "iad"
+
+[build]
+dockerfile = "Dockerfile.hosted"
+
+[env]
+PX1_ENVIRONMENT = "production"
+PX1_ADDRESS = ":8080"
+
+[processes]
+web = "/px1d -role=web"
+webhook = "/px1d -role=webhook"
+indexer = "/px1d -role=indexer"
+reviewer = "/px1d -role=reviewer"
+learner = "/px1d -role=learner"
+
+[http_service]
+internal_port = 8080
+force_https = true
+processes = ["web", "webhook"]
+
+[[vm]]
+memory = "1gb"
+cpu_kind = "shared"
+cpus = 2
