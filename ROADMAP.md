@@ -25,17 +25,30 @@ backend-foundation tasks are:
 1. [x] **Choose the hosted stack.** Go API and workers, PostgreSQL 16 with
    pgvector, River for transactional jobs, and S3-compatible object storage.
    See [the hosted architecture decision](docs/HOSTED_ARCHITECTURE.md).
-2. [ ] **Prepare GitHub App registration.** Separate development and production
+2. [x] **Prepare GitHub App registration.** Separate development and production
    manifests, least-privilege permissions, webhook subscriptions, and a
    secrets-manager handoff for private keys.
-3. [ ] **Build webhook ingestion.** Verify HMAC-SHA256 signatures, deduplicate
+3. [x] **Build webhook ingestion.** Verify HMAC-SHA256 signatures, deduplicate
    delivery IDs, enqueue accepted events, and acknowledge within one second.
-4. [ ] **Create the hosted schema.** Installations, repositories, indexed files
+4. [x] **Create the hosted schema.** Installations, repositories, indexed files
    and chunks, pull requests, reviews, findings, comments, feedback, and jobs.
-5. [ ] **Add the GitHub installation client.** Mint and cache installation
+5. [x] **Add the GitHub installation client.** Mint and cache installation
    tokens, respect primary and secondary rate limits, and retry safely.
-6. [ ] **Add the LLM gateway.** One bounded interface for OpenAI, Anthropic, and
+6. [x] **Add the LLM gateway.** One bounded interface for OpenAI, Anthropic, and
    Bedrock with timeout, retry, prompt-cache, token, and cost telemetry.
+7. [x] **Prepare staging and production deployment.** Ship isolated Fly
+   manifests, role-aware health endpoints, structured logs, OpenTelemetry trace
+   export, and Sentry error reporting with required hosted configuration.
+8. [ ] **Clone repositories as untrusted data.** Use bounded, filtered shallow
+   clones in disposable directories and never execute repository code.
+9. [ ] **Detect and parse source languages.** Recognize the initial language
+   set, use registered tree-sitter parsers, and fall back to bounded line data.
+10. [ ] **Chunk at symbol boundaries.** Produce retrieval chunks of roughly
+    200–800 tokens without silently discarding oversized symbols.
+11. [ ] **Embed in bounded batches.** Persist provider model and version with
+    every vector so indexes can be migrated safely.
+12. [ ] **Summarize substantial files.** Create bounded, low-cost summaries for
+    source files over 50 lines while skipping generated and binary content.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,

@@ -1,0 +1,12 @@
+FROM golang:1.25-bookworm AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=1 go build -trimpath -ldflags="-s -w" -o /px1d ./cmd/px1d
+
+FROM gcr.io/distroless/cc-debian12:nonroot
+COPY --from=build /px1d /px1d
+EXPOSE 8080
+USER nonroot:nonroot
+ENTRYPOINT ["/px1d"]
