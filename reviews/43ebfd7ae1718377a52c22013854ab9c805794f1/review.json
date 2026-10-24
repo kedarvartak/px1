@@ -1,0 +1,888 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "b45379878089bf5170a8fd9fc44fc1b6da7fb0a6",
+  "head": "43ebfd7ae1718377a52c22013854ab9c805794f1",
+  "generatedAt": "2026-10-24T15:06:28.445480412Z",
+  "files": [
+    {
+      "path": "docs/FINDING_SCHEMA.md",
+      "status": "A",
+      "diff": "diff --git a/docs/FINDING_SCHEMA.md b/docs/FINDING_SCHEMA.md\nnew file mode 100644\nindex 0000000..e6c3d4b\n--- /dev/null\n+++ b/docs/FINDING_SCHEMA.md\n@@ -0,0 +1,7 @@\n+# Finding contract\n+\n+Model findings use strict JSON with no unknown fields. Every finding names a\n+repository-relative path and valid line range, P0–P2 severity, supported type,\n+title, explanation, concrete evidence, optional local suggestion, confidence,\n+and optional rule ID. Runtime validation mirrors `schemas/finding.schema.json`\n+and caps both the number and size of findings before persistence or posting.\n",
+      "hunks": [
+        {
+          "id": "diff-3b09cd50f46c6d21",
+          "header": "@@ -0,0 +1,7 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "# Finding contract"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "Model findings use strict JSON with no unknown fields. Every finding names a"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "repository-relative path and valid line range, P0–P2 severity, supported type,"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "title, explanation, concrete evidence, optional local suggestion, confidence,"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "and optional rule ID. Runtime validation mirrors `schemas/finding.schema.json`"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "and caps both the number and size of findings before persistence or posting."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/review/finding.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/review/finding.go b/internal/hosted/review/finding.go\nnew file mode 100644\nindex 0000000..6d81d53\n--- /dev/null\n+++ b/internal/hosted/review/finding.go\n@@ -0,0 +1,82 @@\n+package review\n+\n+import (\n+\t\"bytes\"\n+\t\"encoding/json\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"io\"\n+\t\"path/filepath\"\n+\t\"strings\"\n+)\n+\n+type Finding struct {\n+\tPath       string  `json:\"path\"`\n+\tStartLine  int     `json:\"start_line\"`\n+\tEndLine    int     `json:\"end_line\"`\n+\tSeverity   string  `json:\"severity\"`\n+\tType       string  `json:\"type\"`\n+\tTitle      string  `json:\"title\"`\n+\tBody       string  `json:\"body\"`\n+\tEvidence   string  `json:\"evidence\"`\n+\tSuggestion string  `json:\"suggestion,omitempty\"`\n+\tConfidence float64 `json:\"confidence\"`\n+\tRuleID     string  `json:\"rule_id,omitempty\"`\n+}\n+\n+func DecodeFindings(data []byte, maxFindings int) ([]Finding, error) {\n+\tif maxFindings \u003c= 0 {\n+\t\tmaxFindings = 100\n+\t}\n+\tdecoder := json.NewDecoder(bytes.NewReader(data))\n+\tdecoder.DisallowUnknownFields()\n+\tvar findings []Finding\n+\tif err := decoder.Decode(\u0026findings); err != nil {\n+\t\treturn nil, fmt.Errorf(\"decode findings: %w\", err)\n+\t}\n+\tif err := ensureEOF(decoder); err != nil {\n+\t\treturn nil, err\n+\t}\n+\tif len(findings) \u003e maxFindings {\n+\t\treturn nil, fmt.Errorf(\"finding count %d exceeds limit %d\", len(findings), maxFindings)\n+\t}\n+\tfor i, finding := range findings {\n+\t\tif err := finding.Validate(); err != nil {\n+\t\t\treturn nil, fmt.Errorf(\"finding %d: %w\", i, err)\n+\t\t}\n+\t}\n+\treturn findings, nil\n+}\n+\n+func (f Finding) Validate() error {\n+\tclean := filepath.ToSlash(filepath.Clean(f.Path))\n+\tif f.Path == \"\" || filepath.IsAbs(f.Path) || clean == \"..\" || strings.HasPrefix(clean, \"../\") {\n+\t\treturn errors.New(\"path must be repository-relative\")\n+\t}\n+\tif f.StartLine \u003c= 0 || f.EndLine \u003c f.StartLine {\n+\t\treturn errors.New(\"line range is invalid\")\n+\t}\n+\tif f.Severity != \"P0\" \u0026\u0026 f.Severity != \"P1\" \u0026\u0026 f.Severity != \"P2\" {\n+\t\treturn errors.New(\"severity must be P0, P1, or P2\")\n+\t}\n+\tif !map[string]bool{\"logic\": true, \"syntax\": true, \"style\": true, \"security\": true}[f.Type] {\n+\t\treturn errors.New(\"unsupported finding type\")\n+\t}\n+\tif strings.TrimSpace(f.Title) == \"\" || strings.TrimSpace(f.Body) == \"\" || strings.TrimSpace(f.Evidence) == \"\" {\n+\t\treturn errors.New(\"title, body, and evidence are required\")\n+\t}\n+\tif len(f.Title) \u003e 200 || len(f.Body) \u003e 16_000 || len(f.Evidence) \u003e 8_000 || len(f.Suggestion) \u003e 16_000 {\n+\t\treturn errors.New(\"finding text exceeds its limit\")\n+\t}\n+\tif f.Confidence \u003c 0 || f.Confidence \u003e 1 {\n+\t\treturn errors.New(\"confidence must be between 0 and 1\")\n+\t}\n+\treturn nil\n+}\n+func ensureEOF(decoder *json.Decoder) error {\n+\tvar extra any\n+\tif err := decoder.Decode(\u0026extra); err != io.EOF {\n+\t\treturn errors.New(\"findings JSON contains trailing data\")\n+\t}\n+\treturn nil\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-ecdc22819814f69e",
+          "header": "@@ -0,0 +1,82 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package review"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"bytes\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"io\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"path/filepath\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "type Finding struct {"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tPath       string  `json:\"path\"`"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tStartLine  int     `json:\"start_line\"`"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tEndLine    int     `json:\"end_line\"`"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tSeverity   string  `json:\"severity\"`"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tType       string  `json:\"type\"`"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tTitle      string  `json:\"title\"`"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tBody       string  `json:\"body\"`"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tEvidence   string  `json:\"evidence\"`"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tSuggestion string  `json:\"suggestion,omitempty\"`"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tConfidence float64 `json:\"confidence\"`"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tRuleID     string  `json:\"rule_id,omitempty\"`"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "func DecodeFindings(data []byte, maxFindings int) ([]Finding, error) {"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tif maxFindings \u003c= 0 {"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t\tmaxFindings = 100"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tdecoder := json.NewDecoder(bytes.NewReader(data))"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tdecoder.DisallowUnknownFields()"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tvar findings []Finding"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tif err := decoder.Decode(\u0026findings); err != nil {"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t\treturn nil, fmt.Errorf(\"decode findings: %w\", err)"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\tif err := ensureEOF(decoder); err != nil {"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tif len(findings) \u003e maxFindings {"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t\treturn nil, fmt.Errorf(\"finding count %d exceeds limit %d\", len(findings), maxFindings)"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tfor i, finding := range findings {"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t\tif err := finding.Validate(); err != nil {"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t\t\treturn nil, fmt.Errorf(\"finding %d: %w\", i, err)"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\treturn findings, nil"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "func (f Finding) Validate() error {"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\tclean := filepath.ToSlash(filepath.Clean(f.Path))"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\tif f.Path == \"\" || filepath.IsAbs(f.Path) || clean == \"..\" || strings.HasPrefix(clean, \"../\") {"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"path must be repository-relative\")"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\tif f.StartLine \u003c= 0 || f.EndLine \u003c f.StartLine {"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"line range is invalid\")"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\tif f.Severity != \"P0\" \u0026\u0026 f.Severity != \"P1\" \u0026\u0026 f.Severity != \"P2\" {"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"severity must be P0, P1, or P2\")"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\tif !map[string]bool{\"logic\": true, \"syntax\": true, \"style\": true, \"security\": true}[f.Type] {"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"unsupported finding type\")"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\tif strings.TrimSpace(f.Title) == \"\" || strings.TrimSpace(f.Body) == \"\" || strings.TrimSpace(f.Evidence) == \"\" {"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"title, body, and evidence are required\")"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\tif len(f.Title) \u003e 200 || len(f.Body) \u003e 16_000 || len(f.Evidence) \u003e 8_000 || len(f.Suggestion) \u003e 16_000 {"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"finding text exceeds its limit\")"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\tif f.Confidence \u003c 0 || f.Confidence \u003e 1 {"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"confidence must be between 0 and 1\")"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "func ensureEOF(decoder *json.Decoder) error {"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\tvar extra any"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\tif err := decoder.Decode(\u0026extra); err != io.EOF {"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"findings JSON contains trailing data\")"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/review/finding_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/review/finding_test.go b/internal/hosted/review/finding_test.go\nnew file mode 100644\nindex 0000000..ac16c39\n--- /dev/null\n+++ b/internal/hosted/review/finding_test.go\n@@ -0,0 +1,21 @@\n+package review\n+\n+import \"testing\"\n+\n+func TestDecodeFindingsAcceptsStrictAuditableShape(t *testing.T) {\n+\tdata := []byte(`[{\"path\":\"src/a.go\",\"start_line\":4,\"end_line\":5,\"severity\":\"P1\",\"type\":\"logic\",\"title\":\"Wrong branch\",\"body\":\"The condition reverses behavior.\",\"evidence\":\"Line 4 returns the error path.\",\"suggestion\":\"return ok\",\"confidence\":0.8,\"rule_id\":\"errors\"}]`)\n+\tfindings, err := DecodeFindings(data, 15)\n+\tif err != nil || len(findings) != 1 {\n+\t\tt.Fatalf(\"findings=%+v err=%v\", findings, err)\n+\t}\n+}\n+func TestDecodeFindingsRejectsUnknownFieldsAndUnsafePaths(t *testing.T) {\n+\tfor _, data := range []string{\n+\t\t`[{\"path\":\"../secret\",\"start_line\":1,\"end_line\":1,\"severity\":\"P1\",\"type\":\"logic\",\"title\":\"x\",\"body\":\"x\",\"evidence\":\"x\",\"confidence\":.8}]`,\n+\t\t`[{\"path\":\"a.go\",\"start_line\":1,\"end_line\":1,\"severity\":\"P1\",\"type\":\"logic\",\"title\":\"x\",\"body\":\"x\",\"evidence\":\"x\",\"confidence\":.8,\"verdict\":\"approve\"}]`,\n+\t} {\n+\t\tif _, err := DecodeFindings([]byte(data), 15); err == nil {\n+\t\t\tt.Fatalf(\"expected rejection for %s\", data)\n+\t\t}\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-2e140b1dddfe27b3",
+          "header": "@@ -0,0 +1,21 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package review"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import \"testing\""
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "func TestDecodeFindingsAcceptsStrictAuditableShape(t *testing.T) {"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\tdata := []byte(`[{\"path\":\"src/a.go\",\"start_line\":4,\"end_line\":5,\"severity\":\"P1\",\"type\":\"logic\",\"title\":\"Wrong branch\",\"body\":\"The condition reverses behavior.\",\"evidence\":\"Line 4 returns the error path.\",\"suggestion\":\"return ok\",\"confidence\":0.8,\"rule_id\":\"errors\"}]`)"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\tfindings, err := DecodeFindings(data, 15)"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\tif err != nil || len(findings) != 1 {"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"findings=%+v err=%v\", findings, err)"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "func TestDecodeFindingsRejectsUnknownFieldsAndUnsafePaths(t *testing.T) {"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\tfor _, data := range []string{"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\t\t`[{\"path\":\"../secret\",\"start_line\":1,\"end_line\":1,\"severity\":\"P1\",\"type\":\"logic\",\"title\":\"x\",\"body\":\"x\",\"evidence\":\"x\",\"confidence\":.8}]`,"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\t\t`[{\"path\":\"a.go\",\"start_line\":1,\"end_line\":1,\"severity\":\"P1\",\"type\":\"logic\",\"title\":\"x\",\"body\":\"x\",\"evidence\":\"x\",\"confidence\":.8,\"verdict\":\"approve\"}]`,"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t} {"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t\tif _, err := DecodeFindings([]byte(data), 15); err == nil {"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"expected rejection for %s\", data)"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "schemas/finding.schema.json",
+      "status": "A",
+      "diff": "diff --git a/schemas/finding.schema.json b/schemas/finding.schema.json\nnew file mode 100644\nindex 0000000..8841a34\n--- /dev/null\n+++ b/schemas/finding.schema.json\n@@ -0,0 +1,20 @@\n+{\n+  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n+  \"title\": \"px1 finding\",\n+  \"type\": \"object\",\n+  \"additionalProperties\": false,\n+  \"required\": [\"path\", \"start_line\", \"end_line\", \"severity\", \"type\", \"title\", \"body\", \"evidence\", \"confidence\"],\n+  \"properties\": {\n+    \"path\": {\"type\": \"string\", \"minLength\": 1},\n+    \"start_line\": {\"type\": \"integer\", \"minimum\": 1},\n+    \"end_line\": {\"type\": \"integer\", \"minimum\": 1},\n+    \"severity\": {\"enum\": [\"P0\", \"P1\", \"P2\"]},\n+    \"type\": {\"enum\": [\"logic\", \"syntax\", \"style\", \"security\"]},\n+    \"title\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 200},\n+    \"body\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 16000},\n+    \"evidence\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 8000},\n+    \"suggestion\": {\"type\": \"string\", \"maxLength\": 16000},\n+    \"confidence\": {\"type\": \"number\", \"minimum\": 0, \"maximum\": 1},\n+    \"rule_id\": {\"type\": \"string\"}\n+  }\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-1f0db2c6acebc548",
+          "header": "@@ -0,0 +1,20 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "{"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\","
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "  \"title\": \"px1 finding\","
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "  \"type\": \"object\","
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "  \"additionalProperties\": false,"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "  \"required\": [\"path\", \"start_line\", \"end_line\", \"severity\", \"type\", \"title\", \"body\", \"evidence\", \"confidence\"],"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "  \"properties\": {"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "    \"path\": {\"type\": \"string\", \"minLength\": 1},"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "    \"start_line\": {\"type\": \"integer\", \"minimum\": 1},"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "    \"end_line\": {\"type\": \"integer\", \"minimum\": 1},"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "    \"severity\": {\"enum\": [\"P0\", \"P1\", \"P2\"]},"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "    \"type\": {\"enum\": [\"logic\", \"syntax\", \"style\", \"security\"]},"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "    \"title\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 200},"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "    \"body\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 16000},"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "    \"evidence\": {\"type\": \"string\", \"minLength\": 1, \"maxLength\": 8000},"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "    \"suggestion\": {\"type\": \"string\", \"maxLength\": 16000},"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "    \"confidence\": {\"type\": \"number\", \"minimum\": 0, \"maximum\": 1},"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "    \"rule_id\": {\"type\": \"string\"}"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "  }"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-327cd518f7a84c4d",
+      "title": "Finding changes",
+      "summary": "4 related files share the \"finding\" change signal.",
+      "paths": [
+        "docs/FINDING_SCHEMA.md",
+        "internal/hosted/review/finding.go",
+        "internal/hosted/review/finding_test.go",
+        "schemas/finding.schema.json"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-9d1c98cf54900674",
+      "path": "docs/FINDING_SCHEMA.md",
+      "kind": "schema",
+      "observation": "The changed path is migration, schema, or SQL-related: docs/FINDING_SCHEMA.md.",
+      "question": "What happens to existing data during deploy, rollback, and mixed-version operation?",
+      "related": []
+    },
+    {
+      "id": "inspect-fd73a11831e0b378",
+      "path": "internal/hosted/review/finding.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/review/finding_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-d8c025aac215dc6b",
+      "path": "internal/hosted/review/finding.go",
+      "line": 27,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func DecodeFindings(data []byte, maxFindings int) ([]Finding, error) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    },
+    {
+      "id": "inspect-e1eb06e22bd49c72",
+      "path": "schemas/finding.schema.json",
+      "kind": "schema",
+      "observation": "The changed path is migration, schema, or SQL-related: schemas/finding.schema.json.",
+      "question": "What happens to existing data during deploy, rollback, and mixed-version operation?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 4,
+    "filesAnalyzed": 4,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "strict-decode",
+      "path": "internal/hosted/review/finding.go",
+      "lineStart": 25,
+      "lineEnd": 49,
+      "title": "Strictly decodes and limits findings",
+      "summary": "Finding input now rejects unknown fields and trailing JSON. The decoder also applies a default limit of 100 findings when no positive limit is provided, and rejects results above the configured limit."
+    },
+    {
+      "id": "finding-validation",
+      "path": "internal/hosted/review/finding.go",
+      "lineStart": 53,
+      "lineEnd": 77,
+      "title": "Validates finding contents",
+      "summary": "Each finding must use a repository-relative path, a valid line range, supported severity and type values, non-empty title/body/evidence, bounded text, and confidence between 0 and 1. Invalid findings are rejected before being returned."
+    },
+    {
+      "id": "finding-contract",
+      "path": "schemas/finding.schema.json",
+      "lineStart": 1,
+      "lineEnd": 20,
+      "title": "Publishes the finding schema",
+      "summary": "Adds a machine-readable JSON Schema for the finding shape, including required fields, allowed severity and type values, and text length limits. Extra fields are disallowed."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "b45379878089bf5170a8fd9fc44fc1b6da7fb0a6",
+      "revision": "43ebfd7ae1718377a52c22013854ab9c805794f1",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "b45379878089bf5170a8fd9fc44fc1b6da7fb0a6",
+      "revision": "43ebfd7ae1718377a52c22013854ab9c805794f1",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "43ebfd7ae1718377a52c22013854ab9c805794f1",
+      "detail": "3 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "43ebfd7ae1718377a52c22013854ab9c805794f1",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-e4eead60bcab8a42",
+      "rule": "schema",
+      "title": "Schema or migration",
+      "reason": "Schema and migration changes can affect stored data and deployment order.",
+      "path": "docs/FINDING_SCHEMA.md",
+      "evidence": "docs/FINDING_SCHEMA.md"
+    },
+    {
+      "id": "attention-51f8e036339c8bd8",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/review/finding.go",
+      "line": 27,
+      "evidence": "func DecodeFindings(data []byte, maxFindings int) ([]Finding, error) {"
+    },
+    {
+      "id": "attention-bc88628280537920",
+      "rule": "schema",
+      "title": "Schema or migration",
+      "reason": "Schema and migration changes can affect stored data and deployment order.",
+      "path": "schemas/finding.schema.json",
+      "evidence": "schemas/finding.schema.json"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "43ebfd7ae1718377a52c22013854ab9c805794f1",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40105328708",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40105328708/job/120905930434",
+        "startedAt": "2026-10-24T15:05:43Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40105328736/job/120905725637",
+        "startedAt": "2026-10-24T15:04:47Z"
+      }
+    ]
+  }
+}
