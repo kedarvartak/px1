@@ -1,0 +1,746 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "4b26d7d1e924b5e421e98af0ce7e22ac182d35ab",
+  "head": "ec713d2455d6fd14d97cba39a80fca896d8377fb",
+  "generatedAt": "2026-10-24T19:10:48.664904094Z",
+  "files": [
+    {
+      "path": "migrations/0005_symbol_graph.down.sql",
+      "status": "A",
+      "diff": "diff --git a/migrations/0005_symbol_graph.down.sql b/migrations/0005_symbol_graph.down.sql\nnew file mode 100644\nindex 0000000..0de4081\n--- /dev/null\n+++ b/migrations/0005_symbol_graph.down.sql\n@@ -0,0 +1,6 @@\n+BEGIN;\n+\n+DROP TABLE IF EXISTS symbol_edges;\n+DROP TABLE IF EXISTS symbols;\n+\n+COMMIT;\n",
+      "hunks": [
+        {
+          "id": "diff-feee5915d39a36a4",
+          "header": "@@ -0,0 +1,6 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "BEGIN;"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "DROP TABLE IF EXISTS symbol_edges;"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "DROP TABLE IF EXISTS symbols;"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "COMMIT;"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "migrations/0005_symbol_graph.up.sql",
+      "status": "A",
+      "diff": "diff --git a/migrations/0005_symbol_graph.up.sql b/migrations/0005_symbol_graph.up.sql\nnew file mode 100644\nindex 0000000..9a58db3\n--- /dev/null\n+++ b/migrations/0005_symbol_graph.up.sql\n@@ -0,0 +1,55 @@\n+BEGIN;\n+\n+CREATE TABLE symbols (\n+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n+    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,\n+    repository_id bigint NOT NULL,\n+    path text NOT NULL,\n+    blob_sha char(40) NOT NULL,\n+    kind text NOT NULL CHECK (kind IN ('module', 'namespace', 'type', 'class', 'interface', 'function', 'method', 'variable', 'constant')),\n+    name text NOT NULL,\n+    signature text,\n+    start_line integer NOT NULL CHECK (start_line \u003e 0),\n+    end_line integer NOT NULL CHECK (end_line \u003e= start_line),\n+    created_at timestamptz NOT NULL DEFAULT now(),\n+    UNIQUE (repository_id, path, blob_sha, kind, name, start_line, end_line),\n+    UNIQUE (installation_id, repository_id, id),\n+    FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE\n+);\n+\n+CREATE TABLE symbol_edges (\n+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n+    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,\n+    repository_id bigint NOT NULL,\n+    source_symbol_id bigint NOT NULL,\n+    target_symbol_id bigint,\n+    unresolved_target text,\n+    kind text NOT NULL CHECK (kind IN ('contains', 'calls', 'imports', 'reads', 'writes', 'implements', 'extends', 'tests')),\n+    confidence real NOT NULL CHECK (confidence \u003e= 0 AND confidence \u003c= 1),\n+    source_path text NOT NULL,\n+    source_line integer NOT NULL CHECK (source_line \u003e 0),\n+    created_at timestamptz NOT NULL DEFAULT now(),\n+    CHECK (target_symbol_id IS NOT NULL OR unresolved_target IS NOT NULL),\n+    FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE,\n+    FOREIGN KEY (installation_id, repository_id, source_symbol_id) REFERENCES symbols(installation_id, repository_id, id) ON DELETE CASCADE,\n+    FOREIGN KEY (installation_id, repository_id, target_symbol_id) REFERENCES symbols(installation_id, repository_id, id) ON DELETE CASCADE\n+);\n+\n+CREATE INDEX symbols_repository_name ON symbols (repository_id, name, kind);\n+CREATE INDEX symbols_repository_path ON symbols (repository_id, path, start_line);\n+CREATE INDEX symbol_edges_forward ON symbol_edges (repository_id, source_symbol_id, kind);\n+CREATE INDEX symbol_edges_reverse ON symbol_edges (repository_id, target_symbol_id, kind) WHERE target_symbol_id IS NOT NULL;\n+\n+ALTER TABLE symbols ENABLE ROW LEVEL SECURITY;\n+ALTER TABLE symbols FORCE ROW LEVEL SECURITY;\n+CREATE POLICY tenant_isolation ON symbols\n+    USING (installation_id = current_setting('px1.installation_id', true)::bigint)\n+    WITH CHECK (installation_id = current_setting('px1.installation_id', true)::bigint);\n+\n+ALTER TABLE symbol_edges ENABLE ROW LEVEL SECURITY;\n+ALTER TABLE symbol_edges FORCE ROW LEVEL SECURITY;\n+CREATE POLICY tenant_isolation ON symbol_edges\n+    USING (installation_id = current_setting('px1.installation_id', true)::bigint)\n+    WITH CHECK (installation_id = current_setting('px1.installation_id', true)::bigint);\n+\n+COMMIT;\n",
+      "hunks": [
+        {
+          "id": "diff-a0b40ee0dfd3e9a7",
+          "header": "@@ -0,0 +1,55 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "BEGIN;"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "CREATE TABLE symbols ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "    repository_id bigint NOT NULL,"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "    path text NOT NULL,"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "    blob_sha char(40) NOT NULL,"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "    kind text NOT NULL CHECK (kind IN ('module', 'namespace', 'type', 'class', 'interface', 'function', 'method', 'variable', 'constant')),"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "    name text NOT NULL,"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "    signature text,"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "    start_line integer NOT NULL CHECK (start_line \u003e 0),"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "    end_line integer NOT NULL CHECK (end_line \u003e= start_line),"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "    created_at timestamptz NOT NULL DEFAULT now(),"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "    UNIQUE (repository_id, path, blob_sha, kind, name, start_line, end_line),"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "    UNIQUE (installation_id, repository_id, id),"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "    FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": ");"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "CREATE TABLE symbol_edges ("
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "    repository_id bigint NOT NULL,"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "    source_symbol_id bigint NOT NULL,"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "    target_symbol_id bigint,"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "    unresolved_target text,"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "    kind text NOT NULL CHECK (kind IN ('contains', 'calls', 'imports', 'reads', 'writes', 'implements', 'extends', 'tests')),"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "    confidence real NOT NULL CHECK (confidence \u003e= 0 AND confidence \u003c= 1),"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "    source_path text NOT NULL,"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "    source_line integer NOT NULL CHECK (source_line \u003e 0),"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "    created_at timestamptz NOT NULL DEFAULT now(),"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "    CHECK (target_symbol_id IS NOT NULL OR unresolved_target IS NOT NULL),"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "    FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE,"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "    FOREIGN KEY (installation_id, repository_id, source_symbol_id) REFERENCES symbols(installation_id, repository_id, id) ON DELETE CASCADE,"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "    FOREIGN KEY (installation_id, repository_id, target_symbol_id) REFERENCES symbols(installation_id, repository_id, id) ON DELETE CASCADE"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": ");"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "CREATE INDEX symbols_repository_name ON symbols (repository_id, name, kind);"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "CREATE INDEX symbols_repository_path ON symbols (repository_id, path, start_line);"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "CREATE INDEX symbol_edges_forward ON symbol_edges (repository_id, source_symbol_id, kind);"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "CREATE INDEX symbol_edges_reverse ON symbol_edges (repository_id, target_symbol_id, kind) WHERE target_symbol_id IS NOT NULL;"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "ALTER TABLE symbols ENABLE ROW LEVEL SECURITY;"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "ALTER TABLE symbols FORCE ROW LEVEL SECURITY;"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "CREATE POLICY tenant_isolation ON symbols"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "    USING (installation_id = current_setting('px1.installation_id', true)::bigint)"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "    WITH CHECK (installation_id = current_setting('px1.installation_id', true)::bigint);"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "ALTER TABLE symbol_edges ENABLE ROW LEVEL SECURITY;"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "ALTER TABLE symbol_edges FORCE ROW LEVEL SECURITY;"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "CREATE POLICY tenant_isolation ON symbol_edges"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "    USING (installation_id = current_setting('px1.installation_id', true)::bigint)"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "    WITH CHECK (installation_id = current_setting('px1.installation_id', true)::bigint);"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "COMMIT;"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "symbol_graph_schema_test.go",
+      "status": "A",
+      "diff": "diff --git a/symbol_graph_schema_test.go b/symbol_graph_schema_test.go\nnew file mode 100644\nindex 0000000..bd2d967\n--- /dev/null\n+++ b/symbol_graph_schema_test.go\n@@ -0,0 +1,43 @@\n+package main\n+\n+import (\n+\t\"os\"\n+\t\"strings\"\n+\t\"testing\"\n+)\n+\n+func TestSymbolGraphSchemaIsTenantScopedAndTraversable(t *testing.T) {\n+\tbody, err := os.ReadFile(\"migrations/0005_symbol_graph.up.sql\")\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tsql := string(body)\n+\tfor _, want := range []string{\n+\t\t\"CREATE TABLE symbols (\",\n+\t\t\"CREATE TABLE symbol_edges (\",\n+\t\t\"installation_id bigint NOT NULL\",\n+\t\t\"FOREIGN KEY (installation_id, repository_id, source_symbol_id)\",\n+\t\t\"FOREIGN KEY (installation_id, repository_id, target_symbol_id)\",\n+\t\t\"CHECK (target_symbol_id IS NOT NULL OR unresolved_target IS NOT NULL)\",\n+\t\t\"symbol_edges_forward\",\n+\t\t\"symbol_edges_reverse\",\n+\t\t\"ALTER TABLE symbols FORCE ROW LEVEL SECURITY\",\n+\t\t\"ALTER TABLE symbol_edges FORCE ROW LEVEL SECURITY\",\n+\t\t\"current_setting('px1.installation_id', true)\",\n+\t} {\n+\t\tif !strings.Contains(sql, want) {\n+\t\t\tt.Errorf(\"symbol graph migration missing %q\", want)\n+\t\t}\n+\t}\n+}\n+\n+func TestSymbolGraphRollbackDropsEdgesBeforeSymbols(t *testing.T) {\n+\tbody, err := os.ReadFile(\"migrations/0005_symbol_graph.down.sql\")\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tsql := string(body)\n+\tif strings.Index(sql, \"DROP TABLE IF EXISTS symbol_edges\") \u003e strings.Index(sql, \"DROP TABLE IF EXISTS symbols\") {\n+\t\tt.Fatal(\"rollback must drop dependent edges before symbols\")\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-9d37346ab8c60a9e",
+          "header": "@@ -0,0 +1,43 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package main"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "func TestSymbolGraphSchemaIsTenantScopedAndTraversable(t *testing.T) {"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\tbody, err := os.ReadFile(\"migrations/0005_symbol_graph.up.sql\")"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tsql := string(body)"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tfor _, want := range []string{"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t\t\"CREATE TABLE symbols (\","
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t\t\"CREATE TABLE symbol_edges (\","
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t\t\"installation_id bigint NOT NULL\","
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t\t\"FOREIGN KEY (installation_id, repository_id, source_symbol_id)\","
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t\t\"FOREIGN KEY (installation_id, repository_id, target_symbol_id)\","
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t\t\"CHECK (target_symbol_id IS NOT NULL OR unresolved_target IS NOT NULL)\","
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\t\t\"symbol_edges_forward\","
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t\t\"symbol_edges_reverse\","
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\t\"ALTER TABLE symbols FORCE ROW LEVEL SECURITY\","
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t\t\"ALTER TABLE symbol_edges FORCE ROW LEVEL SECURITY\","
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t\t\"current_setting('px1.installation_id', true)\","
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t} {"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t\tif !strings.Contains(sql, want) {"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"symbol graph migration missing %q\", want)"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "func TestSymbolGraphRollbackDropsEdgesBeforeSymbols(t *testing.T) {"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tbody, err := os.ReadFile(\"migrations/0005_symbol_graph.down.sql\")"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tsql := string(body)"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tif strings.Index(sql, \"DROP TABLE IF EXISTS symbol_edges\") \u003e strings.Index(sql, \"DROP TABLE IF EXISTS symbols\") {"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"rollback must drop dependent edges before symbols\")"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-d3c8e1f66bdd8025",
+      "title": "Symbol_graph changes",
+      "summary": "3 related files share the \"symbol_graph\" change signal.",
+      "paths": [
+        "migrations/0005_symbol_graph.down.sql",
+        "migrations/0005_symbol_graph.up.sql",
+        "symbol_graph_schema_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-1a53d0b75de1378c",
+      "path": "migrations/0005_symbol_graph.down.sql",
+      "kind": "schema",
+      "observation": "The changed path is migration, schema, or SQL-related: migrations/0005_symbol_graph.down.sql.",
+      "question": "What happens to existing data during deploy, rollback, and mixed-version operation?",
+      "related": []
+    },
+    {
+      "id": "inspect-09a864de4c740e93",
+      "path": "migrations/0005_symbol_graph.up.sql",
+      "kind": "schema",
+      "observation": "The changed path is migration, schema, or SQL-related: migrations/0005_symbol_graph.up.sql.",
+      "question": "What happens to existing data during deploy, rollback, and mixed-version operation?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 3,
+    "filesAnalyzed": 3,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "1",
+      "path": "migrations/0005_symbol_graph.up.sql",
+      "lineStart": 3,
+      "lineEnd": 18,
+      "title": "Store code symbols",
+      "summary": "The migration adds persistent, repository-scoped records for code symbols, including their kind, name, source range, and optional signature. A uniqueness constraint prevents duplicate records for the same symbol and blob location."
+    },
+    {
+      "id": "3",
+      "path": "migrations/0005_symbol_graph.up.sql",
+      "lineStart": 15,
+      "lineEnd": 35,
+      "title": "Keep graph references within a repository",
+      "summary": "Composite foreign keys require symbols and relationship endpoints to belong to the same installation and repository, preventing graph edges from crossing those boundaries."
+    },
+    {
+      "id": "2",
+      "path": "migrations/0005_symbol_graph.up.sql",
+      "lineStart": 20,
+      "lineEnd": 35,
+      "title": "Record symbol relationships",
+      "summary": "The new edge table records typed relationships between symbols, such as calls, imports, and containment. An edge can refer to a resolved symbol or retain an unresolved target, but cannot have neither."
+    },
+    {
+      "id": "4",
+      "path": "migrations/0005_symbol_graph.up.sql",
+      "lineStart": 38,
+      "lineEnd": 41,
+      "title": "Support graph lookups",
+      "summary": "Indexes support lookups by symbol name or path and traversal of relationships from either their source or target."
+    },
+    {
+      "id": "5",
+      "path": "migrations/0005_symbol_graph.up.sql",
+      "lineStart": 43,
+      "lineEnd": 55,
+      "title": "Enforce tenant isolation",
+      "summary": "Forced row-level security applies an installation-ID policy to both tables, restricting access to rows matching the installation ID set for the database session."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "4b26d7d1e924b5e421e98af0ce7e22ac182d35ab",
+      "revision": "ec713d2455d6fd14d97cba39a80fca896d8377fb",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "4b26d7d1e924b5e421e98af0ce7e22ac182d35ab",
+      "revision": "ec713d2455d6fd14d97cba39a80fca896d8377fb",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "ec713d2455d6fd14d97cba39a80fca896d8377fb",
+      "detail": "5 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "ec713d2455d6fd14d97cba39a80fca896d8377fb",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-18d341ca7ca182bf",
+      "rule": "schema",
+      "title": "Schema or migration",
+      "reason": "Schema and migration changes can affect stored data and deployment order.",
+      "path": "migrations/0005_symbol_graph.down.sql",
+      "evidence": "migrations/0005_symbol_graph.down.sql"
+    },
+    {
+      "id": "attention-98473fe8fb498c17",
+      "rule": "schema",
+      "title": "Schema or migration",
+      "reason": "Schema and migration changes can affect stored data and deployment order.",
+      "path": "migrations/0005_symbol_graph.up.sql",
+      "evidence": "migrations/0005_symbol_graph.up.sql"
+    },
+    {
+      "id": "attention-4a54a9b449809488",
+      "rule": "schema",
+      "title": "Schema or migration",
+      "reason": "Schema and migration changes can affect stored data and deployment order.",
+      "path": "symbol_graph_schema_test.go",
+      "evidence": "symbol_graph_schema_test.go"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "ec713d2455d6fd14d97cba39a80fca896d8377fb",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40123985069",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40123985069/job/120961568128",
+        "startedAt": "2026-10-24T19:10:12Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40123984914/job/120961358879",
+        "startedAt": "2026-10-24T19:09:17Z"
+      }
+    ]
+  }
+}
