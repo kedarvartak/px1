@@ -35,6 +35,19 @@ type recordingSink struct {
 	records []CallRecord
 }
 
+type brokenCache struct {
+	getErr error
+	putErr error
+}
+
+func (c brokenCache) Get(context.Context, string) (Response, bool, error) {
+	return Response{}, false, c.getErr
+}
+
+func (c brokenCache) Put(context.Context, string, Response, time.Duration) error {
+	return c.putErr
+}
+
 func (r *recordingSink) Record(_ context.Context, record CallRecord) {
 	r.records = append(r.records, record)
 }
@@ -80,6 +93,27 @@ func TestGatewayDoesNotRetryPermanentErrors(t *testing.T) {
 	_, err := gateway.Complete(context.Background(), Request{Provider: "permanent", Model: "model", Prompt: "prompt", MaxOutputTokens: 1})
 	if err == nil || err.Error() != "invalid request" {
 		t.Fatalf("error = %v", err)
+	}
+}
+
+func TestGatewayFailsOpenWhenOptionalCacheIsUnavailable(t *testing.T) {
+	provider := &fakeProvider{}
+	recorder := &recordingSink{}
+	gateway := Gateway{
+		Providers: map[string]Provider{"fake": provider},
+		Cache:     brokenCache{getErr: errors.New("redis unavailable"), putErr: errors.New("redis unavailable")},
+		Recorder:  recorder,
+	}
+
+	response, err := gateway.Complete(context.Background(), Request{Provider: "fake", Model: "model", Prompt: "prompt", MaxOutputTokens: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.Text != "review result" || provider.calls != 1 {
+		t.Fatalf("response = %+v, provider calls = %d", response, provider.calls)
+	}
+	if len(recorder.records) != 1 || recorder.records[0].CacheErr == "" {
+		t.Fatalf("records = %+v", recorder.records)
 	}
 }
 

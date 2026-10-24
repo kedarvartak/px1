@@ -57,6 +57,7 @@ type CallRecord struct {
 	Usage        Usage
 	CostMicrousd int64
 	Cached       bool
+	CacheErr     string
 	Err          string
 }
 
@@ -102,7 +103,7 @@ func (g Gateway) Complete(ctx context.Context, request Request) (response Respon
 			record.Err = err.Error()
 		}
 		if g.Recorder != nil {
-			g.Recorder.Record(ctx, record)
+			g.Recorder.Record(context.WithoutCancel(ctx), record)
 		}
 	}()
 
@@ -110,9 +111,9 @@ func (g Gateway) Complete(ctx context.Context, request Request) (response Respon
 	if g.Cache != nil {
 		cached, ok, cacheErr := g.Cache.Get(ctx, cacheKey)
 		if cacheErr != nil {
-			return Response{}, fmt.Errorf("read LLM prompt cache: %w", cacheErr)
+			record.CacheErr = fmt.Sprintf("read LLM prompt cache: %v", cacheErr)
 		}
-		if ok {
+		if cacheErr == nil && ok {
 			cached.Cached = true
 			return cached, nil
 		}
@@ -159,7 +160,7 @@ func (g Gateway) Complete(ctx context.Context, request Request) (response Respon
 			ttl = 15 * time.Minute
 		}
 		if cacheErr := g.Cache.Put(ctx, cacheKey, response, ttl); cacheErr != nil {
-			return Response{}, fmt.Errorf("write LLM prompt cache: %w", cacheErr)
+			record.CacheErr = fmt.Sprintf("write LLM prompt cache: %v", cacheErr)
 		}
 	}
 	return response, nil
