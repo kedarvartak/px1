@@ -1,0 +1,1388 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "c1d07eb0721a11f655cffff8d93db9ab0be85c7d",
+  "head": "d43880c8b855bd980b77b3a923efde045eccbd95",
+  "generatedAt": "2026-10-24T13:47:31.261510559Z",
+  "files": [
+    {
+      "path": "docs/EMBEDDING_INDEX.md",
+      "status": "A",
+      "diff": "diff --git a/docs/EMBEDDING_INDEX.md b/docs/EMBEDDING_INDEX.md\nnew file mode 100644\nindex 0000000..06fa11b\n--- /dev/null\n+++ b/docs/EMBEDDING_INDEX.md\n@@ -0,0 +1,8 @@\n+# Embedding batches and versioning\n+\n+The indexer sends at most 64 chunks per embedding request and caps one indexing\n+operation at 10,000 chunks by default. It rejects missing, non-finite, and\n+wrong-dimension vectors before persistence. Every stored vector includes its\n+tenant, repository, chunk, provider model, explicit model version, and observed\n+dimension so a model migration can build a parallel index instead of silently\n+mixing incompatible vectors.\n",
+      "hunks": [
+        {
+          "id": "diff-711f4f4c1e496026",
+          "header": "@@ -0,0 +1,8 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "# Embedding batches and versioning"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "The indexer sends at most 64 chunks per embedding request and caps one indexing"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "operation at 10,000 chunks by default. It rejects missing, non-finite, and"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "wrong-dimension vectors before persistence. Every stored vector includes its"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "tenant, repository, chunk, provider model, explicit model version, and observed"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "dimension so a model migration can build a parallel index instead of silently"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "mixing incompatible vectors."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "embedding_schema_test.go",
+      "status": "A",
+      "diff": "diff --git a/embedding_schema_test.go b/embedding_schema_test.go\nnew file mode 100644\nindex 0000000..b926d8f\n--- /dev/null\n+++ b/embedding_schema_test.go\n@@ -0,0 +1,17 @@\n+package main\n+\n+import (\n+\t\"os\"\n+\t\"strings\"\n+\t\"testing\"\n+)\n+\n+func TestEmbeddingMigrationPersistsModelVersion(t *testing.T) {\n+\tbody, err := os.ReadFile(\"migrations/0002_embedding_model_version.up.sql\")\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif !strings.Contains(string(body), \"embedding_model_version text NOT NULL\") {\n+\t\tt.Fatal(\"embedding migration must persist a non-null model version\")\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-73ac80ede327b7ec",
+          "header": "@@ -0,0 +1,17 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package main"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "func TestEmbeddingMigrationPersistsModelVersion(t *testing.T) {"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\tbody, err := os.ReadFile(\"migrations/0002_embedding_model_version.up.sql\")"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tif !strings.Contains(string(body), \"embedding_model_version text NOT NULL\") {"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"embedding migration must persist a non-null model version\")"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/indexer/embed.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/indexer/embed.go b/internal/hosted/indexer/embed.go\nnew file mode 100644\nindex 0000000..648905e\n--- /dev/null\n+++ b/internal/hosted/indexer/embed.go\n@@ -0,0 +1,108 @@\n+package indexer\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"math\"\n+)\n+\n+type EmbeddingChunk struct {\n+\tID      int64\n+\tContent string\n+}\n+\n+type EmbeddingProvider interface {\n+\tEmbed(context.Context, string, []string) ([][]float32, error)\n+}\n+\n+type StoredEmbedding struct {\n+\tInstallationID int64\n+\tRepositoryID   int64\n+\tChunkID        int64\n+\tModel          string\n+\tModelVersion   string\n+\tDimensions     int\n+\tVector         []float32\n+}\n+\n+type EmbeddingStore interface {\n+\tUpsertEmbeddings(context.Context, []StoredEmbedding) error\n+}\n+\n+type EmbeddingIndexer struct {\n+\tProvider     EmbeddingProvider\n+\tStore        EmbeddingStore\n+\tModel        string\n+\tModelVersion string\n+\tBatchSize    int\n+\tMaxChunks    int\n+\tDimensions   int\n+}\n+\n+func (i EmbeddingIndexer) Index(ctx context.Context, installationID, repositoryID int64, chunks []EmbeddingChunk) error {\n+\tif installationID \u003c= 0 || repositoryID \u003c= 0 {\n+\t\treturn errors.New(\"installation and repository IDs must be positive\")\n+\t}\n+\tif i.Provider == nil || i.Store == nil || i.Model == \"\" || i.ModelVersion == \"\" {\n+\t\treturn errors.New(\"embedding provider, store, model, and model version are required\")\n+\t}\n+\tbatchSize := i.BatchSize\n+\tif batchSize \u003c= 0 {\n+\t\tbatchSize = 64\n+\t}\n+\tmaxChunks := i.MaxChunks\n+\tif maxChunks \u003c= 0 {\n+\t\tmaxChunks = 10_000\n+\t}\n+\tif len(chunks) \u003e maxChunks {\n+\t\treturn fmt.Errorf(\"embedding request has %d chunks; limit is %d\", len(chunks), maxChunks)\n+\t}\n+\tfor start := 0; start \u003c len(chunks); start += batchSize {\n+\t\tend := min(start+batchSize, len(chunks))\n+\t\tinputs := make([]string, end-start)\n+\t\tfor offset, chunk := range chunks[start:end] {\n+\t\t\tif chunk.ID \u003c= 0 || chunk.Content == \"\" {\n+\t\t\t\treturn fmt.Errorf(\"chunk at offset %d has no ID or content\", start+offset)\n+\t\t\t}\n+\t\t\tinputs[offset] = chunk.Content\n+\t\t}\n+\t\tvectors, err := i.Provider.Embed(ctx, i.Model, inputs)\n+\t\tif err != nil {\n+\t\t\treturn fmt.Errorf(\"embed batch starting at %d: %w\", start, err)\n+\t\t}\n+\t\tif len(vectors) != len(inputs) {\n+\t\t\treturn fmt.Errorf(\"embedding provider returned %d vectors for %d inputs\", len(vectors), len(inputs))\n+\t\t}\n+\t\trecords := make([]StoredEmbedding, len(vectors))\n+\t\tfor offset, vector := range vectors {\n+\t\t\tif err := validateVector(vector, i.Dimensions); err != nil {\n+\t\t\t\treturn fmt.Errorf(\"embedding for chunk %d: %w\", chunks[start+offset].ID, err)\n+\t\t\t}\n+\t\t\trecords[offset] = StoredEmbedding{\n+\t\t\t\tInstallationID: installationID, RepositoryID: repositoryID,\n+\t\t\t\tChunkID: chunks[start+offset].ID, Model: i.Model, ModelVersion: i.ModelVersion,\n+\t\t\t\tDimensions: len(vector), Vector: append([]float32(nil), vector...),\n+\t\t\t}\n+\t\t}\n+\t\tif err := i.Store.UpsertEmbeddings(ctx, records); err != nil {\n+\t\t\treturn fmt.Errorf(\"store embedding batch starting at %d: %w\", start, err)\n+\t\t}\n+\t}\n+\treturn nil\n+}\n+\n+func validateVector(vector []float32, dimensions int) error {\n+\tif len(vector) == 0 {\n+\t\treturn errors.New(\"vector is empty\")\n+\t}\n+\tif dimensions \u003e 0 \u0026\u0026 len(vector) != dimensions {\n+\t\treturn fmt.Errorf(\"vector has %d dimensions; want %d\", len(vector), dimensions)\n+\t}\n+\tfor _, value := range vector {\n+\t\tif math.IsNaN(float64(value)) || math.IsInf(float64(value), 0) {\n+\t\t\treturn errors.New(\"vector contains a non-finite value\")\n+\t\t}\n+\t}\n+\treturn nil\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-ce5d3d6c6cda7128",
+          "header": "@@ -0,0 +1,108 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package indexer"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"math\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "type EmbeddingChunk struct {"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\tID      int64"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\tContent string"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "type EmbeddingProvider interface {"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tEmbed(context.Context, string, []string) ([][]float32, error)"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "type StoredEmbedding struct {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tInstallationID int64"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tRepositoryID   int64"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tChunkID        int64"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tModel          string"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tModelVersion   string"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tDimensions     int"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tVector         []float32"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "type EmbeddingStore interface {"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tUpsertEmbeddings(context.Context, []StoredEmbedding) error"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "type EmbeddingIndexer struct {"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tProvider     EmbeddingProvider"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tStore        EmbeddingStore"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tModel        string"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\tModelVersion string"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tBatchSize    int"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tMaxChunks    int"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tDimensions   int"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "func (i EmbeddingIndexer) Index(ctx context.Context, installationID, repositoryID int64, chunks []EmbeddingChunk) error {"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tif installationID \u003c= 0 || repositoryID \u003c= 0 {"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"installation and repository IDs must be positive\")"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\tif i.Provider == nil || i.Store == nil || i.Model == \"\" || i.ModelVersion == \"\" {"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"embedding provider, store, model, and model version are required\")"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\tbatchSize := i.BatchSize"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\tif batchSize \u003c= 0 {"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\tbatchSize = 64"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\tmaxChunks := i.MaxChunks"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\tif maxChunks \u003c= 0 {"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t\tmaxChunks = 10_000"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\tif len(chunks) \u003e maxChunks {"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t\treturn fmt.Errorf(\"embedding request has %d chunks; limit is %d\", len(chunks), maxChunks)"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\tfor start := 0; start \u003c len(chunks); start += batchSize {"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t\tend := min(start+batchSize, len(chunks))"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t\tinputs := make([]string, end-start)"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t\tfor offset, chunk := range chunks[start:end] {"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t\t\tif chunk.ID \u003c= 0 || chunk.Content == \"\" {"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\t\t\treturn fmt.Errorf(\"chunk at offset %d has no ID or content\", start+offset)"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\t\tinputs[offset] = chunk.Content"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\tvectors, err := i.Provider.Embed(ctx, i.Model, inputs)"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t\t\treturn fmt.Errorf(\"embed batch starting at %d: %w\", start, err)"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t\tif len(vectors) != len(inputs) {"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\t\t\treturn fmt.Errorf(\"embedding provider returned %d vectors for %d inputs\", len(vectors), len(inputs))"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t\trecords := make([]StoredEmbedding, len(vectors))"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t\tfor offset, vector := range vectors {"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\t\t\tif err := validateVector(vector, i.Dimensions); err != nil {"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t\t\t\treturn fmt.Errorf(\"embedding for chunk %d: %w\", chunks[start+offset].ID, err)"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\t\t\trecords[offset] = StoredEmbedding{"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t\t\t\tInstallationID: installationID, RepositoryID: repositoryID,"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\t\t\t\tChunkID: chunks[start+offset].ID, Model: i.Model, ModelVersion: i.ModelVersion,"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\t\t\t\tDimensions: len(vector), Vector: append([]float32(nil), vector...),"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\t\tif err := i.Store.UpsertEmbeddings(ctx, records); err != nil {"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\t\t\treturn fmt.Errorf(\"store embedding batch starting at %d: %w\", start, err)"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "func validateVector(vector []float32, dimensions int) error {"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\tif len(vector) == 0 {"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"vector is empty\")"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\tif dimensions \u003e 0 \u0026\u0026 len(vector) != dimensions {"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\t\treturn fmt.Errorf(\"vector has %d dimensions; want %d\", len(vector), dimensions)"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\tfor _, value := range vector {"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t\tif math.IsNaN(float64(value)) || math.IsInf(float64(value), 0) {"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t\t\treturn errors.New(\"vector contains a non-finite value\")"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/indexer/embed_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/indexer/embed_test.go b/internal/hosted/indexer/embed_test.go\nnew file mode 100644\nindex 0000000..f2d1b14\n--- /dev/null\n+++ b/internal/hosted/indexer/embed_test.go\n@@ -0,0 +1,71 @@\n+package indexer\n+\n+import (\n+\t\"context\"\n+\t\"testing\"\n+)\n+\n+type embeddingStub struct {\n+\tbatches [][]string\n+}\n+\n+func (e *embeddingStub) Embed(_ context.Context, _ string, inputs []string) ([][]float32, error) {\n+\te.batches = append(e.batches, append([]string(nil), inputs...))\n+\tvectors := make([][]float32, len(inputs))\n+\tfor index := range inputs {\n+\t\tvectors[index] = []float32{float32(index), 1, 2}\n+\t}\n+\treturn vectors, nil\n+}\n+\n+type embeddingStoreStub struct{ batches [][]StoredEmbedding }\n+\n+func (s *embeddingStoreStub) UpsertEmbeddings(_ context.Context, records []StoredEmbedding) error {\n+\tcopyRecords := append([]StoredEmbedding(nil), records...)\n+\ts.batches = append(s.batches, copyRecords)\n+\treturn nil\n+}\n+\n+func TestEmbeddingIndexerBatchesAndPersistsVersion(t *testing.T) {\n+\tprovider := \u0026embeddingStub{}\n+\tstore := \u0026embeddingStoreStub{}\n+\tindexer := EmbeddingIndexer{\n+\t\tProvider: provider, Store: store, Model: \"embed-small\", ModelVersion: \"2026-10-01\",\n+\t\tBatchSize: 2, Dimensions: 3,\n+\t}\n+\tchunks := []EmbeddingChunk{{1, \"one\"}, {2, \"two\"}, {3, \"three\"}, {4, \"four\"}, {5, \"five\"}}\n+\tif err := indexer.Index(context.Background(), 7, 9, chunks); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif len(provider.batches) != 3 || len(provider.batches[0]) != 2 || len(provider.batches[2]) != 1 {\n+\t\tt.Fatalf(\"provider batches = %#v\", provider.batches)\n+\t}\n+\tif len(store.batches) != 3 || store.batches[0][0].ModelVersion != \"2026-10-01\" || store.batches[0][0].InstallationID != 7 {\n+\t\tt.Fatalf(\"stored batches = %#v\", store.batches)\n+\t}\n+}\n+\n+func TestEmbeddingIndexerRejectsMalformedProviderResponse(t *testing.T) {\n+\tprovider := malformedEmbeddingStub{}\n+\tindexer := EmbeddingIndexer{Provider: provider, Store: \u0026embeddingStoreStub{}, Model: \"model\", ModelVersion: \"v1\", Dimensions: 3}\n+\tif err := indexer.Index(context.Background(), 1, 2, []EmbeddingChunk{{1, \"one\"}}); err == nil {\n+\t\tt.Fatal(\"expected malformed vector to fail\")\n+\t}\n+}\n+\n+type malformedEmbeddingStub struct{}\n+\n+func (malformedEmbeddingStub) Embed(context.Context, string, []string) ([][]float32, error) {\n+\treturn [][]float32{{1, 2}}, nil\n+}\n+\n+func TestEmbeddingIndexerCapsWorkBeforeCallingProvider(t *testing.T) {\n+\tprovider := \u0026embeddingStub{}\n+\tindexer := EmbeddingIndexer{Provider: provider, Store: \u0026embeddingStoreStub{}, Model: \"model\", ModelVersion: \"v1\", MaxChunks: 1}\n+\tif err := indexer.Index(context.Background(), 1, 2, []EmbeddingChunk{{1, \"one\"}, {2, \"two\"}}); err == nil {\n+\t\tt.Fatal(\"expected chunk limit error\")\n+\t}\n+\tif len(provider.batches) != 0 {\n+\t\tt.Fatal(\"provider was called before limit validation\")\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-cf8ec62ed47998b8",
+          "header": "@@ -0,0 +1,71 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package indexer"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "type embeddingStub struct {"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\tbatches [][]string"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "func (e *embeddingStub) Embed(_ context.Context, _ string, inputs []string) ([][]float32, error) {"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\te.batches = append(e.batches, append([]string(nil), inputs...))"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tvectors := make([][]float32, len(inputs))"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tfor index := range inputs {"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t\tvectors[index] = []float32{float32(index), 1, 2}"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\treturn vectors, nil"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "type embeddingStoreStub struct{ batches [][]StoredEmbedding }"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "func (s *embeddingStoreStub) UpsertEmbeddings(_ context.Context, records []StoredEmbedding) error {"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tcopyRecords := append([]StoredEmbedding(nil), records...)"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\ts.batches = append(s.batches, copyRecords)"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "func TestEmbeddingIndexerBatchesAndPersistsVersion(t *testing.T) {"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tprovider := \u0026embeddingStub{}"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tstore := \u0026embeddingStoreStub{}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tindexer := EmbeddingIndexer{"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t\tProvider: provider, Store: store, Model: \"embed-small\", ModelVersion: \"2026-10-01\","
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t\tBatchSize: 2, Dimensions: 3,"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tchunks := []EmbeddingChunk{{1, \"one\"}, {2, \"two\"}, {3, \"three\"}, {4, \"four\"}, {5, \"five\"}}"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\tif err := indexer.Index(context.Background(), 7, 9, chunks); err != nil {"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tif len(provider.batches) != 3 || len(provider.batches[0]) != 2 || len(provider.batches[2]) != 1 {"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"provider batches = %#v\", provider.batches)"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tif len(store.batches) != 3 || store.batches[0][0].ModelVersion != \"2026-10-01\" || store.batches[0][0].InstallationID != 7 {"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"stored batches = %#v\", store.batches)"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "func TestEmbeddingIndexerRejectsMalformedProviderResponse(t *testing.T) {"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\tprovider := malformedEmbeddingStub{}"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\tindexer := EmbeddingIndexer{Provider: provider, Store: \u0026embeddingStoreStub{}, Model: \"model\", ModelVersion: \"v1\", Dimensions: 3}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\tif err := indexer.Index(context.Background(), 1, 2, []EmbeddingChunk{{1, \"one\"}}); err == nil {"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"expected malformed vector to fail\")"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "type malformedEmbeddingStub struct{}"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "func (malformedEmbeddingStub) Embed(context.Context, string, []string) ([][]float32, error) {"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\treturn [][]float32{{1, 2}}, nil"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "func TestEmbeddingIndexerCapsWorkBeforeCallingProvider(t *testing.T) {"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\tprovider := \u0026embeddingStub{}"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\tindexer := EmbeddingIndexer{Provider: provider, Store: \u0026embeddingStoreStub{}, Model: \"model\", ModelVersion: \"v1\", MaxChunks: 1}"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\tif err := indexer.Index(context.Background(), 1, 2, []EmbeddingChunk{{1, \"one\"}, {2, \"two\"}}); err == nil {"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"expected chunk limit error\")"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\tif len(provider.batches) != 0 {"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"provider was called before limit validation\")"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "migrations/0002_embedding_model_version.down.sql",
+      "status": "A",
+      "diff": "diff --git a/migrations/0002_embedding_model_version.down.sql b/migrations/0002_embedding_model_version.down.sql\nnew file mode 100644\nindex 0000000..1deeb30\n--- /dev/null\n+++ b/migrations/0002_embedding_model_version.down.sql\n@@ -0,0 +1,5 @@\n+BEGIN;\n+\n+ALTER TABLE chunks DROP COLUMN embedding_model_version;\n+\n+COMMIT;\n",
+      "hunks": [
+        {
+          "id": "diff-16669dc34225f8c4",
+          "header": "@@ -0,0 +1,5 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "BEGIN;"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "ALTER TABLE chunks DROP COLUMN embedding_model_version;"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "COMMIT;"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "migrations/0002_embedding_model_version.up.sql",
+      "status": "A",
+      "diff": "diff --git a/migrations/0002_embedding_model_version.up.sql b/migrations/0002_embedding_model_version.up.sql\nnew file mode 100644\nindex 0000000..6c13c79\n--- /dev/null\n+++ b/migrations/0002_embedding_model_version.up.sql\n@@ -0,0 +1,9 @@\n+BEGIN;\n+\n+ALTER TABLE chunks\n+    ADD COLUMN embedding_model_version text NOT NULL DEFAULT 'legacy';\n+\n+ALTER TABLE chunks\n+    ALTER COLUMN embedding_model_version DROP DEFAULT;\n+\n+COMMIT;\n",
+      "hunks": [
+        {
+          "id": "diff-6abbb99f27963bc6",
+          "header": "@@ -0,0 +1,9 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "BEGIN;"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "ALTER TABLE chunks"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "    ADD COLUMN embedding_model_version text NOT NULL DEFAULT 'legacy';"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "ALTER TABLE chunks"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "    ALTER COLUMN embedding_model_version DROP DEFAULT;"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "COMMIT;"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-11406bcd2a5dfcbd",
+      "title": "Chunks changes",
+      "summary": "6 related files share the \"chunks\" change signal.",
+      "paths": [
+        "docs/EMBEDDING_INDEX.md",
+        "embedding_schema_test.go",
+        "internal/hosted/indexer/embed.go",
+        "internal/hosted/indexer/embed_test.go",
+        "migrations/0002_embedding_model_version.down.sql",
+        "migrations/0002_embedding_model_version.up.sql"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-f19b81f6088b37a3",
+      "path": "internal/hosted/indexer/embed.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/indexer/embed_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-4d0979845c6cdf61",
+      "path": "internal/hosted/indexer/embed.go",
+      "line": 43,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func (i EmbeddingIndexer) Index(ctx context.Context, installationID, repositoryID int64, chunks []EmbeddingChunk) error {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    },
+    {
+      "id": "inspect-1d677bcea72141a2",
+      "path": "migrations/0002_embedding_model_version.down.sql",
+      "kind": "schema",
+      "observation": "The changed path is migration, schema, or SQL-related: migrations/0002_embedding_model_version.down.sql.",
+      "question": "What happens to existing data during deploy, rollback, and mixed-version operation?",
+      "related": []
+    },
+    {
+      "id": "inspect-e077058ec9d714c2",
+      "path": "migrations/0002_embedding_model_version.up.sql",
+      "kind": "schema",
+      "observation": "The changed path is migration, schema, or SQL-related: migrations/0002_embedding_model_version.up.sql.",
+      "question": "What happens to existing data during deploy, rollback, and mixed-version operation?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 6,
+    "filesAnalyzed": 6,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "1",
+      "path": "internal/hosted/indexer/embed.go",
+      "lineStart": 50,
+      "lineEnd": 62,
+      "title": "Bounded embedding requests",
+      "summary": "Indexing now defaults to batches of 64 and rejects operations above 10,000 chunks before calling the provider. Both limits can be overridden."
+    },
+    {
+      "id": "5",
+      "path": "internal/hosted/indexer/embed.go",
+      "lineStart": 61,
+      "lineEnd": 88,
+      "title": "Batches can persist incrementally",
+      "summary": "Batches are stored as they complete, so an error in a later batch can leave earlier batches persisted."
+    },
+    {
+      "id": "2",
+      "path": "internal/hosted/indexer/embed.go",
+      "lineStart": 64,
+      "lineEnd": 80,
+      "title": "Validate embedding inputs and responses",
+      "summary": "The indexer rejects chunks without an ID or content, and fails if the provider returns a different number of vectors than inputs. It checks vectors before storing them."
+    },
+    {
+      "id": "4",
+      "path": "internal/hosted/indexer/embed.go",
+      "lineStart": 77,
+      "lineEnd": 88,
+      "title": "Persist embedding provenance",
+      "summary": "Each stored embedding is associated with its installation, repository, chunk, model, explicit model version, and observed dimension, allowing versions to be tracked separately."
+    },
+    {
+      "id": "3",
+      "path": "internal/hosted/indexer/embed.go",
+      "lineStart": 93,
+      "lineEnd": 107,
+      "title": "Reject invalid vectors",
+      "summary": "Vectors must be non-empty, finite, and match the configured dimension when one is set; invalid vectors are rejected before persistence."
+    },
+    {
+      "id": "6",
+      "path": "migrations/0002_embedding_model_version.up.sql",
+      "lineStart": 3,
+      "lineEnd": 8,
+      "title": "Track versions for existing and new embeddings",
+      "summary": "Existing chunks receive the non-null value `legacy`; removing the default means future inserts must provide an embedding model version explicitly."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "c1d07eb0721a11f655cffff8d93db9ab0be85c7d",
+      "revision": "d43880c8b855bd980b77b3a923efde045eccbd95",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "c1d07eb0721a11f655cffff8d93db9ab0be85c7d",
+      "revision": "d43880c8b855bd980b77b3a923efde045eccbd95",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "d43880c8b855bd980b77b3a923efde045eccbd95",
+      "detail": "6 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "d43880c8b855bd980b77b3a923efde045eccbd95",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-f50c7c108fc38f37",
+      "rule": "schema",
+      "title": "Schema or migration",
+      "reason": "Schema and migration changes can affect stored data and deployment order.",
+      "path": "embedding_schema_test.go",
+      "evidence": "embedding_schema_test.go"
+    },
+    {
+      "id": "attention-7596ed517d87ac8d",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/indexer/embed.go",
+      "line": 43,
+      "evidence": "func (i EmbeddingIndexer) Index(ctx context.Context, installationID, repositoryID int64, chunks []EmbeddingChunk) error {"
+    },
+    {
+      "id": "attention-0fb8ce9b1d52d8fe",
+      "rule": "schema",
+      "title": "Schema or migration",
+      "reason": "Schema and migration changes can affect stored data and deployment order.",
+      "path": "migrations/0002_embedding_model_version.down.sql",
+      "evidence": "migrations/0002_embedding_model_version.down.sql"
+    },
+    {
+      "id": "attention-a372eb73ba0d46dc",
+      "rule": "schema",
+      "title": "Schema or migration",
+      "reason": "Schema and migration changes can affect stored data and deployment order.",
+      "path": "migrations/0002_embedding_model_version.up.sql",
+      "evidence": "migrations/0002_embedding_model_version.up.sql"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "d43880c8b855bd980b77b3a923efde045eccbd95",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40099608460",
+    "checks": [
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40099609114/job/120888859389",
+        "startedAt": "2026-10-24T13:46:50Z"
+      },
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40099608460/job/120888857908",
+        "startedAt": "2026-10-24T13:46:51Z"
+      }
+    ]
+  }
+}
