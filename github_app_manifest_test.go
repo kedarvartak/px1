@@ -31,7 +31,7 @@ func TestGitHubAppManifestsKeepLeastPrivilegeContract(t *testing.T) {
 		"metadata": "read", "pull_requests": "write",
 	}
 	wantEvents := []string{
-		"installation", "installation_repositories", "issue_comment",
+		"check_run", "installation", "installation_repositories", "issue_comment",
 		"pull_request", "pull_request_review_comment", "push",
 	}
 	for _, path := range []string{"deploy/github-app/dev.json", "deploy/github-app/prod.json"} {

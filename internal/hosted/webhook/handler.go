@@ -18,6 +18,7 @@ import (
 const defaultMaxBodyBytes int64 = 10 << 20
 
 var defaultEvents = map[string]bool{
+	"check_run":                   true,
 	"installation":                true,
 	"installation_repositories":   true,
 	"issue_comment":               true,
