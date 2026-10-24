@@ -1,0 +1,1232 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "c1d07eb0721a11f655cffff8d93db9ab0be85c7d",
+  "head": "212771a7de91985d421eb63ed1e52faf6288a080",
+  "generatedAt": "2026-10-24T13:48:43.644025457Z",
+  "files": [
+    {
+      "path": "docs/SAFE_REPOSITORY_CLONING.md",
+      "status": "A",
+      "diff": "diff --git a/docs/SAFE_REPOSITORY_CLONING.md b/docs/SAFE_REPOSITORY_CLONING.md\nnew file mode 100644\nindex 0000000..a30666b\n--- /dev/null\n+++ b/docs/SAFE_REPOSITORY_CLONING.md\n@@ -0,0 +1,10 @@\n+# Safe repository cloning\n+\n+The hosted indexer clones only allow-listed HTTPS hosts into disposable\n+directories. Clones are bare, depth-one, single-branch, tag-free, and use\n+`--filter=blob:limit=1m`. Local and external Git transports, credential helpers,\n+system Git configuration, and terminal prompts are disabled.\n+\n+Repository contents remain untrusted data. The indexer reads Git objects for\n+parsing and retrieval; it does not check out a worktree, run hooks, install\n+dependencies, invoke build tools, or execute any file from the repository.\n",
+      "hunks": [
+        {
+          "id": "diff-627490fe0d43a0fd",
+          "header": "@@ -0,0 +1,10 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "# Safe repository cloning"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "The hosted indexer clones only allow-listed HTTPS hosts into disposable"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "directories. Clones are bare, depth-one, single-branch, tag-free, and use"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "`--filter=blob:limit=1m`. Local and external Git transports, credential helpers,"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "system Git configuration, and terminal prompts are disabled."
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "Repository contents remain untrusted data. The indexer reads Git objects for"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "parsing and retrieval; it does not check out a worktree, run hooks, install"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "dependencies, invoke build tools, or execute any file from the repository."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/repository/clone.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/repository/clone.go b/internal/hosted/repository/clone.go\nnew file mode 100644\nindex 0000000..7b8c918\n--- /dev/null\n+++ b/internal/hosted/repository/clone.go\n@@ -0,0 +1,134 @@\n+// Package repository reads repository objects as untrusted data. It never\n+// checks out or executes repository-controlled files.\n+package repository\n+\n+import (\n+\t\"bytes\"\n+\t\"context\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"net/url\"\n+\t\"os\"\n+\t\"os/exec\"\n+\t\"path/filepath\"\n+\t\"strings\"\n+\t\"time\"\n+)\n+\n+const maxGitOutput = 64 \u003c\u003c 10\n+\n+type Runner interface {\n+\tRun(context.Context, string, []string, []string) error\n+}\n+\n+type Cloner struct {\n+\tGitPath      string\n+\tTempRoot     string\n+\tAllowedHosts map[string]bool\n+\tTimeout      time.Duration\n+\tRunner       Runner\n+}\n+\n+type Clone struct {\n+\tDir  string\n+\troot string\n+}\n+\n+func (c Clone) Remove() error { return os.RemoveAll(c.root) }\n+\n+func (c Cloner) Clone(ctx context.Context, remoteURL, ref string) (clone Clone, err error) {\n+\tif err := c.validateRemote(remoteURL); err != nil {\n+\t\treturn Clone{}, err\n+\t}\n+\tif strings.ContainsAny(ref, \"\\x00\\r\\n\") {\n+\t\treturn Clone{}, errors.New(\"repository ref contains control characters\")\n+\t}\n+\tdir, err := os.MkdirTemp(c.TempRoot, \"px1-clone-*\")\n+\tif err != nil {\n+\t\treturn Clone{}, fmt.Errorf(\"create clone directory: %w\", err)\n+\t}\n+\tdefer func() {\n+\t\tif err != nil {\n+\t\t\t_ = os.RemoveAll(dir)\n+\t\t}\n+\t}()\n+\n+\tduration := c.Timeout\n+\tif duration \u003c= 0 {\n+\t\tduration = 2 * time.Minute\n+\t}\n+\tcloneCtx, cancel := context.WithTimeout(ctx, duration)\n+\tdefer cancel()\n+\targs := []string{\n+\t\t\"-c\", \"protocol.file.allow=never\", \"-c\", \"protocol.ext.allow=never\",\n+\t\t\"-c\", \"credential.helper=\", \"clone\", \"--bare\", \"--depth=1\",\n+\t\t\"--filter=blob:limit=1m\", \"--no-tags\", \"--single-branch\",\n+\t}\n+\tif ref != \"\" {\n+\t\targs = append(args, \"--branch=\"+ref)\n+\t}\n+\targs = append(args, \"--\", remoteURL, filepath.Join(dir, \"objects.git\"))\n+\trunner := c.Runner\n+\tif runner == nil {\n+\t\trunner = commandRunner{path: first(c.GitPath, \"git\")}\n+\t}\n+\tenv := []string{\"GIT_TERMINAL_PROMPT=0\", \"GIT_CONFIG_NOSYSTEM=1\", \"GIT_CONFIG_GLOBAL=\" + os.DevNull}\n+\tif err = runner.Run(cloneCtx, first(c.GitPath, \"git\"), args, env); err != nil {\n+\t\treturn Clone{}, fmt.Errorf(\"filtered shallow clone failed: %w\", err)\n+\t}\n+\treturn Clone{Dir: filepath.Join(dir, \"objects.git\"), root: dir}, nil\n+}\n+\n+func (c Cloner) validateRemote(raw string) error {\n+\tparsed, err := url.Parse(raw)\n+\tif err != nil || parsed.Scheme != \"https\" || parsed.Hostname() == \"\" {\n+\t\treturn errors.New(\"repository URL must be HTTPS\")\n+\t}\n+\tif parsed.User != nil || parsed.RawQuery != \"\" || parsed.Fragment != \"\" {\n+\t\treturn errors.New(\"repository URL must not contain credentials, query parameters, or fragments\")\n+\t}\n+\tallowed := c.AllowedHosts\n+\tif len(allowed) == 0 {\n+\t\tallowed = map[string]bool{\"github.com\": true}\n+\t}\n+\tif !allowed[strings.ToLower(parsed.Hostname())] {\n+\t\treturn fmt.Errorf(\"repository host %q is not allowed\", parsed.Hostname())\n+\t}\n+\treturn nil\n+}\n+\n+type commandRunner struct{ path string }\n+\n+func (r commandRunner) Run(ctx context.Context, _ string, args, extraEnv []string) error {\n+\tcmd := exec.CommandContext(ctx, r.path, args...)\n+\tcmd.Env = append(os.Environ(), extraEnv...)\n+\tvar output limitedBuffer\n+\tcmd.Stdout, cmd.Stderr = \u0026output, \u0026output\n+\tif err := cmd.Run(); err != nil {\n+\t\treturn fmt.Errorf(\"%w: %s\", err, strings.TrimSpace(output.String()))\n+\t}\n+\treturn nil\n+}\n+\n+type limitedBuffer struct{ bytes.Buffer }\n+\n+func (b *limitedBuffer) Write(p []byte) (int, error) {\n+\twritten := len(p)\n+\tremaining := maxGitOutput - b.Len()\n+\tif remaining \u003e 0 {\n+\t\tif len(p) \u003e remaining {\n+\t\t\tp = p[:remaining]\n+\t\t}\n+\t\t_, _ = b.Buffer.Write(p)\n+\t}\n+\treturn written, nil\n+}\n+\n+func first(values ...string) string {\n+\tfor _, value := range values {\n+\t\tif value != \"\" {\n+\t\t\treturn value\n+\t\t}\n+\t}\n+\treturn \"\"\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-9be53b6b929e0177",
+          "header": "@@ -0,0 +1,134 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "// Package repository reads repository objects as untrusted data. It never"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "// checks out or executes repository-controlled files."
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "package repository"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"bytes\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"net/url\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\"os/exec\""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t\"path/filepath\""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "const maxGitOutput = 64 \u003c\u003c 10"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "type Runner interface {"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tRun(context.Context, string, []string, []string) error"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "type Cloner struct {"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tGitPath      string"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tTempRoot     string"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tAllowedHosts map[string]bool"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tTimeout      time.Duration"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tRunner       Runner"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "type Clone struct {"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tDir  string"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\troot string"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "func (c Clone) Remove() error { return os.RemoveAll(c.root) }"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "func (c Cloner) Clone(ctx context.Context, remoteURL, ref string) (clone Clone, err error) {"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tif err := c.validateRemote(remoteURL); err != nil {"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t\treturn Clone{}, err"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tif strings.ContainsAny(ref, \"\\x00\\r\\n\") {"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t\treturn Clone{}, errors.New(\"repository ref contains control characters\")"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\tdir, err := os.MkdirTemp(c.TempRoot, \"px1-clone-*\")"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\treturn Clone{}, fmt.Errorf(\"create clone directory: %w\", err)"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\tdefer func() {"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\t\t_ = os.RemoveAll(dir)"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t}()"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\tduration := c.Timeout"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\tif duration \u003c= 0 {"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t\tduration = 2 * time.Minute"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\tcloneCtx, cancel := context.WithTimeout(ctx, duration)"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\tdefer cancel()"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\targs := []string{"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t\t\"-c\", \"protocol.file.allow=never\", \"-c\", \"protocol.ext.allow=never\","
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t\t\"-c\", \"credential.helper=\", \"clone\", \"--bare\", \"--depth=1\","
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t\t\"--filter=blob:limit=1m\", \"--no-tags\", \"--single-branch\","
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\tif ref != \"\" {"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\targs = append(args, \"--branch=\"+ref)"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\targs = append(args, \"--\", remoteURL, filepath.Join(dir, \"objects.git\"))"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\trunner := c.Runner"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\tif runner == nil {"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\trunner = commandRunner{path: first(c.GitPath, \"git\")}"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\tenv := []string{\"GIT_TERMINAL_PROMPT=0\", \"GIT_CONFIG_NOSYSTEM=1\", \"GIT_CONFIG_GLOBAL=\" + os.DevNull}"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\tif err = runner.Run(cloneCtx, first(c.GitPath, \"git\"), args, env); err != nil {"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t\treturn Clone{}, fmt.Errorf(\"filtered shallow clone failed: %w\", err)"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\treturn Clone{Dir: filepath.Join(dir, \"objects.git\"), root: dir}, nil"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "func (c Cloner) validateRemote(raw string) error {"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\tparsed, err := url.Parse(raw)"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\tif err != nil || parsed.Scheme != \"https\" || parsed.Hostname() == \"\" {"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"repository URL must be HTTPS\")"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\tif parsed.User != nil || parsed.RawQuery != \"\" || parsed.Fragment != \"\" {"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"repository URL must not contain credentials, query parameters, or fragments\")"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\tallowed := c.AllowedHosts"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\tif len(allowed) == 0 {"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\t\tallowed = map[string]bool{\"github.com\": true}"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\tif !allowed[strings.ToLower(parsed.Hostname())] {"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t\treturn fmt.Errorf(\"repository host %q is not allowed\", parsed.Hostname())"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "type commandRunner struct{ path string }"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "func (r commandRunner) Run(ctx context.Context, _ string, args, extraEnv []string) error {"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\tcmd := exec.CommandContext(ctx, r.path, args...)"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\tcmd.Env = append(os.Environ(), extraEnv...)"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\tvar output limitedBuffer"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\tcmd.Stdout, cmd.Stderr = \u0026output, \u0026output"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\tif err := cmd.Run(); err != nil {"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\t\treturn fmt.Errorf(\"%w: %s\", err, strings.TrimSpace(output.String()))"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "type limitedBuffer struct{ bytes.Buffer }"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "func (b *limitedBuffer) Write(p []byte) (int, error) {"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "\twritten := len(p)"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\tremaining := maxGitOutput - b.Len()"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\tif remaining \u003e 0 {"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\t\tif len(p) \u003e remaining {"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\t\t\tp = p[:remaining]"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\t\t_, _ = b.Buffer.Write(p)"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\treturn written, nil"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "func first(values ...string) string {"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\tfor _, value := range values {"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\t\tif value != \"\" {"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\t\t\treturn value"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\treturn \"\""
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/repository/clone_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/repository/clone_test.go b/internal/hosted/repository/clone_test.go\nnew file mode 100644\nindex 0000000..5ac5d68\n--- /dev/null\n+++ b/internal/hosted/repository/clone_test.go\n@@ -0,0 +1,64 @@\n+package repository\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"os\"\n+\t\"path/filepath\"\n+\t\"reflect\"\n+\t\"testing\"\n+)\n+\n+type captureRunner struct {\n+\targs []string\n+\tenv  []string\n+\terr  error\n+}\n+\n+func (r *captureRunner) Run(_ context.Context, _ string, args, env []string) error {\n+\tr.args, r.env = append([]string(nil), args...), append([]string(nil), env...)\n+\treturn r.err\n+}\n+\n+func TestCloneUsesFilteredBareShallowClone(t *testing.T) {\n+\trunner := \u0026captureRunner{}\n+\tcloner := Cloner{TempRoot: t.TempDir(), Runner: runner}\n+\tclone, err := cloner.Clone(context.Background(), \"https://github.com/acme/service.git\", \"main\")\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tt.Cleanup(func() { _ = clone.Remove() })\n+\twantPrefix := []string{\"-c\", \"protocol.file.allow=never\", \"-c\", \"protocol.ext.allow=never\", \"-c\", \"credential.helper=\", \"clone\", \"--bare\", \"--depth=1\", \"--filter=blob:limit=1m\", \"--no-tags\", \"--single-branch\", \"--branch=main\", \"--\", \"https://github.com/acme/service.git\"}\n+\tif len(runner.args) != len(wantPrefix)+1 || !reflect.DeepEqual(runner.args[:len(wantPrefix)], wantPrefix) {\n+\t\tt.Fatalf(\"clone args = %#v\", runner.args)\n+\t}\n+\tif filepath.Base(clone.Dir) != \"objects.git\" {\n+\t\tt.Fatalf(\"clone dir = %q\", clone.Dir)\n+\t}\n+}\n+\n+func TestCloneRejectsUnsafeRemoteBeforeCreatingDirectory(t *testing.T) {\n+\troot := t.TempDir()\n+\tcloner := Cloner{TempRoot: root, Runner: \u0026captureRunner{}}\n+\tfor _, remote := range []string{\"file:///tmp/repo\", \"https://token@github.com/acme/repo\", \"https://evil.example/repo\"} {\n+\t\tif _, err := cloner.Clone(context.Background(), remote, \"main\"); err == nil {\n+\t\t\tt.Fatalf(\"expected %q to be rejected\", remote)\n+\t\t}\n+\t}\n+\tentries, err := os.ReadDir(root)\n+\tif err != nil || len(entries) != 0 {\n+\t\tt.Fatalf(\"temporary root contains %#v (err %v)\", entries, err)\n+\t}\n+}\n+\n+func TestFailedCloneRemovesTemporaryDirectory(t *testing.T) {\n+\troot := t.TempDir()\n+\tcloner := Cloner{TempRoot: root, Runner: \u0026captureRunner{err: errors.New(\"network unavailable\")}}\n+\tif _, err := cloner.Clone(context.Background(), \"https://github.com/acme/repo\", \"main\"); err == nil {\n+\t\tt.Fatal(\"expected clone failure\")\n+\t}\n+\tentries, err := os.ReadDir(root)\n+\tif err != nil || len(entries) != 0 {\n+\t\tt.Fatalf(\"temporary clone was not removed: %#v (err %v)\", entries, err)\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-151c55581525e016",
+          "header": "@@ -0,0 +1,64 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package repository"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"path/filepath\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"reflect\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "type captureRunner struct {"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\targs []string"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tenv  []string"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\terr  error"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "func (r *captureRunner) Run(_ context.Context, _ string, args, env []string) error {"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tr.args, r.env = append([]string(nil), args...), append([]string(nil), env...)"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\treturn r.err"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "func TestCloneUsesFilteredBareShallowClone(t *testing.T) {"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\trunner := \u0026captureRunner{}"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tcloner := Cloner{TempRoot: t.TempDir(), Runner: runner}"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tclone, err := cloner.Clone(context.Background(), \"https://github.com/acme/service.git\", \"main\")"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tt.Cleanup(func() { _ = clone.Remove() })"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\twantPrefix := []string{\"-c\", \"protocol.file.allow=never\", \"-c\", \"protocol.ext.allow=never\", \"-c\", \"credential.helper=\", \"clone\", \"--bare\", \"--depth=1\", \"--filter=blob:limit=1m\", \"--no-tags\", \"--single-branch\", \"--branch=main\", \"--\", \"https://github.com/acme/service.git\"}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tif len(runner.args) != len(wantPrefix)+1 || !reflect.DeepEqual(runner.args[:len(wantPrefix)], wantPrefix) {"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"clone args = %#v\", runner.args)"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tif filepath.Base(clone.Dir) != \"objects.git\" {"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"clone dir = %q\", clone.Dir)"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "func TestCloneRejectsUnsafeRemoteBeforeCreatingDirectory(t *testing.T) {"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\troot := t.TempDir()"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tcloner := Cloner{TempRoot: root, Runner: \u0026captureRunner{}}"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tfor _, remote := range []string{\"file:///tmp/repo\", \"https://token@github.com/acme/repo\", \"https://evil.example/repo\"} {"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t\tif _, err := cloner.Clone(context.Background(), remote, \"main\"); err == nil {"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"expected %q to be rejected\", remote)"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\tentries, err := os.ReadDir(root)"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\tif err != nil || len(entries) != 0 {"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"temporary root contains %#v (err %v)\", entries, err)"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "func TestFailedCloneRemovesTemporaryDirectory(t *testing.T) {"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\troot := t.TempDir()"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\tcloner := Cloner{TempRoot: root, Runner: \u0026captureRunner{err: errors.New(\"network unavailable\")}}"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\tif _, err := cloner.Clone(context.Background(), \"https://github.com/acme/repo\", \"main\"); err == nil {"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"expected clone failure\")"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\tentries, err := os.ReadDir(root)"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\tif err != nil || len(entries) != 0 {"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"temporary clone was not removed: %#v (err %v)\", entries, err)"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-1e760d6dee359e16",
+      "title": "Allow changes",
+      "summary": "3 related files share the \"allow\" change signal.",
+      "paths": [
+        "docs/SAFE_REPOSITORY_CLONING.md",
+        "internal/hosted/repository/clone.go",
+        "internal/hosted/repository/clone_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-85e39e64c740ce13",
+      "path": "internal/hosted/repository/clone.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/repository/clone_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-681a63506b7a9c13",
+      "path": "internal/hosted/repository/clone.go",
+      "line": 37,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func (c Clone) Remove() error { return os.RemoveAll(c.root) }.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 3,
+    "filesAnalyzed": 3,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "clone-lifecycle",
+      "path": "internal/hosted/repository/clone.go",
+      "lineStart": 39,
+      "lineEnd": 79,
+      "title": "Bounds clone duration and supports cleanup",
+      "summary": "Each clone has a configurable timeout (two minutes by default). Failed clones remove their temporary directory, while successful clones expose a Remove method to dispose of it."
+    },
+    {
+      "id": "restricted-clone",
+      "path": "internal/hosted/repository/clone.go",
+      "lineStart": 55,
+      "lineEnd": 74,
+      "title": "Limits clone contents and Git behavior",
+      "summary": "Accepted repositories are fetched as bare, depth-one, single-branch clones with tags omitted and large blobs filtered. Git’s file and ext transports and credential helper are disabled, and the process runs without system or interactive prompt configuration."
+    },
+    {
+      "id": "repository-host-restrictions",
+      "path": "internal/hosted/repository/clone.go",
+      "lineStart": 80,
+      "lineEnd": 99,
+      "title": "Rejects untrusted repository URLs",
+      "summary": "Cloning is limited to HTTPS URLs on explicitly allowed hosts (GitHub by default); URLs containing credentials, query parameters, or fragments are rejected before a temporary directory is created."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "c1d07eb0721a11f655cffff8d93db9ab0be85c7d",
+      "revision": "212771a7de91985d421eb63ed1e52faf6288a080",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "c1d07eb0721a11f655cffff8d93db9ab0be85c7d",
+      "revision": "212771a7de91985d421eb63ed1e52faf6288a080",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "212771a7de91985d421eb63ed1e52faf6288a080",
+      "detail": "3 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "212771a7de91985d421eb63ed1e52faf6288a080",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-decb587ca4a1be06",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/repository/clone.go",
+      "line": 37,
+      "evidence": "func (c Clone) Remove() error { return os.RemoveAll(c.root) }"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "212771a7de91985d421eb63ed1e52faf6288a080",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40099609929",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40099609929/job/120889092480",
+        "startedAt": "2026-10-24T13:47:58Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40099609964/job/120888861541",
+        "startedAt": "2026-10-24T13:46:51Z"
+      }
+    ]
+  }
+}
