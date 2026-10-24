@@ -75,16 +75,28 @@ backend-foundation tasks are:
    failed check runs with a retry action.
 25. [x] **Authorize review commands.** Parse supported `@px1` issue-comment
    commands and require repository write access before any work is enqueued.
-26. [ ] **Re-review incrementally.** Diff from the last reviewed SHA, resolve
+26. [x] **Re-review incrementally.** Diff from the last reviewed SHA, resolve
    fixed threads, and carry dismissed finding fingerprints forward.
-27. [ ] **Publish commit-pinned reports.** Run the exporter in the worker and
+27. [x] **Publish commit-pinned reports.** Run the exporter in the worker and
    upload an immutable report bundle under the full head SHA.
-28. [ ] **Gate report access.** Require GitHub OAuth and confirm repository read
+28. [x] **Gate report access.** Require GitHub OAuth and confirm repository read
    access before returning private review artifacts.
-29. [ ] **Show hosted findings in reports.** Keep AI findings visibly separate
+29. [x] **Show hosted findings in reports.** Keep AI findings visibly separate
    from deterministic evidence and browser-local human review progress.
 30. [ ] **Create the v1 evaluation set.** Define auditable historical and seeded
    benchmark cases across public repositories.
+31. [x] **Gate review quality with evals.** Measure precision, recall, cost, and
+   latency and reject prompt or model changes that regress quality by 3 points.
+32. [ ] **Publish launch and legal documentation.** Cover hosted installation,
+   privacy, terms, and the 30-day post-uninstall retention policy.
+33. [ ] **Run the dogfood programme.** Capture two weeks of comparable evidence
+   from px1 and three friendly repositories before opening the waitlist.
+34. [ ] **Protect the free Action mode.** Keep the account-free, self-run Action
+   as a tested compatibility contract for open-source users.
+35. [ ] **Create the symbol graph schema.** Store tenant-scoped symbols and
+   typed edges for bounded two-hop traversal.
+36. [ ] **Define language graph queries.** Add tree-sitter queries for
+   definitions, references, imports, and calls across supported languages.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,
