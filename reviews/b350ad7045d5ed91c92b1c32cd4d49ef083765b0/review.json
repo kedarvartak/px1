@@ -1,0 +1,1041 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "4921da6eb117a96e17b998b554461f7b9cc9902d",
+  "head": "b350ad7045d5ed91c92b1c32cd4d49ef083765b0",
+  "generatedAt": "2026-10-24T17:18:22.363428631Z",
+  "files": [
+    {
+      "path": "ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/ROADMAP.md b/ROADMAP.md\nindex 8ae75ef..fa6b7e2 100644\n--- a/ROADMAP.md\n+++ b/ROADMAP.md\n@@ -51,16 +51,28 @@ backend-foundation tasks are:\n     source files over 50 lines while skipping generated and binary content.\n 13. [x] **Re-index incrementally.** Compare default-branch blob SHAs and mutate\n     only added, changed, or deleted file chunks in one indexed-head transaction.\n-14. [ ] **Enforce repository limits.** Cap v1 indexing at 50,000 files or 2 GiB\n+14. [x] **Enforce repository limits.** Cap v1 indexing at 50,000 files or 2 GiB\n     and expose partial-index state wherever review context is summarized.\n-15. [ ] **Make diff grouping worker-callable.** Move deterministic change-block\n+15. [x] **Make diff grouping worker-callable.** Move deterministic change-block\n     grouping behind a reusable review package without changing Action output.\n-16. [ ] **Assemble bounded review context.** Combine diff, functions, retrieval,\n+16. [x] **Assemble bounded review context.** Combine diff, functions, retrieval,\n     relationships, tests, summaries, and rules within a 60k-token budget.\n-17. [ ] **Define strict finding JSON.** Validate auditable P0-P2 findings before\n+17. [x] **Define strict finding JSON.** Validate auditable P0-P2 findings before\n     persistence or GitHub delivery.\n-18. [ ] **Verify proposed findings.** Re-read each finding against its evidence\n-    and drop unsupported or sub-0.6-confidence output.\n+18. [x] **Verify proposed findings.** Re-read each finding against its evidence\n+   and drop unsupported or sub-0.6-confidence output.\n+19. [x] **Deduplicate and rank findings.** Collapse overlapping, similarly titled\n+   findings, order by severity then confidence, and cap inline delivery.\n+20. [ ] **Render an auditable review summary.** Keep deterministic signals\n+   verbatim beside bounded model prose.\n+21. [ ] **Map findings to diff lines.** Deliver only comments whose ranges are\n+   valid on the current diff and retain the rest in the summary.\n+22. [ ] **Post one review per run.** Send all inline findings through GitHub's\n+   Create Review API instead of emitting one notification per comment.\n+23. [ ] **Maintain one sticky summary.** Find the bot-owned marker and edit the\n+   existing PR summary in place.\n+24. [ ] **Expose review check status.** Publish in-progress, completed, and\n+   failed check runs with a retry action.\n \n The v1 review pipeline, indexing, report hosting, evaluation, and launch gates\n follow these foundations. AI findings must remain auditable: evidence,\n",
+      "hunks": [
+        {
+          "id": "diff-efe5ba262a83382c",
+          "header": "@@ -51,16 +51,28 @@ backend-foundation tasks are:",
+          "lines": [
+            {
+              "oldLine": 51,
+              "newLine": 51,
+              "kind": "context",
+              "text": "    source files over 50 lines while skipping generated and binary content."
+            },
+            {
+              "oldLine": 52,
+              "newLine": 52,
+              "kind": "context",
+              "text": "13. [x] **Re-index incrementally.** Compare default-branch blob SHAs and mutate"
+            },
+            {
+              "oldLine": 53,
+              "newLine": 53,
+              "kind": "context",
+              "text": "    only added, changed, or deleted file chunks in one indexed-head transaction."
+            },
+            {
+              "oldLine": 54,
+              "kind": "removed",
+              "text": "14. [ ] **Enforce repository limits.** Cap v1 indexing at 50,000 files or 2 GiB"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "14. [x] **Enforce repository limits.** Cap v1 indexing at 50,000 files or 2 GiB"
+            },
+            {
+              "oldLine": 55,
+              "newLine": 55,
+              "kind": "context",
+              "text": "    and expose partial-index state wherever review context is summarized."
+            },
+            {
+              "oldLine": 56,
+              "kind": "removed",
+              "text": "15. [ ] **Make diff grouping worker-callable.** Move deterministic change-block"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "15. [x] **Make diff grouping worker-callable.** Move deterministic change-block"
+            },
+            {
+              "oldLine": 57,
+              "newLine": 57,
+              "kind": "context",
+              "text": "    grouping behind a reusable review package without changing Action output."
+            },
+            {
+              "oldLine": 58,
+              "kind": "removed",
+              "text": "16. [ ] **Assemble bounded review context.** Combine diff, functions, retrieval,"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "16. [x] **Assemble bounded review context.** Combine diff, functions, retrieval,"
+            },
+            {
+              "oldLine": 59,
+              "newLine": 59,
+              "kind": "context",
+              "text": "    relationships, tests, summaries, and rules within a 60k-token budget."
+            },
+            {
+              "oldLine": 60,
+              "kind": "removed",
+              "text": "17. [ ] **Define strict finding JSON.** Validate auditable P0-P2 findings before"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "17. [x] **Define strict finding JSON.** Validate auditable P0-P2 findings before"
+            },
+            {
+              "oldLine": 61,
+              "newLine": 61,
+              "kind": "context",
+              "text": "    persistence or GitHub delivery."
+            },
+            {
+              "oldLine": 62,
+              "kind": "removed",
+              "text": "18. [ ] **Verify proposed findings.** Re-read each finding against its evidence"
+            },
+            {
+              "oldLine": 63,
+              "kind": "removed",
+              "text": "    and drop unsupported or sub-0.6-confidence output."
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "18. [x] **Verify proposed findings.** Re-read each finding against its evidence"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "   and drop unsupported or sub-0.6-confidence output."
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "19. [x] **Deduplicate and rank findings.** Collapse overlapping, similarly titled"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "   findings, order by severity then confidence, and cap inline delivery."
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "20. [ ] **Render an auditable review summary.** Keep deterministic signals"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "   verbatim beside bounded model prose."
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "21. [ ] **Map findings to diff lines.** Deliver only comments whose ranges are"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "   valid on the current diff and retain the rest in the summary."
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "22. [ ] **Post one review per run.** Send all inline findings through GitHub's"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "   Create Review API instead of emitting one notification per comment."
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "23. [ ] **Maintain one sticky summary.** Find the bot-owned marker and edit the"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "   existing PR summary in place."
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "24. [ ] **Expose review check status.** Publish in-progress, completed, and"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "   failed check runs with a retry action."
+            },
+            {
+              "oldLine": 64,
+              "newLine": 76,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 65,
+              "newLine": 77,
+              "kind": "context",
+              "text": "The v1 review pipeline, indexing, report hosting, evaluation, and launch gates"
+            },
+            {
+              "oldLine": 66,
+              "newLine": 78,
+              "kind": "context",
+              "text": "follow these foundations. AI findings must remain auditable: evidence,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/review/rank.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/review/rank.go b/internal/hosted/review/rank.go\nnew file mode 100644\nindex 0000000..f09eb55\n--- /dev/null\n+++ b/internal/hosted/review/rank.go\n@@ -0,0 +1,100 @@\n+package review\n+\n+import (\n+\t\"path/filepath\"\n+\t\"sort\"\n+\t\"strings\"\n+\t\"unicode\"\n+)\n+\n+const DefaultMaxInlineComments = 15\n+\n+// RankAndCapFindings removes findings that describe the same overlapping\n+// location, keeps the strongest representative, and returns a deterministic\n+// severity-first ordering suitable for GitHub delivery.\n+func RankAndCapFindings(findings []Finding, maxInlineComments int) []Finding {\n+\tif maxInlineComments \u003c= 0 {\n+\t\tmaxInlineComments = DefaultMaxInlineComments\n+\t}\n+\tranked := append([]Finding(nil), findings...)\n+\tsort.SliceStable(ranked, func(i, j int) bool { return stronger(ranked[i], ranked[j]) })\n+\n+\tkept := make([]Finding, 0, min(len(ranked), maxInlineComments))\n+\tfor _, candidate := range ranked {\n+\t\tduplicate := false\n+\t\tfor _, existing := range kept {\n+\t\t\tif sameFinding(existing, candidate) {\n+\t\t\t\tduplicate = true\n+\t\t\t\tbreak\n+\t\t\t}\n+\t\t}\n+\t\tif !duplicate {\n+\t\t\tkept = append(kept, candidate)\n+\t\t\tif len(kept) == maxInlineComments {\n+\t\t\t\tbreak\n+\t\t\t}\n+\t\t}\n+\t}\n+\treturn kept\n+}\n+\n+func stronger(a, b Finding) bool {\n+\trank := map[string]int{\"P0\": 0, \"P1\": 1, \"P2\": 2}\n+\tif rank[a.Severity] != rank[b.Severity] {\n+\t\treturn rank[a.Severity] \u003c rank[b.Severity]\n+\t}\n+\tif a.Confidence != b.Confidence {\n+\t\treturn a.Confidence \u003e b.Confidence\n+\t}\n+\tap, bp := filepath.ToSlash(filepath.Clean(a.Path)), filepath.ToSlash(filepath.Clean(b.Path))\n+\tif ap != bp {\n+\t\treturn ap \u003c bp\n+\t}\n+\tif a.StartLine != b.StartLine {\n+\t\treturn a.StartLine \u003c b.StartLine\n+\t}\n+\tif a.EndLine != b.EndLine {\n+\t\treturn a.EndLine \u003c b.EndLine\n+\t}\n+\treturn a.Title \u003c b.Title\n+}\n+\n+func sameFinding(a, b Finding) bool {\n+\tif filepath.ToSlash(filepath.Clean(a.Path)) != filepath.ToSlash(filepath.Clean(b.Path)) {\n+\t\treturn false\n+\t}\n+\tif a.EndLine \u003c b.StartLine || b.EndLine \u003c a.StartLine {\n+\t\treturn false\n+\t}\n+\treturn titleSimilarity(a.Title, b.Title) \u003e= 0.6\n+}\n+\n+func titleSimilarity(a, b string) float64 {\n+\tleft, right := titleWords(a), titleWords(b)\n+\tif len(left) == 0 || len(right) == 0 {\n+\t\treturn 0\n+\t}\n+\tintersection := 0\n+\tunion := make(map[string]bool, len(left)+len(right))\n+\tfor word := range left {\n+\t\tunion[word] = true\n+\t\tif right[word] {\n+\t\t\tintersection++\n+\t\t}\n+\t}\n+\tfor word := range right {\n+\t\tunion[word] = true\n+\t}\n+\treturn float64(intersection) / float64(len(union))\n+}\n+\n+func titleWords(value string) map[string]bool {\n+\twords := strings.FieldsFunc(strings.ToLower(value), func(r rune) bool {\n+\t\treturn !unicode.IsLetter(r) \u0026\u0026 !unicode.IsNumber(r)\n+\t})\n+\tresult := make(map[string]bool, len(words))\n+\tfor _, word := range words {\n+\t\tresult[word] = true\n+\t}\n+\treturn result\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-ea68e5670612978c",
+          "header": "@@ -0,0 +1,100 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package review"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"path/filepath\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"sort\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"unicode\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "const DefaultMaxInlineComments = 15"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "// RankAndCapFindings removes findings that describe the same overlapping"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "// location, keeps the strongest representative, and returns a deterministic"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "// severity-first ordering suitable for GitHub delivery."
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "func RankAndCapFindings(findings []Finding, maxInlineComments int) []Finding {"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tif maxInlineComments \u003c= 0 {"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t\tmaxInlineComments = DefaultMaxInlineComments"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tranked := append([]Finding(nil), findings...)"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tsort.SliceStable(ranked, func(i, j int) bool { return stronger(ranked[i], ranked[j]) })"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tkept := make([]Finding, 0, min(len(ranked), maxInlineComments))"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tfor _, candidate := range ranked {"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\tduplicate := false"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t\tfor _, existing := range kept {"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t\t\tif sameFinding(existing, candidate) {"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t\t\t\tduplicate = true"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t\t\t\tbreak"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t\tif !duplicate {"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t\t\tkept = append(kept, candidate)"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t\t\tif len(kept) == maxInlineComments {"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t\t\t\tbreak"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\treturn kept"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "func stronger(a, b Finding) bool {"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\trank := map[string]int{\"P0\": 0, \"P1\": 1, \"P2\": 2}"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tif rank[a.Severity] != rank[b.Severity] {"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t\treturn rank[a.Severity] \u003c rank[b.Severity]"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\tif a.Confidence != b.Confidence {"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\treturn a.Confidence \u003e b.Confidence"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\tap, bp := filepath.ToSlash(filepath.Clean(a.Path)), filepath.ToSlash(filepath.Clean(b.Path))"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\tif ap != bp {"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t\treturn ap \u003c bp"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\tif a.StartLine != b.StartLine {"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\treturn a.StartLine \u003c b.StartLine"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\tif a.EndLine != b.EndLine {"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\treturn a.EndLine \u003c b.EndLine"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\treturn a.Title \u003c b.Title"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "func sameFinding(a, b Finding) bool {"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\tif filepath.ToSlash(filepath.Clean(a.Path)) != filepath.ToSlash(filepath.Clean(b.Path)) {"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t\treturn false"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\tif a.EndLine \u003c b.StartLine || b.EndLine \u003c a.StartLine {"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\treturn false"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\treturn titleSimilarity(a.Title, b.Title) \u003e= 0.6"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "func titleSimilarity(a, b string) float64 {"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\tleft, right := titleWords(a), titleWords(b)"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\tif len(left) == 0 || len(right) == 0 {"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\t\treturn 0"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\tintersection := 0"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\tunion := make(map[string]bool, len(left)+len(right))"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\tfor word := range left {"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t\tunion[word] = true"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\t\tif right[word] {"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\t\t\tintersection++"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\tfor word := range right {"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\t\tunion[word] = true"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\treturn float64(intersection) / float64(len(union))"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "func titleWords(value string) map[string]bool {"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\twords := strings.FieldsFunc(strings.ToLower(value), func(r rune) bool {"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\t\treturn !unicode.IsLetter(r) \u0026\u0026 !unicode.IsNumber(r)"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t})"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\tresult := make(map[string]bool, len(words))"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\tfor _, word := range words {"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t\tresult[word] = true"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\treturn result"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/review/rank_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/review/rank_test.go b/internal/hosted/review/rank_test.go\nnew file mode 100644\nindex 0000000..c271792\n--- /dev/null\n+++ b/internal/hosted/review/rank_test.go\n@@ -0,0 +1,37 @@\n+package review\n+\n+import \"testing\"\n+\n+func TestRankAndCapFindingsDeduplicatesAndKeepsStrongest(t *testing.T) {\n+\tfindings := []Finding{\n+\t\t{Path: \"api/user.go\", StartLine: 10, EndLine: 12, Severity: \"P2\", Confidence: .9, Title: \"Missing authorization check\"},\n+\t\t{Path: \"api/user.go\", StartLine: 11, EndLine: 13, Severity: \"P0\", Confidence: .7, Title: \"Authorization check is missing\"},\n+\t\t{Path: \"api/user.go\", StartLine: 30, EndLine: 30, Severity: \"P1\", Confidence: .8, Title: \"Missing authorization check\"},\n+\t}\n+\tgot := RankAndCapFindings(findings, 10)\n+\tif len(got) != 2 || got[0].Severity != \"P0\" || got[1].StartLine != 30 {\n+\t\tt.Fatalf(\"ranked findings = %#v\", got)\n+\t}\n+}\n+\n+func TestRankAndCapFindingsOrdersAndCapsDeterministically(t *testing.T) {\n+\tfindings := []Finding{\n+\t\t{Path: \"z.go\", StartLine: 2, EndLine: 2, Severity: \"P2\", Confidence: .9, Title: \"Z\"},\n+\t\t{Path: \"b.go\", StartLine: 2, EndLine: 2, Severity: \"P1\", Confidence: .7, Title: \"B\"},\n+\t\t{Path: \"a.go\", StartLine: 2, EndLine: 2, Severity: \"P1\", Confidence: .8, Title: \"A\"},\n+\t}\n+\tgot := RankAndCapFindings(findings, 2)\n+\tif len(got) != 2 || got[0].Path != \"a.go\" || got[1].Path != \"b.go\" {\n+\t\tt.Fatalf(\"ranked findings = %#v\", got)\n+\t}\n+}\n+\n+func TestRankAndCapFindingsUsesDefaultCap(t *testing.T) {\n+\tfindings := make([]Finding, DefaultMaxInlineComments+3)\n+\tfor i := range findings {\n+\t\tfindings[i] = Finding{Path: \"file.go\", StartLine: i + 1, EndLine: i + 1, Severity: \"P2\", Confidence: .7, Title: \"Distinct location\"}\n+\t}\n+\tif got := len(RankAndCapFindings(findings, 0)); got != DefaultMaxInlineComments {\n+\t\tt.Fatalf(\"count = %d, want %d\", got, DefaultMaxInlineComments)\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-5bd4f12950ff4a65",
+          "header": "@@ -0,0 +1,37 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package review"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import \"testing\""
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "func TestRankAndCapFindingsDeduplicatesAndKeepsStrongest(t *testing.T) {"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\tfindings := []Finding{"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\t{Path: \"api/user.go\", StartLine: 10, EndLine: 12, Severity: \"P2\", Confidence: .9, Title: \"Missing authorization check\"},"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\t{Path: \"api/user.go\", StartLine: 11, EndLine: 13, Severity: \"P0\", Confidence: .7, Title: \"Authorization check is missing\"},"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\t{Path: \"api/user.go\", StartLine: 30, EndLine: 30, Severity: \"P1\", Confidence: .8, Title: \"Missing authorization check\"},"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\tgot := RankAndCapFindings(findings, 10)"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\tif len(got) != 2 || got[0].Severity != \"P0\" || got[1].StartLine != 30 {"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"ranked findings = %#v\", got)"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "func TestRankAndCapFindingsOrdersAndCapsDeterministically(t *testing.T) {"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tfindings := []Finding{"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t\t{Path: \"z.go\", StartLine: 2, EndLine: 2, Severity: \"P2\", Confidence: .9, Title: \"Z\"},"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t\t{Path: \"b.go\", StartLine: 2, EndLine: 2, Severity: \"P1\", Confidence: .7, Title: \"B\"},"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t\t{Path: \"a.go\", StartLine: 2, EndLine: 2, Severity: \"P1\", Confidence: .8, Title: \"A\"},"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tgot := RankAndCapFindings(findings, 2)"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tif len(got) != 2 || got[0].Path != \"a.go\" || got[1].Path != \"b.go\" {"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"ranked findings = %#v\", got)"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "func TestRankAndCapFindingsUsesDefaultCap(t *testing.T) {"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tfindings := make([]Finding, DefaultMaxInlineComments+3)"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tfor i := range findings {"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t\tfindings[i] = Finding{Path: \"file.go\", StartLine: i + 1, EndLine: i + 1, Severity: \"P2\", Confidence: .7, Title: \"Distinct location\"}"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tif got := len(RankAndCapFindings(findings, 0)); got != DefaultMaxInlineComments {"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"count = %d, want %d\", got, DefaultMaxInlineComments)"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-d2d25655d1353183",
+      "title": "Confidence changes",
+      "summary": "3 related files share the \"confidence\" change signal.",
+      "paths": [
+        "ROADMAP.md",
+        "internal/hosted/review/rank.go",
+        "internal/hosted/review/rank_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-3ee2dff70e884b6b",
+      "path": "internal/hosted/review/rank.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/review/rank_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-2b3e60ab4157ca87",
+      "path": "internal/hosted/review/rank.go",
+      "line": 15,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func RankAndCapFindings(findings []Finding, maxInlineComments int) []Finding {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 3,
+    "filesAnalyzed": 3,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "1",
+      "path": "internal/hosted/review/rank.go",
+      "lineStart": 16,
+      "lineEnd": 99,
+      "title": "Deduplicate, rank, and cap findings",
+      "summary": "Findings for the same file and overlapping lines are consolidated when their titles are sufficiently similar, keeping the strongest one. The results are ordered by severity and confidence, then capped at 15 by default (or the requested positive limit), so lower-ranked findings may be omitted from inline delivery."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "4921da6eb117a96e17b998b554461f7b9cc9902d",
+      "revision": "b350ad7045d5ed91c92b1c32cd4d49ef083765b0",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "4921da6eb117a96e17b998b554461f7b9cc9902d",
+      "revision": "b350ad7045d5ed91c92b1c32cd4d49ef083765b0",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "b350ad7045d5ed91c92b1c32cd4d49ef083765b0",
+      "detail": "1 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "b350ad7045d5ed91c92b1c32cd4d49ef083765b0",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-e4c4e6746ad3a33c",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/review/rank.go",
+      "line": 15,
+      "evidence": "func RankAndCapFindings(findings []Finding, maxInlineComments int) []Finding {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "b350ad7045d5ed91c92b1c32cd4d49ef083765b0",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40115473851",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40115473851/job/120935741025",
+        "startedAt": "2026-10-24T17:17:53Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40115473653/job/120935739189",
+        "startedAt": "2026-10-24T17:17:51Z"
+      }
+    ]
+  }
+}
