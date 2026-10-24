@@ -8,6 +8,7 @@ const inspectionAnalysis=report.inspectionAnalysis||null;
 const ruleHits=Array.isArray(report.ruleHits)?report.ruleHits:[];
 const attention=Array.isArray(report.attention)?report.attention:[];
 const explanations=Array.isArray(report.explanations)?report.explanations:[];
+const findings=Array.isArray(report.findings)?report.findings:[];
 const verification=report.verification||{checks:[]};
 const checks=Array.isArray(verification.checks)?verification.checks:[];
 const evidence=Array.isArray(report.evidence)?report.evidence:[];
@@ -15,8 +16,8 @@ const evidence=Array.isArray(report.evidence)?report.evidence:[];
 const h=(tag,cls,txt)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(txt!=null)n.textContent=String(txt);return n};
 const short=(sha)=>String(sha||'').slice(0,7);
 const STATUS={A:'added',M:'modified',D:'deleted',R:'renamed',C:'copied',T:'type changed'};
-const KIND={rule:'Rule',attn:'Attention',note:'Note'};
-const CHIP={rule:'chip-danger',attn:'chip-attention',note:'chip-note'};
+const KIND={rule:'Rule',attn:'Attention',finding:'AI finding',note:'Note'};
+const CHIP={rule:'chip-danger',attn:'chip-attention',finding:'chip-finding',note:'chip-note'};
 const chipFor=(k)=>h('span','chip '+CHIP[k],KIND[k]);
 
 /* Acknowledgements live in this browser only. The key predates the redesign;
@@ -50,6 +51,7 @@ const fileIndex=new Map(files.map((f,i)=>[f.path,i]));
 const add=(it)=>{if(fileIndex.has(it.path)){it.fi=fileIndex.get(it.path);it.id='ann-'+items.length;items.push(it)}};
 for(const hit of ruleHits)add({k:'rule',ackId:hit.key,path:hit.path,line:hit.line,title:hit.title||hit.message,why:(hit.why?hit.why+' · ':'')+(hit.severity?hit.severity+' · ':'')+'Team rule '+hit.ruleId+(hit.origin?' ('+hit.origin+')':'')+'.',ev:hit.text,src:hit.source});
 for(const flag of attention)add({k:'attn',ackId:flag.id,path:flag.path,line:flag.line||0,title:flag.title,why:flag.reason,ev:flag.evidence,src:'rule '+flag.rule});
+for(const finding of findings)add({k:'finding',ackId:['ai',finding.path,finding.start_line,finding.end_line,finding.title].join(':'),path:finding.path,line:finding.start_line,lineEnd:finding.end_line,title:finding.severity+' · '+finding.title,why:finding.body+' · confidence '+Number(finding.confidence||0).toFixed(2),ev:finding.evidence,src:'verified AI finding'});
 for(const ex of explanations)add({k:'note',path:ex.path,line:ex.lineStart,lineEnd:Math.max(ex.lineEnd||0,ex.lineStart),title:ex.title,why:ex.summary,src:'AI explanation'});
 const needsDecision=(it)=>it.k!=='note'&&!ack.has(it.ackId);
 const open=()=>items.filter(needsDecision);
@@ -105,6 +107,7 @@ function paintTop(){
   verdict.textContent='';
   verdict.append(h('span','chip '+(rules?'chip-danger':''),plural(rules,'rule finding')));
   verdict.append(h('span','chip '+(attn?'chip-attention':''),plural(attn,'attention flag')));
+  {const n=open().filter((i)=>i.k==='finding').length;verdict.append(h('span','chip'+(n?' chip-finding':''),plural(n,'AI finding')))}
   const ci=h('button','chip '+(failing?'chip-danger':pending?'chip-attention':''));
   ci.type='button';
   ci.setAttribute('aria-expanded',String(!checksPanel.hidden));
@@ -190,7 +193,7 @@ rail.append(queueSec,filesSec);
 let flaggedOnly=false;
 let searchQuery='';
 
-const order={rule:0,attn:1,note:2};
+const order={rule:0,attn:1,finding:2,note:3};
 function paintQueue(){
   queue.textContent='';
   queueCount.textContent=open().length+' open';
@@ -218,7 +221,7 @@ function paintFiles(){
     if(parts.length)p.append(h('span',null,parts.join('/')+'/'));
     p.append(h('b',null,base));
     const m=h('span','m');
-    for(const [kind,cls] of [['rule','r'],['attn','a'],['note','n']]){const n=mine.filter((x)=>x.k===kind).length;if(n)m.append(h('i','mark '+cls,n))}
+    for(const [kind,cls] of [['rule','r'],['attn','a'],['finding','f'],['note','n']]){const n=mine.filter((x)=>x.k===kind).length;if(n)m.append(h('i','mark '+cls,n))}
     const stateLabel={unreviewed:'Unreviewed',reviewed:'Reviewed','follow-up':'Needs follow-up'}[reviewState(f.path)];
     link.append(p,m,h('span','delta','+'+stats[i].a+' −'+stats[i].d+' · '+(STATUS[f.status]||f.status)+' · '+stateLabel));
     li.append(link);fileList.append(li);

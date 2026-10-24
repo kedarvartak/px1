@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -14,6 +15,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	hostedreview "px1/internal/hosted/review"
 )
 
 // staticReviewReport is the portable, read-only representation consumed by
@@ -33,6 +36,7 @@ type staticReviewReport struct {
 	AttentionAnalysis   staticAttentionAnalysis    `json:"attentionAnalysis"`
 	RuleHits            []staticReviewHit          `json:"ruleHits"`
 	Explanations        []staticExplanation        `json:"explanations"`
+	Findings            []hostedreview.Finding     `json:"findings"`
 	Evidence            []staticEvidenceSource     `json:"evidence"`
 	// Attention lists the risk signals px1 raises on the diff itself, such as
 	// workflow permission changes or new public API. Snapshots written before
@@ -108,8 +112,9 @@ func runExportReview(args []string) error {
 	snapshotOut := fs.String("snapshot-out", "", "optional path to write the versioned review snapshot JSON")
 	verificationFile := fs.String("verification-file", "", "optional verification JSON file to validate for the head commit")
 	explanationsFile := fs.String("explanations-file", "", "optional AI explanation JSON file to validate for the head commit")
+	findingsFile := fs.String("findings-file", "", "optional hosted AI findings JSON file to validate for the head commit")
 	fs.Usage = func() {
-		fmt.Fprintln(fs.Output(), "usage: px1 export-review --base <commit> [--head <commit>] [--root <repo>] [--verification-file <path>] [--explanations-file <path>] [--snapshot-out <file>] [--out <dir>]")
+		fmt.Fprintln(fs.Output(), "usage: px1 export-review --base <commit> [--head <commit>] [--root <repo>] [--verification-file <path>] [--explanations-file <path>] [--findings-file <path>] [--snapshot-out <file>] [--out <dir>]")
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {
@@ -127,7 +132,7 @@ func runExportReview(args []string) error {
 	if err != nil {
 		return fmt.Errorf("resolve output: %w", err)
 	}
-	report, err := generateStaticReviewWithOptions(repoRoot, *base, *head, staticReviewOptions{VerificationFile: *verificationFile, ExplanationsFile: *explanationsFile})
+	report, err := generateStaticReviewWithOptions(repoRoot, *base, *head, staticReviewOptions{VerificationFile: *verificationFile, ExplanationsFile: *explanationsFile, FindingsFile: *findingsFile})
 	if err != nil {
 		return err
 	}
@@ -168,6 +173,7 @@ func generateStaticReviewWithVerification(root, base, head, verificationFile str
 type staticReviewOptions struct {
 	VerificationFile string
 	ExplanationsFile string
+	FindingsFile     string
 }
 
 func generateStaticReviewWithOptions(root, base, head string, options staticReviewOptions) (staticReviewReport, error) {
@@ -207,6 +213,13 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi
 	for _, file := range files {
 		changed[file.Path] = true
 	}
+	findings := []hostedreview.Finding{}
+	if options.FindingsFile != "" {
+		findings, err = hostedFindingsAtFile(options.FindingsFile, headSHA, changed)
+		if err != nil {
+			return staticReviewReport{}, err
+		}
+	}
 	explanations := []staticExplanation{}
 	if options.ExplanationsFile != "" {
 		explanations, err = explanationsAtFile(options.ExplanationsFile, headSHA, changed)
@@ -219,7 +232,7 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi
 		return staticReviewReport{}, err
 	}
 	questions, questionAnalysis := inspectionQuestions(files, flags)
-	evidence := staticEvidence(baseSHA, headSHA, options.ExplanationsFile != "", explanations, verification, questionAnalysis, attentionAnalysis)
+	evidence := staticEvidence(baseSHA, headSHA, options.ExplanationsFile != "", explanations, options.FindingsFile != "", findings, verification, questionAnalysis, attentionAnalysis)
 	return staticReviewReport{
 		Version:             1,
 		Repository:          filepath.Base(root),
@@ -233,13 +246,14 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi
 		AttentionAnalysis:   attentionAnalysis,
 		RuleHits:            staticHits,
 		Explanations:        explanations,
+		Findings:            findings,
 		Evidence:            evidence,
 		Attention:           flags,
 		Verification:        verification,
 	}, nil
 }
 
-func staticEvidence(base, head string, explanationsAttached bool, explanations []staticExplanation, verification verificationResponse, inspection staticInspectionAnalysis, attention staticAttentionAnalysis) []staticEvidenceSource {
+func staticEvidence(base, head string, explanationsAttached bool, explanations []staticExplanation, findingsAttached bool, findings []hostedreview.Finding, verification verificationResponse, inspection staticInspectionAnalysis, attention staticAttentionAnalysis) []staticEvidenceSource {
 	automatedLimits := []string{}
 	for _, limit := range attention.Limits {
 		automatedLimits = append(automatedLimits, "Attention analysis: "+limit)
@@ -258,6 +272,11 @@ func staticEvidence(base, head string, explanationsAttached bool, explanations [
 		ai.Revision = head
 		ai.Detail = fmt.Sprintf("%d optional AI explanations attached for the exact report head; they may be incomplete or wrong.", len(explanations))
 	}
+	hostedAI := staticEvidenceSource{ID: "hosted-ai", Label: "AI findings", State: "not-attached", Detail: "No hosted AI finding set was attached.", Limits: []string{"AI findings are proposals to inspect, not proof of correctness."}}
+	if findingsAttached {
+		hostedAI.State, hostedAI.Revision = "available", head
+		hostedAI.Detail = fmt.Sprintf("%d verified AI findings attached for the exact report head.", len(findings))
+	}
 
 	ci := staticEvidenceSource{ID: "ci", Label: "CI verification", State: "not-attached", Detail: "No CI verification was attached; this report does not know live check status.", Limits: []string{}}
 	if verification.Available {
@@ -274,9 +293,50 @@ func staticEvidence(base, head string, explanationsAttached bool, explanations [
 	return []staticEvidenceSource{
 		{ID: "human", Label: "Human review progress", State: "browser-local", Base: base, Revision: head, Detail: "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.", Limits: []string{"Progress is stored only in this browser and is not shared with GitHub."}},
 		{ID: "automated", Label: "Deterministic analysis", State: automatedState, Base: base, Revision: head, Detail: "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.", Limits: automatedLimits},
+		hostedAI,
 		ai,
 		ci,
 	}
+}
+
+type hostedFindingsEnvelope struct {
+	Revision string                 `json:"revision"`
+	Findings []hostedreview.Finding `json:"findings"`
+}
+
+func hostedFindingsAtFile(path, head string, changed map[string]bool) ([]hostedreview.Finding, error) {
+	body, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read hosted findings: %w", err)
+	}
+	decoder := json.NewDecoder(strings.NewReader(string(body)))
+	decoder.DisallowUnknownFields()
+	var envelope hostedFindingsEnvelope
+	if err := decoder.Decode(&envelope); err != nil {
+		return nil, fmt.Errorf("decode hosted findings: %w", err)
+	}
+	var extra any
+	if err := decoder.Decode(&extra); err != io.EOF {
+		return nil, errors.New("hosted findings contain trailing data")
+	}
+	if envelope.Revision != head {
+		return nil, errors.New("hosted findings revision does not match report head")
+	}
+	if len(envelope.Findings) > 100 {
+		return nil, errors.New("hosted findings exceed report limit")
+	}
+	for i, finding := range envelope.Findings {
+		if err := finding.Validate(); err != nil {
+			return nil, fmt.Errorf("hosted finding %d: %w", i, err)
+		}
+		if !changed[finding.Path] {
+			return nil, fmt.Errorf("hosted finding %d references an unchanged file", i)
+		}
+	}
+	if envelope.Findings == nil {
+		return []hostedreview.Finding{}, nil
+	}
+	return envelope.Findings, nil
 }
 
 func gitDiffBetween(root, base, head string) (string, error) {

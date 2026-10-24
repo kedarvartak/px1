@@ -166,9 +166,10 @@ test('evidence sources expose identity, absence, and analysis limits separately'
   const panel=page.locator('.evidence');
   assert.equal(await panel.getByText('Human review progress',{exact:true}).count(),1);
   assert.equal(await panel.getByText('Deterministic analysis',{exact:true}).count(),1);
+  assert.equal(await panel.getByText('AI findings',{exact:true}).count(),1);
   assert.equal(await panel.getByText('AI explanations',{exact:true}).count(),1);
   assert.equal(await panel.getByText('CI verification',{exact:true}).count(),1);
-  assert.equal(await panel.getByText('not attached',{exact:true}).count(),2);
+  assert.equal(await panel.getByText('not attached',{exact:true}).count(),3);
   assert.match(await panel.textContent(),/Zero findings means no matches/);
   assert.match(await page.locator('.foot').textContent(),/cannot know the current live PR head or check status/);
   await page.close();
