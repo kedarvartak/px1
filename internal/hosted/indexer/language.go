@@ -20,7 +20,7 @@ const (
 	LanguageRuby       Language = "ruby"
 	LanguageRust       Language = "rust"
 	LanguageJava       Language = "java"
-	LanguageKotlin     Language = "kotlin"
+	LanguageC          Language = "c"
 	LanguageCSharp     Language = "csharp"
 	LanguageCPP        Language = "cpp"
 	LanguagePHP        Language = "php"
@@ -31,7 +31,7 @@ var extensionLanguages = map[string]Language{
 	".mjs": LanguageJavaScript, ".cjs": LanguageJavaScript, ".ts": LanguageTypeScript,
 	".mts": LanguageTypeScript, ".cts": LanguageTypeScript, ".tsx": LanguageTSX,
 	".py": LanguagePython, ".rb": LanguageRuby, ".rs": LanguageRust,
-	".java": LanguageJava, ".kt": LanguageKotlin, ".kts": LanguageKotlin,
+	".java": LanguageJava, ".c": LanguageC, ".h": LanguageC,
 	".cs": LanguageCSharp, ".cc": LanguageCPP, ".cpp": LanguageCPP,
 	".cxx": LanguageCPP, ".hh": LanguageCPP, ".hpp": LanguageCPP, ".php": LanguagePHP,
 }

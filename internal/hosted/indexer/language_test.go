@@ -57,3 +57,30 @@ func TestRegistryBoundsInputAndFallbackWindows(t *testing.T) {
 		t.Fatalf("parsed = %+v, err = %v", parsed, err)
 	}
 }
+
+func TestDefaultRegistryParsesAllInitialLanguages(t *testing.T) {
+	registry := NewParserRegistry()
+	tests := []struct {
+		path string
+		body string
+	}{
+		{"main.go", "package demo\nfunc Run() {}"},
+		{"main.js", "function run() {}"},
+		{"main.ts", "function run(): void {}"},
+		{"view.tsx", "function View() { return <div /> }"},
+		{"main.py", "def run():\n    pass\n"},
+		{"main.rb", "def run\nend\n"},
+		{"main.rs", "fn run() {}"},
+		{"Main.java", "class Main { void run() {} }"},
+		{"main.c", "void run(void) {}"},
+		{"main.cpp", "void run() {}"},
+		{"Main.cs", "class Main { void Run() {} }"},
+		{"main.php", "<?php function run() {}"},
+	}
+	for _, test := range tests {
+		parsed, err := registry.Parse(context.Background(), test.path, []byte(test.body))
+		if err != nil || parsed.Mode != "tree-sitter" || len(parsed.Nodes) == 0 {
+			t.Errorf("%s: parsed = %+v, err = %v", test.path, parsed, err)
+		}
+	}
+}
