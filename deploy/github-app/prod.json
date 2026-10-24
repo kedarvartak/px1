@@ -19,6 +19,7 @@
     "pull_requests": "write"
   },
   "default_events": [
+    "check_run",
     "installation",
     "installation_repositories",
     "issue_comment",

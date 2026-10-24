@@ -62,6 +62,16 @@ func TestHandlerAuthenticatesDeduplicatesAndEnqueues(t *testing.T) {
 	}
 }
 
+func TestHandlerAcceptsCheckRunRetryActions(t *testing.T) {
+	secret := []byte("development-secret")
+	sink := &memorySink{}
+	response := httptest.NewRecorder()
+	Handler{Secret: secret, Sink: sink}.ServeHTTP(response, request(secret, "retry-1", "check_run", `{"action":"requested_action","requested_action":{"identifier":"retry_review"}}`))
+	if response.Code != http.StatusOK || len(sink.deliveries) != 1 || sink.deliveries[0].Event != "check_run" {
+		t.Fatalf("status = %d, deliveries = %#v", response.Code, sink.deliveries)
+	}
+}
+
 func TestHandlerRejectsInvalidRequestsBeforeReservation(t *testing.T) {
 	secret := []byte("development-secret")
 	sink := &memorySink{}
