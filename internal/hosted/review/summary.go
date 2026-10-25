@@ -18,6 +18,7 @@ type SummaryInput struct {
 	ModelSummary         string
 	Findings             []Finding
 	DeterministicSignals []DeterministicSignal
+	BlastRadius          []BlastRadiusItem
 }
 
 type DeterministicSignal struct {
@@ -70,6 +71,13 @@ func RenderSummary(input SummaryInput) (string, error) {
 		for _, signal := range input.DeterministicSignals {
 			fmt.Fprintf(&body, "\n**%s**\n\n", signal.Label)
 			writeVerbatim(&body, signal.Detail)
+		}
+	}
+	if len(input.BlastRadius) > 0 {
+		fmt.Fprintln(&body, "\n### Blast radius (unchanged related code)")
+		fmt.Fprintln(&body, "These relationships are inspection pointers, not claims that the files are broken.")
+		for _, item := range input.BlastRadius {
+			fmt.Fprintf(&body, "- **%s** `%s` — %s\n", item.Kind, item.Path, item.Name)
 		}
 	}
 	verification := strings.TrimSpace(input.Verification)
