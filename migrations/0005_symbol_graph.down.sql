@@ -1,0 +1,6 @@
+BEGIN;
+
+DROP TABLE IF EXISTS symbol_edges;
+DROP TABLE IF EXISTS symbols;
+
+COMMIT;
