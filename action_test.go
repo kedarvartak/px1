@@ -43,6 +43,35 @@ func TestArtifactActionKeepsRevisionInputsExplicit(t *testing.T) {
 	}
 }
 
+func TestFreeActionRemainsAccountlessAndSelfRun(t *testing.T) {
+	body, err := os.ReadFile("action.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := strings.ToLower(string(body))
+	for _, banned := range []string{
+		"px1 account",
+		"hosted-token",
+		"account-token",
+		"api.px1",
+		"app.px1",
+		"px1_backend",
+	} {
+		if strings.Contains(text, banned) {
+			t.Fatalf("free Action acquired hosted dependency %q", banned)
+		}
+	}
+	for _, want := range []string{
+		"using: composite",
+		"go run . \"${args[@]}\"",
+		"root:\n    description: repository checkout to inspect.\n    required: false",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("free Action contract missing %q", want)
+		}
+	}
+}
+
 func TestReviewWorkflowAcceptsCanonicalAndLegacyAPISecretNames(t *testing.T) {
 	body, err := os.ReadFile(".github/workflows/px1-review-report.yml")
 	if err != nil {
