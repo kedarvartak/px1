@@ -12,6 +12,11 @@ must enforce these limits before launch.
 | Application logs | 30 days | Rolling expiry |
 | Encrypted installation credentials | While installation is active | Installation deletion or token revocation |
 
+Uninstalling the GitHub App or revoking an installation starts a tenant-wide
+deletion window: all repository content, indexes, review artifacts, findings,
+credentials, and ordinary logs for that installation are deleted within 30
+days, even when their normal active-installation retention period is longer.
+
 Backups must age out deleted records within 35 additional days. Deletion jobs
 must be tenant-scoped, idempotent, observable, and tested. Security incidents or
 legal obligations may require a documented temporary preservation hold.

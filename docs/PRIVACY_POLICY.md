@@ -25,10 +25,11 @@ repository data only for documented support, security, or reliability needs.
 ## Retention and deletion
 
 Repository clones and derived index data are removed after installation access
-is revoked or after the documented retention period. Review artifacts and logs
-follow the periods in [DATA_RETENTION.md](DATA_RETENTION.md). An installation
-owner may request deletion; production contact details must be published before
-launch.
+is revoked or after the documented retention period. Uninstalling the App starts
+a 30-day deletion deadline for all hosted data associated with that installation,
+including review artifacts and findings. Logs and backups age out under the
+periods in [DATA_RETENTION.md](DATA_RETENTION.md). An installation owner may
+request deletion; production contact details must be published before launch.
 
 px1 does not sell repository code or use private repository code to train a
 general-purpose model.
