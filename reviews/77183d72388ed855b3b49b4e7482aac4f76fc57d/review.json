@@ -1,0 +1,985 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "b71f1c94f952b537f24f5ff1b55fe49b11883bcd",
+  "head": "77183d72388ed855b3b49b4e7482aac4f76fc57d",
+  "generatedAt": "2026-10-25T18:53:17.309984906Z",
+  "files": [
+    {
+      "path": "ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/ROADMAP.md b/ROADMAP.md\nindex bdf808b..e339fef 100644\n--- a/ROADMAP.md\n+++ b/ROADMAP.md\n@@ -99,16 +99,28 @@ backend-foundation tasks are:\n    definitions, references, imports, and calls across supported languages.\n 37. [x] **Sandbox exact SCIP indexing.** Run digest-pinned indexers only on the\n    default branch, without network access and with a ten-minute CPU limit.\n-38. [ ] **Resolve graph names.** Link imports to files and calls to definitions,\n+38. [x] **Resolve graph names.** Link imports to files and calls to definitions,\n    retaining ambiguous targets as explicit low-confidence edges.\n-39. [ ] **Update the graph incrementally.** Replace symbols for changed blobs and\n+39. [x] **Update the graph incrementally.** Replace symbols for changed blobs and\n    re-link affected incoming and outgoing edges in one tenant-scoped mutation.\n-40. [ ] **Overlay pull-request graph changes.** Parse changed head files in\n+40. [x] **Overlay pull-request graph changes.** Parse changed head files in\n    memory and diff their symbols and edges against the default-branch graph.\n-41. [ ] **Expose graph tools to reviews.** Add bounded callers, callees, tests,\n+41. [x] **Expose graph tools to reviews.** Add bounded callers, callees, tests,\n    siblings, and implementers queries with two-hop traversal limits.\n-42. [ ] **Ingest comment reactions.** Poll bot comment reactions every fifteen\n+42. [x] **Ingest comment reactions.** Poll bot comment reactions every fifteen\n    minutes for fourteen days and store idempotent feedback events.\n+43. [ ] **Classify reviewer replies.** Use a bounded low-cost model to label\n+   replies as agree, disagree, context, or question and answer questions in-thread.\n+44. [ ] **Detect addressed findings.** Compare the reviewed range from the review\n+   SHA through the merge SHA and record whether the author changed it.\n+45. [ ] **Create scoped review memory.** Store evidence-backed memories and\n+   retrieve at most twenty by tenant, repository, path, language, and similarity.\n+46. [x] **Suppress repeated noise.** Suppress eligible categories after repeated\n+   ignores or downvotes while never auto-suppressing P0, security, or logic issues.\n+47. [ ] **Propose learned rules weekly.** Cluster recurring human comments and\n+   open a reviewable `.px1/rules.md` proposal with evidence links.\n+48. [ ] **Add explicit remember commands.** Let authorized reviewers write a\n+   thread-scoped memory with `@px1 remember \u003ctext\u003e`.\n \n The v1 review pipeline, indexing, report hosting, evaluation, and launch gates\n follow these foundations. AI findings must remain auditable: evidence,\n",
+      "hunks": [
+        {
+          "id": "diff-ab643f48e87a7771",
+          "header": "@@ -99,16 +99,28 @@ backend-foundation tasks are:",
+          "lines": [
+            {
+              "oldLine": 99,
+              "newLine": 99,
+              "kind": "context",
+              "text": "   definitions, references, imports, and calls across supported languages."
+            },
+            {
+              "oldLine": 100,
+              "newLine": 100,
+              "kind": "context",
+              "text": "37. [x] **Sandbox exact SCIP indexing.** Run digest-pinned indexers only on the"
+            },
+            {
+              "oldLine": 101,
+              "newLine": 101,
+              "kind": "context",
+              "text": "   default branch, without network access and with a ten-minute CPU limit."
+            },
+            {
+              "oldLine": 102,
+              "kind": "removed",
+              "text": "38. [ ] **Resolve graph names.** Link imports to files and calls to definitions,"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "38. [x] **Resolve graph names.** Link imports to files and calls to definitions,"
+            },
+            {
+              "oldLine": 103,
+              "newLine": 103,
+              "kind": "context",
+              "text": "   retaining ambiguous targets as explicit low-confidence edges."
+            },
+            {
+              "oldLine": 104,
+              "kind": "removed",
+              "text": "39. [ ] **Update the graph incrementally.** Replace symbols for changed blobs and"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "39. [x] **Update the graph incrementally.** Replace symbols for changed blobs and"
+            },
+            {
+              "oldLine": 105,
+              "newLine": 105,
+              "kind": "context",
+              "text": "   re-link affected incoming and outgoing edges in one tenant-scoped mutation."
+            },
+            {
+              "oldLine": 106,
+              "kind": "removed",
+              "text": "40. [ ] **Overlay pull-request graph changes.** Parse changed head files in"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "40. [x] **Overlay pull-request graph changes.** Parse changed head files in"
+            },
+            {
+              "oldLine": 107,
+              "newLine": 107,
+              "kind": "context",
+              "text": "   memory and diff their symbols and edges against the default-branch graph."
+            },
+            {
+              "oldLine": 108,
+              "kind": "removed",
+              "text": "41. [ ] **Expose graph tools to reviews.** Add bounded callers, callees, tests,"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "41. [x] **Expose graph tools to reviews.** Add bounded callers, callees, tests,"
+            },
+            {
+              "oldLine": 109,
+              "newLine": 109,
+              "kind": "context",
+              "text": "   siblings, and implementers queries with two-hop traversal limits."
+            },
+            {
+              "oldLine": 110,
+              "kind": "removed",
+              "text": "42. [ ] **Ingest comment reactions.** Poll bot comment reactions every fifteen"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "42. [x] **Ingest comment reactions.** Poll bot comment reactions every fifteen"
+            },
+            {
+              "oldLine": 111,
+              "newLine": 111,
+              "kind": "context",
+              "text": "   minutes for fourteen days and store idempotent feedback events."
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "43. [ ] **Classify reviewer replies.** Use a bounded low-cost model to label"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "   replies as agree, disagree, context, or question and answer questions in-thread."
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "44. [ ] **Detect addressed findings.** Compare the reviewed range from the review"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "   SHA through the merge SHA and record whether the author changed it."
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "45. [ ] **Create scoped review memory.** Store evidence-backed memories and"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "   retrieve at most twenty by tenant, repository, path, language, and similarity."
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "46. [x] **Suppress repeated noise.** Suppress eligible categories after repeated"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "   ignores or downvotes while never auto-suppressing P0, security, or logic issues."
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "47. [ ] **Propose learned rules weekly.** Cluster recurring human comments and"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "   open a reviewable `.px1/rules.md` proposal with evidence links."
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "48. [ ] **Add explicit remember commands.** Let authorized reviewers write a"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "   thread-scoped memory with `@px1 remember \u003ctext\u003e`."
+            },
+            {
+              "oldLine": 112,
+              "newLine": 124,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 113,
+              "newLine": 125,
+              "kind": "context",
+              "text": "The v1 review pipeline, indexing, report hosting, evaluation, and launch gates"
+            },
+            {
+              "oldLine": 114,
+              "newLine": 126,
+              "kind": "context",
+              "text": "follow these foundations. AI findings must remain auditable: evidence,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/learning/suppression.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/learning/suppression.go b/internal/hosted/learning/suppression.go\nnew file mode 100644\nindex 0000000..38814f7\n--- /dev/null\n+++ b/internal/hosted/learning/suppression.go\n@@ -0,0 +1,96 @@\n+package learning\n+\n+import (\n+\t\"errors\"\n+\t\"path\"\n+\t\"sort\"\n+\t\"time\"\n+)\n+\n+const (\n+\tDefaultSuppressionThreshold = 3\n+\tDefaultSuppressionWindow    = 30 * 24 * time.Hour\n+)\n+\n+type SuppressionFinding struct {\n+\tSeverity string\n+\tCategory string\n+\tPath     string\n+}\n+\n+type NoiseEvent struct {\n+\tID         int64\n+\tCategory   string\n+\tPath       string\n+\tKind       string\n+\tOccurredAt time.Time\n+}\n+\n+type SuppressionConfig struct {\n+\tThreshold int\n+\tWindow    time.Duration\n+\tPathGlob  string\n+}\n+\n+type SuppressionDecision struct {\n+\tSuppress    bool\n+\tReason      string\n+\tEvidenceIDs []int64\n+}\n+\n+// DecideSuppression applies only to lower-risk categories. P0, security, and\n+// logic findings always remain visible regardless of feedback history.\n+func DecideSuppression(finding SuppressionFinding, events []NoiseEvent, config SuppressionConfig, now time.Time) (SuppressionDecision, error) {\n+\tif finding.Path == \"\" || !map[string]bool{\"P0\": true, \"P1\": true, \"P2\": true}[finding.Severity] || finding.Category == \"\" || now.IsZero() {\n+\t\treturn SuppressionDecision{}, errors.New(\"finding path, severity, category, and current time are required\")\n+\t}\n+\tif finding.Severity == \"P0\" || finding.Category == \"security\" || finding.Category == \"logic\" {\n+\t\treturn SuppressionDecision{Reason: \"protected finding categories are never auto-suppressed\"}, nil\n+\t}\n+\tif config.Threshold == 0 {\n+\t\tconfig.Threshold = DefaultSuppressionThreshold\n+\t}\n+\tif config.Threshold \u003c DefaultSuppressionThreshold {\n+\t\treturn SuppressionDecision{}, errors.New(\"suppression threshold cannot be lower than three\")\n+\t}\n+\tif config.Window == 0 {\n+\t\tconfig.Window = DefaultSuppressionWindow\n+\t}\n+\tif config.Window \u003c= 0 || config.Window \u003e 365*24*time.Hour {\n+\t\treturn SuppressionDecision{}, errors.New(\"suppression window is invalid\")\n+\t}\n+\tif config.PathGlob == \"\" {\n+\t\tconfig.PathGlob = \"**\"\n+\t}\n+\tmatched, err := path.Match(config.PathGlob, finding.Path)\n+\tif err != nil {\n+\t\treturn SuppressionDecision{}, errors.New(\"suppression path glob is invalid\")\n+\t}\n+\tif !matched \u0026\u0026 config.PathGlob != \"**\" {\n+\t\treturn SuppressionDecision{Reason: \"finding is outside the configured path scope\"}, nil\n+\t}\n+\tcutoff := now.Add(-config.Window)\n+\tseen := map[int64]bool{}\n+\tdecision := SuppressionDecision{}\n+\tfor _, event := range events {\n+\t\tif event.ID \u003c= 0 || seen[event.ID] || event.Category != finding.Category || event.OccurredAt.Before(cutoff) || event.OccurredAt.After(now) || (event.Kind != \"ignored\" \u0026\u0026 event.Kind != \"thumbs_down\") {\n+\t\t\tcontinue\n+\t\t}\n+\t\tif config.PathGlob != \"**\" {\n+\t\t\tinScope, _ := path.Match(config.PathGlob, event.Path)\n+\t\t\tif !inScope {\n+\t\t\t\tcontinue\n+\t\t\t}\n+\t\t}\n+\t\tseen[event.ID] = true\n+\t\tdecision.EvidenceIDs = append(decision.EvidenceIDs, event.ID)\n+\t}\n+\tsort.Slice(decision.EvidenceIDs, func(i, j int) bool { return decision.EvidenceIDs[i] \u003c decision.EvidenceIDs[j] })\n+\tif len(decision.EvidenceIDs) \u003e= config.Threshold {\n+\t\tdecision.Suppress = true\n+\t\tdecision.Reason = \"eligible category repeatedly ignored or downvoted in scope\"\n+\t} else {\n+\t\tdecision.Reason = \"feedback threshold not reached\"\n+\t}\n+\treturn decision, nil\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-03ed73d298418311",
+          "header": "@@ -0,0 +1,96 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package learning"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"path\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"sort\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "const ("
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\tDefaultSuppressionThreshold = 3"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\tDefaultSuppressionWindow    = 30 * 24 * time.Hour"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "type SuppressionFinding struct {"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tSeverity string"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tCategory string"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tPath     string"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "type NoiseEvent struct {"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tID         int64"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tCategory   string"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tPath       string"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tKind       string"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tOccurredAt time.Time"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "type SuppressionConfig struct {"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tThreshold int"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tWindow    time.Duration"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tPathGlob  string"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "type SuppressionDecision struct {"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tSuppress    bool"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\tReason      string"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tEvidenceIDs []int64"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "// DecideSuppression applies only to lower-risk categories. P0, security, and"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "// logic findings always remain visible regardless of feedback history."
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "func DecideSuppression(finding SuppressionFinding, events []NoiseEvent, config SuppressionConfig, now time.Time) (SuppressionDecision, error) {"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tif finding.Path == \"\" || !map[string]bool{\"P0\": true, \"P1\": true, \"P2\": true}[finding.Severity] || finding.Category == \"\" || now.IsZero() {"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t\treturn SuppressionDecision{}, errors.New(\"finding path, severity, category, and current time are required\")"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\tif finding.Severity == \"P0\" || finding.Category == \"security\" || finding.Category == \"logic\" {"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\treturn SuppressionDecision{Reason: \"protected finding categories are never auto-suppressed\"}, nil"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\tif config.Threshold == 0 {"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t\tconfig.Threshold = DefaultSuppressionThreshold"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\tif config.Threshold \u003c DefaultSuppressionThreshold {"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\treturn SuppressionDecision{}, errors.New(\"suppression threshold cannot be lower than three\")"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\tif config.Window == 0 {"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\tconfig.Window = DefaultSuppressionWindow"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\tif config.Window \u003c= 0 || config.Window \u003e 365*24*time.Hour {"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t\treturn SuppressionDecision{}, errors.New(\"suppression window is invalid\")"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\tif config.PathGlob == \"\" {"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t\tconfig.PathGlob = \"**\""
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\tmatched, err := path.Match(config.PathGlob, finding.Path)"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\treturn SuppressionDecision{}, errors.New(\"suppression path glob is invalid\")"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\tif !matched \u0026\u0026 config.PathGlob != \"**\" {"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\treturn SuppressionDecision{Reason: \"finding is outside the configured path scope\"}, nil"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\tcutoff := now.Add(-config.Window)"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\tseen := map[int64]bool{}"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\tdecision := SuppressionDecision{}"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\tfor _, event := range events {"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t\tif event.ID \u003c= 0 || seen[event.ID] || event.Category != finding.Category || event.OccurredAt.Before(cutoff) || event.OccurredAt.After(now) || (event.Kind != \"ignored\" \u0026\u0026 event.Kind != \"thumbs_down\") {"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\t\tif config.PathGlob != \"**\" {"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t\t\tinScope, _ := path.Match(config.PathGlob, event.Path)"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\t\t\tif !inScope {"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\t\t\t\tcontinue"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\t\tseen[event.ID] = true"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\t\tdecision.EvidenceIDs = append(decision.EvidenceIDs, event.ID)"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\tsort.Slice(decision.EvidenceIDs, func(i, j int) bool { return decision.EvidenceIDs[i] \u003c decision.EvidenceIDs[j] })"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\tif len(decision.EvidenceIDs) \u003e= config.Threshold {"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t\tdecision.Suppress = true"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t\tdecision.Reason = \"eligible category repeatedly ignored or downvoted in scope\""
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\t} else {"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\t\tdecision.Reason = \"feedback threshold not reached\""
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\treturn decision, nil"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/learning/suppression_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/learning/suppression_test.go b/internal/hosted/learning/suppression_test.go\nnew file mode 100644\nindex 0000000..ed1fc43\n--- /dev/null\n+++ b/internal/hosted/learning/suppression_test.go\n@@ -0,0 +1,27 @@\n+package learning\n+\n+import (\n+\t\"testing\"\n+\t\"time\"\n+)\n+\n+func TestDecideSuppressionRequiresThreeRecentSignals(t *testing.T) {\n+\tnow := time.Date(2026, 10, 26, 0, 0, 0, 0, time.UTC)\n+\tevents := []NoiseEvent{{ID: 1, Category: \"style\", Path: \"src/a.go\", Kind: \"ignored\", OccurredAt: now.Add(-time.Hour)}, {ID: 2, Category: \"style\", Path: \"src/b.go\", Kind: \"thumbs_down\", OccurredAt: now.Add(-2 * time.Hour)}, {ID: 3, Category: \"style\", Path: \"src/c.go\", Kind: \"ignored\", OccurredAt: now.Add(-3 * time.Hour)}}\n+\tdecision, err := DecideSuppression(SuppressionFinding{Severity: \"P2\", Category: \"style\", Path: \"src/new.go\"}, events, SuppressionConfig{PathGlob: \"src/*\"}, now)\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif !decision.Suppress || len(decision.EvidenceIDs) != 3 {\n+\t\tt.Fatalf(\"decision = %+v\", decision)\n+\t}\n+}\n+\n+func TestDecideSuppressionNeverHidesProtectedFinding(t *testing.T) {\n+\tnow := time.Now()\n+\tevents := []NoiseEvent{{ID: 1, Category: \"security\", Path: \"a.go\", Kind: \"thumbs_down\", OccurredAt: now}, {ID: 2, Category: \"security\", Path: \"a.go\", Kind: \"thumbs_down\", OccurredAt: now}, {ID: 3, Category: \"security\", Path: \"a.go\", Kind: \"thumbs_down\", OccurredAt: now}}\n+\tdecision, err := DecideSuppression(SuppressionFinding{Severity: \"P2\", Category: \"security\", Path: \"a.go\"}, events, SuppressionConfig{}, now)\n+\tif err != nil || decision.Suppress {\n+\t\tt.Fatalf(\"protected decision = %+v, %v\", decision, err)\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-9cc974a95a92dfaf",
+          "header": "@@ -0,0 +1,27 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package learning"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "func TestDecideSuppressionRequiresThreeRecentSignals(t *testing.T) {"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\tnow := time.Date(2026, 10, 26, 0, 0, 0, 0, time.UTC)"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\tevents := []NoiseEvent{{ID: 1, Category: \"style\", Path: \"src/a.go\", Kind: \"ignored\", OccurredAt: now.Add(-time.Hour)}, {ID: 2, Category: \"style\", Path: \"src/b.go\", Kind: \"thumbs_down\", OccurredAt: now.Add(-2 * time.Hour)}, {ID: 3, Category: \"style\", Path: \"src/c.go\", Kind: \"ignored\", OccurredAt: now.Add(-3 * time.Hour)}}"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\tdecision, err := DecideSuppression(SuppressionFinding{Severity: \"P2\", Category: \"style\", Path: \"src/new.go\"}, events, SuppressionConfig{PathGlob: \"src/*\"}, now)"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tif !decision.Suppress || len(decision.EvidenceIDs) != 3 {"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"decision = %+v\", decision)"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "func TestDecideSuppressionNeverHidesProtectedFinding(t *testing.T) {"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tnow := time.Now()"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tevents := []NoiseEvent{{ID: 1, Category: \"security\", Path: \"a.go\", Kind: \"thumbs_down\", OccurredAt: now}, {ID: 2, Category: \"security\", Path: \"a.go\", Kind: \"thumbs_down\", OccurredAt: now}, {ID: 3, Category: \"security\", Path: \"a.go\", Kind: \"thumbs_down\", OccurredAt: now}}"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tdecision, err := DecideSuppression(SuppressionFinding{Severity: \"P2\", Category: \"security\", Path: \"a.go\"}, events, SuppressionConfig{}, now)"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tif err != nil || decision.Suppress {"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"protected decision = %+v, %v\", decision, err)"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-1ebebab5cf8a03b8",
+      "title": "Path changes",
+      "summary": "3 related files share the \"path\" change signal.",
+      "paths": [
+        "ROADMAP.md",
+        "internal/hosted/learning/suppression.go",
+        "internal/hosted/learning/suppression_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-845efc938aa4e400",
+      "path": "internal/hosted/learning/suppression.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/learning/suppression_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-559bb61ed41bba73",
+      "path": "internal/hosted/learning/suppression.go",
+      "line": 43,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func DecideSuppression(finding SuppressionFinding, events []NoiseEvent, config SuppressionConfig, now time.Time) (SuppressionDecision, error) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 3,
+    "filesAnalyzed": 3,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "protected-findings",
+      "path": "internal/hosted/learning/suppression.go",
+      "lineStart": 47,
+      "lineEnd": 48,
+      "title": "Critical categories stay visible",
+      "summary": "P0 findings and findings categorized as security or logic remain visible regardless of feedback history, so repeated ignores or downvotes cannot suppress them."
+    },
+    {
+      "id": "suppression-threshold",
+      "path": "internal/hosted/learning/suppression.go",
+      "lineStart": 50,
+      "lineEnd": 93,
+      "title": "Repeated feedback can suppress findings",
+      "summary": "Eligible findings can now be hidden after at least three distinct, recent ignore or thumbs-down events for the same category. The default lookback is 30 days. When a path glob is configured, feedback from any path matching that glob counts toward the finding, rather than only feedback from the finding’s exact path."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "b71f1c94f952b537f24f5ff1b55fe49b11883bcd",
+      "revision": "77183d72388ed855b3b49b4e7482aac4f76fc57d",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "b71f1c94f952b537f24f5ff1b55fe49b11883bcd",
+      "revision": "77183d72388ed855b3b49b4e7482aac4f76fc57d",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "77183d72388ed855b3b49b4e7482aac4f76fc57d",
+      "detail": "2 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "77183d72388ed855b3b49b4e7482aac4f76fc57d",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-6ca3ba0c044bc22a",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/learning/suppression.go",
+      "line": 43,
+      "evidence": "func DecideSuppression(finding SuppressionFinding, events []NoiseEvent, config SuppressionConfig, now time.Time) (SuppressionDecision, error) {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "77183d72388ed855b3b49b4e7482aac4f76fc57d",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40223321184",
+    "checks": [
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40223321935/job/121259390015",
+        "startedAt": "2026-10-25T18:52:36Z"
+      },
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40223321184/job/121259388600",
+        "startedAt": "2026-10-25T18:52:37Z"
+      }
+    ]
+  }
+}
