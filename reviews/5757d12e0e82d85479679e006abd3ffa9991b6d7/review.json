@@ -1,0 +1,1263 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "4b26d7d1e924b5e421e98af0ce7e22ac182d35ab",
+  "head": "5757d12e0e82d85479679e006abd3ffa9991b6d7",
+  "generatedAt": "2026-10-25T18:18:21.013437527Z",
+  "files": [
+    {
+      "path": "internal/hosted/graph/queries.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/graph/queries.go b/internal/hosted/graph/queries.go\nnew file mode 100644\nindex 0000000..ca39e6f\n--- /dev/null\n+++ b/internal/hosted/graph/queries.go\n@@ -0,0 +1,74 @@\n+// Package graph owns the language-aware tree-sitter queries used to build the\n+// hosted symbol graph. Query compilation is tested for every indexed language.\n+package graph\n+\n+import (\n+\t\"embed\"\n+\t\"fmt\"\n+\t\"sort\"\n+\n+\ttreesitter \"github.com/tree-sitter/go-tree-sitter\"\n+\ttscsharp \"github.com/tree-sitter/tree-sitter-c-sharp/bindings/go\"\n+\ttsc \"github.com/tree-sitter/tree-sitter-c/bindings/go\"\n+\ttscpp \"github.com/tree-sitter/tree-sitter-cpp/bindings/go\"\n+\ttsgo \"github.com/tree-sitter/tree-sitter-go/bindings/go\"\n+\ttsjava \"github.com/tree-sitter/tree-sitter-java/bindings/go\"\n+\ttsjavascript \"github.com/tree-sitter/tree-sitter-javascript/bindings/go\"\n+\ttsphp \"github.com/tree-sitter/tree-sitter-php/bindings/go\"\n+\ttspython \"github.com/tree-sitter/tree-sitter-python/bindings/go\"\n+\ttsruby \"github.com/tree-sitter/tree-sitter-ruby/bindings/go\"\n+\ttsrust \"github.com/tree-sitter/tree-sitter-rust/bindings/go\"\n+\ttstypescript \"github.com/tree-sitter/tree-sitter-typescript/bindings/go\"\n+\n+\t\"px1/internal/hosted/indexer\"\n+)\n+\n+//go:embed queries/*.scm\n+var queryFiles embed.FS\n+\n+var grammars = map[indexer.Language]*treesitter.Language{\n+\tindexer.LanguageGo:         treesitter.NewLanguage(tsgo.Language()),\n+\tindexer.LanguageJavaScript: treesitter.NewLanguage(tsjavascript.Language()),\n+\tindexer.LanguageTypeScript: treesitter.NewLanguage(tstypescript.LanguageTypescript()),\n+\tindexer.LanguageTSX:        treesitter.NewLanguage(tstypescript.LanguageTSX()),\n+\tindexer.LanguagePython:     treesitter.NewLanguage(tspython.Language()),\n+\tindexer.LanguageRuby:       treesitter.NewLanguage(tsruby.Language()),\n+\tindexer.LanguageRust:       treesitter.NewLanguage(tsrust.Language()),\n+\tindexer.LanguageJava:       treesitter.NewLanguage(tsjava.Language()),\n+\tindexer.LanguageC:          treesitter.NewLanguage(tsc.Language()),\n+\tindexer.LanguageCPP:        treesitter.NewLanguage(tscpp.Language()),\n+\tindexer.LanguageCSharp:     treesitter.NewLanguage(tscsharp.Language()),\n+\tindexer.LanguagePHP:        treesitter.NewLanguage(tsphp.LanguagePHP()),\n+}\n+\n+func SupportedLanguages() []indexer.Language {\n+\tlanguages := make([]indexer.Language, 0, len(grammars))\n+\tfor language := range grammars {\n+\t\tlanguages = append(languages, language)\n+\t}\n+\tsort.Slice(languages, func(i, j int) bool { return languages[i] \u003c languages[j] })\n+\treturn languages\n+}\n+\n+func Source(language indexer.Language) (string, error) {\n+\tif grammars[language] == nil {\n+\t\treturn \"\", fmt.Errorf(\"unsupported graph language %q\", language)\n+\t}\n+\tdata, err := queryFiles.ReadFile(\"queries/\" + string(language) + \".scm\")\n+\tif err != nil {\n+\t\treturn \"\", fmt.Errorf(\"read %s graph query: %w\", language, err)\n+\t}\n+\treturn string(data), nil\n+}\n+\n+func Compile(language indexer.Language) (*treesitter.Query, error) {\n+\tsource, err := Source(language)\n+\tif err != nil {\n+\t\treturn nil, err\n+\t}\n+\tquery, queryErr := treesitter.NewQuery(grammars[language], source)\n+\tif queryErr != nil {\n+\t\treturn nil, fmt.Errorf(\"compile %s graph query: %w\", language, queryErr)\n+\t}\n+\treturn query, nil\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-b55afe533e68d830",
+          "header": "@@ -0,0 +1,74 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "// Package graph owns the language-aware tree-sitter queries used to build the"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "// hosted symbol graph. Query compilation is tested for every indexed language."
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "package graph"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"embed\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"sort\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\ttreesitter \"github.com/tree-sitter/go-tree-sitter\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\ttscsharp \"github.com/tree-sitter/tree-sitter-c-sharp/bindings/go\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\ttsc \"github.com/tree-sitter/tree-sitter-c/bindings/go\""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\ttscpp \"github.com/tree-sitter/tree-sitter-cpp/bindings/go\""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\ttsgo \"github.com/tree-sitter/tree-sitter-go/bindings/go\""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\ttsjava \"github.com/tree-sitter/tree-sitter-java/bindings/go\""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\ttsjavascript \"github.com/tree-sitter/tree-sitter-javascript/bindings/go\""
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\ttsphp \"github.com/tree-sitter/tree-sitter-php/bindings/go\""
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\ttspython \"github.com/tree-sitter/tree-sitter-python/bindings/go\""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\ttsruby \"github.com/tree-sitter/tree-sitter-ruby/bindings/go\""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\ttsrust \"github.com/tree-sitter/tree-sitter-rust/bindings/go\""
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\ttstypescript \"github.com/tree-sitter/tree-sitter-typescript/bindings/go\""
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t\"px1/internal/hosted/indexer\""
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "//go:embed queries/*.scm"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "var queryFiles embed.FS"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "var grammars = map[indexer.Language]*treesitter.Language{"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tindexer.LanguageGo:         treesitter.NewLanguage(tsgo.Language()),"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tindexer.LanguageJavaScript: treesitter.NewLanguage(tsjavascript.Language()),"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tindexer.LanguageTypeScript: treesitter.NewLanguage(tstypescript.LanguageTypescript()),"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tindexer.LanguageTSX:        treesitter.NewLanguage(tstypescript.LanguageTSX()),"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tindexer.LanguagePython:     treesitter.NewLanguage(tspython.Language()),"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tindexer.LanguageRuby:       treesitter.NewLanguage(tsruby.Language()),"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tindexer.LanguageRust:       treesitter.NewLanguage(tsrust.Language()),"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\tindexer.LanguageJava:       treesitter.NewLanguage(tsjava.Language()),"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tindexer.LanguageC:          treesitter.NewLanguage(tsc.Language()),"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tindexer.LanguageCPP:        treesitter.NewLanguage(tscpp.Language()),"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tindexer.LanguageCSharp:     treesitter.NewLanguage(tscsharp.Language()),"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\tindexer.LanguagePHP:        treesitter.NewLanguage(tsphp.LanguagePHP()),"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "func SupportedLanguages() []indexer.Language {"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\tlanguages := make([]indexer.Language, 0, len(grammars))"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\tfor language := range grammars {"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\tlanguages = append(languages, language)"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\tsort.Slice(languages, func(i, j int) bool { return languages[i] \u003c languages[j] })"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\treturn languages"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "func Source(language indexer.Language) (string, error) {"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\tif grammars[language] == nil {"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t\treturn \"\", fmt.Errorf(\"unsupported graph language %q\", language)"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\tdata, err := queryFiles.ReadFile(\"queries/\" + string(language) + \".scm\")"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t\treturn \"\", fmt.Errorf(\"read %s graph query: %w\", language, err)"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\treturn string(data), nil"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "func Compile(language indexer.Language) (*treesitter.Query, error) {"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\tsource, err := Source(language)"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\tquery, queryErr := treesitter.NewQuery(grammars[language], source)"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\tif queryErr != nil {"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\treturn nil, fmt.Errorf(\"compile %s graph query: %w\", language, queryErr)"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\treturn query, nil"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/graph/queries/c.scm",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/graph/queries/c.scm b/internal/hosted/graph/queries/c.scm\nnew file mode 100644\nindex 0000000..cc33510\n--- /dev/null\n+++ b/internal/hosted/graph/queries/c.scm\n@@ -0,0 +1,5 @@\n+(function_definition) @definition\n+(type_definition) @definition\n+(identifier) @reference\n+(preproc_include) @import\n+(call_expression) @call\n",
+      "hunks": [
+        {
+          "id": "diff-bd4d9cf1312b760b",
+          "header": "@@ -0,0 +1,5 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "(function_definition) @definition"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "(type_definition) @definition"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "(identifier) @reference"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "(preproc_include) @import"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "(call_expression) @call"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/graph/queries/cpp.scm",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/graph/queries/cpp.scm b/internal/hosted/graph/queries/cpp.scm\nnew file mode 100644\nindex 0000000..c24f7cb\n--- /dev/null\n+++ b/internal/hosted/graph/queries/cpp.scm\n@@ -0,0 +1,6 @@\n+(function_definition) @definition\n+(class_specifier) @definition\n+(namespace_definition) @definition\n+(identifier) @reference\n+(preproc_include) @import\n+(call_expression) @call\n",
+      "hunks": [
+        {
+          "id": "diff-d8f4f204c23d497c",
+          "header": "@@ -0,0 +1,6 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "(function_definition) @definition"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "(class_specifier) @definition"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "(namespace_definition) @definition"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "(identifier) @reference"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "(preproc_include) @import"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "(call_expression) @call"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/graph/queries/csharp.scm",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/graph/queries/csharp.scm b/internal/hosted/graph/queries/csharp.scm\nnew file mode 100644\nindex 0000000..1939e43\n--- /dev/null\n+++ b/internal/hosted/graph/queries/csharp.scm\n@@ -0,0 +1,6 @@\n+(method_declaration) @definition\n+(class_declaration) @definition\n+(interface_declaration) @definition\n+(identifier) @reference\n+(using_directive) @import\n+(invocation_expression) @call\n",
+      "hunks": [
+        {
+          "id": "diff-f9cc15d99161e5ee",
+          "header": "@@ -0,0 +1,6 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "(method_declaration) @definition"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "(class_declaration) @definition"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "(interface_declaration) @definition"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "(identifier) @reference"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "(using_directive) @import"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "(invocation_expression) @call"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/graph/queries/go.scm",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/graph/queries/go.scm b/internal/hosted/graph/queries/go.scm\nnew file mode 100644\nindex 0000000..c1b2b4a\n--- /dev/null\n+++ b/internal/hosted/graph/queries/go.scm\n@@ -0,0 +1,5 @@\n+(function_declaration) @definition\n+(method_declaration) @definition\n+(identifier) @reference\n+(import_spec) @import\n+(call_expression) @call\n",
+      "hunks": [
+        {
+          "id": "diff-b3008bc00cca1afc",
+          "header": "@@ -0,0 +1,5 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "(function_declaration) @definition"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "(method_declaration) @definition"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "(identifier) @reference"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "(import_spec) @import"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "(call_expression) @call"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/graph/queries/java.scm",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/graph/queries/java.scm b/internal/hosted/graph/queries/java.scm\nnew file mode 100644\nindex 0000000..6d4aff0\n--- /dev/null\n+++ b/internal/hosted/graph/queries/java.scm\n@@ -0,0 +1,6 @@\n+(method_declaration) @definition\n+(class_declaration) @definition\n+(interface_declaration) @definition\n+(identifier) @reference\n+(import_declaration) @import\n+(method_invocation) @call\n",
+      "hunks": [
+        {
+          "id": "diff-801eb280435e4311",
+          "header": "@@ -0,0 +1,6 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "(method_declaration) @definition"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "(class_declaration) @definition"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "(interface_declaration) @definition"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "(identifier) @reference"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "(import_declaration) @import"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "(method_invocation) @call"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/graph/queries/javascript.scm",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/graph/queries/javascript.scm b/internal/hosted/graph/queries/javascript.scm\nnew file mode 100644\nindex 0000000..6469ce0\n--- /dev/null\n+++ b/internal/hosted/graph/queries/javascript.scm\n@@ -0,0 +1,5 @@\n+(function_declaration) @definition\n+(class_declaration) @definition\n+(identifier) @reference\n+(import_statement) @import\n+(call_expression) @call\n",
+      "hunks": [
+        {
+          "id": "diff-4845dec36521f98b",
+          "header": "@@ -0,0 +1,5 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "(function_declaration) @definition"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "(class_declaration) @definition"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "(identifier) @reference"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "(import_statement) @import"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "(call_expression) @call"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/graph/queries/php.scm",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/graph/queries/php.scm b/internal/hosted/graph/queries/php.scm\nnew file mode 100644\nindex 0000000..3790f1d\n--- /dev/null\n+++ b/internal/hosted/graph/queries/php.scm\n@@ -0,0 +1,6 @@\n+(function_definition) @definition\n+(method_declaration) @definition\n+(class_declaration) @definition\n+(name) @reference\n+(namespace_use_declaration) @import\n+(function_call_expression) @call\n",
+      "hunks": [
+        {
+          "id": "diff-0fdf40f4989742cb",
+          "header": "@@ -0,0 +1,6 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "(function_definition) @definition"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "(method_declaration) @definition"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "(class_declaration) @definition"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "(name) @reference"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "(namespace_use_declaration) @import"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "(function_call_expression) @call"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/graph/queries/python.scm",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/graph/queries/python.scm b/internal/hosted/graph/queries/python.scm\nnew file mode 100644\nindex 0000000..6bd213f\n--- /dev/null\n+++ b/internal/hosted/graph/queries/python.scm\n@@ -0,0 +1,6 @@\n+(function_definition) @definition\n+(class_definition) @definition\n+(identifier) @reference\n+(import_statement) @import\n+(import_from_statement) @import\n+(call) @call\n",
+      "hunks": [
+        {
+          "id": "diff-ec9841951bedeb93",
+          "header": "@@ -0,0 +1,6 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "(function_definition) @definition"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "(class_definition) @definition"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "(identifier) @reference"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "(import_statement) @import"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "(import_from_statement) @import"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "(call) @call"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/graph/queries/ruby.scm",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/graph/queries/ruby.scm b/internal/hosted/graph/queries/ruby.scm\nnew file mode 100644\nindex 0000000..8ad252b\n--- /dev/null\n+++ b/internal/hosted/graph/queries/ruby.scm\n@@ -0,0 +1,8 @@\n+(method) @definition\n+(class) @definition\n+(module) @definition\n+(identifier) @reference\n+(call\n+  method: (identifier) @import\n+  (#match? @import \"^(require|require_relative|load|autoload)$\"))\n+(call) @call\n",
+      "hunks": [
+        {
+          "id": "diff-4e6c946b55a793b5",
+          "header": "@@ -0,0 +1,8 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "(method) @definition"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "(class) @definition"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "(module) @definition"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "(identifier) @reference"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "(call"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "  method: (identifier) @import"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "  (#match? @import \"^(require|require_relative|load|autoload)$\"))"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "(call) @call"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/graph/queries/rust.scm",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/graph/queries/rust.scm b/internal/hosted/graph/queries/rust.scm\nnew file mode 100644\nindex 0000000..a30f355\n--- /dev/null\n+++ b/internal/hosted/graph/queries/rust.scm\n@@ -0,0 +1,6 @@\n+(function_item) @definition\n+(struct_item) @definition\n+(trait_item) @definition\n+(identifier) @reference\n+(use_declaration) @import\n+(call_expression) @call\n",
+      "hunks": [
+        {
+          "id": "diff-8ec4f7c870405563",
+          "header": "@@ -0,0 +1,6 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "(function_item) @definition"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "(struct_item) @definition"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "(trait_item) @definition"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "(identifier) @reference"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "(use_declaration) @import"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "(call_expression) @call"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/graph/queries/tsx.scm",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/graph/queries/tsx.scm b/internal/hosted/graph/queries/tsx.scm\nnew file mode 100644\nindex 0000000..b1352cf\n--- /dev/null\n+++ b/internal/hosted/graph/queries/tsx.scm\n@@ -0,0 +1,6 @@\n+(function_declaration) @definition\n+(class_declaration) @definition\n+(interface_declaration) @definition\n+(identifier) @reference\n+(import_statement) @import\n+(call_expression) @call\n",
+      "hunks": [
+        {
+          "id": "diff-11c9eaf18a6fcc9e",
+          "header": "@@ -0,0 +1,6 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "(function_declaration) @definition"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "(class_declaration) @definition"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "(interface_declaration) @definition"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "(identifier) @reference"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "(import_statement) @import"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "(call_expression) @call"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/graph/queries/typescript.scm",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/graph/queries/typescript.scm b/internal/hosted/graph/queries/typescript.scm\nnew file mode 100644\nindex 0000000..b1352cf\n--- /dev/null\n+++ b/internal/hosted/graph/queries/typescript.scm\n@@ -0,0 +1,6 @@\n+(function_declaration) @definition\n+(class_declaration) @definition\n+(interface_declaration) @definition\n+(identifier) @reference\n+(import_statement) @import\n+(call_expression) @call\n",
+      "hunks": [
+        {
+          "id": "diff-d979003606cbc999",
+          "header": "@@ -0,0 +1,6 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "(function_declaration) @definition"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "(class_declaration) @definition"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "(interface_declaration) @definition"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "(identifier) @reference"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "(import_statement) @import"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "(call_expression) @call"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/graph/queries_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/graph/queries_test.go b/internal/hosted/graph/queries_test.go\nnew file mode 100644\nindex 0000000..c01616f\n--- /dev/null\n+++ b/internal/hosted/graph/queries_test.go\n@@ -0,0 +1,38 @@\n+package graph\n+\n+import (\n+\t\"strings\"\n+\t\"testing\"\n+\n+\t\"px1/internal/hosted/indexer\"\n+)\n+\n+func TestEveryIndexedLanguageHasCompilingGraphQueries(t *testing.T) {\n+\tif len(SupportedLanguages()) != 12 {\n+\t\tt.Fatalf(\"supported %d graph languages, want 12\", len(SupportedLanguages()))\n+\t}\n+\tfor _, language := range SupportedLanguages() {\n+\t\tt.Run(string(language), func(t *testing.T) {\n+\t\t\tsource, err := Source(language)\n+\t\t\tif err != nil {\n+\t\t\t\tt.Fatal(err)\n+\t\t\t}\n+\t\t\tfor _, capture := range []string{\"@definition\", \"@reference\", \"@import\", \"@call\"} {\n+\t\t\t\tif !strings.Contains(source, capture) {\n+\t\t\t\t\tt.Errorf(\"query missing %s\", capture)\n+\t\t\t\t}\n+\t\t\t}\n+\t\t\tquery, err := Compile(language)\n+\t\t\tif err != nil {\n+\t\t\t\tt.Fatal(err)\n+\t\t\t}\n+\t\t\tquery.Close()\n+\t\t})\n+\t}\n+}\n+\n+func TestUnknownLanguageHasNoGraphQuery(t *testing.T) {\n+\tif _, err := Compile(indexer.LanguageUnknown); err == nil {\n+\t\tt.Fatal(\"unknown language unexpectedly compiled\")\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-1cede33f5cd5b59f",
+          "header": "@@ -0,0 +1,38 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package graph"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"px1/internal/hosted/indexer\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "func TestEveryIndexedLanguageHasCompilingGraphQueries(t *testing.T) {"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\tif len(SupportedLanguages()) != 12 {"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"supported %d graph languages, want 12\", len(SupportedLanguages()))"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tfor _, language := range SupportedLanguages() {"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\t\tt.Run(string(language), func(t *testing.T) {"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t\t\tsource, err := Source(language)"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t\t\tif err != nil {"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t\t\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t\t\tfor _, capture := range []string{\"@definition\", \"@reference\", \"@import\", \"@call\"} {"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t\t\t\tif !strings.Contains(source, capture) {"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\t\t\t\t\tt.Errorf(\"query missing %s\", capture)"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t\t\t\t}"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t\t\tquery, err := Compile(language)"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t\t\tif err != nil {"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t\t\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t\t\tquery.Close()"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t\t})"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "func TestUnknownLanguageHasNoGraphQuery(t *testing.T) {"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tif _, err := Compile(indexer.LanguageUnknown); err == nil {"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"unknown language unexpectedly compiled\")"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-48257df2105ebb36",
+      "title": "Call changes",
+      "summary": "14 related files share the \"call\" change signal.",
+      "paths": [
+        "internal/hosted/graph/queries.go",
+        "internal/hosted/graph/queries/c.scm",
+        "internal/hosted/graph/queries/cpp.scm",
+        "internal/hosted/graph/queries/csharp.scm",
+        "internal/hosted/graph/queries/go.scm",
+        "internal/hosted/graph/queries/java.scm",
+        "internal/hosted/graph/queries/javascript.scm",
+        "internal/hosted/graph/queries/php.scm",
+        "internal/hosted/graph/queries/python.scm",
+        "internal/hosted/graph/queries/ruby.scm",
+        "internal/hosted/graph/queries/rust.scm",
+        "internal/hosted/graph/queries/tsx.scm",
+        "internal/hosted/graph/queries/typescript.scm",
+        "internal/hosted/graph/queries_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-f6cfca4be6c15101",
+      "path": "internal/hosted/graph/queries.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/graph/queries_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-a7d007fb0408058f",
+      "path": "internal/hosted/graph/queries.go",
+      "line": 44,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func SupportedLanguages() []indexer.Language {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 14,
+    "filesAnalyzed": 14,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "graph-query-registry",
+      "path": "internal/hosted/graph/queries.go",
+      "lineStart": 25,
+      "lineEnd": 72,
+      "title": "Adds language-specific graph query loading",
+      "summary": "The graph package now maps 12 indexed languages to their grammars and embedded query files. Callers can list the supported languages, load a language’s query source, and compile it; unsupported languages and missing or invalid queries return errors."
+    },
+    {
+      "id": "ruby-imports",
+      "path": "internal/hosted/graph/queries/ruby.scm",
+      "lineStart": 5,
+      "lineEnd": 8,
+      "title": "Recognizes Ruby loading calls as imports",
+      "summary": "Ruby import captures are limited to calls named `require`, `require_relative`, `load`, or `autoload`, so ordinary method calls are not classified as imports by this query."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "4b26d7d1e924b5e421e98af0ce7e22ac182d35ab",
+      "revision": "5757d12e0e82d85479679e006abd3ffa9991b6d7",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "4b26d7d1e924b5e421e98af0ce7e22ac182d35ab",
+      "revision": "5757d12e0e82d85479679e006abd3ffa9991b6d7",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "5757d12e0e82d85479679e006abd3ffa9991b6d7",
+      "detail": "2 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "5757d12e0e82d85479679e006abd3ffa9991b6d7",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-762e109e390b6fc0",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/graph/queries.go",
+      "line": 44,
+      "evidence": "func SupportedLanguages() []indexer.Language {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "5757d12e0e82d85479679e006abd3ffa9991b6d7",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40220475839",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40220475839/job/121250976193",
+        "startedAt": "2026-10-25T18:17:40Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40220477268/job/121250763274",
+        "startedAt": "2026-10-25T18:16:45Z"
+      }
+    ]
+  }
+}
