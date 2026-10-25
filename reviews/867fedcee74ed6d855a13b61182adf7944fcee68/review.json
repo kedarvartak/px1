@@ -1,0 +1,953 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "b71f1c94f952b537f24f5ff1b55fe49b11883bcd",
+  "head": "867fedcee74ed6d855a13b61182adf7944fcee68",
+  "generatedAt": "2026-10-25T20:30:44.124820183Z",
+  "files": [
+    {
+      "path": "internal/hosted/review/addressed.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/review/addressed.go b/internal/hosted/review/addressed.go\nnew file mode 100644\nindex 0000000..b4a930e\n--- /dev/null\n+++ b/internal/hosted/review/addressed.go\n@@ -0,0 +1,103 @@\n+package review\n+\n+import (\n+\t\"bytes\"\n+\t\"context\"\n+\t\"crypto/sha256\"\n+\t\"encoding/hex\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"path/filepath\"\n+\t\"strings\"\n+)\n+\n+const maxAddressedFileBytes = 4 \u003c\u003c 20\n+\n+type RevisionFileReader interface {\n+\tReadFile(context.Context, int64, int64, string, string) ([]byte, bool, error)\n+}\n+\n+type AddressedInput struct {\n+\tInstallationID int64\n+\tRepositoryID   int64\n+\tReviewSHA      string\n+\tMergeSHA       string\n+\tPath           string\n+\tStartLine      int\n+\tEndLine        int\n+}\n+\n+type AddressedResult struct {\n+\tAddressed           bool\n+\tReason              string\n+\tOriginalFingerprint string\n+}\n+\n+// DetectAddressed compares the exact reviewed lines with the merge revision.\n+// It searches the whole merged file so unrelated insertions above the range do\n+// not create a false addressed signal.\n+func DetectAddressed(ctx context.Context, reader RevisionFileReader, input AddressedInput) (AddressedResult, error) {\n+\tcleanPath := filepath.ToSlash(filepath.Clean(input.Path))\n+\tif reader == nil || input.InstallationID \u003c= 0 || input.RepositoryID \u003c= 0 || !fullSHA(input.ReviewSHA) || !fullSHA(input.MergeSHA) || input.ReviewSHA == input.MergeSHA || input.Path == \"\" || filepath.IsAbs(input.Path) || cleanPath == \"..\" || strings.HasPrefix(cleanPath, \"../\") || input.StartLine \u003c= 0 || input.EndLine \u003c input.StartLine {\n+\t\treturn AddressedResult{}, errors.New(\"tenant, distinct revisions, and a valid reviewed range are required\")\n+\t}\n+\toriginal, exists, err := reader.ReadFile(ctx, input.InstallationID, input.RepositoryID, input.ReviewSHA, cleanPath)\n+\tif err != nil || !exists {\n+\t\tif err == nil {\n+\t\t\terr = errors.New(\"reviewed file does not exist at review SHA\")\n+\t\t}\n+\t\treturn AddressedResult{}, fmt.Errorf(\"read reviewed file: %w\", err)\n+\t}\n+\tif len(original) \u003e maxAddressedFileBytes {\n+\t\treturn AddressedResult{}, errors.New(\"reviewed file exceeds addressed-detection limit\")\n+\t}\n+\tlines := splitReviewLines(original)\n+\tif input.EndLine \u003e len(lines) {\n+\t\treturn AddressedResult{}, errors.New(\"reviewed range exceeds file length\")\n+\t}\n+\twanted := lines[input.StartLine-1 : input.EndLine]\n+\tsnippet := bytes.Join(wanted, []byte(\"\\n\"))\n+\tdigest := sha256.Sum256(snippet)\n+\tresult := AddressedResult{OriginalFingerprint: hex.EncodeToString(digest[:])}\n+\tmerged, exists, err := reader.ReadFile(ctx, input.InstallationID, input.RepositoryID, input.MergeSHA, cleanPath)\n+\tif err != nil {\n+\t\treturn AddressedResult{}, fmt.Errorf(\"read merged file: %w\", err)\n+\t}\n+\tif !exists {\n+\t\tresult.Addressed, result.Reason = true, \"file was deleted before merge\"\n+\t\treturn result, nil\n+\t}\n+\tif len(merged) \u003e maxAddressedFileBytes {\n+\t\treturn AddressedResult{}, errors.New(\"merged file exceeds addressed-detection limit\")\n+\t}\n+\tif containsLineSequence(splitReviewLines(merged), wanted) {\n+\t\tresult.Reason = \"reviewed lines remain unchanged at merge\"\n+\t\treturn result, nil\n+\t}\n+\tresult.Addressed, result.Reason = true, \"reviewed lines changed before merge\"\n+\treturn result, nil\n+}\n+\n+func splitReviewLines(content []byte) [][]byte {\n+\tcontent = bytes.ReplaceAll(content, []byte(\"\\r\\n\"), []byte(\"\\n\"))\n+\treturn bytes.Split(bytes.TrimSuffix(content, []byte(\"\\n\")), []byte(\"\\n\"))\n+}\n+\n+func containsLineSequence(lines, wanted [][]byte) bool {\n+\tif len(wanted) == 0 || len(wanted) \u003e len(lines) {\n+\t\treturn false\n+\t}\n+\tfor i := 0; i+len(wanted) \u003c= len(lines); i++ {\n+\t\tmatched := true\n+\t\tfor offset := range wanted {\n+\t\t\tif !bytes.Equal(lines[i+offset], wanted[offset]) {\n+\t\t\t\tmatched = false\n+\t\t\t\tbreak\n+\t\t\t}\n+\t\t}\n+\t\tif matched {\n+\t\t\treturn true\n+\t\t}\n+\t}\n+\treturn false\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-8fda3c024f579cd6",
+          "header": "@@ -0,0 +1,103 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package review"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"bytes\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"crypto/sha256\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"encoding/hex\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"path/filepath\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "const maxAddressedFileBytes = 4 \u003c\u003c 20"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "type RevisionFileReader interface {"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tReadFile(context.Context, int64, int64, string, string) ([]byte, bool, error)"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "type AddressedInput struct {"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tInstallationID int64"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tRepositoryID   int64"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tReviewSHA      string"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tMergeSHA       string"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tPath           string"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tStartLine      int"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tEndLine        int"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "type AddressedResult struct {"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tAddressed           bool"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tReason              string"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tOriginalFingerprint string"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "// DetectAddressed compares the exact reviewed lines with the merge revision."
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "// It searches the whole merged file so unrelated insertions above the range do"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "// not create a false addressed signal."
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "func DetectAddressed(ctx context.Context, reader RevisionFileReader, input AddressedInput) (AddressedResult, error) {"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tcleanPath := filepath.ToSlash(filepath.Clean(input.Path))"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\tif reader == nil || input.InstallationID \u003c= 0 || input.RepositoryID \u003c= 0 || !fullSHA(input.ReviewSHA) || !fullSHA(input.MergeSHA) || input.ReviewSHA == input.MergeSHA || input.Path == \"\" || filepath.IsAbs(input.Path) || cleanPath == \"..\" || strings.HasPrefix(cleanPath, \"../\") || input.StartLine \u003c= 0 || input.EndLine \u003c input.StartLine {"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t\treturn AddressedResult{}, errors.New(\"tenant, distinct revisions, and a valid reviewed range are required\")"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\toriginal, exists, err := reader.ReadFile(ctx, input.InstallationID, input.RepositoryID, input.ReviewSHA, cleanPath)"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\tif err != nil || !exists {"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t\tif err == nil {"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\t\terr = errors.New(\"reviewed file does not exist at review SHA\")"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\treturn AddressedResult{}, fmt.Errorf(\"read reviewed file: %w\", err)"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\tif len(original) \u003e maxAddressedFileBytes {"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\treturn AddressedResult{}, errors.New(\"reviewed file exceeds addressed-detection limit\")"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\tlines := splitReviewLines(original)"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\tif input.EndLine \u003e len(lines) {"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t\treturn AddressedResult{}, errors.New(\"reviewed range exceeds file length\")"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\twanted := lines[input.StartLine-1 : input.EndLine]"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\tsnippet := bytes.Join(wanted, []byte(\"\\n\"))"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\tdigest := sha256.Sum256(snippet)"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\tresult := AddressedResult{OriginalFingerprint: hex.EncodeToString(digest[:])}"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\tmerged, exists, err := reader.ReadFile(ctx, input.InstallationID, input.RepositoryID, input.MergeSHA, cleanPath)"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t\treturn AddressedResult{}, fmt.Errorf(\"read merged file: %w\", err)"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\tif !exists {"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\tresult.Addressed, result.Reason = true, \"file was deleted before merge\""
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\treturn result, nil"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\tif len(merged) \u003e maxAddressedFileBytes {"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\treturn AddressedResult{}, errors.New(\"merged file exceeds addressed-detection limit\")"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\tif containsLineSequence(splitReviewLines(merged), wanted) {"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t\tresult.Reason = \"reviewed lines remain unchanged at merge\""
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\t\treturn result, nil"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\tresult.Addressed, result.Reason = true, \"reviewed lines changed before merge\""
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\treturn result, nil"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "func splitReviewLines(content []byte) [][]byte {"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\tcontent = bytes.ReplaceAll(content, []byte(\"\\r\\n\"), []byte(\"\\n\"))"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\treturn bytes.Split(bytes.TrimSuffix(content, []byte(\"\\n\")), []byte(\"\\n\"))"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "func containsLineSequence(lines, wanted [][]byte) bool {"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\tif len(wanted) == 0 || len(wanted) \u003e len(lines) {"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\t\treturn false"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\tfor i := 0; i+len(wanted) \u003c= len(lines); i++ {"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t\tmatched := true"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\t\tfor offset := range wanted {"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\t\t\tif !bytes.Equal(lines[i+offset], wanted[offset]) {"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t\t\t\tmatched = false"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t\t\t\tbreak"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t\tif matched {"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\t\t\treturn true"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\treturn false"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/review/addressed_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/review/addressed_test.go b/internal/hosted/review/addressed_test.go\nnew file mode 100644\nindex 0000000..32215f1\n--- /dev/null\n+++ b/internal/hosted/review/addressed_test.go\n@@ -0,0 +1,50 @@\n+package review\n+\n+import (\n+\t\"context\"\n+\t\"strings\"\n+\t\"testing\"\n+)\n+\n+type revisionReaderFunc func(context.Context, int64, int64, string, string) ([]byte, bool, error)\n+\n+func (f revisionReaderFunc) ReadFile(ctx context.Context, installationID, repositoryID int64, sha, path string) ([]byte, bool, error) {\n+\treturn f(ctx, installationID, repositoryID, sha, path)\n+}\n+\n+func TestDetectAddressedIgnoresLineShiftButDetectsEdit(t *testing.T) {\n+\treviewSHA, mergeSHA := strings.Repeat(\"a\", 40), strings.Repeat(\"b\", 40)\n+\tmerged := \"new header\\none\\nflagged line\\nthree\\n\"\n+\treader := revisionReaderFunc(func(_ context.Context, installationID, repositoryID int64, sha, path string) ([]byte, bool, error) {\n+\t\tif installationID != 1 || repositoryID != 2 || path != \"a.go\" {\n+\t\t\tt.Fatal(\"lost tenant scope\")\n+\t\t}\n+\t\tif sha == reviewSHA {\n+\t\t\treturn []byte(\"one\\nflagged line\\nthree\\n\"), true, nil\n+\t\t}\n+\t\treturn []byte(merged), true, nil\n+\t})\n+\tresult, err := DetectAddressed(context.Background(), reader, AddressedInput{InstallationID: 1, RepositoryID: 2, ReviewSHA: reviewSHA, MergeSHA: mergeSHA, Path: \"a.go\", StartLine: 2, EndLine: 2})\n+\tif err != nil || result.Addressed {\n+\t\tt.Fatalf(\"line shift counted as addressed: %+v %v\", result, err)\n+\t}\n+\tmerged = \"new header\\none\\nfixed line\\nthree\\n\"\n+\tresult, err = DetectAddressed(context.Background(), reader, AddressedInput{InstallationID: 1, RepositoryID: 2, ReviewSHA: reviewSHA, MergeSHA: mergeSHA, Path: \"a.go\", StartLine: 2, EndLine: 2})\n+\tif err != nil || !result.Addressed || result.OriginalFingerprint == \"\" {\n+\t\tt.Fatalf(\"edit was not addressed: %+v %v\", result, err)\n+\t}\n+}\n+\n+func TestDetectAddressedTreatsDeletionAsAddressed(t *testing.T) {\n+\treviewSHA, mergeSHA := strings.Repeat(\"a\", 40), strings.Repeat(\"b\", 40)\n+\treader := revisionReaderFunc(func(_ context.Context, _ int64, _ int64, sha, _ string) ([]byte, bool, error) {\n+\t\tif sha == reviewSHA {\n+\t\t\treturn []byte(\"bad\\n\"), true, nil\n+\t\t}\n+\t\treturn nil, false, nil\n+\t})\n+\tresult, err := DetectAddressed(context.Background(), reader, AddressedInput{InstallationID: 1, RepositoryID: 2, ReviewSHA: reviewSHA, MergeSHA: mergeSHA, Path: \"a.go\", StartLine: 1, EndLine: 1})\n+\tif err != nil || !result.Addressed {\n+\t\tt.Fatalf(\"deletion = %+v, %v\", result, err)\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-53db4cd80985aabe",
+          "header": "@@ -0,0 +1,50 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package review"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "type revisionReaderFunc func(context.Context, int64, int64, string, string) ([]byte, bool, error)"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "func (f revisionReaderFunc) ReadFile(ctx context.Context, installationID, repositoryID int64, sha, path string) ([]byte, bool, error) {"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\treturn f(ctx, installationID, repositoryID, sha, path)"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "func TestDetectAddressedIgnoresLineShiftButDetectsEdit(t *testing.T) {"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\treviewSHA, mergeSHA := strings.Repeat(\"a\", 40), strings.Repeat(\"b\", 40)"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tmerged := \"new header\\none\\nflagged line\\nthree\\n\""
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\treader := revisionReaderFunc(func(_ context.Context, installationID, repositoryID int64, sha, path string) ([]byte, bool, error) {"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t\tif installationID != 1 || repositoryID != 2 || path != \"a.go\" {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t\t\tt.Fatal(\"lost tenant scope\")"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\t\tif sha == reviewSHA {"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t\t\treturn []byte(\"one\\nflagged line\\nthree\\n\"), true, nil"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t\treturn []byte(merged), true, nil"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t})"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tresult, err := DetectAddressed(context.Background(), reader, AddressedInput{InstallationID: 1, RepositoryID: 2, ReviewSHA: reviewSHA, MergeSHA: mergeSHA, Path: \"a.go\", StartLine: 2, EndLine: 2})"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tif err != nil || result.Addressed {"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"line shift counted as addressed: %+v %v\", result, err)"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tmerged = \"new header\\none\\nfixed line\\nthree\\n\""
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tresult, err = DetectAddressed(context.Background(), reader, AddressedInput{InstallationID: 1, RepositoryID: 2, ReviewSHA: reviewSHA, MergeSHA: mergeSHA, Path: \"a.go\", StartLine: 2, EndLine: 2})"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tif err != nil || !result.Addressed || result.OriginalFingerprint == \"\" {"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"edit was not addressed: %+v %v\", result, err)"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "func TestDetectAddressedTreatsDeletionAsAddressed(t *testing.T) {"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\treviewSHA, mergeSHA := strings.Repeat(\"a\", 40), strings.Repeat(\"b\", 40)"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\treader := revisionReaderFunc(func(_ context.Context, _ int64, _ int64, sha, _ string) ([]byte, bool, error) {"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t\tif sha == reviewSHA {"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t\t\treturn []byte(\"bad\\n\"), true, nil"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t\treturn nil, false, nil"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t})"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\tresult, err := DetectAddressed(context.Background(), reader, AddressedInput{InstallationID: 1, RepositoryID: 2, ReviewSHA: reviewSHA, MergeSHA: mergeSHA, Path: \"a.go\", StartLine: 1, EndLine: 1})"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\tif err != nil || !result.Addressed {"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"deletion = %+v, %v\", result, err)"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-c60ab0155a58e8fe",
+      "title": "Addressed changes",
+      "summary": "2 related files share the \"addressed\" change signal.",
+      "paths": [
+        "internal/hosted/review/addressed.go",
+        "internal/hosted/review/addressed_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-30c86b7805223d56",
+      "path": "internal/hosted/review/addressed.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/review/addressed_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-0c343fa0e98e05d6",
+      "path": "internal/hosted/review/addressed.go",
+      "line": 39,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func DetectAddressed(ctx context.Context, reader RevisionFileReader, input AddressedInput) (AddressedResult, error) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 2,
+    "filesAnalyzed": 2,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "3",
+      "path": "internal/hosted/review/addressed.go",
+      "lineStart": 39,
+      "lineEnd": 53,
+      "title": "Validates inputs and bounds file reads",
+      "summary": "Rejects invalid tenant or revision identifiers, unsafe paths, invalid line ranges, and oversized reviewed files before comparing revisions."
+    },
+    {
+      "id": "1",
+      "path": "internal/hosted/review/addressed.go",
+      "lineStart": 54,
+      "lineEnd": 74,
+      "title": "Detects edits without treating line shifts as fixes",
+      "summary": "Checks whether the reviewed lines still occur together anywhere in the merged file, so insertions above them do not count as addressing the review. Changed lines or a deleted file do count as addressed."
+    },
+    {
+      "id": "2",
+      "path": "internal/hosted/review/addressed.go",
+      "lineStart": 54,
+      "lineEnd": 57,
+      "title": "Fingerprints the reviewed snippet",
+      "summary": "Returns a SHA-256 fingerprint of the exact reviewed snippet, allowing callers to identify which original lines were checked."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "b71f1c94f952b537f24f5ff1b55fe49b11883bcd",
+      "revision": "867fedcee74ed6d855a13b61182adf7944fcee68",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "b71f1c94f952b537f24f5ff1b55fe49b11883bcd",
+      "revision": "867fedcee74ed6d855a13b61182adf7944fcee68",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "867fedcee74ed6d855a13b61182adf7944fcee68",
+      "detail": "3 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "867fedcee74ed6d855a13b61182adf7944fcee68",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-cf39aecd4e9049e3",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/review/addressed.go",
+      "line": 39,
+      "evidence": "func DetectAddressed(ctx context.Context, reader RevisionFileReader, input AddressedInput) (AddressedResult, error) {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "867fedcee74ed6d855a13b61182adf7944fcee68",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40231065050",
+    "checks": [
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40231067180/job/121282707934",
+        "startedAt": "2026-10-25T20:30:17Z"
+      },
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40231065050/job/121282703472",
+        "startedAt": "2026-10-25T20:30:18Z"
+      }
+    ]
+  }
+}
