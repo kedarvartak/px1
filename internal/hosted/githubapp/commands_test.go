@@ -21,7 +21,8 @@ func (f *commandAPIFake) Do(_ context.Context, _ int64, _ *http.Request) (*http.
 func TestParseCommand(t *testing.T) {
 	for input, want := range map[string]Command{
 		"@px1 review": {Name: "review"}, "hello\n@px1 why": {},
-		"\n @PX1 explain internal/api.go\nmore": {Name: "explain", Path: "internal/api.go"},
+		"\n @PX1 explain internal/api.go\nmore":    {Name: "explain", Path: "internal/api.go"},
+		"@px1 remember Prefer wrapped errors here": {Name: "remember", Text: "Prefer wrapped errors here"},
 	} {
 		got, ok := ParseCommand(input)
 		if want.Name == "" {

@@ -15,6 +15,7 @@ import (
 type Command struct {
 	Name string
 	Path string
+	Text string
 }
 
 // ParseCommand accepts one explicit command on the first non-empty line.
@@ -41,6 +42,15 @@ func ParseCommand(body string) (Command, bool) {
 			return Command{}, false
 		}
 		return Command{Name: "explain", Path: filepath.ToSlash(filepath.Clean(fields[2]))}, true
+	case "remember":
+		if len(fields) < 3 {
+			return Command{}, false
+		}
+		text := strings.TrimSpace(strings.Join(fields[2:], " "))
+		if text == "" || len(text) > 2000 {
+			return Command{}, false
+		}
+		return Command{Name: "remember", Text: text}, true
 	default:
 		return Command{}, false
 	}
