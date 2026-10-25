@@ -9,7 +9,8 @@ import (
 )
 
 type Finding struct {
-	Path, Severity     string
+	Path, BugClass     string
+	Severity           string
 	StartLine, EndLine int
 }
 type ReviewResult struct {
@@ -67,6 +68,9 @@ func Run(ctx context.Context, dataset Dataset, reviewer Reviewer) (Metrics, erro
 	}
 	if len(latencies) > 0 {
 		metrics.MedianLatency = latencies[len(latencies)/2]
+		if len(latencies)%2 == 0 {
+			metrics.MedianLatency = (latencies[len(latencies)/2-1] + metrics.MedianLatency) / 2
+		}
 	}
 	return metrics, nil
 }
@@ -101,5 +105,5 @@ func labelMatched(l Label, findings []Finding) bool {
 	return false
 }
 func overlap(f Finding, l Label) bool {
-	return f.Path == l.Path && f.StartLine <= l.EndLine && l.StartLine <= f.EndLine
+	return f.Path == l.Path && f.BugClass == l.BugClass && f.StartLine <= l.EndLine && l.StartLine <= f.EndLine
 }
