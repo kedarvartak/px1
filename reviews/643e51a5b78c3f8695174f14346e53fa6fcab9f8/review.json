@@ -1,0 +1,746 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "4b26d7d1e924b5e421e98af0ce7e22ac182d35ab",
+  "head": "643e51a5b78c3f8695174f14346e53fa6fcab9f8",
+  "generatedAt": "2026-10-25T18:17:21.009309183Z",
+  "files": [
+    {
+      "path": "README.md",
+      "status": "M",
+      "diff": "diff --git a/README.md b/README.md\nindex 733d30f..6176850 100644\n--- a/README.md\n+++ b/README.md\n@@ -26,6 +26,10 @@ approval and change requests stay in GitHub.\n See [the hosted v1 architecture decision](docs/HOSTED_ARCHITECTURE.md) for the\n planned GitHub App, indexing, queue, storage, and security boundaries.\n \n+Hosted launch documentation: [installation](docs/HOSTED_INSTALL.md),\n+[privacy](docs/PRIVACY_POLICY.md), [terms](docs/TERMS.md), and\n+[data retention](docs/DATA_RETENTION.md).\n+\n ## What reviewers get\n \n - Explicit file states: unreviewed, reviewed, or needs follow-up\n",
+      "hunks": [
+        {
+          "id": "diff-eba0ee4c93c731a3",
+          "header": "@@ -26,6 +26,10 @@ approval and change requests stay in GitHub.",
+          "lines": [
+            {
+              "oldLine": 26,
+              "newLine": 26,
+              "kind": "context",
+              "text": "See [the hosted v1 architecture decision](docs/HOSTED_ARCHITECTURE.md) for the"
+            },
+            {
+              "oldLine": 27,
+              "newLine": 27,
+              "kind": "context",
+              "text": "planned GitHub App, indexing, queue, storage, and security boundaries."
+            },
+            {
+              "oldLine": 28,
+              "newLine": 28,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "Hosted launch documentation: [installation](docs/HOSTED_INSTALL.md),"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "[privacy](docs/PRIVACY_POLICY.md), [terms](docs/TERMS.md), and"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "[data retention](docs/DATA_RETENTION.md)."
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 29,
+              "newLine": 33,
+              "kind": "context",
+              "text": "## What reviewers get"
+            },
+            {
+              "oldLine": 30,
+              "newLine": 34,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 31,
+              "newLine": 35,
+              "kind": "context",
+              "text": "- Explicit file states: unreviewed, reviewed, or needs follow-up"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/DATA_RETENTION.md",
+      "status": "A",
+      "diff": "diff --git a/docs/DATA_RETENTION.md b/docs/DATA_RETENTION.md\nnew file mode 100644\nindex 0000000..bed729e\n--- /dev/null\n+++ b/docs/DATA_RETENTION.md\n@@ -0,0 +1,25 @@\n+# Hosted data retention\n+\n+This is the proposed hosted v1 retention schedule. Deployment configuration\n+must enforce these limits before launch.\n+\n+| Data | Default retention | Deletion trigger |\n+| --- | --- | --- |\n+| Temporary repository clones | Job duration, no more than 24 hours | Job completion or failure cleanup |\n+| Indexed code chunks and symbol graph | While installation has repository access, then 30 days | Repository access revoked or installation deleted |\n+| Review reports and findings | 90 days | Expiry or installation-owner request |\n+| Delivery and audit metadata | 180 days | Expiry, subject to security/legal preservation |\n+| Application logs | 30 days | Rolling expiry |\n+| Encrypted installation credentials | While installation is active | Installation deletion or token revocation |\n+\n+Uninstalling the GitHub App or revoking an installation starts a tenant-wide\n+deletion window: all repository content, indexes, review artifacts, findings,\n+credentials, and ordinary logs for that installation are deleted within 30\n+days, even when their normal active-installation retention period is longer.\n+\n+Backups must age out deleted records within 35 additional days. Deletion jobs\n+must be tenant-scoped, idempotent, observable, and tested. Security incidents or\n+legal obligations may require a documented temporary preservation hold.\n+\n+The free GitHub Action runs in the user's GitHub Actions environment. Its\n+artifacts follow the retention settings of that repository and GitHub account.\n",
+      "hunks": [
+        {
+          "id": "diff-388da26503aec571",
+          "header": "@@ -0,0 +1,25 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "# Hosted data retention"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "This is the proposed hosted v1 retention schedule. Deployment configuration"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "must enforce these limits before launch."
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "| Data | Default retention | Deletion trigger |"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "| --- | --- | --- |"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "| Temporary repository clones | Job duration, no more than 24 hours | Job completion or failure cleanup |"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "| Indexed code chunks and symbol graph | While installation has repository access, then 30 days | Repository access revoked or installation deleted |"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "| Review reports and findings | 90 days | Expiry or installation-owner request |"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "| Delivery and audit metadata | 180 days | Expiry, subject to security/legal preservation |"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "| Application logs | 30 days | Rolling expiry |"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "| Encrypted installation credentials | While installation is active | Installation deletion or token revocation |"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "Uninstalling the GitHub App or revoking an installation starts a tenant-wide"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "deletion window: all repository content, indexes, review artifacts, findings,"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "credentials, and ordinary logs for that installation are deleted within 30"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "days, even when their normal active-installation retention period is longer."
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "Backups must age out deleted records within 35 additional days. Deletion jobs"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "must be tenant-scoped, idempotent, observable, and tested. Security incidents or"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "legal obligations may require a documented temporary preservation hold."
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "The free GitHub Action runs in the user's GitHub Actions environment. Its"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "artifacts follow the retention settings of that repository and GitHub account."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/HOSTED_INSTALL.md",
+      "status": "A",
+      "diff": "diff --git a/docs/HOSTED_INSTALL.md b/docs/HOSTED_INSTALL.md\nnew file mode 100644\nindex 0000000..3051db7\n--- /dev/null\n+++ b/docs/HOSTED_INSTALL.md\n@@ -0,0 +1,24 @@\n+# Install the hosted GitHub App\n+\n+The hosted px1 service is planned for v1. It is not required to use the free,\n+accountless GitHub Action.\n+\n+## Installation flow\n+\n+1. Install the px1 GitHub App on an organization or personal account.\n+2. Grant access only to the repositories that px1 should review.\n+3. Open or update a pull request. px1 indexes the selected repository and\n+   publishes its review as a draft so a human can inspect it before submission.\n+4. Use `/px1 review` to request a fresh review or `/px1 explain` to ask for an\n+   explanation on the current pull request revision.\n+\n+The App requests repository metadata and contents, pull-request read/write,\n+and checks read access. It does not merge code or submit an approval. Reviewers\n+remain responsible for reading the changed code and making the GitHub decision.\n+\n+Repository indexing is asynchronous. Large repositories may show an indexing\n+status before their first review is ready. Reinstalling or changing repository\n+access queues a fresh index for affected repositories.\n+\n+For self-hosted generation without an account, use the [free Action](../action.yml)\n+and follow the setup in the main README.\n",
+      "hunks": [
+        {
+          "id": "diff-b403e08747cbb33f",
+          "header": "@@ -0,0 +1,24 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "# Install the hosted GitHub App"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "The hosted px1 service is planned for v1. It is not required to use the free,"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "accountless GitHub Action."
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "## Installation flow"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "1. Install the px1 GitHub App on an organization or personal account."
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "2. Grant access only to the repositories that px1 should review."
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "3. Open or update a pull request. px1 indexes the selected repository and"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "   publishes its review as a draft so a human can inspect it before submission."
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "4. Use `/px1 review` to request a fresh review or `/px1 explain` to ask for an"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "   explanation on the current pull request revision."
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "The App requests repository metadata and contents, pull-request read/write,"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "and checks read access. It does not merge code or submit an approval. Reviewers"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "remain responsible for reading the changed code and making the GitHub decision."
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "Repository indexing is asynchronous. Large repositories may show an indexing"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "status before their first review is ready. Reinstalling or changing repository"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "access queues a fresh index for affected repositories."
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "For self-hosted generation without an account, use the [free Action](../action.yml)"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "and follow the setup in the main README."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/PRIVACY_POLICY.md",
+      "status": "A",
+      "diff": "diff --git a/docs/PRIVACY_POLICY.md b/docs/PRIVACY_POLICY.md\nnew file mode 100644\nindex 0000000..9f28af6\n--- /dev/null\n+++ b/docs/PRIVACY_POLICY.md\n@@ -0,0 +1,35 @@\n+# Privacy policy\n+\n+This document describes the intended hosted px1 v1 data practices. It is a\n+launch draft and must be completed with the operating legal entity, contact\n+address, subprocessors, and effective date before public signup is enabled.\n+\n+## Data px1 processes\n+\n+When an authorized GitHub App installation requests a review, px1 processes\n+repository metadata, source code needed for indexing, pull-request diffs,\n+configured rules, review findings, and delivery metadata. Authentication tokens\n+are encrypted at rest and are not included in model prompts.\n+\n+Optional AI analysis sends the minimum relevant code context to the configured\n+model provider after secret and sensitive-data checks. The product must identify\n+the provider and its retention terms before enabling this feature in production.\n+\n+## Access and isolation\n+\n+Access is limited to repositories selected during GitHub App installation.\n+Stored repository data is associated with an installation tenant, and service\n+queries enforce that tenant boundary. px1 employees and operators access private\n+repository data only for documented support, security, or reliability needs.\n+\n+## Retention and deletion\n+\n+Repository clones and derived index data are removed after installation access\n+is revoked or after the documented retention period. Uninstalling the App starts\n+a 30-day deletion deadline for all hosted data associated with that installation,\n+including review artifacts and findings. Logs and backups age out under the\n+periods in [DATA_RETENTION.md](DATA_RETENTION.md). An installation owner may\n+request deletion; production contact details must be published before launch.\n+\n+px1 does not sell repository code or use private repository code to train a\n+general-purpose model.\n",
+      "hunks": [
+        {
+          "id": "diff-34f1e94558ad749b",
+          "header": "@@ -0,0 +1,35 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "# Privacy policy"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "This document describes the intended hosted px1 v1 data practices. It is a"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "launch draft and must be completed with the operating legal entity, contact"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "address, subprocessors, and effective date before public signup is enabled."
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "## Data px1 processes"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "When an authorized GitHub App installation requests a review, px1 processes"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "repository metadata, source code needed for indexing, pull-request diffs,"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "configured rules, review findings, and delivery metadata. Authentication tokens"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "are encrypted at rest and are not included in model prompts."
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "Optional AI analysis sends the minimum relevant code context to the configured"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "model provider after secret and sensitive-data checks. The product must identify"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "the provider and its retention terms before enabling this feature in production."
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "## Access and isolation"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "Access is limited to repositories selected during GitHub App installation."
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "Stored repository data is associated with an installation tenant, and service"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "queries enforce that tenant boundary. px1 employees and operators access private"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "repository data only for documented support, security, or reliability needs."
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "## Retention and deletion"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "Repository clones and derived index data are removed after installation access"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "is revoked or after the documented retention period. Uninstalling the App starts"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "a 30-day deletion deadline for all hosted data associated with that installation,"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "including review artifacts and findings. Logs and backups age out under the"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "periods in [DATA_RETENTION.md](DATA_RETENTION.md). An installation owner may"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "request deletion; production contact details must be published before launch."
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "px1 does not sell repository code or use private repository code to train a"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "general-purpose model."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/TERMS.md",
+      "status": "A",
+      "diff": "diff --git a/docs/TERMS.md b/docs/TERMS.md\nnew file mode 100644\nindex 0000000..1964fdf\n--- /dev/null\n+++ b/docs/TERMS.md\n@@ -0,0 +1,21 @@\n+# Hosted service terms\n+\n+These are product terms for the planned hosted px1 v1 and are not a substitute\n+for final legal review. The operating entity, governing law, support contact,\n+effective date, and billing terms must be supplied before public launch.\n+\n+px1 provides review assistance, not a warranty that code is correct, secure, or\n+fit for use. Automated findings and AI explanations can be incomplete or wrong.\n+The user remains responsible for reading changes, protecting credentials,\n+configuring repository access, and making merge and deployment decisions.\n+\n+Users must have authority to connect each repository and must not use px1 to\n+process unlawful content, attack the service, bypass access controls, or violate\n+third-party rights. px1 may suspend access needed to protect users or the service.\n+\n+The service may change during preview. Availability targets, paid-plan terms,\n+liability limits, dispute terms, and termination rights require legal approval\n+before a generally available paid service is offered.\n+\n+The free GitHub Action is distributed under the repository license and does not\n+require a hosted px1 account.\n",
+      "hunks": [
+        {
+          "id": "diff-e45f3385ff86ebf8",
+          "header": "@@ -0,0 +1,21 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "# Hosted service terms"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "These are product terms for the planned hosted px1 v1 and are not a substitute"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "for final legal review. The operating entity, governing law, support contact,"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "effective date, and billing terms must be supplied before public launch."
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "px1 provides review assistance, not a warranty that code is correct, secure, or"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "fit for use. Automated findings and AI explanations can be incomplete or wrong."
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "The user remains responsible for reading changes, protecting credentials,"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "configuring repository access, and making merge and deployment decisions."
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "Users must have authority to connect each repository and must not use px1 to"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "process unlawful content, attack the service, bypass access controls, or violate"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "third-party rights. px1 may suspend access needed to protect users or the service."
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "The service may change during preview. Availability targets, paid-plan terms,"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "liability limits, dispute terms, and termination rights require legal approval"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "before a generally available paid service is offered."
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "The free GitHub Action is distributed under the repository license and does not"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "require a hosted px1 account."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-f355994b7a6439dd",
+      "title": "Hosted changes",
+      "summary": "5 related files share the \"hosted\" change signal.",
+      "paths": [
+        "README.md",
+        "docs/DATA_RETENTION.md",
+        "docs/HOSTED_INSTALL.md",
+        "docs/PRIVACY_POLICY.md",
+        "docs/TERMS.md"
+      ]
+    }
+  ],
+  "inspectionQuestions": [],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 5,
+    "filesAnalyzed": 5,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "4b26d7d1e924b5e421e98af0ce7e22ac182d35ab",
+      "revision": "643e51a5b78c3f8695174f14346e53fa6fcab9f8",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "4b26d7d1e924b5e421e98af0ce7e22ac182d35ab",
+      "revision": "643e51a5b78c3f8695174f14346e53fa6fcab9f8",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "643e51a5b78c3f8695174f14346e53fa6fcab9f8",
+      "detail": "0 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "643e51a5b78c3f8695174f14346e53fa6fcab9f8",
+      "detail": "1 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "643e51a5b78c3f8695174f14346e53fa6fcab9f8",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40220474036",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40220474036/job/121250754742",
+        "startedAt": "2026-10-25T18:16:44Z"
+      }
+    ]
+  }
+}
