@@ -1,0 +1,1008 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "4b3427b07dfc5a9c2bf69b19eaed2a89bd45bdad",
+  "head": "56d3c8918a4361090a7d1b5836cc4b4b7a5e4e8c",
+  "generatedAt": "2026-10-25T20:37:39.627967196Z",
+  "files": [
+    {
+      "path": "internal/hosted/graph/diagram.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/graph/diagram.go b/internal/hosted/graph/diagram.go\nnew file mode 100644\nindex 0000000..0f2be76\n--- /dev/null\n+++ b/internal/hosted/graph/diagram.go\n@@ -0,0 +1,137 @@\n+package graph\n+\n+import (\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"regexp\"\n+\t\"sort\"\n+\t\"strconv\"\n+\t\"strings\"\n+)\n+\n+const (\n+\tMaxDiagramSymbols = 50\n+\tMaxDiagramEdges   = 100\n+)\n+\n+type DiagramKind string\n+\n+const (\n+\tDiagramSequence DiagramKind = \"sequence\"\n+\tDiagramER       DiagramKind = \"er\"\n+\tDiagramClass    DiagramKind = \"class\"\n+\tDiagramFlow     DiagramKind = \"flow\"\n+)\n+\n+type DiagramEdge struct {\n+\tSource ToolSymbol\n+\tTarget ToolSymbol\n+\tKind   string\n+}\n+\n+type Diagram struct {\n+\tKind          DiagramKind\n+\tMermaid       string\n+\tSkippedReason string\n+}\n+\n+var mermaidLine = regexp.MustCompile(`^[A-Za-z0-9_ ()\\[\\]{}|:;.,+*/\u003c\u003e-]+$`)\n+\n+// GenerateDiagram emits Mermaid only for graph slices large enough to help a\n+// reviewer. Labels are quoted and identifiers are generated, never copied from\n+// repository source.\n+func GenerateDiagram(kind DiagramKind, edges []DiagramEdge) (Diagram, error) {\n+\tif !map[DiagramKind]bool{DiagramSequence: true, DiagramER: true, DiagramClass: true, DiagramFlow: true}[kind] {\n+\t\treturn Diagram{}, errors.New(\"unsupported diagram kind\")\n+\t}\n+\tif len(edges) \u003e MaxDiagramEdges {\n+\t\treturn Diagram{}, errors.New(\"diagram edge limit exceeded\")\n+\t}\n+\tsymbols, paths := map[int64]ToolSymbol{}, map[string]bool{}\n+\tfor _, edge := range edges {\n+\t\tif edge.Source.ID \u003c= 0 || edge.Target.ID \u003c= 0 || strings.TrimSpace(edge.Source.Name) == \"\" || strings.TrimSpace(edge.Target.Name) == \"\" {\n+\t\t\treturn Diagram{}, errors.New(\"diagram edges require named symbols\")\n+\t\t}\n+\t\tsymbols[edge.Source.ID], symbols[edge.Target.ID] = edge.Source, edge.Target\n+\t\tpaths[edge.Source.Path], paths[edge.Target.Path] = true, true\n+\t}\n+\tif len(symbols) \u003c 3 || len(paths) \u003c 2 {\n+\t\treturn Diagram{Kind: kind, SkippedReason: \"diagram requires at least three symbols across two files\"}, nil\n+\t}\n+\tif len(symbols) \u003e MaxDiagramSymbols {\n+\t\treturn Diagram{}, errors.New(\"diagram symbol limit exceeded\")\n+\t}\n+\tsort.Slice(edges, func(i, j int) bool {\n+\t\tif edges[i].Source.ID != edges[j].Source.ID {\n+\t\t\treturn edges[i].Source.ID \u003c edges[j].Source.ID\n+\t\t}\n+\t\tif edges[i].Target.ID != edges[j].Target.ID {\n+\t\t\treturn edges[i].Target.ID \u003c edges[j].Target.ID\n+\t\t}\n+\t\treturn edges[i].Kind \u003c edges[j].Kind\n+\t})\n+\tvar body strings.Builder\n+\tswitch kind {\n+\tcase DiagramSequence:\n+\t\tbody.WriteString(\"sequenceDiagram\\n\")\n+\t\tids := make([]int64, 0, len(symbols))\n+\t\tfor id := range symbols {\n+\t\t\tids = append(ids, id)\n+\t\t}\n+\t\tsort.Slice(ids, func(i, j int) bool { return ids[i] \u003c ids[j] })\n+\t\tfor _, id := range ids {\n+\t\t\tfmt.Fprintf(\u0026body, \"  participant %s as %s\\n\", diagramID(id), safeDiagramLabel(symbols[id].Name))\n+\t\t}\n+\tcase DiagramER:\n+\t\tbody.WriteString(\"erDiagram\\n\")\n+\tcase DiagramClass:\n+\t\tbody.WriteString(\"classDiagram\\n\")\n+\tdefault:\n+\t\tbody.WriteString(\"flowchart LR\\n\")\n+\t}\n+\tfor _, edge := range edges {\n+\t\tsource, target := diagramID(edge.Source.ID), diagramID(edge.Target.ID)\n+\t\tlabel := safeDiagramLabel(edge.Kind)\n+\t\tswitch kind {\n+\t\tcase DiagramSequence:\n+\t\t\tfmt.Fprintf(\u0026body, \"  %s-\u003e\u003e%s: %s\\n\", source, target, label)\n+\t\tcase DiagramER:\n+\t\t\tfmt.Fprintf(\u0026body, \"  %s ||--o{ %s : %s\\n\", source, target, label)\n+\t\tcase DiagramClass:\n+\t\t\tfmt.Fprintf(\u0026body, \"  %s --\u003e %s : %s\\n\", source, target, label)\n+\t\tdefault:\n+\t\t\tfmt.Fprintf(\u0026body, \"  %s[%s] --\u003e|%s| %s[%s]\\n\", source, safeDiagramLabel(edge.Source.Name), label, target, safeDiagramLabel(edge.Target.Name))\n+\t\t}\n+\t}\n+\tresult := body.String()\n+\tif err := ValidateMermaid(result); err != nil {\n+\t\treturn Diagram{Kind: kind, SkippedReason: \"generated Mermaid failed validation\"}, nil\n+\t}\n+\treturn Diagram{Kind: kind, Mermaid: result}, nil\n+}\n+\n+func ValidateMermaid(value string) error {\n+\tif len(value) == 0 || len(value) \u003e 32_000 || strings.Contains(value, \"%%\") || strings.Contains(value, \"`\") || strings.Contains(value, \"click \") {\n+\t\treturn errors.New(\"unsafe Mermaid source\")\n+\t}\n+\tfor _, line := range strings.Split(strings.TrimSuffix(value, \"\\n\"), \"\\n\") {\n+\t\tif !mermaidLine.MatchString(line) {\n+\t\t\treturn errors.New(\"Mermaid contains unsupported characters\")\n+\t\t}\n+\t}\n+\treturn nil\n+}\n+\n+func diagramID(id int64) string { return \"s\" + strconv.FormatInt(id, 10) }\n+\n+func safeDiagramLabel(value string) string {\n+\tvalue = strings.Join(strings.Fields(value), \" \")\n+\tvalue = regexp.MustCompile(`[^A-Za-z0-9_ .+*/()-]`).ReplaceAllString(value, \"\")\n+\tif value == \"\" {\n+\t\treturn \"related\"\n+\t}\n+\tif len(value) \u003e 80 {\n+\t\tvalue = value[:80]\n+\t}\n+\treturn value\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-78bd1ecf25e37f2a",
+          "header": "@@ -0,0 +1,137 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package graph"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"regexp\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"sort\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"strconv\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "const ("
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\tMaxDiagramSymbols = 50"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tMaxDiagramEdges   = 100"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "type DiagramKind string"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "const ("
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tDiagramSequence DiagramKind = \"sequence\""
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tDiagramER       DiagramKind = \"er\""
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tDiagramClass    DiagramKind = \"class\""
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tDiagramFlow     DiagramKind = \"flow\""
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "type DiagramEdge struct {"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tSource ToolSymbol"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tTarget ToolSymbol"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tKind   string"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "type Diagram struct {"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tKind          DiagramKind"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tMermaid       string"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tSkippedReason string"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "var mermaidLine = regexp.MustCompile(`^[A-Za-z0-9_ ()\\[\\]{}|:;.,+*/\u003c\u003e-]+$`)"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "// GenerateDiagram emits Mermaid only for graph slices large enough to help a"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "// reviewer. Labels are quoted and identifiers are generated, never copied from"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "// repository source."
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "func GenerateDiagram(kind DiagramKind, edges []DiagramEdge) (Diagram, error) {"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tif !map[DiagramKind]bool{DiagramSequence: true, DiagramER: true, DiagramClass: true, DiagramFlow: true}[kind] {"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t\treturn Diagram{}, errors.New(\"unsupported diagram kind\")"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\tif len(edges) \u003e MaxDiagramEdges {"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\treturn Diagram{}, errors.New(\"diagram edge limit exceeded\")"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\tsymbols, paths := map[int64]ToolSymbol{}, map[string]bool{}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\tfor _, edge := range edges {"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\tif edge.Source.ID \u003c= 0 || edge.Target.ID \u003c= 0 || strings.TrimSpace(edge.Source.Name) == \"\" || strings.TrimSpace(edge.Target.Name) == \"\" {"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t\t\treturn Diagram{}, errors.New(\"diagram edges require named symbols\")"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t\tsymbols[edge.Source.ID], symbols[edge.Target.ID] = edge.Source, edge.Target"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t\tpaths[edge.Source.Path], paths[edge.Target.Path] = true, true"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\tif len(symbols) \u003c 3 || len(paths) \u003c 2 {"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t\treturn Diagram{Kind: kind, SkippedReason: \"diagram requires at least three symbols across two files\"}, nil"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\tif len(symbols) \u003e MaxDiagramSymbols {"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t\treturn Diagram{}, errors.New(\"diagram symbol limit exceeded\")"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\tsort.Slice(edges, func(i, j int) bool {"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t\tif edges[i].Source.ID != edges[j].Source.ID {"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\t\treturn edges[i].Source.ID \u003c edges[j].Source.ID"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\tif edges[i].Target.ID != edges[j].Target.ID {"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\t\treturn edges[i].Target.ID \u003c edges[j].Target.ID"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\treturn edges[i].Kind \u003c edges[j].Kind"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t})"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\tvar body strings.Builder"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\tswitch kind {"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\tcase DiagramSequence:"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t\tbody.WriteString(\"sequenceDiagram\\n\")"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t\tids := make([]int64, 0, len(symbols))"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t\tfor id := range symbols {"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\t\t\tids = append(ids, id)"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\t\tsort.Slice(ids, func(i, j int) bool { return ids[i] \u003c ids[j] })"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\t\tfor _, id := range ids {"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t\t\tfmt.Fprintf(\u0026body, \"  participant %s as %s\\n\", diagramID(id), safeDiagramLabel(symbols[id].Name))"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\tcase DiagramER:"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\t\tbody.WriteString(\"erDiagram\\n\")"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\tcase DiagramClass:"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\t\tbody.WriteString(\"classDiagram\\n\")"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\tdefault:"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t\tbody.WriteString(\"flowchart LR\\n\")"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\tfor _, edge := range edges {"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\t\tsource, target := diagramID(edge.Source.ID), diagramID(edge.Target.ID)"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t\tlabel := safeDiagramLabel(edge.Kind)"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t\tswitch kind {"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\t\tcase DiagramSequence:"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t\t\tfmt.Fprintf(\u0026body, \"  %s-\u003e\u003e%s: %s\\n\", source, target, label)"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t\tcase DiagramER:"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\t\t\tfmt.Fprintf(\u0026body, \"  %s ||--o{ %s : %s\\n\", source, target, label)"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\t\tcase DiagramClass:"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\t\t\tfmt.Fprintf(\u0026body, \"  %s --\u003e %s : %s\\n\", source, target, label)"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\t\tdefault:"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t\t\tfmt.Fprintf(\u0026body, \"  %s[%s] --\u003e|%s| %s[%s]\\n\", source, safeDiagramLabel(edge.Source.Name), label, target, safeDiagramLabel(edge.Target.Name))"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\tresult := body.String()"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\tif err := ValidateMermaid(result); err != nil {"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\t\treturn Diagram{Kind: kind, SkippedReason: \"generated Mermaid failed validation\"}, nil"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\treturn Diagram{Kind: kind, Mermaid: result}, nil"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "func ValidateMermaid(value string) error {"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "\tif len(value) == 0 || len(value) \u003e 32_000 || strings.Contains(value, \"%%\") || strings.Contains(value, \"`\") || strings.Contains(value, \"click \") {"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"unsafe Mermaid source\")"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\tfor _, line := range strings.Split(strings.TrimSuffix(value, \"\\n\"), \"\\n\") {"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\t\tif !mermaidLine.MatchString(line) {"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\t\t\treturn errors.New(\"Mermaid contains unsupported characters\")"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "func diagramID(id int64) string { return \"s\" + strconv.FormatInt(id, 10) }"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "func safeDiagramLabel(value string) string {"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\tvalue = strings.Join(strings.Fields(value), \" \")"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\tvalue = regexp.MustCompile(`[^A-Za-z0-9_ .+*/()-]`).ReplaceAllString(value, \"\")"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\tif value == \"\" {"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\t\treturn \"related\""
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\tif len(value) \u003e 80 {"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\t\tvalue = value[:80]"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\treturn value"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/graph/diagram_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/graph/diagram_test.go b/internal/hosted/graph/diagram_test.go\nnew file mode 100644\nindex 0000000..70c7eea\n--- /dev/null\n+++ b/internal/hosted/graph/diagram_test.go\n@@ -0,0 +1,27 @@\n+package graph\n+\n+import (\n+\t\"strings\"\n+\t\"testing\"\n+)\n+\n+func TestGenerateDiagramRequiresUsefulGraphSlice(t *testing.T) {\n+\tedges := []DiagramEdge{\n+\t\t{Source: ToolSymbol{ID: 1, Name: \"handler\", Path: \"api.go\"}, Target: ToolSymbol{ID: 2, Name: \"service\", Path: \"service.go\"}, Kind: \"calls\"},\n+\t\t{Source: ToolSymbol{ID: 2, Name: \"service\", Path: \"service.go\"}, Target: ToolSymbol{ID: 3, Name: \"store\", Path: \"store.go\"}, Kind: \"calls\"},\n+\t}\n+\tdiagram, err := GenerateDiagram(DiagramSequence, edges)\n+\tif err != nil || !strings.HasPrefix(diagram.Mermaid, \"sequenceDiagram\") || diagram.SkippedReason != \"\" {\n+\t\tt.Fatalf(\"diagram = %#v, %v\", diagram, err)\n+\t}\n+}\n+\n+func TestGenerateDiagramDropsSmallOrUnsafeOutput(t *testing.T) {\n+\tdiagram, err := GenerateDiagram(DiagramFlow, []DiagramEdge{{Source: ToolSymbol{ID: 1, Name: \"a\", Path: \"a.go\"}, Target: ToolSymbol{ID: 2, Name: \"b\", Path: \"b.go\"}, Kind: \"calls\"}})\n+\tif err != nil || diagram.Mermaid != \"\" || diagram.SkippedReason == \"\" {\n+\t\tt.Fatalf(\"small diagram = %#v, %v\", diagram, err)\n+\t}\n+\tif ValidateMermaid(\"flowchart LR\\n  a--\u003eb\\n%%{init: {}}%%\") == nil {\n+\t\tt.Fatal(\"unsafe Mermaid directive was accepted\")\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-553acdd7a273e805",
+          "header": "@@ -0,0 +1,27 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package graph"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "func TestGenerateDiagramRequiresUsefulGraphSlice(t *testing.T) {"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\tedges := []DiagramEdge{"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\t{Source: ToolSymbol{ID: 1, Name: \"handler\", Path: \"api.go\"}, Target: ToolSymbol{ID: 2, Name: \"service\", Path: \"service.go\"}, Kind: \"calls\"},"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\t{Source: ToolSymbol{ID: 2, Name: \"service\", Path: \"service.go\"}, Target: ToolSymbol{ID: 3, Name: \"store\", Path: \"store.go\"}, Kind: \"calls\"},"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\tdiagram, err := GenerateDiagram(DiagramSequence, edges)"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tif err != nil || !strings.HasPrefix(diagram.Mermaid, \"sequenceDiagram\") || diagram.SkippedReason != \"\" {"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"diagram = %#v, %v\", diagram, err)"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "func TestGenerateDiagramDropsSmallOrUnsafeOutput(t *testing.T) {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tdiagram, err := GenerateDiagram(DiagramFlow, []DiagramEdge{{Source: ToolSymbol{ID: 1, Name: \"a\", Path: \"a.go\"}, Target: ToolSymbol{ID: 2, Name: \"b\", Path: \"b.go\"}, Kind: \"calls\"}})"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tif err != nil || diagram.Mermaid != \"\" || diagram.SkippedReason == \"\" {"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"small diagram = %#v, %v\", diagram, err)"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tif ValidateMermaid(\"flowchart LR\\n  a--\u003eb\\n%%{init: {}}%%\") == nil {"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"unsafe Mermaid directive was accepted\")"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-9151e17139edde94",
+      "title": "Diagram changes",
+      "summary": "2 related files share the \"diagram\" change signal.",
+      "paths": [
+        "internal/hosted/graph/diagram.go",
+        "internal/hosted/graph/diagram_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-81867285f1e44cc0",
+      "path": "internal/hosted/graph/diagram.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/graph/diagram_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-ea50f184afdfc1f6",
+      "path": "internal/hosted/graph/diagram.go",
+      "line": 43,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func GenerateDiagram(kind DiagramKind, edges []DiagramEdge) (Diagram, error) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 2,
+    "filesAnalyzed": 2,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "diagram-formats",
+      "path": "internal/hosted/graph/diagram.go",
+      "lineStart": 41,
+      "lineEnd": 109,
+      "title": "Adds Mermaid diagram generation",
+      "summary": "The graph package can now turn edges into Mermaid sequence, ER, class, or flow diagrams, with generated identifiers and the appropriate notation for each kind. Unsupported kinds and invalid edge data return errors."
+    },
+    {
+      "id": "diagram-threshold",
+      "path": "internal/hosted/graph/diagram.go",
+      "lineStart": 48,
+      "lineEnd": 60,
+      "title": "Filters diagram size",
+      "summary": "Small graph slices are omitted rather than rendered: at least three distinct symbols across two files are required. Oversized diagrams are rejected at the configured symbol and edge limits."
+    },
+    {
+      "id": "diagram-safety",
+      "path": "internal/hosted/graph/diagram.go",
+      "lineStart": 111,
+      "lineEnd": 135,
+      "title": "Validates generated Mermaid",
+      "summary": "Labels are normalized and restricted, and the generated Mermaid is checked for unsupported characters and unsafe constructs. If validation fails, generation returns a skipped reason instead of Mermaid source."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "4b3427b07dfc5a9c2bf69b19eaed2a89bd45bdad",
+      "revision": "56d3c8918a4361090a7d1b5836cc4b4b7a5e4e8c",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "4b3427b07dfc5a9c2bf69b19eaed2a89bd45bdad",
+      "revision": "56d3c8918a4361090a7d1b5836cc4b4b7a5e4e8c",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "56d3c8918a4361090a7d1b5836cc4b4b7a5e4e8c",
+      "detail": "3 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "56d3c8918a4361090a7d1b5836cc4b4b7a5e4e8c",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-42649c3d25129053",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/graph/diagram.go",
+      "line": 43,
+      "evidence": "func GenerateDiagram(kind DiagramKind, edges []DiagramEdge) (Diagram, error) {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "56d3c8918a4361090a7d1b5836cc4b4b7a5e4e8c",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40231598079",
+    "checks": [
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40231598978/job/121284314874",
+        "startedAt": "2026-10-25T20:37:00Z"
+      },
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40231598079/job/121284312972",
+        "startedAt": "2026-10-25T20:37:01Z"
+      }
+    ]
+  }
+}
