@@ -21,8 +21,9 @@ func (f *commandAPIFake) Do(_ context.Context, _ int64, _ *http.Request) (*http.
 func TestParseCommand(t *testing.T) {
 	for input, want := range map[string]Command{
 		"@px1 review": {Name: "review"}, "hello\n@px1 why": {},
-		"\n @PX1 explain internal/api.go\nmore":    {Name: "explain", Path: "internal/api.go"},
-		"@px1 remember Prefer wrapped errors here": {Name: "remember", Text: "Prefer wrapped errors here"},
+		"\n @PX1 explain internal/api.go\nmore":            {Name: "explain", Path: "internal/api.go"},
+		"@px1 remember Prefer wrapped errors here":         {Name: "remember", Text: "Prefer wrapped errors here"},
+		"@px1 forget 550e8400-e29b-41d4-a716-446655440000": {Name: "forget", MemoryID: "550e8400-e29b-41d4-a716-446655440000"},
 	} {
 		got, ok := ParseCommand(input)
 		if want.Name == "" {
@@ -35,6 +36,9 @@ func TestParseCommand(t *testing.T) {
 	}
 	if _, ok := ParseCommand("@px1 explain ../secret"); ok {
 		t.Fatal("accepted escaping path")
+	}
+	if _, ok := ParseCommand("@px1 forget not-a-memory"); ok {
+		t.Fatal("accepted invalid memory id")
 	}
 }
 

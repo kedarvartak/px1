@@ -13,9 +13,10 @@ import (
 )
 
 type Command struct {
-	Name string
-	Path string
-	Text string
+	Name     string
+	Path     string
+	Text     string
+	MemoryID string
 }
 
 // ParseCommand accepts one explicit command on the first non-empty line.
@@ -51,9 +52,32 @@ func ParseCommand(body string) (Command, bool) {
 			return Command{}, false
 		}
 		return Command{Name: "remember", Text: text}, true
+	case "forget":
+		if len(fields) != 3 || !validMemoryID(fields[2]) {
+			return Command{}, false
+		}
+		return Command{Name: "forget", MemoryID: strings.ToLower(fields[2])}, true
 	default:
 		return Command{}, false
 	}
+}
+
+func validMemoryID(value string) bool {
+	if len(value) != 36 {
+		return false
+	}
+	for i, r := range value {
+		if i == 8 || i == 13 || i == 18 || i == 23 {
+			if r != '-' {
+				return false
+			}
+			continue
+		}
+		if !((r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F')) {
+			return false
+		}
+	}
+	return true
 }
 
 type CommandAuthorizer struct {

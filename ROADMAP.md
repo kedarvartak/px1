@@ -111,16 +111,28 @@ backend-foundation tasks are:
    minutes for fourteen days and store idempotent feedback events.
 43. [x] **Classify reviewer replies.** Use a bounded low-cost model to label
    replies as agree, disagree, context, or question and answer questions in-thread.
-44. [ ] **Detect addressed findings.** Compare the reviewed range from the review
+44. [x] **Detect addressed findings.** Compare the reviewed range from the review
    SHA through the merge SHA and record whether the author changed it.
-45. [ ] **Create scoped review memory.** Store evidence-backed memories and
+45. [x] **Create scoped review memory.** Store evidence-backed memories and
    retrieve at most twenty by tenant, repository, path, language, and similarity.
-46. [ ] **Suppress repeated noise.** Suppress eligible categories after repeated
+46. [x] **Suppress repeated noise.** Suppress eligible categories after repeated
    ignores or downvotes while never auto-suppressing P0, security, or logic issues.
-47. [ ] **Propose learned rules weekly.** Cluster recurring human comments and
+47. [x] **Propose learned rules weekly.** Cluster recurring human comments and
    open a reviewable `.px1/rules.md` proposal with evidence links.
-48. [ ] **Add explicit remember commands.** Let authorized reviewers write a
+48. [x] **Add explicit remember commands.** Let authorized reviewers write a
    thread-scoped memory with `@px1 remember <text>`.
+49. [x] **Make review memory controllable.** Add `@px1 forget`, and expose every
+   repository memory with its evidence so reviewers can inspect and delete it.
+50. [ ] **Publish a confidence rubric.** Score reviews from zero to five using
+   deterministic, visible inputs rather than an opaque model judgement.
+51. [ ] **Generate bounded diagrams.** Convert qualifying graph slices to safe
+   Mermaid diagrams and omit output when validation fails.
+52. [ ] **Summarize blast radius.** List unchanged callers and tests connected to
+   changed symbols without implying that they are broken.
+53. [ ] **Explain why each comment exists.** Show context chunks, graph paths,
+   memories, and verifier disposition behind each AI finding.
+54. [ ] **Resolve cascading configuration.** Inherit directory `.px1` settings,
+   apply strict gating safely, and add `validate-config`.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,
