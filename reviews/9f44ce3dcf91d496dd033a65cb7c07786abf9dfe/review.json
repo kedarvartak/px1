@@ -1,0 +1,1261 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "cd794ae64a7a5c910833895d910ef5a72a5cb6d6",
+  "head": "9f44ce3dcf91d496dd033a65cb7c07786abf9dfe",
+  "generatedAt": "2026-10-25T18:25:30.294621516Z",
+  "files": [
+    {
+      "path": "internal/hosted/graph/overlay.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/graph/overlay.go b/internal/hosted/graph/overlay.go\nnew file mode 100644\nindex 0000000..a92bc24\n--- /dev/null\n+++ b/internal/hosted/graph/overlay.go\n@@ -0,0 +1,156 @@\n+package graph\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"sort\"\n+)\n+\n+type OverlaySymbol struct {\n+\tID        int64\n+\tPath      string\n+\tKind      string\n+\tName      string\n+\tSignature string\n+\tStartLine int\n+\tEndLine   int\n+}\n+\n+type OverlayEdge struct {\n+\tSourceID int64\n+\tTargetID int64\n+\tTarget   string\n+\tKind     string\n+}\n+\n+type Snapshot struct {\n+\tSymbols []OverlaySymbol\n+\tEdges   []OverlayEdge\n+}\n+\n+type ChangedFile struct {\n+\tPath    string\n+\tBlobSHA string\n+\tContent []byte\n+\tDeleted bool\n+}\n+\n+type HeadParser interface {\n+\tParseGraph(context.Context, ChangedFile) ([]OverlaySymbol, []OverlayEdge, error)\n+}\n+\n+type SymbolDelta struct {\n+\tAdded    []OverlaySymbol\n+\tRemoved  []OverlaySymbol\n+\tModified []OverlaySymbol\n+}\n+\n+type Overlay struct {\n+\tGraph Snapshot\n+\tDelta SymbolDelta\n+}\n+\n+// BuildOverlay replaces changed default-branch files with parsed PR-head data\n+// in memory. It never persists or executes pull-request content.\n+func BuildOverlay(ctx context.Context, base Snapshot, changes []ChangedFile, parser HeadParser) (Overlay, error) {\n+\tif parser == nil {\n+\t\treturn Overlay{}, errors.New(\"head graph parser is required\")\n+\t}\n+\tchanged := map[string]bool{}\n+\tfor _, change := range changes {\n+\t\tif change.Path == \"\" || (!change.Deleted \u0026\u0026 change.BlobSHA == \"\") {\n+\t\t\treturn Overlay{}, errors.New(\"changed files require path and blob SHA\")\n+\t\t}\n+\t\tif changed[change.Path] {\n+\t\t\treturn Overlay{}, fmt.Errorf(\"duplicate changed path %q\", change.Path)\n+\t\t}\n+\t\tchanged[change.Path] = true\n+\t}\n+\tremovedIDs := map[int64]bool{}\n+\tresult := Snapshot{}\n+\tbaseByKey := map[string]OverlaySymbol{}\n+\tfor _, symbol := range base.Symbols {\n+\t\tif changed[symbol.Path] {\n+\t\t\tremovedIDs[symbol.ID] = true\n+\t\t\tbaseByKey[symbolKey(symbol)] = symbol\n+\t\t\tcontinue\n+\t\t}\n+\t\tresult.Symbols = append(result.Symbols, symbol)\n+\t}\n+\toverlay := Overlay{Graph: result}\n+\tnextID := int64(-1)\n+\tseenHead := map[string]bool{}\n+\treplacementIDs := map[int64]int64{}\n+\tfor _, change := range changes {\n+\t\tif change.Deleted {\n+\t\t\tcontinue\n+\t\t}\n+\t\tsymbols, edges, err := parser.ParseGraph(ctx, change)\n+\t\tif err != nil {\n+\t\t\treturn Overlay{}, fmt.Errorf(\"parse graph overlay for %s: %w\", change.Path, err)\n+\t\t}\n+\t\tidMap := map[int64]int64{}\n+\t\tfor _, symbol := range symbols {\n+\t\t\tif symbol.ID \u003c= 0 || symbol.Path != change.Path || symbol.Kind == \"\" || symbol.Name == \"\" || idMap[symbol.ID] != 0 {\n+\t\t\t\treturn Overlay{}, errors.New(\"overlay parser returned an invalid or duplicate symbol\")\n+\t\t\t}\n+\t\t\toriginalID := symbol.ID\n+\t\t\tsymbol.ID = nextID\n+\t\t\tnextID--\n+\t\t\tidMap[originalID] = symbol.ID\n+\t\t\tkey := symbolKey(symbol)\n+\t\t\tseenHead[key] = true\n+\t\t\tif old, ok := baseByKey[key]; !ok {\n+\t\t\t\toverlay.Delta.Added = append(overlay.Delta.Added, symbol)\n+\t\t\t} else {\n+\t\t\t\treplacementIDs[old.ID] = symbol.ID\n+\t\t\t\tif old.Signature != symbol.Signature || old.StartLine != symbol.StartLine || old.EndLine != symbol.EndLine {\n+\t\t\t\t\toverlay.Delta.Modified = append(overlay.Delta.Modified, symbol)\n+\t\t\t\t}\n+\t\t\t}\n+\t\t\toverlay.Graph.Symbols = append(overlay.Graph.Symbols, symbol)\n+\t\t}\n+\t\tfor _, edge := range edges {\n+\t\t\tedge.SourceID = idMap[edge.SourceID]\n+\t\t\tif edge.SourceID == 0 {\n+\t\t\t\treturn Overlay{}, errors.New(\"overlay edge has an unknown source symbol\")\n+\t\t\t}\n+\t\t\tif mapped := idMap[edge.TargetID]; mapped != 0 {\n+\t\t\t\tedge.TargetID = mapped\n+\t\t\t}\n+\t\t\tif edge.TargetID == 0 \u0026\u0026 edge.Target == \"\" {\n+\t\t\t\treturn Overlay{}, errors.New(\"overlay edge requires a resolved or unresolved target\")\n+\t\t\t}\n+\t\t\toverlay.Graph.Edges = append(overlay.Graph.Edges, edge)\n+\t\t}\n+\t}\n+\tfor _, edge := range base.Edges {\n+\t\tif removedIDs[edge.SourceID] {\n+\t\t\tedge.SourceID = replacementIDs[edge.SourceID]\n+\t\t}\n+\t\tif removedIDs[edge.TargetID] {\n+\t\t\tedge.TargetID = replacementIDs[edge.TargetID]\n+\t\t}\n+\t\tif edge.SourceID != 0 \u0026\u0026 (edge.TargetID != 0 || edge.Target != \"\") {\n+\t\t\toverlay.Graph.Edges = append(overlay.Graph.Edges, edge)\n+\t\t}\n+\t}\n+\tfor key, symbol := range baseByKey {\n+\t\tif !seenHead[key] {\n+\t\t\toverlay.Delta.Removed = append(overlay.Delta.Removed, symbol)\n+\t\t}\n+\t}\n+\tsortOverlaySymbols(overlay.Delta.Added)\n+\tsortOverlaySymbols(overlay.Delta.Removed)\n+\tsortOverlaySymbols(overlay.Delta.Modified)\n+\treturn overlay, nil\n+}\n+\n+func symbolKey(symbol OverlaySymbol) string {\n+\treturn symbol.Path + \"\\x00\" + symbol.Kind + \"\\x00\" + symbol.Name\n+}\n+\n+func sortOverlaySymbols(symbols []OverlaySymbol) {\n+\tsort.Slice(symbols, func(i, j int) bool { return symbolKey(symbols[i]) \u003c symbolKey(symbols[j]) })\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-5bb8066587d0c228",
+          "header": "@@ -0,0 +1,156 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package graph"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"sort\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "type OverlaySymbol struct {"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\tID        int64"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\tPath      string"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\tKind      string"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tName      string"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tSignature string"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tStartLine int"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tEndLine   int"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "type OverlayEdge struct {"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tSourceID int64"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tTargetID int64"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tTarget   string"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tKind     string"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "type Snapshot struct {"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tSymbols []OverlaySymbol"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tEdges   []OverlayEdge"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "type ChangedFile struct {"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tPath    string"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tBlobSHA string"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tContent []byte"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tDeleted bool"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "type HeadParser interface {"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tParseGraph(context.Context, ChangedFile) ([]OverlaySymbol, []OverlayEdge, error)"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "type SymbolDelta struct {"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tAdded    []OverlaySymbol"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\tRemoved  []OverlaySymbol"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\tModified []OverlaySymbol"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "type Overlay struct {"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\tGraph Snapshot"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\tDelta SymbolDelta"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "// BuildOverlay replaces changed default-branch files with parsed PR-head data"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "// in memory. It never persists or executes pull-request content."
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "func BuildOverlay(ctx context.Context, base Snapshot, changes []ChangedFile, parser HeadParser) (Overlay, error) {"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\tif parser == nil {"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t\treturn Overlay{}, errors.New(\"head graph parser is required\")"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\tchanged := map[string]bool{}"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\tfor _, change := range changes {"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t\tif change.Path == \"\" || (!change.Deleted \u0026\u0026 change.BlobSHA == \"\") {"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t\t\treturn Overlay{}, errors.New(\"changed files require path and blob SHA\")"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t\tif changed[change.Path] {"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\t\treturn Overlay{}, fmt.Errorf(\"duplicate changed path %q\", change.Path)"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\tchanged[change.Path] = true"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\tremovedIDs := map[int64]bool{}"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\tresult := Snapshot{}"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\tbaseByKey := map[string]OverlaySymbol{}"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\tfor _, symbol := range base.Symbols {"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t\tif changed[symbol.Path] {"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\t\t\tremovedIDs[symbol.ID] = true"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t\t\tbaseByKey[symbolKey(symbol)] = symbol"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\t\tresult.Symbols = append(result.Symbols, symbol)"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\toverlay := Overlay{Graph: result}"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\tnextID := int64(-1)"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\tseenHead := map[string]bool{}"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\treplacementIDs := map[int64]int64{}"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\tfor _, change := range changes {"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\t\tif change.Deleted {"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\t\tsymbols, edges, err := parser.ParseGraph(ctx, change)"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t\t\treturn Overlay{}, fmt.Errorf(\"parse graph overlay for %s: %w\", change.Path, err)"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\t\tidMap := map[int64]int64{}"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t\tfor _, symbol := range symbols {"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t\t\tif symbol.ID \u003c= 0 || symbol.Path != change.Path || symbol.Kind == \"\" || symbol.Name == \"\" || idMap[symbol.ID] != 0 {"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\t\t\t\treturn Overlay{}, errors.New(\"overlay parser returned an invalid or duplicate symbol\")"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t\t\toriginalID := symbol.ID"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\t\t\tsymbol.ID = nextID"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\t\t\tnextID--"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\t\t\tidMap[originalID] = symbol.ID"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\t\t\tkey := symbolKey(symbol)"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t\t\tseenHead[key] = true"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t\t\tif old, ok := baseByKey[key]; !ok {"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\t\t\t\toverlay.Delta.Added = append(overlay.Delta.Added, symbol)"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\t\t\t} else {"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\t\t\t\treplacementIDs[old.ID] = symbol.ID"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\t\t\t\tif old.Signature != symbol.Signature || old.StartLine != symbol.StartLine || old.EndLine != symbol.EndLine {"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\t\t\t\t\toverlay.Delta.Modified = append(overlay.Delta.Modified, symbol)"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\t\t\t\t}"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\t\t\toverlay.Graph.Symbols = append(overlay.Graph.Symbols, symbol)"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "\t\tfor _, edge := range edges {"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "\t\t\tedge.SourceID = idMap[edge.SourceID]"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "\t\t\tif edge.SourceID == 0 {"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\t\t\t\treturn Overlay{}, errors.New(\"overlay edge has an unknown source symbol\")"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\t\t\tif mapped := idMap[edge.TargetID]; mapped != 0 {"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\t\t\t\tedge.TargetID = mapped"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\t\t\tif edge.TargetID == 0 \u0026\u0026 edge.Target == \"\" {"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "\t\t\t\treturn Overlay{}, errors.New(\"overlay edge requires a resolved or unresolved target\")"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\t\t\toverlay.Graph.Edges = append(overlay.Graph.Edges, edge)"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\tfor _, edge := range base.Edges {"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\t\tif removedIDs[edge.SourceID] {"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\t\t\tedge.SourceID = replacementIDs[edge.SourceID]"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\t\tif removedIDs[edge.TargetID] {"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\t\t\tedge.TargetID = replacementIDs[edge.TargetID]"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\t\tif edge.SourceID != 0 \u0026\u0026 (edge.TargetID != 0 || edge.Target != \"\") {"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\t\t\toverlay.Graph.Edges = append(overlay.Graph.Edges, edge)"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\tfor key, symbol := range baseByKey {"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "\t\tif !seenHead[key] {"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "\t\t\toverlay.Delta.Removed = append(overlay.Delta.Removed, symbol)"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\tsortOverlaySymbols(overlay.Delta.Added)"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\tsortOverlaySymbols(overlay.Delta.Removed)"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\tsortOverlaySymbols(overlay.Delta.Modified)"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "\treturn overlay, nil"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "func symbolKey(symbol OverlaySymbol) string {"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "\treturn symbol.Path + \"\\x00\" + symbol.Kind + \"\\x00\" + symbol.Name"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "func sortOverlaySymbols(symbols []OverlaySymbol) {"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "\tsort.Slice(symbols, func(i, j int) bool { return symbolKey(symbols[i]) \u003c symbolKey(symbols[j]) })"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/graph/overlay_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/graph/overlay_test.go b/internal/hosted/graph/overlay_test.go\nnew file mode 100644\nindex 0000000..8f88f66\n--- /dev/null\n+++ b/internal/hosted/graph/overlay_test.go\n@@ -0,0 +1,57 @@\n+package graph\n+\n+import (\n+\t\"context\"\n+\t\"testing\"\n+)\n+\n+type headParserFunc func(context.Context, ChangedFile) ([]OverlaySymbol, []OverlayEdge, error)\n+\n+func (f headParserFunc) ParseGraph(ctx context.Context, file ChangedFile) ([]OverlaySymbol, []OverlayEdge, error) {\n+\treturn f(ctx, file)\n+}\n+\n+func TestBuildOverlayDiffsChangedFileWithoutPersistingBaseIDs(t *testing.T) {\n+\tbase := Snapshot{\n+\t\tSymbols: []OverlaySymbol{{ID: 1, Path: \"a.go\", Kind: \"function\", Name: \"old\", StartLine: 1, EndLine: 2}, {ID: 2, Path: \"keep.go\", Kind: \"function\", Name: \"keep\"}},\n+\t\tEdges:   []OverlayEdge{{SourceID: 2, TargetID: 1, Kind: \"calls\"}},\n+\t}\n+\toverlay, err := BuildOverlay(context.Background(), base, []ChangedFile{{Path: \"a.go\", BlobSHA: \"new\", Content: []byte(\"package p\")}}, headParserFunc(func(context.Context, ChangedFile) ([]OverlaySymbol, []OverlayEdge, error) {\n+\t\treturn []OverlaySymbol{{ID: 10, Path: \"a.go\", Kind: \"function\", Name: \"new\", StartLine: 1, EndLine: 3}}, nil, nil\n+\t}))\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif len(overlay.Delta.Added) != 1 || len(overlay.Delta.Removed) != 1 || overlay.Delta.Added[0].ID \u003e= 0 {\n+\t\tt.Fatalf(\"delta = %+v\", overlay.Delta)\n+\t}\n+\tif len(overlay.Graph.Edges) != 0 {\n+\t\tt.Fatal(\"edge to replaced base symbol survived\")\n+\t}\n+\tif len(base.Symbols) != 2 || base.Symbols[0].ID != 1 {\n+\t\tt.Fatal(\"base graph was mutated\")\n+\t}\n+}\n+\n+func TestBuildOverlayHandlesDeletedFile(t *testing.T) {\n+\toverlay, err := BuildOverlay(context.Background(), Snapshot{Symbols: []OverlaySymbol{{ID: 1, Path: \"gone.go\", Kind: \"function\", Name: \"gone\"}}}, []ChangedFile{{Path: \"gone.go\", Deleted: true}}, headParserFunc(func(context.Context, ChangedFile) ([]OverlaySymbol, []OverlayEdge, error) {\n+\t\tt.Fatal(\"deleted file must not be parsed\")\n+\t\treturn nil, nil, nil\n+\t}))\n+\tif err != nil || len(overlay.Delta.Removed) != 1 || len(overlay.Graph.Symbols) != 0 {\n+\t\tt.Fatalf(\"deleted overlay = %+v, %v\", overlay, err)\n+\t}\n+}\n+\n+func TestBuildOverlayRewiresIncomingEdgeToModifiedSymbol(t *testing.T) {\n+\tbase := Snapshot{Symbols: []OverlaySymbol{{ID: 1, Path: \"a.go\", Kind: \"function\", Name: \"run\", Signature: \"old\"}, {ID: 2, Path: \"caller.go\", Kind: \"function\", Name: \"caller\"}}, Edges: []OverlayEdge{{SourceID: 2, TargetID: 1, Kind: \"calls\"}}}\n+\toverlay, err := BuildOverlay(context.Background(), base, []ChangedFile{{Path: \"a.go\", BlobSHA: \"new\"}}, headParserFunc(func(context.Context, ChangedFile) ([]OverlaySymbol, []OverlayEdge, error) {\n+\t\treturn []OverlaySymbol{{ID: 10, Path: \"a.go\", Kind: \"function\", Name: \"run\", Signature: \"new\"}}, nil, nil\n+\t}))\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif len(overlay.Graph.Edges) != 1 || overlay.Graph.Edges[0].TargetID \u003e= 0 || len(overlay.Delta.Modified) != 1 {\n+\t\tt.Fatalf(\"overlay did not rewire modified symbol: %+v\", overlay)\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-b2cfdcd6ae1a521a",
+          "header": "@@ -0,0 +1,57 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package graph"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "type headParserFunc func(context.Context, ChangedFile) ([]OverlaySymbol, []OverlayEdge, error)"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "func (f headParserFunc) ParseGraph(ctx context.Context, file ChangedFile) ([]OverlaySymbol, []OverlayEdge, error) {"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\treturn f(ctx, file)"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "func TestBuildOverlayDiffsChangedFileWithoutPersistingBaseIDs(t *testing.T) {"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tbase := Snapshot{"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t\tSymbols: []OverlaySymbol{{ID: 1, Path: \"a.go\", Kind: \"function\", Name: \"old\", StartLine: 1, EndLine: 2}, {ID: 2, Path: \"keep.go\", Kind: \"function\", Name: \"keep\"}},"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t\tEdges:   []OverlayEdge{{SourceID: 2, TargetID: 1, Kind: \"calls\"}},"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\toverlay, err := BuildOverlay(context.Background(), base, []ChangedFile{{Path: \"a.go\", BlobSHA: \"new\", Content: []byte(\"package p\")}}, headParserFunc(func(context.Context, ChangedFile) ([]OverlaySymbol, []OverlayEdge, error) {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t\treturn []OverlaySymbol{{ID: 10, Path: \"a.go\", Kind: \"function\", Name: \"new\", StartLine: 1, EndLine: 3}}, nil, nil"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t}))"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tif len(overlay.Delta.Added) != 1 || len(overlay.Delta.Removed) != 1 || overlay.Delta.Added[0].ID \u003e= 0 {"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"delta = %+v\", overlay.Delta)"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tif len(overlay.Graph.Edges) != 0 {"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"edge to replaced base symbol survived\")"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tif len(base.Symbols) != 2 || base.Symbols[0].ID != 1 {"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"base graph was mutated\")"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "func TestBuildOverlayHandlesDeletedFile(t *testing.T) {"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\toverlay, err := BuildOverlay(context.Background(), Snapshot{Symbols: []OverlaySymbol{{ID: 1, Path: \"gone.go\", Kind: \"function\", Name: \"gone\"}}}, []ChangedFile{{Path: \"gone.go\", Deleted: true}}, headParserFunc(func(context.Context, ChangedFile) ([]OverlaySymbol, []OverlayEdge, error) {"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"deleted file must not be parsed\")"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t\treturn nil, nil, nil"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t}))"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\tif err != nil || len(overlay.Delta.Removed) != 1 || len(overlay.Graph.Symbols) != 0 {"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"deleted overlay = %+v, %v\", overlay, err)"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "func TestBuildOverlayRewiresIncomingEdgeToModifiedSymbol(t *testing.T) {"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\tbase := Snapshot{Symbols: []OverlaySymbol{{ID: 1, Path: \"a.go\", Kind: \"function\", Name: \"run\", Signature: \"old\"}, {ID: 2, Path: \"caller.go\", Kind: \"function\", Name: \"caller\"}}, Edges: []OverlayEdge{{SourceID: 2, TargetID: 1, Kind: \"calls\"}}}"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\toverlay, err := BuildOverlay(context.Background(), base, []ChangedFile{{Path: \"a.go\", BlobSHA: \"new\"}}, headParserFunc(func(context.Context, ChangedFile) ([]OverlaySymbol, []OverlayEdge, error) {"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\treturn []OverlaySymbol{{ID: 10, Path: \"a.go\", Kind: \"function\", Name: \"run\", Signature: \"new\"}}, nil, nil"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t}))"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\tif len(overlay.Graph.Edges) != 1 || overlay.Graph.Edges[0].TargetID \u003e= 0 || len(overlay.Delta.Modified) != 1 {"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"overlay did not rewire modified symbol: %+v\", overlay)"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-4179512608c4c8c7",
+      "title": "Overlay changes",
+      "summary": "2 related files share the \"overlay\" change signal.",
+      "paths": [
+        "internal/hosted/graph/overlay.go",
+        "internal/hosted/graph/overlay_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-3390017ac0db68ee",
+      "path": "internal/hosted/graph/overlay.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/graph/overlay_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-793c8954094821c7",
+      "path": "internal/hosted/graph/overlay.go",
+      "line": 56,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func BuildOverlay(ctx context.Context, base Snapshot, changes []ChangedFile, parser HeadParser) (Overlay, error) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 2,
+    "filesAnalyzed": 2,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "overlay-view",
+      "path": "internal/hosted/graph/overlay.go",
+      "lineStart": 55,
+      "lineEnd": 104,
+      "title": "Create a PR-head graph overlay",
+      "summary": "Builds an in-memory graph view for the changed files: their base symbols are replaced with parsed head symbols, while unchanged base symbols are retained. Deleted files are not parsed, and the base snapshot is left untouched."
+    },
+    {
+      "id": "input-validation",
+      "path": "internal/hosted/graph/overlay.go",
+      "lineStart": 56,
+      "lineEnd": 119,
+      "title": "Reject invalid overlay inputs",
+      "summary": "Rejects missing parser or file identity data, duplicate changed paths, parser failures, and invalid parsed symbols or edges instead of returning a partial overlay."
+    },
+    {
+      "id": "symbol-delta",
+      "path": "internal/hosted/graph/overlay.go",
+      "lineStart": 91,
+      "lineEnd": 137,
+      "title": "Report symbol changes",
+      "summary": "Reports symbols as added, removed, or modified by matching path, kind, and name; a change to signature or line range counts as a modification."
+    },
+    {
+      "id": "edge-rewiring",
+      "path": "internal/hosted/graph/overlay.go",
+      "lineStart": 109,
+      "lineEnd": 130,
+      "title": "Keep edges consistent with replacements",
+      "summary": "Remaps parsed head edges to overlay symbol IDs and rewires base edges to matching replacement symbols. Edges that point to symbols with no replacement are omitted, including edges to deleted-file symbols."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "cd794ae64a7a5c910833895d910ef5a72a5cb6d6",
+      "revision": "9f44ce3dcf91d496dd033a65cb7c07786abf9dfe",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "cd794ae64a7a5c910833895d910ef5a72a5cb6d6",
+      "revision": "9f44ce3dcf91d496dd033a65cb7c07786abf9dfe",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "9f44ce3dcf91d496dd033a65cb7c07786abf9dfe",
+      "detail": "4 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "9f44ce3dcf91d496dd033a65cb7c07786abf9dfe",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-4fe6e96ed9dcc604",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/graph/overlay.go",
+      "line": 56,
+      "evidence": "func BuildOverlay(ctx context.Context, base Snapshot, changes []ChangedFile, parser HeadParser) (Overlay, error) {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "9f44ce3dcf91d496dd033a65cb7c07786abf9dfe",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40221043899",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40221043899/job/121252710840",
+        "startedAt": "2026-10-25T18:24:52Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40221043790/job/121252477179",
+        "startedAt": "2026-10-25T18:23:52Z"
+      }
+    ]
+  }
+}
