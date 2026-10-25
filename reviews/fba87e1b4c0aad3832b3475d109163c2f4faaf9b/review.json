@@ -1,0 +1,1028 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "cd794ae64a7a5c910833895d910ef5a72a5cb6d6",
+  "head": "fba87e1b4c0aad3832b3475d109163c2f4faaf9b",
+  "generatedAt": "2026-10-25T18:24:33.403442046Z",
+  "files": [
+    {
+      "path": "internal/hosted/graph/resolve.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/graph/resolve.go b/internal/hosted/graph/resolve.go\nnew file mode 100644\nindex 0000000..485bb43\n--- /dev/null\n+++ b/internal/hosted/graph/resolve.go\n@@ -0,0 +1,133 @@\n+package graph\n+\n+import (\n+\t\"errors\"\n+\t\"path\"\n+\t\"sort\"\n+\t\"strings\"\n+)\n+\n+type Symbol struct {\n+\tID        int64\n+\tPath      string\n+\tName      string\n+\tKind      string\n+\tSignature string\n+\tStartLine int\n+\tEndLine   int\n+}\n+\n+type Reference struct {\n+\tSourceSymbolID int64\n+\tSourcePath     string\n+\tSourceLine     int\n+\tKind           string\n+\tTarget         string\n+\tTargetPath     string\n+}\n+\n+type ResolvedEdge struct {\n+\tSourceSymbolID int64\n+\tTargetSymbolID int64\n+\tUnresolved     string\n+\tKind           string\n+\tConfidence     float64\n+\tSourcePath     string\n+\tSourceLine     int\n+}\n+\n+// Resolve links local and imported references deterministically. Ambiguous or\n+// absent targets remain visible as low-confidence unresolved edges.\n+func Resolve(symbols []Symbol, references []Reference) ([]ResolvedEdge, error) {\n+\tbyID := map[int64]Symbol{}\n+\tbyPathName := map[string][]Symbol{}\n+\tbyName := map[string][]Symbol{}\n+\tfileSymbols := map[string][]Symbol{}\n+\tfor _, symbol := range symbols {\n+\t\tif symbol.ID \u003c= 0 || symbol.Path == \"\" || symbol.Name == \"\" {\n+\t\t\treturn nil, errors.New(\"symbols require ID, path, and name\")\n+\t\t}\n+\t\tif _, exists := byID[symbol.ID]; exists {\n+\t\t\treturn nil, errors.New(\"symbol IDs must be unique\")\n+\t\t}\n+\t\tbyID[symbol.ID] = symbol\n+\t\tcleanPath := path.Clean(symbol.Path)\n+\t\tpathAliases := []string{cleanPath, strings.TrimSuffix(cleanPath, path.Ext(cleanPath))}\n+\t\tfor _, alias := range pathAliases {\n+\t\t\tbyPathName[alias+\"\\x00\"+symbol.Name] = append(byPathName[alias+\"\\x00\"+symbol.Name], symbol)\n+\t\t\tfileSymbols[alias] = append(fileSymbols[alias], symbol)\n+\t\t}\n+\t\tbyName[symbol.Name] = append(byName[symbol.Name], symbol)\n+\t}\n+\tedges := make([]ResolvedEdge, 0, len(references))\n+\tfor _, reference := range references {\n+\t\tif _, ok := byID[reference.SourceSymbolID]; !ok || reference.SourcePath == \"\" || reference.SourceLine \u003c= 0 || reference.Target == \"\" {\n+\t\t\treturn nil, errors.New(\"references require a known source, path, line, and target\")\n+\t\t}\n+\t\tif reference.Kind != \"calls\" \u0026\u0026 reference.Kind != \"imports\" {\n+\t\t\treturn nil, errors.New(\"resolver supports calls and imports\")\n+\t\t}\n+\t\tedge := ResolvedEdge{SourceSymbolID: reference.SourceSymbolID, Kind: reference.Kind, SourcePath: reference.SourcePath, SourceLine: reference.SourceLine}\n+\t\tcandidates := candidatesFor(reference, byPathName, byName, fileSymbols)\n+\t\tif len(candidates) == 1 {\n+\t\t\tedge.TargetSymbolID = candidates[0].ID\n+\t\t\tedge.Confidence = confidenceFor(reference)\n+\t\t} else {\n+\t\t\tedge.Unresolved = reference.Target\n+\t\t\tif reference.TargetPath != \"\" {\n+\t\t\t\tedge.Unresolved = reference.TargetPath + \":\" + reference.Target\n+\t\t\t}\n+\t\t\tedge.Confidence = .2\n+\t\t}\n+\t\tedges = append(edges, edge)\n+\t}\n+\treturn edges, nil\n+}\n+\n+func candidatesFor(reference Reference, byPathName, byName map[string][]Symbol, fileSymbols map[string][]Symbol) []Symbol {\n+\tif reference.Kind == \"imports\" {\n+\t\ttargetPath := resolvePath(reference.SourcePath, reference.TargetPath)\n+\t\tcandidates := fileSymbols[targetPath]\n+\t\tif len(candidates) == 0 {\n+\t\t\tcandidates = fileSymbols[targetPath+\"/index\"]\n+\t\t}\n+\t\treturn uniqueSymbols(candidates)\n+\t}\n+\tif reference.TargetPath != \"\" {\n+\t\ttargetPath := resolvePath(reference.SourcePath, reference.TargetPath)\n+\t\treturn uniqueSymbols(byPathName[targetPath+\"\\x00\"+reference.Target])\n+\t}\n+\tlocal := byPathName[path.Clean(reference.SourcePath)+\"\\x00\"+reference.Target]\n+\tif len(local) == 1 {\n+\t\treturn local\n+\t}\n+\treturn uniqueSymbols(byName[reference.Target])\n+}\n+\n+func resolvePath(sourcePath, targetPath string) string {\n+\tclean := strings.TrimPrefix(path.Clean(targetPath), \"./\")\n+\tif strings.HasPrefix(targetPath, \".\") {\n+\t\tclean = path.Clean(path.Join(path.Dir(sourcePath), targetPath))\n+\t}\n+\treturn strings.TrimSuffix(clean, path.Ext(clean))\n+}\n+\n+func confidenceFor(reference Reference) float64 {\n+\tif reference.TargetPath != \"\" {\n+\t\treturn .9\n+\t}\n+\treturn .75\n+}\n+\n+func uniqueSymbols(symbols []Symbol) []Symbol {\n+\tseen := map[int64]bool{}\n+\tresult := make([]Symbol, 0, len(symbols))\n+\tfor _, symbol := range symbols {\n+\t\tif !seen[symbol.ID] {\n+\t\t\tseen[symbol.ID] = true\n+\t\t\tresult = append(result, symbol)\n+\t\t}\n+\t}\n+\tsort.Slice(result, func(i, j int) bool { return result[i].ID \u003c result[j].ID })\n+\treturn result\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-4d210b285faa8192",
+          "header": "@@ -0,0 +1,133 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package graph"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"path\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"sort\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "type Symbol struct {"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\tID        int64"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\tPath      string"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\tName      string"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tKind      string"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tSignature string"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tStartLine int"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tEndLine   int"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "type Reference struct {"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tSourceSymbolID int64"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tSourcePath     string"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tSourceLine     int"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tKind           string"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tTarget         string"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tTargetPath     string"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "type ResolvedEdge struct {"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tSourceSymbolID int64"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tTargetSymbolID int64"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tUnresolved     string"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tKind           string"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tConfidence     float64"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tSourcePath     string"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tSourceLine     int"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "// Resolve links local and imported references deterministically. Ambiguous or"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "// absent targets remain visible as low-confidence unresolved edges."
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "func Resolve(symbols []Symbol, references []Reference) ([]ResolvedEdge, error) {"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tbyID := map[int64]Symbol{}"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tbyPathName := map[string][]Symbol{}"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tbyName := map[string][]Symbol{}"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\tfileSymbols := map[string][]Symbol{}"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\tfor _, symbol := range symbols {"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\tif symbol.ID \u003c= 0 || symbol.Path == \"\" || symbol.Name == \"\" {"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\t\treturn nil, errors.New(\"symbols require ID, path, and name\")"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t\tif _, exists := byID[symbol.ID]; exists {"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t\t\treturn nil, errors.New(\"symbol IDs must be unique\")"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t\tbyID[symbol.ID] = symbol"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\tcleanPath := path.Clean(symbol.Path)"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t\tpathAliases := []string{cleanPath, strings.TrimSuffix(cleanPath, path.Ext(cleanPath))}"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t\tfor _, alias := range pathAliases {"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\t\tbyPathName[alias+\"\\x00\"+symbol.Name] = append(byPathName[alias+\"\\x00\"+symbol.Name], symbol)"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t\t\tfileSymbols[alias] = append(fileSymbols[alias], symbol)"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t\tbyName[symbol.Name] = append(byName[symbol.Name], symbol)"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\tedges := make([]ResolvedEdge, 0, len(references))"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\tfor _, reference := range references {"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t\tif _, ok := byID[reference.SourceSymbolID]; !ok || reference.SourcePath == \"\" || reference.SourceLine \u003c= 0 || reference.Target == \"\" {"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t\t\treturn nil, errors.New(\"references require a known source, path, line, and target\")"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\tif reference.Kind != \"calls\" \u0026\u0026 reference.Kind != \"imports\" {"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\t\treturn nil, errors.New(\"resolver supports calls and imports\")"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\tedge := ResolvedEdge{SourceSymbolID: reference.SourceSymbolID, Kind: reference.Kind, SourcePath: reference.SourcePath, SourceLine: reference.SourceLine}"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\tcandidates := candidatesFor(reference, byPathName, byName, fileSymbols)"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t\tif len(candidates) == 1 {"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\t\tedge.TargetSymbolID = candidates[0].ID"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t\t\tedge.Confidence = confidenceFor(reference)"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\t\t} else {"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t\t\tedge.Unresolved = reference.Target"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t\t\tif reference.TargetPath != \"\" {"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t\t\t\tedge.Unresolved = reference.TargetPath + \":\" + reference.Target"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t\t\tedge.Confidence = .2"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\t\tedges = append(edges, edge)"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\treturn edges, nil"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "func candidatesFor(reference Reference, byPathName, byName map[string][]Symbol, fileSymbols map[string][]Symbol) []Symbol {"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\tif reference.Kind == \"imports\" {"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\t\ttargetPath := resolvePath(reference.SourcePath, reference.TargetPath)"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t\tcandidates := fileSymbols[targetPath]"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t\tif len(candidates) == 0 {"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\t\t\tcandidates = fileSymbols[targetPath+\"/index\"]"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t\treturn uniqueSymbols(candidates)"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\tif reference.TargetPath != \"\" {"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t\ttargetPath := resolvePath(reference.SourcePath, reference.TargetPath)"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t\treturn uniqueSymbols(byPathName[targetPath+\"\\x00\"+reference.Target])"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\tlocal := byPathName[path.Clean(reference.SourcePath)+\"\\x00\"+reference.Target]"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\tif len(local) == 1 {"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\t\treturn local"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\treturn uniqueSymbols(byName[reference.Target])"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "func resolvePath(sourcePath, targetPath string) string {"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\tclean := strings.TrimPrefix(path.Clean(targetPath), \"./\")"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\tif strings.HasPrefix(targetPath, \".\") {"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\t\tclean = path.Clean(path.Join(path.Dir(sourcePath), targetPath))"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\treturn strings.TrimSuffix(clean, path.Ext(clean))"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "func confidenceFor(reference Reference) float64 {"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "\tif reference.TargetPath != \"\" {"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\t\treturn .9"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\treturn .75"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "func uniqueSymbols(symbols []Symbol) []Symbol {"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "\tseen := map[int64]bool{}"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\tresult := make([]Symbol, 0, len(symbols))"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\tfor _, symbol := range symbols {"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\t\tif !seen[symbol.ID] {"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\t\t\tseen[symbol.ID] = true"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\t\t\tresult = append(result, symbol)"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\tsort.Slice(result, func(i, j int) bool { return result[i].ID \u003c result[j].ID })"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\treturn result"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/graph/resolve_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/graph/resolve_test.go b/internal/hosted/graph/resolve_test.go\nnew file mode 100644\nindex 0000000..1ce7e7f\n--- /dev/null\n+++ b/internal/hosted/graph/resolve_test.go\n@@ -0,0 +1,35 @@\n+package graph\n+\n+import \"testing\"\n+\n+func TestResolveLinksLocalCallAndImportedFile(t *testing.T) {\n+\tsymbols := []Symbol{\n+\t\t{ID: 1, Path: \"app/main.go\", Name: \"main\", Kind: \"function\"},\n+\t\t{ID: 2, Path: \"app/main.go\", Name: \"helper\", Kind: \"function\"},\n+\t\t{ID: 3, Path: \"lib/client.go\", Name: \"Client\", Kind: \"type\"},\n+\t}\n+\tedges, err := Resolve(symbols, []Reference{\n+\t\t{SourceSymbolID: 1, SourcePath: \"app/main.go\", SourceLine: 4, Kind: \"calls\", Target: \"helper\"},\n+\t\t{SourceSymbolID: 1, SourcePath: \"app/main.go\", SourceLine: 2, Kind: \"imports\", Target: \"client\", TargetPath: \"../lib/client.go\"},\n+\t})\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif edges[0].TargetSymbolID != 2 || edges[0].Confidence != .75 {\n+\t\tt.Fatalf(\"local call = %+v\", edges[0])\n+\t}\n+\tif edges[1].TargetSymbolID != 3 || edges[1].Confidence != .9 {\n+\t\tt.Fatalf(\"import = %+v\", edges[1])\n+\t}\n+}\n+\n+func TestResolveKeepsAmbiguousCallExplicit(t *testing.T) {\n+\tsymbols := []Symbol{{ID: 1, Path: \"main.go\", Name: \"main\"}, {ID: 2, Path: \"a.go\", Name: \"run\"}, {ID: 3, Path: \"b.go\", Name: \"run\"}}\n+\tedges, err := Resolve(symbols, []Reference{{SourceSymbolID: 1, SourcePath: \"main.go\", SourceLine: 4, Kind: \"calls\", Target: \"run\"}})\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif edges[0].TargetSymbolID != 0 || edges[0].Unresolved != \"run\" || edges[0].Confidence != .2 {\n+\t\tt.Fatalf(\"ambiguous edge = %+v\", edges[0])\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-abe7cde02c26d2e3",
+          "header": "@@ -0,0 +1,35 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package graph"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import \"testing\""
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "func TestResolveLinksLocalCallAndImportedFile(t *testing.T) {"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\tsymbols := []Symbol{"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\t{ID: 1, Path: \"app/main.go\", Name: \"main\", Kind: \"function\"},"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\t{ID: 2, Path: \"app/main.go\", Name: \"helper\", Kind: \"function\"},"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\t{ID: 3, Path: \"lib/client.go\", Name: \"Client\", Kind: \"type\"},"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\tedges, err := Resolve(symbols, []Reference{"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\t{SourceSymbolID: 1, SourcePath: \"app/main.go\", SourceLine: 4, Kind: \"calls\", Target: \"helper\"},"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t\t{SourceSymbolID: 1, SourcePath: \"app/main.go\", SourceLine: 2, Kind: \"imports\", Target: \"client\", TargetPath: \"../lib/client.go\"},"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\t})"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tif edges[0].TargetSymbolID != 2 || edges[0].Confidence != .75 {"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"local call = %+v\", edges[0])"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tif edges[1].TargetSymbolID != 3 || edges[1].Confidence != .9 {"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"import = %+v\", edges[1])"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "func TestResolveKeepsAmbiguousCallExplicit(t *testing.T) {"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tsymbols := []Symbol{{ID: 1, Path: \"main.go\", Name: \"main\"}, {ID: 2, Path: \"a.go\", Name: \"run\"}, {ID: 3, Path: \"b.go\", Name: \"run\"}}"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tedges, err := Resolve(symbols, []Reference{{SourceSymbolID: 1, SourcePath: \"main.go\", SourceLine: 4, Kind: \"calls\", Target: \"run\"}})"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tif edges[0].TargetSymbolID != 0 || edges[0].Unresolved != \"run\" || edges[0].Confidence != .2 {"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"ambiguous edge = %+v\", edges[0])"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-6e515614a6346b39",
+      "title": "Resolve changes",
+      "summary": "2 related files share the \"resolve\" change signal.",
+      "paths": [
+        "internal/hosted/graph/resolve.go",
+        "internal/hosted/graph/resolve_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-6b6e23482b8456e2",
+      "path": "internal/hosted/graph/resolve.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/graph/resolve_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-c2355d4debdc72f8",
+      "path": "internal/hosted/graph/resolve.go",
+      "line": 41,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func Resolve(symbols []Symbol, references []Reference) ([]ResolvedEdge, error) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 2,
+    "filesAnalyzed": 2,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "3",
+      "path": "internal/hosted/graph/resolve.go",
+      "lineStart": 46,
+      "lineEnd": 68,
+      "title": "Invalid resolver inputs fail explicitly",
+      "summary": "The resolver now rejects invalid or duplicate symbol IDs, references with missing source details, and reference kinds other than calls or imports, returning an error instead of producing edges from incomplete input."
+    },
+    {
+      "id": "1",
+      "path": "internal/hosted/graph/resolve.go",
+      "lineStart": 70,
+      "lineEnd": 83,
+      "title": "Unresolved references stay visible",
+      "summary": "References with one matching symbol now resolve to that symbol; ambiguous or missing matches are retained as unresolved edges with confidence 0.2, rather than being silently dropped."
+    },
+    {
+      "id": "2",
+      "path": "internal/hosted/graph/resolve.go",
+      "lineStart": 86,
+      "lineEnd": 117,
+      "title": "Local and imported references are linked",
+      "summary": "Calls can resolve through an explicit target path, a unique same-file match, or a unique name match. Imports look for symbols in the target file (including an index file). Resolved edges receive confidence 0.75 without a target path and 0.9 with one."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "cd794ae64a7a5c910833895d910ef5a72a5cb6d6",
+      "revision": "fba87e1b4c0aad3832b3475d109163c2f4faaf9b",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "cd794ae64a7a5c910833895d910ef5a72a5cb6d6",
+      "revision": "fba87e1b4c0aad3832b3475d109163c2f4faaf9b",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "fba87e1b4c0aad3832b3475d109163c2f4faaf9b",
+      "detail": "3 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "fba87e1b4c0aad3832b3475d109163c2f4faaf9b",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-80667f576aa05cbf",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/graph/resolve.go",
+      "line": 41,
+      "evidence": "func Resolve(symbols []Symbol, references []Reference) ([]ResolvedEdge, error) {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "fba87e1b4c0aad3832b3475d109163c2f4faaf9b",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40221041794",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40221041794/job/121252471293",
+        "startedAt": "2026-10-25T18:23:52Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40221042126/job/121252471185",
+        "startedAt": "2026-10-25T18:23:51Z"
+      }
+    ]
+  }
+}
