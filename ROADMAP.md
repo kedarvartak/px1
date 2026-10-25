@@ -87,16 +87,28 @@ backend-foundation tasks are:
    benchmark cases across public repositories.
 31. [x] **Gate review quality with evals.** Measure precision, recall, cost, and
    latency and reject prompt or model changes that regress quality by 3 points.
-32. [ ] **Publish launch and legal documentation.** Cover hosted installation,
+32. [x] **Publish launch and legal documentation.** Cover hosted installation,
    privacy, terms, and the 30-day post-uninstall retention policy.
 33. [ ] **Run the dogfood programme.** Capture two weeks of comparable evidence
    from px1 and three friendly repositories before opening the waitlist.
-34. [ ] **Protect the free Action mode.** Keep the account-free, self-run Action
+34. [x] **Protect the free Action mode.** Keep the account-free, self-run Action
    as a tested compatibility contract for open-source users.
-35. [ ] **Create the symbol graph schema.** Store tenant-scoped symbols and
+35. [x] **Create the symbol graph schema.** Store tenant-scoped symbols and
    typed edges for bounded two-hop traversal.
-36. [ ] **Define language graph queries.** Add tree-sitter queries for
+36. [x] **Define language graph queries.** Add tree-sitter queries for
    definitions, references, imports, and calls across supported languages.
+37. [x] **Sandbox exact SCIP indexing.** Run digest-pinned indexers only on the
+   default branch, without network access and with a ten-minute CPU limit.
+38. [ ] **Resolve graph names.** Link imports to files and calls to definitions,
+   retaining ambiguous targets as explicit low-confidence edges.
+39. [ ] **Update the graph incrementally.** Replace symbols for changed blobs and
+   re-link affected incoming and outgoing edges in one tenant-scoped mutation.
+40. [ ] **Overlay pull-request graph changes.** Parse changed head files in
+   memory and diff their symbols and edges against the default-branch graph.
+41. [ ] **Expose graph tools to reviews.** Add bounded callers, callees, tests,
+   siblings, and implementers queries with two-hop traversal limits.
+42. [ ] **Ingest comment reactions.** Poll bot comment reactions every fifteen
+   minutes for fourteen days and store idempotent feedback events.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,
