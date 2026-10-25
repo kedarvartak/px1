@@ -99,28 +99,16 @@ backend-foundation tasks are:
    definitions, references, imports, and calls across supported languages.
 37. [x] **Sandbox exact SCIP indexing.** Run digest-pinned indexers only on the
    default branch, without network access and with a ten-minute CPU limit.
-38. [x] **Resolve graph names.** Link imports to files and calls to definitions,
+38. [ ] **Resolve graph names.** Link imports to files and calls to definitions,
    retaining ambiguous targets as explicit low-confidence edges.
-39. [x] **Update the graph incrementally.** Replace symbols for changed blobs and
+39. [ ] **Update the graph incrementally.** Replace symbols for changed blobs and
    re-link affected incoming and outgoing edges in one tenant-scoped mutation.
-40. [x] **Overlay pull-request graph changes.** Parse changed head files in
+40. [ ] **Overlay pull-request graph changes.** Parse changed head files in
    memory and diff their symbols and edges against the default-branch graph.
-41. [x] **Expose graph tools to reviews.** Add bounded callers, callees, tests,
+41. [ ] **Expose graph tools to reviews.** Add bounded callers, callees, tests,
    siblings, and implementers queries with two-hop traversal limits.
-42. [x] **Ingest comment reactions.** Poll bot comment reactions every fifteen
+42. [ ] **Ingest comment reactions.** Poll bot comment reactions every fifteen
    minutes for fourteen days and store idempotent feedback events.
-43. [ ] **Classify reviewer replies.** Use a bounded low-cost model to label
-   replies as agree, disagree, context, or question and answer questions in-thread.
-44. [x] **Detect addressed findings.** Compare the reviewed range from the review
-   SHA through the merge SHA and record whether the author changed it.
-45. [ ] **Create scoped review memory.** Store evidence-backed memories and
-   retrieve at most twenty by tenant, repository, path, language, and similarity.
-46. [ ] **Suppress repeated noise.** Suppress eligible categories after repeated
-   ignores or downvotes while never auto-suppressing P0, security, or logic issues.
-47. [ ] **Propose learned rules weekly.** Cluster recurring human comments and
-   open a reviewable `.px1/rules.md` proposal with evidence links.
-48. [ ] **Add explicit remember commands.** Let authorized reviewers write a
-   thread-scoped memory with `@px1 remember <text>`.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,
