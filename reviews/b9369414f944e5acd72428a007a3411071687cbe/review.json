@@ -1,0 +1,1583 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "4b3427b07dfc5a9c2bf69b19eaed2a89bd45bdad",
+  "head": "b9369414f944e5acd72428a007a3411071687cbe",
+  "generatedAt": "2026-10-25T20:38:37.301270041Z",
+  "files": [
+    {
+      "path": "config_cascade.go",
+      "status": "A",
+      "diff": "diff --git a/config_cascade.go b/config_cascade.go\nnew file mode 100644\nindex 0000000..8bd0793\n--- /dev/null\n+++ b/config_cascade.go\n@@ -0,0 +1,137 @@\n+package main\n+\n+import (\n+\t\"bytes\"\n+\t\"encoding/json\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"io\"\n+\t\"path/filepath\"\n+\t\"sort\"\n+\t\"strings\"\n+)\n+\n+const (\n+\tconfigFileLimit  = 64 \u003c\u003c 10\n+\tconfigDepthLimit = 20\n+)\n+\n+type configInput struct {\n+\tVersion           int      `json:\"version\"`\n+\tStrictness        *int     `json:\"strictness,omitempty\"`\n+\tCommentTypes      []string `json:\"commentTypes,omitempty\"`\n+\tDisabledRules     []string `json:\"disabledRules,omitempty\"`\n+\tMaxInlineComments *int     `json:\"maxInlineComments,omitempty\"`\n+\tFailOnP0          *bool    `json:\"failOnP0,omitempty\"`\n+}\n+\n+type resolvedConfig struct {\n+\tSources           []string `json:\"sources\"`\n+\tStrictness        int      `json:\"strictness\"`\n+\tCommentTypes      []string `json:\"commentTypes\"`\n+\tDisabledRules     []string `json:\"disabledRules\"`\n+\tMaxInlineComments int      `json:\"maxInlineComments\"`\n+\tFailOnP0          bool     `json:\"failOnP0\"`\n+}\n+\n+// resolveCascadingConfig applies root-to-leaf .px1/config.json files. Gating\n+// settings only become stricter: strictness is the maximum and failOnP0 is OR.\n+func resolveCascadingConfig(target string, files map[string][]byte) (resolvedConfig, error) {\n+\tclean := filepath.ToSlash(filepath.Clean(target))\n+\tif target == \"\" || filepath.IsAbs(target) || clean == \".\" || clean == \"..\" || strings.HasPrefix(clean, \"../\") {\n+\t\treturn resolvedConfig{}, errors.New(\"config target must be a repository-relative file\")\n+\t}\n+\tif depth := len(strings.Split(filepath.ToSlash(filepath.Dir(clean)), \"/\")); depth \u003e configDepthLimit {\n+\t\treturn resolvedConfig{}, errors.New(\"config target exceeds directory depth limit\")\n+\t}\n+\tresult := resolvedConfig{Strictness: 2, CommentTypes: []string{\"logic\", \"security\", \"style\", \"syntax\"}, MaxInlineComments: 15}\n+\tdisabled := map[string]bool{}\n+\tfor _, candidate := range configCandidates(clean) {\n+\t\tbody, ok := files[candidate]\n+\t\tif !ok {\n+\t\t\tcontinue\n+\t\t}\n+\t\tinput, err := decodeConfig(body)\n+\t\tif err != nil {\n+\t\t\treturn resolvedConfig{}, fmt.Errorf(\"%s: %w\", candidate, err)\n+\t\t}\n+\t\tresult.Sources = append(result.Sources, candidate)\n+\t\tif input.Strictness != nil \u0026\u0026 *input.Strictness \u003e result.Strictness {\n+\t\t\tresult.Strictness = *input.Strictness\n+\t\t}\n+\t\tif input.FailOnP0 != nil \u0026\u0026 *input.FailOnP0 {\n+\t\t\tresult.FailOnP0 = true\n+\t\t}\n+\t\tif input.MaxInlineComments != nil {\n+\t\t\tresult.MaxInlineComments = *input.MaxInlineComments\n+\t\t}\n+\t\tif input.CommentTypes != nil {\n+\t\t\tresult.CommentTypes = append([]string(nil), input.CommentTypes...)\n+\t\t}\n+\t\tfor _, id := range input.DisabledRules {\n+\t\t\tdisabled[id] = true\n+\t\t}\n+\t}\n+\tfor id := range disabled {\n+\t\tresult.DisabledRules = append(result.DisabledRules, id)\n+\t}\n+\tsort.Strings(result.DisabledRules)\n+\treturn result, nil\n+}\n+\n+func decodeConfig(body []byte) (configInput, error) {\n+\tif len(body) == 0 || len(body) \u003e configFileLimit {\n+\t\treturn configInput{}, errors.New(\"config must be non-empty and at most 64 KiB\")\n+\t}\n+\tdecoder := json.NewDecoder(bytes.NewReader(body))\n+\tdecoder.DisallowUnknownFields()\n+\tvar input configInput\n+\tif err := decoder.Decode(\u0026input); err != nil {\n+\t\treturn input, err\n+\t}\n+\tvar extra any\n+\tif err := decoder.Decode(\u0026extra); err != io.EOF {\n+\t\treturn input, errors.New(\"config contains trailing data\")\n+\t}\n+\tif input.Version != 1 {\n+\t\treturn input, errors.New(\"version must be 1\")\n+\t}\n+\tif input.Strictness != nil \u0026\u0026 (*input.Strictness \u003c 1 || *input.Strictness \u003e 3) {\n+\t\treturn input, errors.New(\"strictness must be between 1 and 3\")\n+\t}\n+\tif input.MaxInlineComments != nil \u0026\u0026 (*input.MaxInlineComments \u003c 1 || *input.MaxInlineComments \u003e 50) {\n+\t\treturn input, errors.New(\"maxInlineComments must be between 1 and 50\")\n+\t}\n+\tallowedTypes := map[string]bool{\"logic\": true, \"syntax\": true, \"style\": true, \"security\": true}\n+\tseen := map[string]bool{}\n+\tfor _, kind := range input.CommentTypes {\n+\t\tif !allowedTypes[kind] || seen[kind] {\n+\t\t\treturn input, errors.New(\"commentTypes contains an invalid or duplicate value\")\n+\t\t}\n+\t\tseen[kind] = true\n+\t}\n+\tdisabledSeen := map[string]bool{}\n+\tfor _, id := range input.DisabledRules {\n+\t\tif strings.TrimSpace(id) == \"\" || len(id) \u003e 80 {\n+\t\t\treturn input, errors.New(\"disabledRules contains an invalid id\")\n+\t\t}\n+\t\tif disabledSeen[id] {\n+\t\t\treturn input, errors.New(\"disabledRules contains a duplicate id\")\n+\t\t}\n+\t\tdisabledSeen[id] = true\n+\t}\n+\treturn input, nil\n+}\n+\n+func configCandidates(target string) []string {\n+\tresult := []string{\".px1/config.json\"}\n+\tdir := filepath.ToSlash(filepath.Dir(target))\n+\tif dir == \".\" {\n+\t\treturn result\n+\t}\n+\tparts := strings.Split(dir, \"/\")\n+\tfor i := range parts {\n+\t\tresult = append(result, strings.Join(parts[:i+1], \"/\")+\"/.px1/config.json\")\n+\t}\n+\treturn result\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-05686bade0b588ed",
+          "header": "@@ -0,0 +1,137 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package main"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"bytes\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"io\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"path/filepath\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"sort\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "const ("
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tconfigFileLimit  = 64 \u003c\u003c 10"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tconfigDepthLimit = 20"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "type configInput struct {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tVersion           int      `json:\"version\"`"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tStrictness        *int     `json:\"strictness,omitempty\"`"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tCommentTypes      []string `json:\"commentTypes,omitempty\"`"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tDisabledRules     []string `json:\"disabledRules,omitempty\"`"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tMaxInlineComments *int     `json:\"maxInlineComments,omitempty\"`"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tFailOnP0          *bool    `json:\"failOnP0,omitempty\"`"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "type resolvedConfig struct {"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tSources           []string `json:\"sources\"`"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tStrictness        int      `json:\"strictness\"`"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tCommentTypes      []string `json:\"commentTypes\"`"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tDisabledRules     []string `json:\"disabledRules\"`"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tMaxInlineComments int      `json:\"maxInlineComments\"`"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tFailOnP0          bool     `json:\"failOnP0\"`"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "// resolveCascadingConfig applies root-to-leaf .px1/config.json files. Gating"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "// settings only become stricter: strictness is the maximum and failOnP0 is OR."
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "func resolveCascadingConfig(target string, files map[string][]byte) (resolvedConfig, error) {"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tclean := filepath.ToSlash(filepath.Clean(target))"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\tif target == \"\" || filepath.IsAbs(target) || clean == \".\" || clean == \"..\" || strings.HasPrefix(clean, \"../\") {"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t\treturn resolvedConfig{}, errors.New(\"config target must be a repository-relative file\")"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tif depth := len(strings.Split(filepath.ToSlash(filepath.Dir(clean)), \"/\")); depth \u003e configDepthLimit {"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t\treturn resolvedConfig{}, errors.New(\"config target exceeds directory depth limit\")"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\tresult := resolvedConfig{Strictness: 2, CommentTypes: []string{\"logic\", \"security\", \"style\", \"syntax\"}, MaxInlineComments: 15}"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\tdisabled := map[string]bool{}"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\tfor _, candidate := range configCandidates(clean) {"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t\tbody, ok := files[candidate]"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t\tif !ok {"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\tinput, err := decodeConfig(body)"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t\t\treturn resolvedConfig{}, fmt.Errorf(\"%s: %w\", candidate, err)"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t\tresult.Sources = append(result.Sources, candidate)"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t\tif input.Strictness != nil \u0026\u0026 *input.Strictness \u003e result.Strictness {"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t\t\tresult.Strictness = *input.Strictness"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t\tif input.FailOnP0 != nil \u0026\u0026 *input.FailOnP0 {"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t\t\tresult.FailOnP0 = true"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t\tif input.MaxInlineComments != nil {"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\t\tresult.MaxInlineComments = *input.MaxInlineComments"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\tif input.CommentTypes != nil {"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\t\tresult.CommentTypes = append([]string(nil), input.CommentTypes...)"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\tfor _, id := range input.DisabledRules {"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t\t\tdisabled[id] = true"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\tfor id := range disabled {"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t\tresult.DisabledRules = append(result.DisabledRules, id)"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\tsort.Strings(result.DisabledRules)"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\treturn result, nil"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "func decodeConfig(body []byte) (configInput, error) {"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\tif len(body) == 0 || len(body) \u003e configFileLimit {"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\t\treturn configInput{}, errors.New(\"config must be non-empty and at most 64 KiB\")"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\tdecoder := json.NewDecoder(bytes.NewReader(body))"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\tdecoder.DisallowUnknownFields()"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\tvar input configInput"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\tif err := decoder.Decode(\u0026input); err != nil {"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t\treturn input, err"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\tvar extra any"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\tif err := decoder.Decode(\u0026extra); err != io.EOF {"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t\treturn input, errors.New(\"config contains trailing data\")"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\tif input.Version != 1 {"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t\treturn input, errors.New(\"version must be 1\")"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\tif input.Strictness != nil \u0026\u0026 (*input.Strictness \u003c 1 || *input.Strictness \u003e 3) {"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\t\treturn input, errors.New(\"strictness must be between 1 and 3\")"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\tif input.MaxInlineComments != nil \u0026\u0026 (*input.MaxInlineComments \u003c 1 || *input.MaxInlineComments \u003e 50) {"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t\treturn input, errors.New(\"maxInlineComments must be between 1 and 50\")"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\tallowedTypes := map[string]bool{\"logic\": true, \"syntax\": true, \"style\": true, \"security\": true}"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\tseen := map[string]bool{}"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\tfor _, kind := range input.CommentTypes {"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\t\tif !allowedTypes[kind] || seen[kind] {"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\t\t\treturn input, errors.New(\"commentTypes contains an invalid or duplicate value\")"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\t\tseen[kind] = true"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\tdisabledSeen := map[string]bool{}"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "\tfor _, id := range input.DisabledRules {"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "\t\tif strings.TrimSpace(id) == \"\" || len(id) \u003e 80 {"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "\t\t\treturn input, errors.New(\"disabledRules contains an invalid id\")"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\t\tif disabledSeen[id] {"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\t\t\treturn input, errors.New(\"disabledRules contains a duplicate id\")"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\t\tdisabledSeen[id] = true"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "\treturn input, nil"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "func configCandidates(target string) []string {"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\tresult := []string{\".px1/config.json\"}"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\tdir := filepath.ToSlash(filepath.Dir(target))"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\tif dir == \".\" {"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\t\treturn result"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\tparts := strings.Split(dir, \"/\")"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\tfor i := range parts {"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\t\tresult = append(result, strings.Join(parts[:i+1], \"/\")+\"/.px1/config.json\")"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\treturn result"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "config_cascade_test.go",
+      "status": "A",
+      "diff": "diff --git a/config_cascade_test.go b/config_cascade_test.go\nnew file mode 100644\nindex 0000000..5f336a0\n--- /dev/null\n+++ b/config_cascade_test.go\n@@ -0,0 +1,25 @@\n+package main\n+\n+import \"testing\"\n+\n+func TestResolveCascadingConfigKeepsGatesStrict(t *testing.T) {\n+\tfiles := map[string][]byte{\n+\t\t\".px1/config.json\":         []byte(`{\"version\":1,\"strictness\":3,\"failOnP0\":true,\"maxInlineComments\":10,\"disabledRules\":[\"root-rule\"]}`),\n+\t\t\"src/.px1/config.json\":     []byte(`{\"version\":1,\"strictness\":1,\"failOnP0\":false,\"maxInlineComments\":20,\"commentTypes\":[\"logic\"],\"disabledRules\":[\"child-rule\"]}`),\n+\t\t\"src/api/.px1/config.json\": []byte(`{\"version\":1,\"maxInlineComments\":5}`),\n+\t}\n+\tgot, err := resolveCascadingConfig(\"src/api/handler.go\", files)\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif got.Strictness != 3 || !got.FailOnP0 || got.MaxInlineComments != 5 || len(got.CommentTypes) != 1 || len(got.DisabledRules) != 2 || len(got.Sources) != 3 {\n+\t\tt.Fatalf(\"resolved = %#v\", got)\n+\t}\n+}\n+\n+func TestResolveCascadingConfigRejectsUnknownFields(t *testing.T) {\n+\t_, err := resolveCascadingConfig(\"a.go\", map[string][]byte{\".px1/config.json\": []byte(`{\"version\":1,\"surprise\":true}`)})\n+\tif err == nil {\n+\t\tt.Fatal(\"unknown config field was accepted\")\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-98db6a9746c4dba6",
+          "header": "@@ -0,0 +1,25 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package main"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import \"testing\""
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "func TestResolveCascadingConfigKeepsGatesStrict(t *testing.T) {"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\tfiles := map[string][]byte{"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\t\".px1/config.json\":         []byte(`{\"version\":1,\"strictness\":3,\"failOnP0\":true,\"maxInlineComments\":10,\"disabledRules\":[\"root-rule\"]}`),"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\t\"src/.px1/config.json\":     []byte(`{\"version\":1,\"strictness\":1,\"failOnP0\":false,\"maxInlineComments\":20,\"commentTypes\":[\"logic\"],\"disabledRules\":[\"child-rule\"]}`),"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\t\"src/api/.px1/config.json\": []byte(`{\"version\":1,\"maxInlineComments\":5}`),"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\tgot, err := resolveCascadingConfig(\"src/api/handler.go\", files)"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tif got.Strictness != 3 || !got.FailOnP0 || got.MaxInlineComments != 5 || len(got.CommentTypes) != 1 || len(got.DisabledRules) != 2 || len(got.Sources) != 3 {"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"resolved = %#v\", got)"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "func TestResolveCascadingConfigRejectsUnknownFields(t *testing.T) {"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t_, err := resolveCascadingConfig(\"a.go\", map[string][]byte{\".px1/config.json\": []byte(`{\"version\":1,\"surprise\":true}`)})"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tif err == nil {"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"unknown config field was accepted\")"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/config.schema.json",
+      "status": "A",
+      "diff": "diff --git a/docs/config.schema.json b/docs/config.schema.json\nnew file mode 100644\nindex 0000000..10553c4\n--- /dev/null\n+++ b/docs/config.schema.json\n@@ -0,0 +1,24 @@\n+{\n+  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n+  \"$id\": \"https://px1.dev/schemas/config.schema.json\",\n+  \"title\": \"px1 cascading configuration\",\n+  \"type\": \"object\",\n+  \"additionalProperties\": false,\n+  \"required\": [\"version\"],\n+  \"properties\": {\n+    \"version\": { \"const\": 1 },\n+    \"strictness\": { \"type\": \"integer\", \"minimum\": 1, \"maximum\": 3 },\n+    \"commentTypes\": {\n+      \"type\": \"array\",\n+      \"uniqueItems\": true,\n+      \"items\": { \"enum\": [\"logic\", \"syntax\", \"style\", \"security\"] }\n+    },\n+    \"disabledRules\": {\n+      \"type\": \"array\",\n+      \"uniqueItems\": true,\n+      \"items\": { \"type\": \"string\", \"minLength\": 1, \"maxLength\": 80 }\n+    },\n+    \"maxInlineComments\": { \"type\": \"integer\", \"minimum\": 1, \"maximum\": 50 },\n+    \"failOnP0\": { \"type\": \"boolean\" }\n+  }\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-a0d7240011ebaca3",
+          "header": "@@ -0,0 +1,24 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "{"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\","
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "  \"$id\": \"https://px1.dev/schemas/config.schema.json\","
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "  \"title\": \"px1 cascading configuration\","
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "  \"type\": \"object\","
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "  \"additionalProperties\": false,"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "  \"required\": [\"version\"],"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "  \"properties\": {"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "    \"version\": { \"const\": 1 },"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "    \"strictness\": { \"type\": \"integer\", \"minimum\": 1, \"maximum\": 3 },"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "    \"commentTypes\": {"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "      \"type\": \"array\","
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "      \"uniqueItems\": true,"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "      \"items\": { \"enum\": [\"logic\", \"syntax\", \"style\", \"security\"] }"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "    },"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "    \"disabledRules\": {"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "      \"type\": \"array\","
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "      \"uniqueItems\": true,"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "      \"items\": { \"type\": \"string\", \"minLength\": 1, \"maxLength\": 80 }"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "    },"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "    \"maxInlineComments\": { \"type\": \"integer\", \"minimum\": 1, \"maximum\": 50 },"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "    \"failOnP0\": { \"type\": \"boolean\" }"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "  }"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "main.go",
+      "status": "M",
+      "diff": "diff --git a/main.go b/main.go\nindex 973a025..dcfad61 100644\n--- a/main.go\n+++ b/main.go\n@@ -14,6 +14,12 @@ var rawVersion string\n var version = strings.TrimSpace(rawVersion)\n \n func main() {\n+\tif len(os.Args) \u003e 1 \u0026\u0026 os.Args[1] == \"validate-config\" {\n+\t\tif err := runValidateConfig(os.Args[2:], os.Stdout); err != nil {\n+\t\t\tfatal(err)\n+\t\t}\n+\t\treturn\n+\t}\n \tif len(os.Args) \u003e 1 \u0026\u0026 os.Args[1] == \"privacy-check\" {\n \t\tif err := runPrivacyCheck(os.Args[2:], os.Stdout); err != nil {\n \t\t\tfatal(err)\n@@ -49,7 +55,7 @@ func main() {\n \t\treturn\n \t}\n \tfmt.Fprintf(os.Stderr, \"px1 %s - understand the code your agent wrote before you merge it\\n\\n\", version)\n-\tfmt.Fprintln(os.Stderr, \"usage: px1 \u003cexport-review|generate-explanations|privacy-check|summary-comment|validate-rules\u003e [options]\")\n+\tfmt.Fprintln(os.Stderr, \"usage: px1 \u003cexport-review|generate-explanations|privacy-check|summary-comment|validate-config|validate-rules\u003e [options]\")\n \tos.Exit(2)\n }\n \n",
+      "hunks": [
+        {
+          "id": "diff-402b6a1f6e9d139e",
+          "header": "@@ -14,6 +14,12 @@ var rawVersion string",
+          "lines": [
+            {
+              "oldLine": 14,
+              "newLine": 14,
+              "kind": "context",
+              "text": "var version = strings.TrimSpace(rawVersion)"
+            },
+            {
+              "oldLine": 15,
+              "newLine": 15,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 16,
+              "newLine": 16,
+              "kind": "context",
+              "text": "func main() {"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tif len(os.Args) \u003e 1 \u0026\u0026 os.Args[1] == \"validate-config\" {"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t\tif err := runValidateConfig(os.Args[2:], os.Stdout); err != nil {"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t\t\tfatal(err)"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t\treturn"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 17,
+              "newLine": 23,
+              "kind": "context",
+              "text": "\tif len(os.Args) \u003e 1 \u0026\u0026 os.Args[1] == \"privacy-check\" {"
+            },
+            {
+              "oldLine": 18,
+              "newLine": 24,
+              "kind": "context",
+              "text": "\t\tif err := runPrivacyCheck(os.Args[2:], os.Stdout); err != nil {"
+            },
+            {
+              "oldLine": 19,
+              "newLine": 25,
+              "kind": "context",
+              "text": "\t\t\tfatal(err)"
+            }
+          ]
+        },
+        {
+          "id": "diff-4cfbc0be0ad62ef1",
+          "header": "@@ -49,7 +55,7 @@ func main() {",
+          "lines": [
+            {
+              "oldLine": 49,
+              "newLine": 55,
+              "kind": "context",
+              "text": "\t\treturn"
+            },
+            {
+              "oldLine": 50,
+              "newLine": 56,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 51,
+              "newLine": 57,
+              "kind": "context",
+              "text": "\tfmt.Fprintf(os.Stderr, \"px1 %s - understand the code your agent wrote before you merge it\\n\\n\", version)"
+            },
+            {
+              "oldLine": 52,
+              "kind": "removed",
+              "text": "\tfmt.Fprintln(os.Stderr, \"usage: px1 \u003cexport-review|generate-explanations|privacy-check|summary-comment|validate-rules\u003e [options]\")"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\tfmt.Fprintln(os.Stderr, \"usage: px1 \u003cexport-review|generate-explanations|privacy-check|summary-comment|validate-config|validate-rules\u003e [options]\")"
+            },
+            {
+              "oldLine": 53,
+              "newLine": 59,
+              "kind": "context",
+              "text": "\tos.Exit(2)"
+            },
+            {
+              "oldLine": 54,
+              "newLine": 60,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 55,
+              "newLine": 61,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "validate_config.go",
+      "status": "A",
+      "diff": "diff --git a/validate_config.go b/validate_config.go\nnew file mode 100644\nindex 0000000..6fe112d\n--- /dev/null\n+++ b/validate_config.go\n@@ -0,0 +1,47 @@\n+package main\n+\n+import (\n+\t\"encoding/json\"\n+\t\"errors\"\n+\t\"flag\"\n+\t\"fmt\"\n+\t\"io\"\n+\t\"os\"\n+\t\"path/filepath\"\n+)\n+\n+func runValidateConfig(args []string, out io.Writer) error {\n+\tfs := flag.NewFlagSet(\"validate-config\", flag.ContinueOnError)\n+\troot := fs.String(\"root\", \".\", \"repository root\")\n+\ttarget := fs.String(\"path\", \"README.md\", \"repository-relative path to resolve\")\n+\tif err := fs.Parse(args); err != nil {\n+\t\treturn err\n+\t}\n+\tif fs.NArg() != 0 {\n+\t\treturn errors.New(\"validate-config does not accept positional arguments\")\n+\t}\n+\tif _, err := resolveCascadingConfig(*target, map[string][]byte{}); err != nil {\n+\t\treturn err\n+\t}\n+\tfiles := map[string][]byte{}\n+\tfor _, candidate := range configCandidates(*target) {\n+\t\tbody, err := os.ReadFile(filepath.Join(*root, filepath.FromSlash(candidate)))\n+\t\tif errors.Is(err, os.ErrNotExist) {\n+\t\t\tcontinue\n+\t\t}\n+\t\tif err != nil {\n+\t\t\treturn fmt.Errorf(\"read %s: %w\", candidate, err)\n+\t\t}\n+\t\tfiles[candidate] = body\n+\t}\n+\tresolved, err := resolveCascadingConfig(*target, files)\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\tencoded, err := json.Marshal(resolved)\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\t_, err = fmt.Fprintln(out, string(encoded))\n+\treturn err\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-a7d6417b3711e433",
+          "header": "@@ -0,0 +1,47 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package main"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"flag\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"io\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"path/filepath\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "func runValidateConfig(args []string, out io.Writer) error {"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tfs := flag.NewFlagSet(\"validate-config\", flag.ContinueOnError)"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\troot := fs.String(\"root\", \".\", \"repository root\")"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\ttarget := fs.String(\"path\", \"README.md\", \"repository-relative path to resolve\")"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tif err := fs.Parse(args); err != nil {"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tif fs.NArg() != 0 {"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"validate-config does not accept positional arguments\")"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tif _, err := resolveCascadingConfig(*target, map[string][]byte{}); err != nil {"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tfiles := map[string][]byte{}"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tfor _, candidate := range configCandidates(*target) {"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t\tbody, err := os.ReadFile(filepath.Join(*root, filepath.FromSlash(candidate)))"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t\tif errors.Is(err, os.ErrNotExist) {"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t\t\treturn fmt.Errorf(\"read %s: %w\", candidate, err)"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t\tfiles[candidate] = body"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\tresolved, err := resolveCascadingConfig(*target, files)"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\tencoded, err := json.Marshal(resolved)"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t_, err = fmt.Fprintln(out, string(encoded))"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\treturn err"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-60658cfa7febf454",
+      "title": "Config changes",
+      "summary": "5 related files share the \"config\" change signal.",
+      "paths": [
+        "config_cascade.go",
+        "config_cascade_test.go",
+        "docs/config.schema.json",
+        "main.go",
+        "validate_config.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-2b6f5dccd6727a0a",
+      "path": "config_cascade.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "config_cascade_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-9298511a14c0c86f",
+      "path": "config_cascade.go",
+      "kind": "configuration",
+      "observation": "A configuration-related file changed: config_cascade.go.",
+      "question": "Which runtime behavior changes when this value is absent, defaulted, or overridden?",
+      "related": []
+    },
+    {
+      "id": "inspect-92dc3aa388bfeeb6",
+      "path": "docs/config.schema.json",
+      "kind": "configuration",
+      "observation": "A configuration-related file changed: docs/config.schema.json.",
+      "question": "Which runtime behavior changes when this value is absent, defaulted, or overridden?",
+      "related": []
+    },
+    {
+      "id": "inspect-bcfd0685b487663c",
+      "path": "docs/config.schema.json",
+      "kind": "schema",
+      "observation": "The changed path is migration, schema, or SQL-related: docs/config.schema.json.",
+      "question": "What happens to existing data during deploy, rollback, and mixed-version operation?",
+      "related": []
+    },
+    {
+      "id": "inspect-66d9c32bfda9484b",
+      "path": "validate_config.go",
+      "kind": "configuration",
+      "observation": "A configuration-related file changed: validate_config.go.",
+      "question": "Which runtime behavior changes when this value is absent, defaulted, or overridden?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 5,
+    "filesAnalyzed": 5,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "target-validation",
+      "path": "config_cascade.go",
+      "lineStart": 34,
+      "lineEnd": 40,
+      "title": "Restrict config lookup paths",
+      "summary": "Resolution rejects absolute, parent-traversing, and excessively deep target paths, keeping config lookup scoped to repository-relative paths."
+    },
+    {
+      "id": "cascade-merge",
+      "path": "config_cascade.go",
+      "lineStart": 41,
+      "lineEnd": 76,
+      "title": "Add cascading configuration",
+      "summary": "Configuration now resolves from the repository root down to the target file’s directory. Strictness can only increase, `failOnP0` can only be enabled, and disabled rules accumulate; comment types and the inline-comment limit use the nearest value provided. Defaults apply when no config sets a value."
+    },
+    {
+      "id": "config-validation",
+      "path": "config_cascade.go",
+      "lineStart": 82,
+      "lineEnd": 130,
+      "title": "Validate config files strictly",
+      "summary": "Config files are rejected if they are empty, exceed 64 KiB, contain unknown fields or trailing data, use an unsupported version, or provide invalid setting values. This prevents malformed configuration from silently affecting resolution."
+    },
+    {
+      "id": "command-dispatch",
+      "path": "main.go",
+      "lineStart": 17,
+      "lineEnd": 23,
+      "title": "Expose the new command",
+      "summary": "`validate-config` is now recognized as a top-level command and included in the usage text."
+    },
+    {
+      "id": "validate-config-command",
+      "path": "validate_config.go",
+      "lineStart": 13,
+      "lineEnd": 46,
+      "title": "Add config validation command",
+      "summary": "The new `validate-config` command reads applicable config files under the selected root, resolves them for a target path, and prints the effective settings as JSON. It reports read or validation errors instead of producing a result."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "4b3427b07dfc5a9c2bf69b19eaed2a89bd45bdad",
+      "revision": "b9369414f944e5acd72428a007a3411071687cbe",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "4b3427b07dfc5a9c2bf69b19eaed2a89bd45bdad",
+      "revision": "b9369414f944e5acd72428a007a3411071687cbe",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "b9369414f944e5acd72428a007a3411071687cbe",
+      "detail": "5 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "b9369414f944e5acd72428a007a3411071687cbe",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-e1f2d0918b51bf13",
+      "rule": "configuration",
+      "title": "Configuration change",
+      "reason": "Configuration and environment files can change runtime behavior outside this diff.",
+      "path": "config_cascade.go",
+      "evidence": "config_cascade.go"
+    },
+    {
+      "id": "attention-6316a4b911742ad9",
+      "rule": "configuration",
+      "title": "Configuration change",
+      "reason": "Configuration and environment files can change runtime behavior outside this diff.",
+      "path": "config_cascade_test.go",
+      "evidence": "config_cascade_test.go"
+    },
+    {
+      "id": "attention-8c5dfd841479b7cc",
+      "rule": "configuration",
+      "title": "Configuration change",
+      "reason": "Configuration and environment files can change runtime behavior outside this diff.",
+      "path": "docs/config.schema.json",
+      "evidence": "docs/config.schema.json"
+    },
+    {
+      "id": "attention-dcc0efbe2d934afd",
+      "rule": "schema",
+      "title": "Schema or migration",
+      "reason": "Schema and migration changes can affect stored data and deployment order.",
+      "path": "docs/config.schema.json",
+      "evidence": "docs/config.schema.json"
+    },
+    {
+      "id": "attention-c540925362d6d3ae",
+      "rule": "configuration",
+      "title": "Configuration change",
+      "reason": "Configuration and environment files can change runtime behavior outside this diff.",
+      "path": "validate_config.go",
+      "evidence": "validate_config.go"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "b9369414f944e5acd72428a007a3411071687cbe",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40231600138",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40231600138/job/121284539182",
+        "startedAt": "2026-10-25T20:38:00Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40231599437/job/121284316491",
+        "startedAt": "2026-10-25T20:37:00Z"
+      }
+    ]
+  }
+}
