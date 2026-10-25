@@ -1,0 +1,844 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "b71f1c94f952b537f24f5ff1b55fe49b11883bcd",
+  "head": "ef1a0cb66e4acbf9836decbf05c398d9670b4002",
+  "generatedAt": "2026-10-25T20:31:36.951715045Z",
+  "files": [
+    {
+      "path": "internal/hosted/githubapp/commands.go",
+      "status": "M",
+      "diff": "diff --git a/internal/hosted/githubapp/commands.go b/internal/hosted/githubapp/commands.go\nindex 3c6b3b3..b05011a 100644\n--- a/internal/hosted/githubapp/commands.go\n+++ b/internal/hosted/githubapp/commands.go\n@@ -15,6 +15,7 @@ import (\n type Command struct {\n \tName string\n \tPath string\n+\tText string\n }\n \n // ParseCommand accepts one explicit command on the first non-empty line.\n@@ -41,6 +42,15 @@ func ParseCommand(body string) (Command, bool) {\n \t\t\treturn Command{}, false\n \t\t}\n \t\treturn Command{Name: \"explain\", Path: filepath.ToSlash(filepath.Clean(fields[2]))}, true\n+\tcase \"remember\":\n+\t\tif len(fields) \u003c 3 {\n+\t\t\treturn Command{}, false\n+\t\t}\n+\t\ttext := strings.TrimSpace(strings.Join(fields[2:], \" \"))\n+\t\tif text == \"\" || len(text) \u003e 2000 {\n+\t\t\treturn Command{}, false\n+\t\t}\n+\t\treturn Command{Name: \"remember\", Text: text}, true\n \tdefault:\n \t\treturn Command{}, false\n \t}\n",
+      "hunks": [
+        {
+          "id": "diff-7f37a893ba07ea8b",
+          "header": "@@ -15,6 +15,7 @@ import (",
+          "lines": [
+            {
+              "oldLine": 15,
+              "newLine": 15,
+              "kind": "context",
+              "text": "type Command struct {"
+            },
+            {
+              "oldLine": 16,
+              "newLine": 16,
+              "kind": "context",
+              "text": "\tName string"
+            },
+            {
+              "oldLine": 17,
+              "newLine": 17,
+              "kind": "context",
+              "text": "\tPath string"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tText string"
+            },
+            {
+              "oldLine": 18,
+              "newLine": 19,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 19,
+              "newLine": 20,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 20,
+              "newLine": 21,
+              "kind": "context",
+              "text": "// ParseCommand accepts one explicit command on the first non-empty line."
+            }
+          ]
+        },
+        {
+          "id": "diff-797b418e985f6386",
+          "header": "@@ -41,6 +42,15 @@ func ParseCommand(body string) (Command, bool) {",
+          "lines": [
+            {
+              "oldLine": 41,
+              "newLine": 42,
+              "kind": "context",
+              "text": "\t\t\treturn Command{}, false"
+            },
+            {
+              "oldLine": 42,
+              "newLine": 43,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 43,
+              "newLine": 44,
+              "kind": "context",
+              "text": "\t\treturn Command{Name: \"explain\", Path: filepath.ToSlash(filepath.Clean(fields[2]))}, true"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\tcase \"remember\":"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t\tif len(fields) \u003c 3 {"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\t\treturn Command{}, false"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\ttext := strings.TrimSpace(strings.Join(fields[2:], \" \"))"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t\tif text == \"\" || len(text) \u003e 2000 {"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t\t\treturn Command{}, false"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t\treturn Command{Name: \"remember\", Text: text}, true"
+            },
+            {
+              "oldLine": 44,
+              "newLine": 54,
+              "kind": "context",
+              "text": "\tdefault:"
+            },
+            {
+              "oldLine": 45,
+              "newLine": 55,
+              "kind": "context",
+              "text": "\t\treturn Command{}, false"
+            },
+            {
+              "oldLine": 46,
+              "newLine": 56,
+              "kind": "context",
+              "text": "\t}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/githubapp/commands_test.go",
+      "status": "M",
+      "diff": "diff --git a/internal/hosted/githubapp/commands_test.go b/internal/hosted/githubapp/commands_test.go\nindex 6c8d55f..52e8efc 100644\n--- a/internal/hosted/githubapp/commands_test.go\n+++ b/internal/hosted/githubapp/commands_test.go\n@@ -21,7 +21,8 @@ func (f *commandAPIFake) Do(_ context.Context, _ int64, _ *http.Request) (*http.\n func TestParseCommand(t *testing.T) {\n \tfor input, want := range map[string]Command{\n \t\t\"@px1 review\": {Name: \"review\"}, \"hello\\n@px1 why\": {},\n-\t\t\"\\n @PX1 explain internal/api.go\\nmore\": {Name: \"explain\", Path: \"internal/api.go\"},\n+\t\t\"\\n @PX1 explain internal/api.go\\nmore\":    {Name: \"explain\", Path: \"internal/api.go\"},\n+\t\t\"@px1 remember Prefer wrapped errors here\": {Name: \"remember\", Text: \"Prefer wrapped errors here\"},\n \t} {\n \t\tgot, ok := ParseCommand(input)\n \t\tif want.Name == \"\" {\n",
+      "hunks": [
+        {
+          "id": "diff-71800a89aa18992f",
+          "header": "@@ -21,7 +21,8 @@ func (f *commandAPIFake) Do(_ context.Context, _ int64, _ *http.Request) (*http.",
+          "lines": [
+            {
+              "oldLine": 21,
+              "newLine": 21,
+              "kind": "context",
+              "text": "func TestParseCommand(t *testing.T) {"
+            },
+            {
+              "oldLine": 22,
+              "newLine": 22,
+              "kind": "context",
+              "text": "\tfor input, want := range map[string]Command{"
+            },
+            {
+              "oldLine": 23,
+              "newLine": 23,
+              "kind": "context",
+              "text": "\t\t\"@px1 review\": {Name: \"review\"}, \"hello\\n@px1 why\": {},"
+            },
+            {
+              "oldLine": 24,
+              "kind": "removed",
+              "text": "\t\t\"\\n @PX1 explain internal/api.go\\nmore\": {Name: \"explain\", Path: \"internal/api.go\"},"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\t\"\\n @PX1 explain internal/api.go\\nmore\":    {Name: \"explain\", Path: \"internal/api.go\"},"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t\t\"@px1 remember Prefer wrapped errors here\": {Name: \"remember\", Text: \"Prefer wrapped errors here\"},"
+            },
+            {
+              "oldLine": 25,
+              "newLine": 26,
+              "kind": "context",
+              "text": "\t} {"
+            },
+            {
+              "oldLine": 26,
+              "newLine": 27,
+              "kind": "context",
+              "text": "\t\tgot, ok := ParseCommand(input)"
+            },
+            {
+              "oldLine": 27,
+              "newLine": 28,
+              "kind": "context",
+              "text": "\t\tif want.Name == \"\" {"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/githubapp/remember.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/githubapp/remember.go b/internal/hosted/githubapp/remember.go\nnew file mode 100644\nindex 0000000..6f62c07\n--- /dev/null\n+++ b/internal/hosted/githubapp/remember.go\n@@ -0,0 +1,51 @@\n+package githubapp\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"net/url\"\n+\t\"strings\"\n+\t\"time\"\n+)\n+\n+type ExplicitMemory struct {\n+\tInstallationID int64\n+\tRepositoryID   int64\n+\tFindingID      string\n+\tThreadID       string\n+\tActorID        int64\n+\tText           string\n+\tEvidenceURL    string\n+\tCreatedAt      time.Time\n+}\n+\n+type ExplicitMemoryStore interface {\n+\tWriteExplicitMemory(context.Context, ExplicitMemory) error\n+}\n+\n+type RememberHandler struct {\n+\tStore ExplicitMemoryStore\n+\tNow   func() time.Time\n+}\n+\n+// Handle writes only an already-authorized remember command. Callers must use\n+// CommandAuthorizer first so read-only repository users cannot create memory.\n+func (h RememberHandler) Handle(ctx context.Context, command Command, input ExplicitMemory) error {\n+\tif h.Store == nil || command.Name != \"remember\" || strings.TrimSpace(command.Text) == \"\" {\n+\t\treturn errors.New(\"authorized remember command and memory store are required\")\n+\t}\n+\tif input.InstallationID \u003c= 0 || input.RepositoryID \u003c= 0 || input.FindingID == \"\" || input.ThreadID == \"\" || input.ActorID \u003c= 0 || input.EvidenceURL == \"\" {\n+\t\treturn errors.New(\"remember requires tenant-scoped thread evidence\")\n+\t}\n+\tevidenceURL, err := url.Parse(input.EvidenceURL)\n+\tif err != nil || evidenceURL.Scheme != \"https\" || !strings.EqualFold(evidenceURL.Host, \"github.com\") {\n+\t\treturn errors.New(\"remember evidence must be an HTTPS GitHub URL\")\n+\t}\n+\tinput.Text = command.Text\n+\tnow := time.Now().UTC()\n+\tif h.Now != nil {\n+\t\tnow = h.Now().UTC()\n+\t}\n+\tinput.CreatedAt = now\n+\treturn h.Store.WriteExplicitMemory(ctx, input)\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-51445ba4d7ff8563",
+          "header": "@@ -0,0 +1,51 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package githubapp"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"net/url\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "type ExplicitMemory struct {"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\tInstallationID int64"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\tRepositoryID   int64"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tFindingID      string"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tThreadID       string"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tActorID        int64"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tText           string"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tEvidenceURL    string"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tCreatedAt      time.Time"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "type ExplicitMemoryStore interface {"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tWriteExplicitMemory(context.Context, ExplicitMemory) error"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "type RememberHandler struct {"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tStore ExplicitMemoryStore"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tNow   func() time.Time"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "// Handle writes only an already-authorized remember command. Callers must use"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "// CommandAuthorizer first so read-only repository users cannot create memory."
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "func (h RememberHandler) Handle(ctx context.Context, command Command, input ExplicitMemory) error {"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tif h.Store == nil || command.Name != \"remember\" || strings.TrimSpace(command.Text) == \"\" {"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"authorized remember command and memory store are required\")"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\tif input.InstallationID \u003c= 0 || input.RepositoryID \u003c= 0 || input.FindingID == \"\" || input.ThreadID == \"\" || input.ActorID \u003c= 0 || input.EvidenceURL == \"\" {"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"remember requires tenant-scoped thread evidence\")"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tevidenceURL, err := url.Parse(input.EvidenceURL)"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\tif err != nil || evidenceURL.Scheme != \"https\" || !strings.EqualFold(evidenceURL.Host, \"github.com\") {"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"remember evidence must be an HTTPS GitHub URL\")"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tinput.Text = command.Text"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\tnow := time.Now().UTC()"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\tif h.Now != nil {"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\tnow = h.Now().UTC()"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\tinput.CreatedAt = now"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\treturn h.Store.WriteExplicitMemory(ctx, input)"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/githubapp/remember_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/githubapp/remember_test.go b/internal/hosted/githubapp/remember_test.go\nnew file mode 100644\nindex 0000000..829c72d\n--- /dev/null\n+++ b/internal/hosted/githubapp/remember_test.go\n@@ -0,0 +1,36 @@\n+package githubapp\n+\n+import (\n+\t\"context\"\n+\t\"testing\"\n+\t\"time\"\n+)\n+\n+type explicitMemoryStoreFunc func(context.Context, ExplicitMemory) error\n+\n+func (f explicitMemoryStoreFunc) WriteExplicitMemory(ctx context.Context, memory ExplicitMemory) error {\n+\treturn f(ctx, memory)\n+}\n+\n+func TestRememberHandlerWritesAuthorizedThreadMemory(t *testing.T) {\n+\tnow := time.Date(2026, 10, 26, 1, 0, 0, 0, time.UTC)\n+\twritten := false\n+\thandler := RememberHandler{Now: func() time.Time { return now }, Store: explicitMemoryStoreFunc(func(_ context.Context, memory ExplicitMemory) error {\n+\t\twritten = memory.InstallationID == 1 \u0026\u0026 memory.RepositoryID == 2 \u0026\u0026 memory.ThreadID == \"thread\" \u0026\u0026 memory.Text == \"Prefer wrapped errors\" \u0026\u0026 memory.CreatedAt == now\n+\t\treturn nil\n+\t})}\n+\terr := handler.Handle(context.Background(), Command{Name: \"remember\", Text: \"Prefer wrapped errors\"}, ExplicitMemory{InstallationID: 1, RepositoryID: 2, FindingID: \"finding\", ThreadID: \"thread\", ActorID: 3, EvidenceURL: \"https://github.com/acme/repo/pull/1#discussion\"})\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif !written {\n+\t\tt.Fatal(\"memory was not written\")\n+\t}\n+}\n+\n+func TestRememberCommandStillRequiresWriteAuthorization(t *testing.T) {\n+\tapi := \u0026commandAPIFake{permission: \"read\"}\n+\tif _, err := (CommandAuthorizer{Client: api, BaseURL: \"https://github.test\"}).Authorize(context.Background(), 1, \"acme\", \"widget\", \"octocat\", \"@px1 remember a preference\"); err == nil {\n+\t\tt.Fatal(\"read-only user created memory\")\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-a61f0e7b32e19d4c",
+          "header": "@@ -0,0 +1,36 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package githubapp"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "type explicitMemoryStoreFunc func(context.Context, ExplicitMemory) error"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "func (f explicitMemoryStoreFunc) WriteExplicitMemory(ctx context.Context, memory ExplicitMemory) error {"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\treturn f(ctx, memory)"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "func TestRememberHandlerWritesAuthorizedThreadMemory(t *testing.T) {"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tnow := time.Date(2026, 10, 26, 1, 0, 0, 0, time.UTC)"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\twritten := false"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\thandler := RememberHandler{Now: func() time.Time { return now }, Store: explicitMemoryStoreFunc(func(_ context.Context, memory ExplicitMemory) error {"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t\twritten = memory.InstallationID == 1 \u0026\u0026 memory.RepositoryID == 2 \u0026\u0026 memory.ThreadID == \"thread\" \u0026\u0026 memory.Text == \"Prefer wrapped errors\" \u0026\u0026 memory.CreatedAt == now"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t\treturn nil"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t})}"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\terr := handler.Handle(context.Background(), Command{Name: \"remember\", Text: \"Prefer wrapped errors\"}, ExplicitMemory{InstallationID: 1, RepositoryID: 2, FindingID: \"finding\", ThreadID: \"thread\", ActorID: 3, EvidenceURL: \"https://github.com/acme/repo/pull/1#discussion\"})"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tif !written {"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"memory was not written\")"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "func TestRememberCommandStillRequiresWriteAuthorization(t *testing.T) {"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tapi := \u0026commandAPIFake{permission: \"read\"}"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tif _, err := (CommandAuthorizer{Client: api, BaseURL: \"https://github.test\"}).Authorize(context.Background(), 1, \"acme\", \"widget\", \"octocat\", \"@px1 remember a preference\"); err == nil {"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"read-only user created memory\")"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-def92d471784b1f5",
+      "title": "Remember changes",
+      "summary": "4 related files share the \"remember\" change signal.",
+      "paths": [
+        "internal/hosted/githubapp/commands.go",
+        "internal/hosted/githubapp/commands_test.go",
+        "internal/hosted/githubapp/remember.go",
+        "internal/hosted/githubapp/remember_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-0d310804c29a9ab6",
+      "path": "internal/hosted/githubapp/commands.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/githubapp/commands_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-5ca90104e755cd80",
+      "path": "internal/hosted/githubapp/remember.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/githubapp/remember_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-62ea99db9396258c",
+      "path": "internal/hosted/githubapp/remember.go",
+      "line": 33,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func (h RememberHandler) Handle(ctx context.Context, command Command, input ExplicitMemory) error {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 4,
+    "filesAnalyzed": 4,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "remember-command",
+      "path": "internal/hosted/githubapp/commands.go",
+      "lineStart": 45,
+      "lineEnd": 53,
+      "title": "Adds the remember command",
+      "summary": "The parser now recognizes `@px1 remember \u003ctext\u003e`, joins the remaining words into the remembered text, and rejects empty text or text longer than 2,000 characters."
+    },
+    {
+      "id": "remember-authorization",
+      "path": "internal/hosted/githubapp/remember.go",
+      "lineStart": 31,
+      "lineEnd": 34,
+      "title": "Authorization remains the caller’s responsibility",
+      "summary": "The handler does not authorize the actor itself; it relies on callers to run `CommandAuthorizer` first. Its checks only require a remember command with nonblank text before proceeding to the evidence validation."
+    },
+    {
+      "id": "remember-storage",
+      "path": "internal/hosted/githubapp/remember.go",
+      "lineStart": 31,
+      "lineEnd": 50,
+      "title": "Validates and stores explicit memory",
+      "summary": "The handler requires thread and tenant identifiers plus an HTTPS `github.com` evidence URL, then stores the command text with a creation timestamp through the configured store."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "b71f1c94f952b537f24f5ff1b55fe49b11883bcd",
+      "revision": "ef1a0cb66e4acbf9836decbf05c398d9670b4002",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "b71f1c94f952b537f24f5ff1b55fe49b11883bcd",
+      "revision": "ef1a0cb66e4acbf9836decbf05c398d9670b4002",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "ef1a0cb66e4acbf9836decbf05c398d9670b4002",
+      "detail": "3 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "ef1a0cb66e4acbf9836decbf05c398d9670b4002",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-166711188a0b4d21",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/githubapp/remember.go",
+      "line": 33,
+      "evidence": "func (h RememberHandler) Handle(ctx context.Context, command Command, input ExplicitMemory) error {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "ef1a0cb66e4acbf9836decbf05c398d9670b4002",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40231069586",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40231069586/job/121282892892",
+        "startedAt": "2026-10-25T20:31:01Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40231071724/job/121282720624",
+        "startedAt": "2026-10-25T20:30:20Z"
+      }
+    ]
+  }
+}
