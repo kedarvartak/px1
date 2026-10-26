@@ -1,0 +1,29 @@
+/* Shared with static_report/report.css. Keep semantic names stable across the
+   account-free report and hosted dashboard; component CSS consumes only these. */
+:root {
+  --px1-canvas: #0b1118;
+  --px1-surface: #111a24;
+  --px1-well: #1b2836;
+  --px1-line: #2d3c4c;
+  --px1-ink: #f5f8fc;
+  --px1-dim: #c5d0dc;
+  --px1-brand: #78b7ff;
+  --px1-success: #5ee0a3;
+  --px1-attention: #ffd166;
+  --px1-danger: #ff8580;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --px1-canvas: #e8eef5;
+  --px1-surface: #ffffff;
+  --px1-well: #e1e9f2;
+  --px1-line: #c2cfdd;
+  --px1-ink: #0a1724;
+  --px1-dim: #30465a;
+  --px1-brand: #075fca;
+  --px1-success: #087a43;
+  --px1-attention: #8a4c00;
+  --px1-danger: #b42318;
+  color-scheme: light;
+}

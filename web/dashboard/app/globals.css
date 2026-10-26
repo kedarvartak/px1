@@ -1,0 +1,11 @@
+@import "../tokens.css";
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--px1-canvas);
+  color: var(--px1-ink);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+main { max-width: 80rem; margin: 0 auto; padding: 2rem; }
+p { color: var(--px1-dim); }
