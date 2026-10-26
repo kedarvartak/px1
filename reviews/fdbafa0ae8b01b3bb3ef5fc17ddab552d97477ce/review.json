@@ -1,0 +1,825 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "7f77bc1c7d88218d0b0c460a67c599463dc9e2a7",
+  "head": "fdbafa0ae8b01b3bb3ef5fc17ddab552d97477ce",
+  "generatedAt": "2026-10-26T10:48:31.498709685Z",
+  "files": [
+    {
+      "path": "internal/hosted/review/blast_radius.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/review/blast_radius.go b/internal/hosted/review/blast_radius.go\nnew file mode 100644\nindex 0000000..a283808\n--- /dev/null\n+++ b/internal/hosted/review/blast_radius.go\n@@ -0,0 +1,69 @@\n+package review\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"path/filepath\"\n+\t\"sort\"\n+\t\"strings\"\n+\n+\t\"px1/internal/hosted/graph\"\n+)\n+\n+const MaxBlastRadiusItems = 20\n+\n+type BlastRadiusItem struct {\n+\tKind string\n+\tPath string\n+\tName string\n+}\n+\n+// BuildBlastRadius lists unchanged callers and tests connected to changed\n+// symbols. It reports relationships only; it does not claim those files break.\n+func BuildBlastRadius(ctx context.Context, tools graph.Tools, installationID, repositoryID int64, symbolIDs []int64, changedPaths []string) ([]BlastRadiusItem, error) {\n+\tif installationID \u003c= 0 || repositoryID \u003c= 0 || len(symbolIDs) == 0 || len(symbolIDs) \u003e 100 {\n+\t\treturn nil, errors.New(\"blast radius requires a bounded tenant-scoped symbol set\")\n+\t}\n+\tchanged := map[string]bool{}\n+\tfor _, path := range changedPaths {\n+\t\tchanged[filepath.ToSlash(filepath.Clean(path))] = true\n+\t}\n+\titems := map[string]BlastRadiusItem{}\n+\tadd := func(kind string, symbols []graph.ToolSymbol) {\n+\t\tfor _, symbol := range symbols {\n+\t\t\tpath := filepath.ToSlash(filepath.Clean(symbol.Path))\n+\t\t\tif path == \".\" || strings.HasPrefix(path, \"../\") || changed[path] || len(items) \u003e= MaxBlastRadiusItems {\n+\t\t\t\tcontinue\n+\t\t\t}\n+\t\t\tkey := kind + \"\\x00\" + path + \"\\x00\" + symbol.Name\n+\t\t\titems[key] = BlastRadiusItem{Kind: kind, Path: path, Name: symbol.Name}\n+\t\t}\n+\t}\n+\tfor _, symbolID := range symbolIDs {\n+\t\tquery := graph.ToolQuery{InstallationID: installationID, RepositoryID: repositoryID, SymbolID: symbolID, Depth: 2, Limit: MaxBlastRadiusItems}\n+\t\tcallers, err := tools.Callers(ctx, query)\n+\t\tif err != nil {\n+\t\t\treturn nil, err\n+\t\t}\n+\t\ttests, err := tools.TestsFor(ctx, query)\n+\t\tif err != nil {\n+\t\t\treturn nil, err\n+\t\t}\n+\t\tadd(\"caller\", callers)\n+\t\tadd(\"test\", tests)\n+\t}\n+\tresult := make([]BlastRadiusItem, 0, len(items))\n+\tfor _, item := range items {\n+\t\tresult = append(result, item)\n+\t}\n+\tsort.Slice(result, func(i, j int) bool {\n+\t\tif result[i].Kind != result[j].Kind {\n+\t\t\treturn result[i].Kind \u003c result[j].Kind\n+\t\t}\n+\t\tif result[i].Path != result[j].Path {\n+\t\t\treturn result[i].Path \u003c result[j].Path\n+\t\t}\n+\t\treturn result[i].Name \u003c result[j].Name\n+\t})\n+\treturn result, nil\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-2c361c2d7430648f",
+          "header": "@@ -0,0 +1,69 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package review"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"path/filepath\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"sort\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"px1/internal/hosted/graph\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "const MaxBlastRadiusItems = 20"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "type BlastRadiusItem struct {"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tKind string"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tPath string"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tName string"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "// BuildBlastRadius lists unchanged callers and tests connected to changed"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "// symbols. It reports relationships only; it does not claim those files break."
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "func BuildBlastRadius(ctx context.Context, tools graph.Tools, installationID, repositoryID int64, symbolIDs []int64, changedPaths []string) ([]BlastRadiusItem, error) {"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tif installationID \u003c= 0 || repositoryID \u003c= 0 || len(symbolIDs) == 0 || len(symbolIDs) \u003e 100 {"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t\treturn nil, errors.New(\"blast radius requires a bounded tenant-scoped symbol set\")"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tchanged := map[string]bool{}"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tfor _, path := range changedPaths {"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t\tchanged[filepath.ToSlash(filepath.Clean(path))] = true"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\titems := map[string]BlastRadiusItem{}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tadd := func(kind string, symbols []graph.ToolSymbol) {"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t\tfor _, symbol := range symbols {"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t\t\tpath := filepath.ToSlash(filepath.Clean(symbol.Path))"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t\t\tif path == \".\" || strings.HasPrefix(path, \"../\") || changed[path] || len(items) \u003e= MaxBlastRadiusItems {"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t\t\t\tcontinue"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\t\t\tkey := kind + \"\\x00\" + path + \"\\x00\" + symbol.Name"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t\t\titems[key] = BlastRadiusItem{Kind: kind, Path: path, Name: symbol.Name}"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tfor _, symbolID := range symbolIDs {"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t\tquery := graph.ToolQuery{InstallationID: installationID, RepositoryID: repositoryID, SymbolID: symbolID, Depth: 2, Limit: MaxBlastRadiusItems}"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t\tcallers, err := tools.Callers(ctx, query)"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t\t\treturn nil, err"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\ttests, err := tools.TestsFor(ctx, query)"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t\t\treturn nil, err"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\tadd(\"caller\", callers)"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t\tadd(\"test\", tests)"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\tresult := make([]BlastRadiusItem, 0, len(items))"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\tfor _, item := range items {"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\tresult = append(result, item)"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\tsort.Slice(result, func(i, j int) bool {"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t\tif result[i].Kind != result[j].Kind {"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t\t\treturn result[i].Kind \u003c result[j].Kind"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t\tif result[i].Path != result[j].Path {"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t\t\treturn result[i].Path \u003c result[j].Path"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\treturn result[i].Name \u003c result[j].Name"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t})"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\treturn result, nil"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/review/blast_radius_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/review/blast_radius_test.go b/internal/hosted/review/blast_radius_test.go\nnew file mode 100644\nindex 0000000..70a5add\n--- /dev/null\n+++ b/internal/hosted/review/blast_radius_test.go\n@@ -0,0 +1,32 @@\n+package review\n+\n+import (\n+\t\"context\"\n+\t\"strings\"\n+\t\"testing\"\n+\n+\t\"px1/internal/hosted/graph\"\n+)\n+\n+type blastReader struct{}\n+\n+func (blastReader) Neighbors(_ context.Context, _, _ int64, ids []int64, direction graph.Direction, kinds []string) ([]graph.ToolEdge, error) {\n+\tif direction == graph.Reverse \u0026\u0026 kinds[0] == \"calls\" {\n+\t\treturn []graph.ToolEdge{{Source: graph.ToolSymbol{ID: 2, Path: \"caller.go\", Name: \"Call\"}, Target: graph.ToolSymbol{ID: ids[0], Path: \"changed.go\", Name: \"Changed\"}}}, nil\n+\t}\n+\tif direction == graph.Reverse \u0026\u0026 kinds[0] == \"tests\" {\n+\t\treturn []graph.ToolEdge{{Source: graph.ToolSymbol{ID: 3, Path: \"changed_test.go\", Name: \"TestChanged\"}, Target: graph.ToolSymbol{ID: ids[0], Path: \"changed.go\", Name: \"Changed\"}}}, nil\n+\t}\n+\treturn nil, nil\n+}\n+\n+func TestBuildBlastRadiusAndRenderSummary(t *testing.T) {\n+\titems, err := BuildBlastRadius(context.Background(), graph.Tools{Reader: blastReader{}}, 1, 2, []int64{1}, []string{\"changed.go\"})\n+\tif err != nil || len(items) != 2 {\n+\t\tt.Fatalf(\"items = %#v, %v\", items, err)\n+\t}\n+\tbody, err := RenderSummary(SummaryInput{HeadSHA: strings.Repeat(\"a\", 40), ChangedFiles: 1, ReportURL: \"https://px1.example/r/a\", BlastRadius: items})\n+\tif err != nil || !strings.Contains(body, \"inspection pointers\") || !strings.Contains(body, \"caller.go\") {\n+\t\tt.Fatalf(\"summary = %q, %v\", body, err)\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-4307ba5cd05e43ca",
+          "header": "@@ -0,0 +1,32 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package review"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"px1/internal/hosted/graph\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "type blastReader struct{}"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "func (blastReader) Neighbors(_ context.Context, _, _ int64, ids []int64, direction graph.Direction, kinds []string) ([]graph.ToolEdge, error) {"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tif direction == graph.Reverse \u0026\u0026 kinds[0] == \"calls\" {"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\t\treturn []graph.ToolEdge{{Source: graph.ToolSymbol{ID: 2, Path: \"caller.go\", Name: \"Call\"}, Target: graph.ToolSymbol{ID: ids[0], Path: \"changed.go\", Name: \"Changed\"}}}, nil"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tif direction == graph.Reverse \u0026\u0026 kinds[0] == \"tests\" {"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t\treturn []graph.ToolEdge{{Source: graph.ToolSymbol{ID: 3, Path: \"changed_test.go\", Name: \"TestChanged\"}, Target: graph.ToolSymbol{ID: ids[0], Path: \"changed.go\", Name: \"Changed\"}}}, nil"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\treturn nil, nil"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "func TestBuildBlastRadiusAndRenderSummary(t *testing.T) {"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\titems, err := BuildBlastRadius(context.Background(), graph.Tools{Reader: blastReader{}}, 1, 2, []int64{1}, []string{\"changed.go\"})"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tif err != nil || len(items) != 2 {"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"items = %#v, %v\", items, err)"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tbody, err := RenderSummary(SummaryInput{HeadSHA: strings.Repeat(\"a\", 40), ChangedFiles: 1, ReportURL: \"https://px1.example/r/a\", BlastRadius: items})"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tif err != nil || !strings.Contains(body, \"inspection pointers\") || !strings.Contains(body, \"caller.go\") {"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"summary = %q, %v\", body, err)"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/review/summary.go",
+      "status": "M",
+      "diff": "diff --git a/internal/hosted/review/summary.go b/internal/hosted/review/summary.go\nindex 34e5b30..742281d 100644\n--- a/internal/hosted/review/summary.go\n+++ b/internal/hosted/review/summary.go\n@@ -18,6 +18,7 @@ type SummaryInput struct {\n \tModelSummary         string\n \tFindings             []Finding\n \tDeterministicSignals []DeterministicSignal\n+\tBlastRadius          []BlastRadiusItem\n \tConfidence           *ConfidenceScore\n }\n \n@@ -83,6 +84,13 @@ func RenderSummary(input SummaryInput) (string, error) {\n \t\t\twriteVerbatim(\u0026body, signal.Detail)\n \t\t}\n \t}\n+\tif len(input.BlastRadius) \u003e 0 {\n+\t\tfmt.Fprintln(\u0026body, \"\\n### Blast radius (unchanged related code)\")\n+\t\tfmt.Fprintln(\u0026body, \"These relationships are inspection pointers, not claims that the files are broken.\")\n+\t\tfor _, item := range input.BlastRadius {\n+\t\t\tfmt.Fprintf(\u0026body, \"- **%s** `%s` — %s\\n\", item.Kind, item.Path, item.Name)\n+\t\t}\n+\t}\n \tverification := strings.TrimSpace(input.Verification)\n \tif verification == \"\" {\n \t\tverification = \"not available\"\n",
+      "hunks": [
+        {
+          "id": "diff-ebf24b3ba69ddce2",
+          "header": "@@ -18,6 +18,7 @@ type SummaryInput struct {",
+          "lines": [
+            {
+              "oldLine": 18,
+              "newLine": 18,
+              "kind": "context",
+              "text": "\tModelSummary         string"
+            },
+            {
+              "oldLine": 19,
+              "newLine": 19,
+              "kind": "context",
+              "text": "\tFindings             []Finding"
+            },
+            {
+              "oldLine": 20,
+              "newLine": 20,
+              "kind": "context",
+              "text": "\tDeterministicSignals []DeterministicSignal"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tBlastRadius          []BlastRadiusItem"
+            },
+            {
+              "oldLine": 21,
+              "newLine": 22,
+              "kind": "context",
+              "text": "\tConfidence           *ConfidenceScore"
+            },
+            {
+              "oldLine": 22,
+              "newLine": 23,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 23,
+              "newLine": 24,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        },
+        {
+          "id": "diff-02194f46f0ca1bab",
+          "header": "@@ -83,6 +84,13 @@ func RenderSummary(input SummaryInput) (string, error) {",
+          "lines": [
+            {
+              "oldLine": 83,
+              "newLine": 84,
+              "kind": "context",
+              "text": "\t\t\twriteVerbatim(\u0026body, signal.Detail)"
+            },
+            {
+              "oldLine": 84,
+              "newLine": 85,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 85,
+              "newLine": 86,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\tif len(input.BlastRadius) \u003e 0 {"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\t\tfmt.Fprintln(\u0026body, \"\\n### Blast radius (unchanged related code)\")"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\t\tfmt.Fprintln(\u0026body, \"These relationships are inspection pointers, not claims that the files are broken.\")"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t\tfor _, item := range input.BlastRadius {"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t\t\tfmt.Fprintf(\u0026body, \"- **%s** `%s` — %s\\n\", item.Kind, item.Path, item.Name)"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 86,
+              "newLine": 94,
+              "kind": "context",
+              "text": "\tverification := strings.TrimSpace(input.Verification)"
+            },
+            {
+              "oldLine": 87,
+              "newLine": 95,
+              "kind": "context",
+              "text": "\tif verification == \"\" {"
+            },
+            {
+              "oldLine": 88,
+              "newLine": 96,
+              "kind": "context",
+              "text": "\t\tverification = \"not available\""
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-7629d8b2293690e8",
+      "title": "Name changes",
+      "summary": "3 related files share the \"name\" change signal.",
+      "paths": [
+        "internal/hosted/review/blast_radius.go",
+        "internal/hosted/review/blast_radius_test.go",
+        "internal/hosted/review/summary.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-908bc24c201ea5fd",
+      "path": "internal/hosted/review/blast_radius.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/review/blast_radius_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-14740ed6f431a48d",
+      "path": "internal/hosted/review/blast_radius.go",
+      "line": 23,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func BuildBlastRadius(ctx context.Context, tools graph.Tools, installationID, repositoryID int64, symbolIDs []int64, changedPaths []string) ([]BlastRadiusItem, error) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 3,
+    "filesAnalyzed": 3,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "1",
+      "path": "internal/hosted/review/blast_radius.go",
+      "lineStart": 18,
+      "lineEnd": 21,
+      "title": "Bound and scope blast-radius requests",
+      "summary": "Blast-radius collection now rejects requests without valid tenant IDs, without symbols, or with more than 100 symbols, keeping graph lookups bounded and tenant-scoped."
+    },
+    {
+      "id": "2",
+      "path": "internal/hosted/review/blast_radius.go",
+      "lineStart": 32,
+      "lineEnd": 62,
+      "title": "Collect related callers and tests",
+      "summary": "For each symbol, the helper looks up callers and tests, omits paths already changed, deduplicates results, and returns at most 20 items in a stable order. These are relationship pointers, not assertions that the files are broken."
+    },
+    {
+      "id": "3",
+      "path": "internal/hosted/review/summary.go",
+      "lineStart": 84,
+      "lineEnd": 91,
+      "title": "Show blast-radius pointers in summaries",
+      "summary": "When blast-radius items are supplied, the rendered review summary adds an “unchanged related code” section with each item’s kind, path, and name, explicitly describing them as inspection pointers. The section is omitted when there are no items."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "7f77bc1c7d88218d0b0c460a67c599463dc9e2a7",
+      "revision": "fdbafa0ae8b01b3bb3ef5fc17ddab552d97477ce",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "7f77bc1c7d88218d0b0c460a67c599463dc9e2a7",
+      "revision": "fdbafa0ae8b01b3bb3ef5fc17ddab552d97477ce",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "fdbafa0ae8b01b3bb3ef5fc17ddab552d97477ce",
+      "detail": "3 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "fdbafa0ae8b01b3bb3ef5fc17ddab552d97477ce",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-81dcb935a3c0bfa3",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/review/blast_radius.go",
+      "line": 23,
+      "evidence": "func BuildBlastRadius(ctx context.Context, tools graph.Tools, installationID, repositoryID int64, symbolIDs []int64, changedPaths []string) ([]BlastRadiusItem, error) {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "fdbafa0ae8b01b3bb3ef5fc17ddab552d97477ce",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40310215307",
+    "checks": [
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40310218096/job/121529227184",
+        "startedAt": "2026-10-26T10:48:07Z"
+      },
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40310215307/job/121529220991",
+        "startedAt": "2026-10-26T10:48:07Z"
+      }
+    ]
+  }
+}
