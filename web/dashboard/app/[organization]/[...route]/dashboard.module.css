@@ -1,0 +1,15 @@
+.navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem 1rem;
+  margin-bottom: 2rem;
+}
+
+.navigation a { color: var(--px1-brand); }
+
+.report {
+  width: 100%;
+  min-height: 70vh;
+  border: 1px solid var(--px1-line);
+  background: var(--px1-surface);
+}

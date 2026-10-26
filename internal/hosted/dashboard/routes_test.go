@@ -13,7 +13,7 @@ func TestDashboardRoutesAreOrganizationScopedAndUnique(t *testing.T) {
 		}
 		seenNames[route.Name], seenPatterns[route.Pattern] = true, true
 	}
-	for _, required := range []string{"overview", "repositories", "pull requests", "rules", "memories", "analytics", "billing", "members", "settings"} {
+	for _, required := range []string{"overview", "repositories", "repository settings", "pull requests", "rules", "memories", "analytics", "billing", "members", "settings"} {
 		if !seenNames[required] {
 			t.Fatalf("missing route %q", required)
 		}

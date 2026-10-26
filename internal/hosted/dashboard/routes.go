@@ -10,8 +10,9 @@ type Route struct {
 var Routes = []Route{
 	{Name: "overview", Pattern: "/:organization", Navigation: true},
 	{Name: "repositories", Pattern: "/:organization/repositories", Navigation: true},
+	{Name: "repository settings", Pattern: "/:organization/repositories/:repository/settings"},
 	{Name: "pull requests", Pattern: "/:organization/pull-requests", Navigation: true},
-	{Name: "pull request", Pattern: "/:organization/pull-requests/:number"},
+	{Name: "pull request", Pattern: "/:organization/repositories/:repository/pull-requests/:number"},
 	{Name: "rules", Pattern: "/:organization/rules", Navigation: true},
 	{Name: "memories", Pattern: "/:organization/memories", Navigation: true},
 	{Name: "analytics", Pattern: "/:organization/analytics", Navigation: true},

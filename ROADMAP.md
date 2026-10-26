@@ -137,16 +137,29 @@ backend-foundation tasks are:
 55. [x] **Reference reviewer-owned files.** Parse bounded `.px1/files.json`
    declarations and attach matching repository-local context without allowing
    path escapes or unbounded report inputs.
-56. [ ] **Authorize cross-repository context.** Resolve `context.repos` only when
+56. [x] **Authorize cross-repository context.** Resolve `context.repos` only when
    the same GitHub App installation can read every referenced repository.
-57. [ ] **Expand the v2 evaluation gate.** Require 100 seeded bugs, including at
+57. [x] **Expand the v2 evaluation gate.** Require 100 seeded bugs, including at
    least 40 auditable cross-file cases.
-58. [ ] **Measure weekly review outcomes.** Track comments per PR, addressed and
+58. [x] **Measure weekly review outcomes.** Track comments per PR, addressed and
    downvote rates, and suppression counts per repository and UTC week.
-59. [ ] **Create the dashboard foundation.** Define a typed route manifest and
+59. [x] **Create the dashboard foundation.** Define a typed route manifest and
    shared design tokens for the Next.js dashboard without coupling the Action.
-60. [ ] **Secure dashboard sessions.** Define provider-neutral OAuth sessions,
+60. [x] **Secure dashboard sessions.** Define provider-neutral OAuth sessions,
    constant-time CSRF validation, and authorized organization switching.
+61. [x] **Build dashboard pages.** Add organization-scoped overview, repository,
+   pull-request detail, rules, memories, analytics, billing, members, and
+   settings surfaces, including the commit-pinned report frame.
+62. [ ] **Add the settings editor.** Write settings to the hosted database or a
+   `.px1/config.json` pull request while keeping repository config authoritative.
+63. [ ] **Add the rule-proposal queue.** Let reviewers accept, edit, or reject a
+   proposed rule with its evidence links and an auditable state transition.
+64. [ ] **Build the analytics event pipeline.** Store review, finding, and
+   feedback events and aggregate tenant-scoped nightly daily metrics.
+65. [ ] **Draw review analytics.** Chart findings, addressed rate, and review
+   latency with repository, team, and author filters.
+66. [ ] **Publish metric definitions.** Explain each customer-visible metric and
+   its denominator so teams can audit claims such as bugs caught.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,
