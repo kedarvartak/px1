@@ -1,0 +1,973 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "b2abc8abf510458bfdef37b5a8e58a0608ac8bfa",
+  "head": "1d0e607a1de8b791646ec7d835693ed0709401cc",
+  "generatedAt": "2026-10-26T21:09:56.459251554Z",
+  "files": [
+    {
+      "path": "internal/hosted/billing/oss.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/billing/oss.go b/internal/hosted/billing/oss.go\nnew file mode 100644\nindex 0000000..0d74b70\n--- /dev/null\n+++ b/internal/hosted/billing/oss.go\n@@ -0,0 +1,73 @@\n+// Package billing contains hosted billing and programme contracts.\n+package billing\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"net/url\"\n+\t\"strings\"\n+\t\"time\"\n+)\n+\n+type OSSStatus string\n+\n+const (\n+\tOSSSubmitted OSSStatus = \"submitted\"\n+\tOSSApproved  OSSStatus = \"approved\"\n+\tOSSRejected  OSSStatus = \"rejected\"\n+)\n+\n+type OSSApplication struct {\n+\tID             string\n+\tInstallationID int64\n+\tRepositoryID   int64\n+\tRepositoryURL  string\n+\tContactEmail   string\n+\tReason         string\n+\tStatus         OSSStatus\n+\tSubmittedAt    time.Time\n+}\n+\n+type OSSDecision struct {\n+\tApplicationID, Actor, Reason string\n+\tStatus                       OSSStatus\n+\tCreditGrant                  int64\n+}\n+\n+type OSSStore interface {\n+\tSubmit(context.Context, OSSApplication) (OSSApplication, bool, error)\n+\t// Decide atomically records the audit decision and any approved credit grant.\n+\tDecide(context.Context, int64, OSSDecision, OSSStatus) (OSSApplication, error)\n+}\n+\n+type OSSProgramme struct {\n+\tStore           OSSStore\n+\tApprovalCredits int64\n+}\n+\n+func (p OSSProgramme) Apply(ctx context.Context, application OSSApplication) (OSSApplication, bool, error) {\n+\tif p.Store == nil || application.InstallationID \u003c= 0 || application.RepositoryID \u003c= 0 || application.ContactEmail == \"\" || strings.TrimSpace(application.Reason) == \"\" || !publicHTTPSRepository(application.RepositoryURL) {\n+\t\treturn OSSApplication{}, false, errors.New(\"tenant, public HTTPS repository, contact, reason, and store are required\")\n+\t}\n+\tapplication.Status = OSSSubmitted\n+\treturn p.Store.Submit(ctx, application)\n+}\n+\n+func (p OSSProgramme) Decide(ctx context.Context, installationID int64, applicationID, actor string, approve bool, reason string) (OSSApplication, error) {\n+\tif p.Store == nil || installationID \u003c= 0 || applicationID == \"\" || actor == \"\" || strings.TrimSpace(reason) == \"\" {\n+\t\treturn OSSApplication{}, errors.New(\"tenant, application, actor, reason, and store are required\")\n+\t}\n+\tdecision := OSSDecision{ApplicationID: applicationID, Actor: actor, Reason: reason, Status: OSSRejected}\n+\tif approve {\n+\t\tif p.ApprovalCredits \u003c= 0 {\n+\t\t\treturn OSSApplication{}, errors.New(\"positive approval credits are required\")\n+\t\t}\n+\t\tdecision.Status, decision.CreditGrant = OSSApproved, p.ApprovalCredits\n+\t}\n+\treturn p.Store.Decide(ctx, installationID, decision, OSSSubmitted)\n+}\n+\n+func publicHTTPSRepository(raw string) bool {\n+\tu, err := url.Parse(raw)\n+\treturn err == nil \u0026\u0026 u.Scheme == \"https\" \u0026\u0026 u.Host != \"\" \u0026\u0026 u.User == nil \u0026\u0026 u.Fragment == \"\"\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-1bf9ca427b04c573",
+          "header": "@@ -0,0 +1,73 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "// Package billing contains hosted billing and programme contracts."
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "package billing"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"net/url\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "type OSSStatus string"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "const ("
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tOSSSubmitted OSSStatus = \"submitted\""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tOSSApproved  OSSStatus = \"approved\""
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tOSSRejected  OSSStatus = \"rejected\""
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "type OSSApplication struct {"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tID             string"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tInstallationID int64"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tRepositoryID   int64"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tRepositoryURL  string"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tContactEmail   string"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tReason         string"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tStatus         OSSStatus"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tSubmittedAt    time.Time"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "type OSSDecision struct {"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tApplicationID, Actor, Reason string"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tStatus                       OSSStatus"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tCreditGrant                  int64"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "type OSSStore interface {"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tSubmit(context.Context, OSSApplication) (OSSApplication, bool, error)"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t// Decide atomically records the audit decision and any approved credit grant."
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tDecide(context.Context, int64, OSSDecision, OSSStatus) (OSSApplication, error)"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "type OSSProgramme struct {"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tStore           OSSStore"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\tApprovalCredits int64"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "func (p OSSProgramme) Apply(ctx context.Context, application OSSApplication) (OSSApplication, bool, error) {"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\tif p.Store == nil || application.InstallationID \u003c= 0 || application.RepositoryID \u003c= 0 || application.ContactEmail == \"\" || strings.TrimSpace(application.Reason) == \"\" || !publicHTTPSRepository(application.RepositoryURL) {"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t\treturn OSSApplication{}, false, errors.New(\"tenant, public HTTPS repository, contact, reason, and store are required\")"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\tapplication.Status = OSSSubmitted"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\treturn p.Store.Submit(ctx, application)"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "func (p OSSProgramme) Decide(ctx context.Context, installationID int64, applicationID, actor string, approve bool, reason string) (OSSApplication, error) {"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\tif p.Store == nil || installationID \u003c= 0 || applicationID == \"\" || actor == \"\" || strings.TrimSpace(reason) == \"\" {"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t\treturn OSSApplication{}, errors.New(\"tenant, application, actor, reason, and store are required\")"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\tdecision := OSSDecision{ApplicationID: applicationID, Actor: actor, Reason: reason, Status: OSSRejected}"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\tif approve {"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t\tif p.ApprovalCredits \u003c= 0 {"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t\t\treturn OSSApplication{}, errors.New(\"positive approval credits are required\")"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t\tdecision.Status, decision.CreditGrant = OSSApproved, p.ApprovalCredits"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\treturn p.Store.Decide(ctx, installationID, decision, OSSSubmitted)"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "func publicHTTPSRepository(raw string) bool {"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\tu, err := url.Parse(raw)"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\treturn err == nil \u0026\u0026 u.Scheme == \"https\" \u0026\u0026 u.Host != \"\" \u0026\u0026 u.User == nil \u0026\u0026 u.Fragment == \"\""
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/billing/oss_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/billing/oss_test.go b/internal/hosted/billing/oss_test.go\nnew file mode 100644\nindex 0000000..90ce514\n--- /dev/null\n+++ b/internal/hosted/billing/oss_test.go\n@@ -0,0 +1,48 @@\n+package billing\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"testing\"\n+)\n+\n+type ossStore struct {\n+\tapplication OSSApplication\n+\tdecisions   int\n+}\n+\n+func (s *ossStore) Submit(_ context.Context, app OSSApplication) (OSSApplication, bool, error) {\n+\ts.application = app\n+\treturn app, true, nil\n+}\n+func (s *ossStore) Decide(_ context.Context, tenant int64, decision OSSDecision, expected OSSStatus) (OSSApplication, error) {\n+\tif s.application.InstallationID != tenant || s.application.Status != expected {\n+\t\treturn OSSApplication{}, errors.New(\"stale or cross-tenant decision\")\n+\t}\n+\ts.decisions++\n+\ts.application.Status = decision.Status\n+\treturn s.application, nil\n+}\n+\n+func TestOSSProgrammeApplicationAndApproval(t *testing.T) {\n+\tstore := \u0026ossStore{}\n+\tprogramme := OSSProgramme{Store: store, ApprovalCredits: 1000}\n+\tapplication, created, err := programme.Apply(context.Background(), OSSApplication{ID: \"app-1\", InstallationID: 1, RepositoryID: 2, RepositoryURL: \"https://github.com/acme/project\", ContactEmail: \"maintainer@example.com\", Reason: \"public project\"})\n+\tif err != nil || !created || application.Status != OSSSubmitted {\n+\t\tt.Fatalf(\"application=%#v created=%v err=%v\", application, created, err)\n+\t}\n+\tapproved, err := programme.Decide(context.Background(), 1, \"app-1\", \"admin@example.com\", true, \"eligible public project\")\n+\tif err != nil || approved.Status != OSSApproved || store.decisions != 1 {\n+\t\tt.Fatalf(\"approved=%#v err=%v\", approved, err)\n+\t}\n+\tif _, err := programme.Decide(context.Background(), 1, \"app-1\", \"admin@example.com\", false, \"changed mind\"); err == nil {\n+\t\tt.Fatal(\"allowed a second terminal decision\")\n+\t}\n+}\n+\n+func TestOSSProgrammeRejectsUnverifiableRepository(t *testing.T) {\n+\t_, _, err := (OSSProgramme{Store: \u0026ossStore{}}).Apply(context.Background(), OSSApplication{InstallationID: 1, RepositoryID: 2, RepositoryURL: \"http://localhost/repo\", ContactEmail: \"x@y.z\", Reason: \"test\"})\n+\tif err == nil {\n+\t\tt.Fatal(\"accepted non-HTTPS repository evidence\")\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-deac75898c42121f",
+          "header": "@@ -0,0 +1,48 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package billing"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "type ossStore struct {"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\tapplication OSSApplication"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\tdecisions   int"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "func (s *ossStore) Submit(_ context.Context, app OSSApplication) (OSSApplication, bool, error) {"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\ts.application = app"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\treturn app, true, nil"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "func (s *ossStore) Decide(_ context.Context, tenant int64, decision OSSDecision, expected OSSStatus) (OSSApplication, error) {"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tif s.application.InstallationID != tenant || s.application.Status != expected {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t\treturn OSSApplication{}, errors.New(\"stale or cross-tenant decision\")"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\ts.decisions++"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\ts.application.Status = decision.Status"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\treturn s.application, nil"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "func TestOSSProgrammeApplicationAndApproval(t *testing.T) {"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tstore := \u0026ossStore{}"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tprogramme := OSSProgramme{Store: store, ApprovalCredits: 1000}"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tapplication, created, err := programme.Apply(context.Background(), OSSApplication{ID: \"app-1\", InstallationID: 1, RepositoryID: 2, RepositoryURL: \"https://github.com/acme/project\", ContactEmail: \"maintainer@example.com\", Reason: \"public project\"})"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tif err != nil || !created || application.Status != OSSSubmitted {"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"application=%#v created=%v err=%v\", application, created, err)"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tapproved, err := programme.Decide(context.Background(), 1, \"app-1\", \"admin@example.com\", true, \"eligible public project\")"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tif err != nil || approved.Status != OSSApproved || store.decisions != 1 {"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"approved=%#v err=%v\", approved, err)"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tif _, err := programme.Decide(context.Background(), 1, \"app-1\", \"admin@example.com\", false, \"changed mind\"); err == nil {"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"allowed a second terminal decision\")"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "func TestOSSProgrammeRejectsUnverifiableRepository(t *testing.T) {"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t_, _, err := (OSSProgramme{Store: \u0026ossStore{}}).Apply(context.Background(), OSSApplication{InstallationID: 1, RepositoryID: 2, RepositoryURL: \"http://localhost/repo\", ContactEmail: \"x@y.z\", Reason: \"test\"})"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\tif err == nil {"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"accepted non-HTTPS repository evidence\")"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "migrations/0013_oss_programme.down.sql",
+      "status": "A",
+      "diff": "diff --git a/migrations/0013_oss_programme.down.sql b/migrations/0013_oss_programme.down.sql\nnew file mode 100644\nindex 0000000..dea8be9\n--- /dev/null\n+++ b/migrations/0013_oss_programme.down.sql\n@@ -0,0 +1,3 @@\n+BEGIN;\n+DROP TABLE IF EXISTS oss_applications;\n+COMMIT;\n",
+      "hunks": [
+        {
+          "id": "diff-49c8d5474c08f50c",
+          "header": "@@ -0,0 +1,3 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "BEGIN;"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "DROP TABLE IF EXISTS oss_applications;"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "COMMIT;"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "migrations/0013_oss_programme.up.sql",
+      "status": "A",
+      "diff": "diff --git a/migrations/0013_oss_programme.up.sql b/migrations/0013_oss_programme.up.sql\nnew file mode 100644\nindex 0000000..f29d81f\n--- /dev/null\n+++ b/migrations/0013_oss_programme.up.sql\n@@ -0,0 +1,21 @@\n+BEGIN;\n+CREATE TABLE oss_applications (\n+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n+    installation_id bigint NOT NULL,\n+    repository_id bigint NOT NULL,\n+    repository_url text NOT NULL CHECK (repository_url LIKE 'https://%'),\n+    contact_email text NOT NULL CHECK (length(contact_email) BETWEEN 3 AND 320),\n+    reason text NOT NULL CHECK (length(reason) BETWEEN 1 AND 4000),\n+    status text NOT NULL DEFAULT 'submitted' CHECK (status IN ('submitted', 'approved', 'rejected')),\n+    submitted_at timestamptz NOT NULL DEFAULT now(),\n+    decided_at timestamptz,\n+    decided_by text NOT NULL DEFAULT '',\n+    decision_reason text NOT NULL DEFAULT '',\n+    credit_grant bigint NOT NULL DEFAULT 0 CHECK (credit_grant \u003e= 0),\n+    FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE,\n+    CHECK ((status = 'submitted' AND decided_at IS NULL AND decided_by = '') OR (status \u003c\u003e 'submitted' AND decided_at IS NOT NULL AND decided_by \u003c\u003e ''))\n+);\n+ALTER TABLE oss_applications ENABLE ROW LEVEL SECURITY;\n+ALTER TABLE oss_applications FORCE ROW LEVEL SECURITY;\n+CREATE POLICY tenant_isolation ON oss_applications USING (installation_id = current_setting('px1.installation_id', true)::bigint) WITH CHECK (installation_id = current_setting('px1.installation_id', true)::bigint);\n+COMMIT;\n",
+      "hunks": [
+        {
+          "id": "diff-3c361eaed183f6ab",
+          "header": "@@ -0,0 +1,21 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "BEGIN;"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "CREATE TABLE oss_applications ("
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "    installation_id bigint NOT NULL,"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "    repository_id bigint NOT NULL,"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "    repository_url text NOT NULL CHECK (repository_url LIKE 'https://%'),"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "    contact_email text NOT NULL CHECK (length(contact_email) BETWEEN 3 AND 320),"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "    reason text NOT NULL CHECK (length(reason) BETWEEN 1 AND 4000),"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "    status text NOT NULL DEFAULT 'submitted' CHECK (status IN ('submitted', 'approved', 'rejected')),"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "    submitted_at timestamptz NOT NULL DEFAULT now(),"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "    decided_at timestamptz,"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "    decided_by text NOT NULL DEFAULT '',"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "    decision_reason text NOT NULL DEFAULT '',"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "    credit_grant bigint NOT NULL DEFAULT 0 CHECK (credit_grant \u003e= 0),"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "    FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE,"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "    CHECK ((status = 'submitted' AND decided_at IS NULL AND decided_by = '') OR (status \u003c\u003e 'submitted' AND decided_at IS NOT NULL AND decided_by \u003c\u003e ''))"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": ");"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "ALTER TABLE oss_applications ENABLE ROW LEVEL SECURITY;"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "ALTER TABLE oss_applications FORCE ROW LEVEL SECURITY;"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "CREATE POLICY tenant_isolation ON oss_applications USING (installation_id = current_setting('px1.installation_id', true)::bigint) WITH CHECK (installation_id = current_setting('px1.installation_id', true)::bigint);"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "COMMIT;"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-f4b04456863315a4",
+      "title": "Oss_programme changes",
+      "summary": "4 related files share the \"oss_programme\" change signal.",
+      "paths": [
+        "internal/hosted/billing/oss.go",
+        "internal/hosted/billing/oss_test.go",
+        "migrations/0013_oss_programme.down.sql",
+        "migrations/0013_oss_programme.up.sql"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-7ca79ce31c5d1d06",
+      "path": "internal/hosted/billing/oss.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/billing/oss_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-f54d6f7c4869d227",
+      "path": "internal/hosted/billing/oss.go",
+      "line": 48,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func (p OSSProgramme) Apply(ctx context.Context, application OSSApplication) (OSSApplication, bool, error) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    },
+    {
+      "id": "inspect-30ac77a4efbe4721",
+      "path": "migrations/0013_oss_programme.down.sql",
+      "kind": "schema",
+      "observation": "The changed path is migration, schema, or SQL-related: migrations/0013_oss_programme.down.sql.",
+      "question": "What happens to existing data during deploy, rollback, and mixed-version operation?",
+      "related": []
+    },
+    {
+      "id": "inspect-d26b3a186b921335",
+      "path": "migrations/0013_oss_programme.up.sql",
+      "kind": "schema",
+      "observation": "The changed path is migration, schema, or SQL-related: migrations/0013_oss_programme.up.sql.",
+      "question": "What happens to existing data during deploy, rollback, and mixed-version operation?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 4,
+    "filesAnalyzed": 4,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "oss-application-validation",
+      "path": "internal/hosted/billing/oss.go",
+      "lineStart": 47,
+      "lineEnd": 54,
+      "title": "Validate and initialize OSS applications",
+      "summary": "Applications are rejected unless they include valid tenant and repository IDs, contact details, a nonblank reason, and an HTTPS repository URL without user information or a fragment. Accepted applications are submitted with the `submitted` status."
+    },
+    {
+      "id": "oss-decisions",
+      "path": "internal/hosted/billing/oss.go",
+      "lineStart": 56,
+      "lineEnd": 68,
+      "title": "Record terminal decisions and approval credits",
+      "summary": "Decisions require an installation, application, actor, and reason. Approvals additionally require positive configured credits and pass that grant to the store; decisions are requested only against the `submitted` status, with the store contract requiring atomic recording."
+    },
+    {
+      "id": "oss-storage",
+      "path": "migrations/0013_oss_programme.up.sql",
+      "lineStart": 2,
+      "lineEnd": 21,
+      "title": "Add tenant-scoped OSS application storage",
+      "summary": "The new table persists application and decision details, ties each application to a repository in the same installation, constrains statuses and credit grants, and enforces tenant-scoped row access using `px1.installation_id`."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "b2abc8abf510458bfdef37b5a8e58a0608ac8bfa",
+      "revision": "1d0e607a1de8b791646ec7d835693ed0709401cc",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "b2abc8abf510458bfdef37b5a8e58a0608ac8bfa",
+      "revision": "1d0e607a1de8b791646ec7d835693ed0709401cc",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "1d0e607a1de8b791646ec7d835693ed0709401cc",
+      "detail": "3 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "1d0e607a1de8b791646ec7d835693ed0709401cc",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-6ec09f8f0b7a407e",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/billing/oss.go",
+      "line": 48,
+      "evidence": "func (p OSSProgramme) Apply(ctx context.Context, application OSSApplication) (OSSApplication, bool, error) {"
+    },
+    {
+      "id": "attention-1ddfb99c70de61d9",
+      "rule": "schema",
+      "title": "Schema or migration",
+      "reason": "Schema and migration changes can affect stored data and deployment order.",
+      "path": "migrations/0013_oss_programme.down.sql",
+      "evidence": "migrations/0013_oss_programme.down.sql"
+    },
+    {
+      "id": "attention-c6f58cc914f2a85c",
+      "rule": "schema",
+      "title": "Schema or migration",
+      "reason": "Schema and migration changes can affect stored data and deployment order.",
+      "path": "migrations/0013_oss_programme.up.sql",
+      "evidence": "migrations/0013_oss_programme.up.sql"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "1d0e607a1de8b791646ec7d835693ed0709401cc",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40401598607",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40401598607/job/121849429594",
+        "startedAt": "2026-10-26T21:08:47Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40401599495/job/121848577361",
+        "startedAt": "2026-10-26T21:07:05Z"
+      }
+    ]
+  }
+}
