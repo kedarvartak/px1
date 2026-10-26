@@ -123,16 +123,30 @@ backend-foundation tasks are:
    thread-scoped memory with `@px1 remember <text>`.
 49. [x] **Make review memory controllable.** Add `@px1 forget`, and expose every
    repository memory with its evidence so reviewers can inspect and delete it.
-50. [ ] **Publish a confidence rubric.** Score reviews from zero to five using
+50. [x] **Publish a confidence rubric.** Score reviews from zero to five using
    deterministic, visible inputs rather than an opaque model judgement.
-51. [ ] **Generate bounded diagrams.** Convert qualifying graph slices to safe
+51. [x] **Generate bounded diagrams.** Convert qualifying graph slices to safe
    Mermaid diagrams and omit output when validation fails.
-52. [ ] **Summarize blast radius.** List unchanged callers and tests connected to
+52. [x] **Summarize blast radius.** List unchanged callers and tests connected to
    changed symbols without implying that they are broken.
-53. [ ] **Explain why each comment exists.** Show context chunks, graph paths,
+53. [x] **Explain why each comment exists.** Show context chunks, graph paths,
    memories, and verifier disposition behind each AI finding.
-54. [ ] **Resolve cascading configuration.** Inherit directory `.px1` settings,
+54. [x] **Resolve cascading configuration.** Inherit directory `.px1` settings,
    apply strict gating safely, and add `validate-config`.
+
+55. [x] **Reference reviewer-owned files.** Parse bounded `.px1/files.json`
+   declarations and attach matching repository-local context without allowing
+   path escapes or unbounded report inputs.
+56. [ ] **Authorize cross-repository context.** Resolve `context.repos` only when
+   the same GitHub App installation can read every referenced repository.
+57. [ ] **Expand the v2 evaluation gate.** Require 100 seeded bugs, including at
+   least 40 auditable cross-file cases.
+58. [ ] **Measure weekly review outcomes.** Track comments per PR, addressed and
+   downvote rates, and suppression counts per repository and UTC week.
+59. [ ] **Create the dashboard foundation.** Define a typed route manifest and
+   shared design tokens for the Next.js dashboard without coupling the Action.
+60. [ ] **Secure dashboard sessions.** Define provider-neutral OAuth sessions,
+   constant-time CSRF validation, and authorized organization switching.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,
