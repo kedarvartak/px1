@@ -18,6 +18,7 @@ type SummaryInput struct {
 	ModelSummary         string
 	Findings             []Finding
 	DeterministicSignals []DeterministicSignal
+	Confidence           *ConfidenceScore
 }
 
 type DeterministicSignal struct {
@@ -58,6 +59,16 @@ func RenderSummary(input SummaryInput) (string, error) {
 	}
 	if summary := strings.TrimSpace(input.ModelSummary); summary != "" {
 		fmt.Fprintf(&body, "\n%s\n", summary)
+	}
+	if input.Confidence != nil {
+		if err := input.Confidence.Validate(); err != nil {
+			return "", err
+		}
+		fmt.Fprintf(&body, "\n### Review confidence: %d/5\n", input.Confidence.Value)
+		fmt.Fprintln(&body, "This deterministic score summarizes available evidence; it is not approval or proof of correctness.")
+		for _, reason := range input.Confidence.Reasons {
+			fmt.Fprintf(&body, "- `%s` (%+d): %s\n", reason.Input, reason.Impact, reason.Detail)
+		}
 	}
 	if len(input.Findings) > 0 {
 		fmt.Fprintln(&body, "\n### Findings")
