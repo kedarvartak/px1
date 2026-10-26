@@ -1,0 +1,840 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "1d895a91d97a6dfbb9be64fe128372c7345bb1b3",
+  "head": "8c364962e13ff2e91b11151295b783315514f263",
+  "generatedAt": "2026-10-26T20:07:41.202726958Z",
+  "files": [
+    {
+      "path": "ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/ROADMAP.md b/ROADMAP.md\nindex 748e45e..f0c4adb 100644\n--- a/ROADMAP.md\n+++ b/ROADMAP.md\n@@ -137,16 +137,29 @@ backend-foundation tasks are:\n 55. [x] **Reference reviewer-owned files.** Parse bounded `.px1/files.json`\n    declarations and attach matching repository-local context without allowing\n    path escapes or unbounded report inputs.\n-56. [ ] **Authorize cross-repository context.** Resolve `context.repos` only when\n+56. [x] **Authorize cross-repository context.** Resolve `context.repos` only when\n    the same GitHub App installation can read every referenced repository.\n-57. [ ] **Expand the v2 evaluation gate.** Require 100 seeded bugs, including at\n+57. [x] **Expand the v2 evaluation gate.** Require 100 seeded bugs, including at\n    least 40 auditable cross-file cases.\n-58. [ ] **Measure weekly review outcomes.** Track comments per PR, addressed and\n+58. [x] **Measure weekly review outcomes.** Track comments per PR, addressed and\n    downvote rates, and suppression counts per repository and UTC week.\n-59. [ ] **Create the dashboard foundation.** Define a typed route manifest and\n+59. [x] **Create the dashboard foundation.** Define a typed route manifest and\n    shared design tokens for the Next.js dashboard without coupling the Action.\n-60. [ ] **Secure dashboard sessions.** Define provider-neutral OAuth sessions,\n+60. [x] **Secure dashboard sessions.** Define provider-neutral OAuth sessions,\n    constant-time CSRF validation, and authorized organization switching.\n+61. [x] **Build dashboard pages.** Add organization-scoped overview, repository,\n+   pull-request detail, rules, memories, analytics, billing, members, and\n+   settings surfaces, including the commit-pinned report frame.\n+62. [ ] **Add the settings editor.** Write settings to the hosted database or a\n+   `.px1/config.json` pull request while keeping repository config authoritative.\n+63. [ ] **Add the rule-proposal queue.** Let reviewers accept, edit, or reject a\n+   proposed rule with its evidence links and an auditable state transition.\n+64. [ ] **Build the analytics event pipeline.** Store review, finding, and\n+   feedback events and aggregate tenant-scoped nightly daily metrics.\n+65. [ ] **Draw review analytics.** Chart findings, addressed rate, and review\n+   latency with repository, team, and author filters.\n+66. [ ] **Publish metric definitions.** Explain each customer-visible metric and\n+   its denominator so teams can audit claims such as bugs caught.\n \n The v1 review pipeline, indexing, report hosting, evaluation, and launch gates\n follow these foundations. AI findings must remain auditable: evidence,\n",
+      "hunks": [
+        {
+          "id": "diff-c1228c0b7fc7419d",
+          "header": "@@ -137,16 +137,29 @@ backend-foundation tasks are:",
+          "lines": [
+            {
+              "oldLine": 137,
+              "newLine": 137,
+              "kind": "context",
+              "text": "55. [x] **Reference reviewer-owned files.** Parse bounded `.px1/files.json`"
+            },
+            {
+              "oldLine": 138,
+              "newLine": 138,
+              "kind": "context",
+              "text": "   declarations and attach matching repository-local context without allowing"
+            },
+            {
+              "oldLine": 139,
+              "newLine": 139,
+              "kind": "context",
+              "text": "   path escapes or unbounded report inputs."
+            },
+            {
+              "oldLine": 140,
+              "kind": "removed",
+              "text": "56. [ ] **Authorize cross-repository context.** Resolve `context.repos` only when"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "56. [x] **Authorize cross-repository context.** Resolve `context.repos` only when"
+            },
+            {
+              "oldLine": 141,
+              "newLine": 141,
+              "kind": "context",
+              "text": "   the same GitHub App installation can read every referenced repository."
+            },
+            {
+              "oldLine": 142,
+              "kind": "removed",
+              "text": "57. [ ] **Expand the v2 evaluation gate.** Require 100 seeded bugs, including at"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "57. [x] **Expand the v2 evaluation gate.** Require 100 seeded bugs, including at"
+            },
+            {
+              "oldLine": 143,
+              "newLine": 143,
+              "kind": "context",
+              "text": "   least 40 auditable cross-file cases."
+            },
+            {
+              "oldLine": 144,
+              "kind": "removed",
+              "text": "58. [ ] **Measure weekly review outcomes.** Track comments per PR, addressed and"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "58. [x] **Measure weekly review outcomes.** Track comments per PR, addressed and"
+            },
+            {
+              "oldLine": 145,
+              "newLine": 145,
+              "kind": "context",
+              "text": "   downvote rates, and suppression counts per repository and UTC week."
+            },
+            {
+              "oldLine": 146,
+              "kind": "removed",
+              "text": "59. [ ] **Create the dashboard foundation.** Define a typed route manifest and"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "59. [x] **Create the dashboard foundation.** Define a typed route manifest and"
+            },
+            {
+              "oldLine": 147,
+              "newLine": 147,
+              "kind": "context",
+              "text": "   shared design tokens for the Next.js dashboard without coupling the Action."
+            },
+            {
+              "oldLine": 148,
+              "kind": "removed",
+              "text": "60. [ ] **Secure dashboard sessions.** Define provider-neutral OAuth sessions,"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "60. [x] **Secure dashboard sessions.** Define provider-neutral OAuth sessions,"
+            },
+            {
+              "oldLine": 149,
+              "newLine": 149,
+              "kind": "context",
+              "text": "   constant-time CSRF validation, and authorized organization switching."
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "61. [x] **Build dashboard pages.** Add organization-scoped overview, repository,"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "   pull-request detail, rules, memories, analytics, billing, members, and"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "   settings surfaces, including the commit-pinned report frame."
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "62. [ ] **Add the settings editor.** Write settings to the hosted database or a"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "   `.px1/config.json` pull request while keeping repository config authoritative."
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "63. [ ] **Add the rule-proposal queue.** Let reviewers accept, edit, or reject a"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "   proposed rule with its evidence links and an auditable state transition."
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "64. [ ] **Build the analytics event pipeline.** Store review, finding, and"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "   feedback events and aggregate tenant-scoped nightly daily metrics."
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "65. [ ] **Draw review analytics.** Chart findings, addressed rate, and review"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "   latency with repository, team, and author filters."
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "66. [ ] **Publish metric definitions.** Explain each customer-visible metric and"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "   its denominator so teams can audit claims such as bugs caught."
+            },
+            {
+              "oldLine": 150,
+              "newLine": 163,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 151,
+              "newLine": 164,
+              "kind": "context",
+              "text": "The v1 review pipeline, indexing, report hosting, evaluation, and launch gates"
+            },
+            {
+              "oldLine": 152,
+              "newLine": 165,
+              "kind": "context",
+              "text": "follow these foundations. AI findings must remain auditable: evidence,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/dashboard/routes.go",
+      "status": "M",
+      "diff": "diff --git a/internal/hosted/dashboard/routes.go b/internal/hosted/dashboard/routes.go\nindex 95f6d3c..ff88747 100644\n--- a/internal/hosted/dashboard/routes.go\n+++ b/internal/hosted/dashboard/routes.go\n@@ -10,8 +10,9 @@ type Route struct {\n var Routes = []Route{\n \t{Name: \"overview\", Pattern: \"/:organization\", Navigation: true},\n \t{Name: \"repositories\", Pattern: \"/:organization/repositories\", Navigation: true},\n+\t{Name: \"repository settings\", Pattern: \"/:organization/repositories/:repository/settings\"},\n \t{Name: \"pull requests\", Pattern: \"/:organization/pull-requests\", Navigation: true},\n-\t{Name: \"pull request\", Pattern: \"/:organization/pull-requests/:number\"},\n+\t{Name: \"pull request\", Pattern: \"/:organization/repositories/:repository/pull-requests/:number\"},\n \t{Name: \"rules\", Pattern: \"/:organization/rules\", Navigation: true},\n \t{Name: \"memories\", Pattern: \"/:organization/memories\", Navigation: true},\n \t{Name: \"analytics\", Pattern: \"/:organization/analytics\", Navigation: true},\n",
+      "hunks": [
+        {
+          "id": "diff-f3ff506168c77b83",
+          "header": "@@ -10,8 +10,9 @@ type Route struct {",
+          "lines": [
+            {
+              "oldLine": 10,
+              "newLine": 10,
+              "kind": "context",
+              "text": "var Routes = []Route{"
+            },
+            {
+              "oldLine": 11,
+              "newLine": 11,
+              "kind": "context",
+              "text": "\t{Name: \"overview\", Pattern: \"/:organization\", Navigation: true},"
+            },
+            {
+              "oldLine": 12,
+              "newLine": 12,
+              "kind": "context",
+              "text": "\t{Name: \"repositories\", Pattern: \"/:organization/repositories\", Navigation: true},"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t{Name: \"repository settings\", Pattern: \"/:organization/repositories/:repository/settings\"},"
+            },
+            {
+              "oldLine": 13,
+              "newLine": 14,
+              "kind": "context",
+              "text": "\t{Name: \"pull requests\", Pattern: \"/:organization/pull-requests\", Navigation: true},"
+            },
+            {
+              "oldLine": 14,
+              "kind": "removed",
+              "text": "\t{Name: \"pull request\", Pattern: \"/:organization/pull-requests/:number\"},"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\t{Name: \"pull request\", Pattern: \"/:organization/repositories/:repository/pull-requests/:number\"},"
+            },
+            {
+              "oldLine": 15,
+              "newLine": 16,
+              "kind": "context",
+              "text": "\t{Name: \"rules\", Pattern: \"/:organization/rules\", Navigation: true},"
+            },
+            {
+              "oldLine": 16,
+              "newLine": 17,
+              "kind": "context",
+              "text": "\t{Name: \"memories\", Pattern: \"/:organization/memories\", Navigation: true},"
+            },
+            {
+              "oldLine": 17,
+              "newLine": 18,
+              "kind": "context",
+              "text": "\t{Name: \"analytics\", Pattern: \"/:organization/analytics\", Navigation: true},"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/dashboard/routes_test.go",
+      "status": "M",
+      "diff": "diff --git a/internal/hosted/dashboard/routes_test.go b/internal/hosted/dashboard/routes_test.go\nindex b466488..8469621 100644\n--- a/internal/hosted/dashboard/routes_test.go\n+++ b/internal/hosted/dashboard/routes_test.go\n@@ -13,7 +13,7 @@ func TestDashboardRoutesAreOrganizationScopedAndUnique(t *testing.T) {\n \t\t}\n \t\tseenNames[route.Name], seenPatterns[route.Pattern] = true, true\n \t}\n-\tfor _, required := range []string{\"overview\", \"repositories\", \"pull requests\", \"rules\", \"memories\", \"analytics\", \"billing\", \"members\", \"settings\"} {\n+\tfor _, required := range []string{\"overview\", \"repositories\", \"repository settings\", \"pull requests\", \"rules\", \"memories\", \"analytics\", \"billing\", \"members\", \"settings\"} {\n \t\tif !seenNames[required] {\n \t\t\tt.Fatalf(\"missing route %q\", required)\n \t\t}\n",
+      "hunks": [
+        {
+          "id": "diff-280cacf9a7316c55",
+          "header": "@@ -13,7 +13,7 @@ func TestDashboardRoutesAreOrganizationScopedAndUnique(t *testing.T) {",
+          "lines": [
+            {
+              "oldLine": 13,
+              "newLine": 13,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 14,
+              "newLine": 14,
+              "kind": "context",
+              "text": "\t\tseenNames[route.Name], seenPatterns[route.Pattern] = true, true"
+            },
+            {
+              "oldLine": 15,
+              "newLine": 15,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 16,
+              "kind": "removed",
+              "text": "\tfor _, required := range []string{\"overview\", \"repositories\", \"pull requests\", \"rules\", \"memories\", \"analytics\", \"billing\", \"members\", \"settings\"} {"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tfor _, required := range []string{\"overview\", \"repositories\", \"repository settings\", \"pull requests\", \"rules\", \"memories\", \"analytics\", \"billing\", \"members\", \"settings\"} {"
+            },
+            {
+              "oldLine": 17,
+              "newLine": 17,
+              "kind": "context",
+              "text": "\t\tif !seenNames[required] {"
+            },
+            {
+              "oldLine": 18,
+              "newLine": 18,
+              "kind": "context",
+              "text": "\t\t\tt.Fatalf(\"missing route %q\", required)"
+            },
+            {
+              "oldLine": 19,
+              "newLine": 19,
+              "kind": "context",
+              "text": "\t\t}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/dashboard/app/[organization]/[...route]/dashboard.module.css",
+      "status": "A",
+      "diff": "diff --git a/web/dashboard/app/[organization]/[...route]/dashboard.module.css b/web/dashboard/app/[organization]/[...route]/dashboard.module.css\nnew file mode 100644\nindex 0000000..a885e80\n--- /dev/null\n+++ b/web/dashboard/app/[organization]/[...route]/dashboard.module.css\n@@ -0,0 +1,15 @@\n+.navigation {\n+  display: flex;\n+  flex-wrap: wrap;\n+  gap: .75rem 1rem;\n+  margin-bottom: 2rem;\n+}\n+\n+.navigation a { color: var(--px1-brand); }\n+\n+.report {\n+  width: 100%;\n+  min-height: 70vh;\n+  border: 1px solid var(--px1-line);\n+  background: var(--px1-surface);\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-2e8a518e314768cf",
+          "header": "@@ -0,0 +1,15 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": ".navigation {"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "  display: flex;"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "  flex-wrap: wrap;"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "  gap: .75rem 1rem;"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "  margin-bottom: 2rem;"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ".navigation a { color: var(--px1-brand); }"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ".report {"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "  width: 100%;"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "  min-height: 70vh;"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "  border: 1px solid var(--px1-line);"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "  background: var(--px1-surface);"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "web/dashboard/app/[organization]/[...route]/page.tsx",
+      "status": "A",
+      "diff": "diff --git a/web/dashboard/app/[organization]/[...route]/page.tsx b/web/dashboard/app/[organization]/[...route]/page.tsx\nnew file mode 100644\nindex 0000000..3dbf95f\n--- /dev/null\n+++ b/web/dashboard/app/[organization]/[...route]/page.tsx\n@@ -0,0 +1,54 @@\n+import Link from \"next/link\";\n+import { notFound } from \"next/navigation\";\n+import styles from \"./dashboard.module.css\";\n+\n+type DashboardPageProps = {\n+  params: Promise\u003c{ organization: string; route: string[] }\u003e;\n+};\n+\n+const sections: Record\u003cstring, { title: string; description: string }\u003e = {\n+  repositories: { title: \"Repositories\", description: \"Index status, recent reviews, and repository settings.\" },\n+  \"pull-requests\": { title: \"Pull requests\", description: \"Review scores, findings, and human review progress.\" },\n+  rules: { title: \"Rules\", description: \"Repository rules and evidence-backed proposals.\" },\n+  memories: { title: \"Memories\", description: \"Review preferences with their source evidence.\" },\n+  analytics: { title: \"Analytics\", description: \"Review outcomes and quality signals over time.\" },\n+  billing: { title: \"Billing\", description: \"Shared credits, usage, and spending limits.\" },\n+  members: { title: \"Members\", description: \"Organization roles and team access.\" },\n+  settings: { title: \"Settings\", description: \"Organization-wide review defaults.\" },\n+};\n+\n+function validSegment(value: string) {\n+  return /^[A-Za-z0-9_.-]+$/.test(value);\n+}\n+\n+export default async function DashboardPage({ params }: DashboardPageProps) {\n+  const { organization, route } = await params;\n+  if (!validSegment(organization) || route.some((segment) =\u003e !validSegment(segment))) notFound();\n+\n+  const [section, identifier, action, number] = route;\n+  let content = sections[section];\n+  if (section === \"repositories\" \u0026\u0026 identifier \u0026\u0026 action === \"settings\" \u0026\u0026 route.length === 3) {\n+    content = { title: `${identifier} settings`, description: \"Configure review behaviour for this repository.\" };\n+  } else if (section === \"repositories\" \u0026\u0026 identifier \u0026\u0026 action === \"pull-requests\" \u0026\u0026 number \u0026\u0026 /^[1-9]\\d*$/.test(number) \u0026\u0026 route.length === 4) {\n+    content = { title: `${identifier} pull request #${number}`, description: \"Findings and the commit-pinned review report.\" };\n+  } else if (!content || route.length !== 1) {\n+    notFound();\n+  }\n+\n+  return (\n+    \u003cmain\u003e\n+      \u003cnav aria-label=\"Dashboard\" className={styles.navigation}\u003e\n+        \u003cLink href={`/${organization}`}\u003eOverview\u003c/Link\u003e\n+        {Object.entries(sections).map(([slug, item]) =\u003e (\n+          \u003cLink href={`/${organization}/${slug}`} key={slug}\u003e{item.title}\u003c/Link\u003e\n+        ))}\n+      \u003c/nav\u003e\n+      \u003cp\u003e{organization}\u003c/p\u003e\n+      \u003ch1\u003e{content.title}\u003c/h1\u003e\n+      \u003cp\u003e{content.description}\u003c/p\u003e\n+      {section === \"repositories\" \u0026\u0026 action === \"pull-requests\" \u0026\u0026 number ? (\n+        \u003ciframe className={styles.report} title={`Review report for ${identifier} pull request ${number}`} src={`/api/reports/${encodeURIComponent(organization)}/${encodeURIComponent(identifier)}/${encodeURIComponent(number)}`} /\u003e\n+      ) : null}\n+    \u003c/main\u003e\n+  );\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-207a4bb07793aa5f",
+          "header": "@@ -0,0 +1,54 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "import Link from \"next/link\";"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "import { notFound } from \"next/navigation\";"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import styles from \"./dashboard.module.css\";"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "type DashboardPageProps = {"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "  params: Promise\u003c{ organization: string; route: string[] }\u003e;"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "};"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "const sections: Record\u003cstring, { title: string; description: string }\u003e = {"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "  repositories: { title: \"Repositories\", description: \"Index status, recent reviews, and repository settings.\" },"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "  \"pull-requests\": { title: \"Pull requests\", description: \"Review scores, findings, and human review progress.\" },"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "  rules: { title: \"Rules\", description: \"Repository rules and evidence-backed proposals.\" },"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "  memories: { title: \"Memories\", description: \"Review preferences with their source evidence.\" },"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "  analytics: { title: \"Analytics\", description: \"Review outcomes and quality signals over time.\" },"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "  billing: { title: \"Billing\", description: \"Shared credits, usage, and spending limits.\" },"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "  members: { title: \"Members\", description: \"Organization roles and team access.\" },"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "  settings: { title: \"Settings\", description: \"Organization-wide review defaults.\" },"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "};"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "function validSegment(value: string) {"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "  return /^[A-Za-z0-9_.-]+$/.test(value);"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "export default async function DashboardPage({ params }: DashboardPageProps) {"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "  const { organization, route } = await params;"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "  if (!validSegment(organization) || route.some((segment) =\u003e !validSegment(segment))) notFound();"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "  const [section, identifier, action, number] = route;"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "  let content = sections[section];"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "  if (section === \"repositories\" \u0026\u0026 identifier \u0026\u0026 action === \"settings\" \u0026\u0026 route.length === 3) {"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "    content = { title: `${identifier} settings`, description: \"Configure review behaviour for this repository.\" };"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "  } else if (section === \"repositories\" \u0026\u0026 identifier \u0026\u0026 action === \"pull-requests\" \u0026\u0026 number \u0026\u0026 /^[1-9]\\d*$/.test(number) \u0026\u0026 route.length === 4) {"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "    content = { title: `${identifier} pull request #${number}`, description: \"Findings and the commit-pinned review report.\" };"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "  } else if (!content || route.length !== 1) {"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "    notFound();"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "  }"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "  return ("
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "    \u003cmain\u003e"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "      \u003cnav aria-label=\"Dashboard\" className={styles.navigation}\u003e"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "        \u003cLink href={`/${organization}`}\u003eOverview\u003c/Link\u003e"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "        {Object.entries(sections).map(([slug, item]) =\u003e ("
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "          \u003cLink href={`/${organization}/${slug}`} key={slug}\u003e{item.title}\u003c/Link\u003e"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "        ))}"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "      \u003c/nav\u003e"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "      \u003cp\u003e{organization}\u003c/p\u003e"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "      \u003ch1\u003e{content.title}\u003c/h1\u003e"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "      \u003cp\u003e{content.description}\u003c/p\u003e"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "      {section === \"repositories\" \u0026\u0026 action === \"pull-requests\" \u0026\u0026 number ? ("
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "        \u003ciframe className={styles.report} title={`Review report for ${identifier} pull request ${number}`} src={`/api/reports/${encodeURIComponent(organization)}/${encodeURIComponent(identifier)}/${encodeURIComponent(number)}`} /\u003e"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "      ) : null}"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "    \u003c/main\u003e"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "  );"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-146ebe03a9a2e1b2",
+      "title": "Dashboard changes",
+      "summary": "5 related files share the \"dashboard\" change signal.",
+      "paths": [
+        "ROADMAP.md",
+        "internal/hosted/dashboard/routes.go",
+        "internal/hosted/dashboard/routes_test.go",
+        "web/dashboard/app/[organization]/[...route]/dashboard.module.css",
+        "web/dashboard/app/[organization]/[...route]/page.tsx"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-5279702e9efbfeb0",
+      "path": "internal/hosted/dashboard/routes.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/dashboard/routes_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 5,
+    "filesAnalyzed": 5,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "dashboard-sections",
+      "path": "web/dashboard/app/[organization]/[...route]/page.tsx",
+      "lineStart": 9,
+      "lineEnd": 35,
+      "title": "Organization dashboard pages are now routable",
+      "summary": "Known organization-level sections now render a dashboard page, while invalid organization names, unknown sections, and malformed routes return a 404."
+    },
+    {
+      "id": "repository-pages",
+      "path": "web/dashboard/app/[organization]/[...route]/page.tsx",
+      "lineStart": 28,
+      "lineEnd": 35,
+      "title": "Repository settings and pull-request routes are added",
+      "summary": "Repository-specific settings and pull-request detail pages are supported under the repository path; pull-request numbers must be positive integers."
+    },
+    {
+      "id": "pinned-report",
+      "path": "web/dashboard/app/[organization]/[...route]/page.tsx",
+      "lineStart": 48,
+      "lineEnd": 50,
+      "title": "Pull-request pages display the review report",
+      "summary": "A repository pull-request detail page now embeds its review report using the organization, repository, and pull-request number in the report URL."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "1d895a91d97a6dfbb9be64fe128372c7345bb1b3",
+      "revision": "8c364962e13ff2e91b11151295b783315514f263",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "1d895a91d97a6dfbb9be64fe128372c7345bb1b3",
+      "revision": "8c364962e13ff2e91b11151295b783315514f263",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "8c364962e13ff2e91b11151295b783315514f263",
+      "detail": "3 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "8c364962e13ff2e91b11151295b783315514f263",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "8c364962e13ff2e91b11151295b783315514f263",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40392695676",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40392695676/job/121817533832",
+        "startedAt": "2026-10-26T20:06:41Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40392695509/job/121817530762",
+        "startedAt": "2026-10-26T20:06:39Z"
+      }
+    ]
+  }
+}
