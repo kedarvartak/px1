@@ -1,0 +1,5 @@
+.definitions { display: grid; gap: 1rem; margin-top: 1.5rem; }
+.definitions article { padding: 1rem; border: 1px solid var(--px1-line); border-radius: .5rem; background: var(--px1-surface); }
+.definitions dl { display: grid; grid-template-columns: minmax(7rem, auto) 1fr; gap: .5rem 1rem; }
+.definitions dt { color: var(--px1-dim); font-weight: 600; }
+.definitions dd { margin: 0; }
