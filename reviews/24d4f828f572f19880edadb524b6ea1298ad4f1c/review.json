@@ -1,0 +1,1768 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "1d895a91d97a6dfbb9be64fe128372c7345bb1b3",
+  "head": "24d4f828f572f19880edadb524b6ea1298ad4f1c",
+  "generatedAt": "2026-10-26T20:09:04.139551463Z",
+  "files": [
+    {
+      "path": "analytics_schema_test.go",
+      "status": "A",
+      "diff": "diff --git a/analytics_schema_test.go b/analytics_schema_test.go\nnew file mode 100644\nindex 0000000..01c6896\n--- /dev/null\n+++ b/analytics_schema_test.go\n@@ -0,0 +1,19 @@\n+package main\n+\n+import (\n+\t\"os\"\n+\t\"strings\"\n+\t\"testing\"\n+)\n+\n+func TestAnalyticsSchemaIsTenantScopedAndIdempotent(t *testing.T) {\n+\tbody, err := os.ReadFile(\"migrations/0010_analytics_events.up.sql\")\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tfor _, want := range []string{\"UNIQUE (installation_id, source_id)\", \"PRIMARY KEY (installation_id, repository_id, metric_day, team, author_login)\", \"FORCE ROW LEVEL SECURITY\", \"current_setting('px1.installation_id', true)\"} {\n+\t\tif !strings.Contains(string(body), want) {\n+\t\t\tt.Fatalf(\"migration missing %q\", want)\n+\t\t}\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-14c98b57420ace2f",
+          "header": "@@ -0,0 +1,19 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package main"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "func TestAnalyticsSchemaIsTenantScopedAndIdempotent(t *testing.T) {"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\tbody, err := os.ReadFile(\"migrations/0010_analytics_events.up.sql\")"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tfor _, want := range []string{\"UNIQUE (installation_id, source_id)\", \"PRIMARY KEY (installation_id, repository_id, metric_day, team, author_login)\", \"FORCE ROW LEVEL SECURITY\", \"current_setting('px1.installation_id', true)\"} {"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\t\tif !strings.Contains(string(body), want) {"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"migration missing %q\", want)"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/analytics/events.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/analytics/events.go b/internal/hosted/analytics/events.go\nnew file mode 100644\nindex 0000000..4017fef\n--- /dev/null\n+++ b/internal/hosted/analytics/events.go\n@@ -0,0 +1,177 @@\n+// Package analytics defines auditable event and rollup contracts for hosted metrics.\n+package analytics\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"sort\"\n+\t\"time\"\n+)\n+\n+type EventKind string\n+\n+const (\n+\tReviewEvent   EventKind = \"review\"\n+\tFindingEvent  EventKind = \"finding\"\n+\tFeedbackEvent EventKind = \"feedback\"\n+)\n+\n+type Event struct {\n+\tID             string\n+\tInstallationID int64\n+\tRepositoryID   int64\n+\tTeam           string\n+\tAuthor         string\n+\tKind           EventKind\n+\tSeverity       string\n+\tAddressed      bool\n+\tDownvoted      bool\n+\tReviewLatency  time.Duration\n+\tOccurredAt     time.Time\n+}\n+\n+type DailyMetrics struct {\n+\tInstallationID      int64\n+\tRepositoryID        int64\n+\tDay                 time.Time\n+\tTeam                string\n+\tAuthor              string\n+\tReviews             int\n+\tFindings            int\n+\tAddressedFindings   int\n+\tDownvotedFindings   int\n+\tMedianReviewLatency time.Duration\n+}\n+\n+type NightlyRollupStore interface {\n+\tEventsForDay(context.Context, int64, int64, time.Time, time.Time) ([]Event, error)\n+\tReplaceDailyMetrics(context.Context, int64, int64, time.Time, []DailyMetrics) error\n+}\n+\n+type NightlyRollupJob struct{ Store NightlyRollupStore }\n+\n+func (j NightlyRollupJob) Run(ctx context.Context, installationID, repositoryID int64, day time.Time) (int, error) {\n+\tif j.Store == nil {\n+\t\treturn 0, errors.New(\"nightly rollup store is required\")\n+\t}\n+\tstart := utcDay(day)\n+\tevents, err := j.Store.EventsForDay(ctx, installationID, repositoryID, start, start.Add(24*time.Hour))\n+\tif err != nil {\n+\t\treturn 0, err\n+\t}\n+\tmetrics, err := RollupDayByDimension(installationID, repositoryID, start, events)\n+\tif err != nil {\n+\t\treturn 0, err\n+\t}\n+\tif err := j.Store.ReplaceDailyMetrics(ctx, installationID, repositoryID, start, metrics); err != nil {\n+\t\treturn 0, err\n+\t}\n+\treturn len(metrics), nil\n+}\n+\n+// RollupDay deduplicates immutable events and aggregates one UTC calendar day.\n+func RollupDay(installationID, repositoryID int64, day time.Time, events []Event) (DailyMetrics, error) {\n+\tif installationID \u003c= 0 || repositoryID \u003c= 0 || day.IsZero() {\n+\t\treturn DailyMetrics{}, errors.New(\"tenant and day are required\")\n+\t}\n+\tstart := utcDay(day)\n+\tend := start.Add(24 * time.Hour)\n+\tresult := DailyMetrics{InstallationID: installationID, RepositoryID: repositoryID, Day: start}\n+\tseen := map[string]bool{}\n+\tvar latencies []time.Duration\n+\tfor _, event := range events {\n+\t\tif event.ID == \"\" || seen[event.ID] || event.InstallationID != installationID || event.RepositoryID != repositoryID || !validEvent(event) {\n+\t\t\treturn DailyMetrics{}, errors.New(\"analytics event is invalid, duplicated, or outside the tenant\")\n+\t\t}\n+\t\tseen[event.ID] = true\n+\t\tif event.OccurredAt.Before(start) || !event.OccurredAt.Before(end) {\n+\t\t\tcontinue\n+\t\t}\n+\t\tswitch event.Kind {\n+\t\tcase ReviewEvent:\n+\t\t\tresult.Reviews++\n+\t\t\tlatencies = append(latencies, event.ReviewLatency)\n+\t\tcase FindingEvent:\n+\t\t\tresult.Findings++\n+\t\t\tif event.Addressed {\n+\t\t\t\tresult.AddressedFindings++\n+\t\t\t}\n+\t\t\tif event.Downvoted {\n+\t\t\t\tresult.DownvotedFindings++\n+\t\t\t}\n+\t\t}\n+\t}\n+\tif len(latencies) \u003e 0 {\n+\t\tsort.Slice(latencies, func(i, j int) bool { return latencies[i] \u003c latencies[j] })\n+\t\tmiddle := len(latencies) / 2\n+\t\tresult.MedianReviewLatency = latencies[middle]\n+\t\tif len(latencies)%2 == 0 {\n+\t\t\tresult.MedianReviewLatency = (latencies[middle-1] + latencies[middle]) / 2\n+\t\t}\n+\t}\n+\treturn result, nil\n+}\n+\n+// RollupDayByDimension returns an overall row plus team, author, and\n+// team-author rows so each dashboard filter has an explicit denominator.\n+func RollupDayByDimension(installationID, repositoryID int64, day time.Time, events []Event) ([]DailyMetrics, error) {\n+\tbase, err := RollupDay(installationID, repositoryID, day, events)\n+\tif err != nil {\n+\t\treturn nil, err\n+\t}\n+\trows := []DailyMetrics{base}\n+\ttype dimension struct{ team, author string }\n+\tdimensions := map[dimension]bool{}\n+\tstart, end := utcDay(day), utcDay(day).Add(24*time.Hour)\n+\tfor _, event := range events {\n+\t\tif event.OccurredAt.Before(start) || !event.OccurredAt.Before(end) {\n+\t\t\tcontinue\n+\t\t}\n+\t\tif event.Team != \"\" {\n+\t\t\tdimensions[dimension{team: event.Team}] = true\n+\t\t}\n+\t\tif event.Author != \"\" {\n+\t\t\tdimensions[dimension{author: event.Author}] = true\n+\t\t}\n+\t\tif event.Team != \"\" \u0026\u0026 event.Author != \"\" {\n+\t\t\tdimensions[dimension{team: event.Team, author: event.Author}] = true\n+\t\t}\n+\t}\n+\tkeys := make([]dimension, 0, len(dimensions))\n+\tfor key := range dimensions {\n+\t\tkeys = append(keys, key)\n+\t}\n+\tsort.Slice(keys, func(i, j int) bool { return keys[i].team+\"\\x00\"+keys[i].author \u003c keys[j].team+\"\\x00\"+keys[j].author })\n+\tfor _, key := range keys {\n+\t\tvar selected []Event\n+\t\tfor _, event := range events {\n+\t\t\tif (key.team == \"\" || event.Team == key.team) \u0026\u0026 (key.author == \"\" || event.Author == key.author) {\n+\t\t\t\tselected = append(selected, event)\n+\t\t\t}\n+\t\t}\n+\t\trow, err := RollupDay(installationID, repositoryID, day, selected)\n+\t\tif err != nil {\n+\t\t\treturn nil, err\n+\t\t}\n+\t\trow.Team, row.Author = key.team, key.author\n+\t\trows = append(rows, row)\n+\t}\n+\treturn rows, nil\n+}\n+\n+func utcDay(day time.Time) time.Time {\n+\treturn time.Date(day.UTC().Year(), day.UTC().Month(), day.UTC().Day(), 0, 0, 0, 0, time.UTC)\n+}\n+\n+func validEvent(event Event) bool {\n+\tif event.OccurredAt.IsZero() || (event.Kind != ReviewEvent \u0026\u0026 event.Kind != FindingEvent \u0026\u0026 event.Kind != FeedbackEvent) {\n+\t\treturn false\n+\t}\n+\tif event.Kind == ReviewEvent {\n+\t\treturn event.ReviewLatency \u003e= 0 \u0026\u0026 event.Severity == \"\" \u0026\u0026 !event.Addressed \u0026\u0026 !event.Downvoted\n+\t}\n+\tif event.Kind == FindingEvent {\n+\t\treturn event.ReviewLatency == 0 \u0026\u0026 (event.Severity == \"P0\" || event.Severity == \"P1\" || event.Severity == \"P2\")\n+\t}\n+\treturn event.ReviewLatency == 0 \u0026\u0026 event.Severity == \"\" \u0026\u0026 !event.Addressed\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-f39d46acb092190f",
+          "header": "@@ -0,0 +1,177 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "// Package analytics defines auditable event and rollup contracts for hosted metrics."
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "package analytics"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"sort\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "type EventKind string"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "const ("
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tReviewEvent   EventKind = \"review\""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tFindingEvent  EventKind = \"finding\""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tFeedbackEvent EventKind = \"feedback\""
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "type Event struct {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tID             string"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tInstallationID int64"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tRepositoryID   int64"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tTeam           string"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tAuthor         string"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tKind           EventKind"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tSeverity       string"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tAddressed      bool"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tDownvoted      bool"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tReviewLatency  time.Duration"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tOccurredAt     time.Time"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "type DailyMetrics struct {"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tInstallationID      int64"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tRepositoryID        int64"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tDay                 time.Time"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\tTeam                string"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tAuthor              string"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tReviews             int"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tFindings            int"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\tAddressedFindings   int"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tDownvotedFindings   int"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tMedianReviewLatency time.Duration"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "type NightlyRollupStore interface {"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\tEventsForDay(context.Context, int64, int64, time.Time, time.Time) ([]Event, error)"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\tReplaceDailyMetrics(context.Context, int64, int64, time.Time, []DailyMetrics) error"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "type NightlyRollupJob struct{ Store NightlyRollupStore }"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "func (j NightlyRollupJob) Run(ctx context.Context, installationID, repositoryID int64, day time.Time) (int, error) {"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\tif j.Store == nil {"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t\treturn 0, errors.New(\"nightly rollup store is required\")"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\tstart := utcDay(day)"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\tevents, err := j.Store.EventsForDay(ctx, installationID, repositoryID, start, start.Add(24*time.Hour))"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t\treturn 0, err"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\tmetrics, err := RollupDayByDimension(installationID, repositoryID, start, events)"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t\treturn 0, err"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\tif err := j.Store.ReplaceDailyMetrics(ctx, installationID, repositoryID, start, metrics); err != nil {"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\treturn 0, err"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\treturn len(metrics), nil"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "// RollupDay deduplicates immutable events and aggregates one UTC calendar day."
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "func RollupDay(installationID, repositoryID int64, day time.Time, events []Event) (DailyMetrics, error) {"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\tif installationID \u003c= 0 || repositoryID \u003c= 0 || day.IsZero() {"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\t\treturn DailyMetrics{}, errors.New(\"tenant and day are required\")"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\tstart := utcDay(day)"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\tend := start.Add(24 * time.Hour)"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\tresult := DailyMetrics{InstallationID: installationID, RepositoryID: repositoryID, Day: start}"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\tseen := map[string]bool{}"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\tvar latencies []time.Duration"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\tfor _, event := range events {"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t\tif event.ID == \"\" || seen[event.ID] || event.InstallationID != installationID || event.RepositoryID != repositoryID || !validEvent(event) {"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\t\t\treturn DailyMetrics{}, errors.New(\"analytics event is invalid, duplicated, or outside the tenant\")"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\t\tseen[event.ID] = true"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\t\tif event.OccurredAt.Before(start) || !event.OccurredAt.Before(end) {"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t\tswitch event.Kind {"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t\tcase ReviewEvent:"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\t\t\tresult.Reviews++"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\t\t\tlatencies = append(latencies, event.ReviewLatency)"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t\tcase FindingEvent:"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t\t\tresult.Findings++"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\t\t\tif event.Addressed {"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t\t\t\tresult.AddressedFindings++"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\t\t\tif event.Downvoted {"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\t\t\t\tresult.DownvotedFindings++"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\tif len(latencies) \u003e 0 {"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\t\tsort.Slice(latencies, func(i, j int) bool { return latencies[i] \u003c latencies[j] })"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\t\tmiddle := len(latencies) / 2"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\t\tresult.MedianReviewLatency = latencies[middle]"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\t\tif len(latencies)%2 == 0 {"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\t\t\tresult.MedianReviewLatency = (latencies[middle-1] + latencies[middle]) / 2"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\treturn result, nil"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "// RollupDayByDimension returns an overall row plus team, author, and"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "// team-author rows so each dashboard filter has an explicit denominator."
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "func RollupDayByDimension(installationID, repositoryID int64, day time.Time, events []Event) ([]DailyMetrics, error) {"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\tbase, err := RollupDay(installationID, repositoryID, day, events)"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\trows := []DailyMetrics{base}"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "\ttype dimension struct{ team, author string }"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\tdimensions := map[dimension]bool{}"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\tstart, end := utcDay(day), utcDay(day).Add(24*time.Hour)"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\tfor _, event := range events {"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\t\tif event.OccurredAt.Before(start) || !event.OccurredAt.Before(end) {"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\t\tif event.Team != \"\" {"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\t\t\tdimensions[dimension{team: event.Team}] = true"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\t\tif event.Author != \"\" {"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\t\t\tdimensions[dimension{author: event.Author}] = true"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\t\tif event.Team != \"\" \u0026\u0026 event.Author != \"\" {"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\t\t\tdimensions[dimension{team: event.Team, author: event.Author}] = true"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "\tkeys := make([]dimension, 0, len(dimensions))"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "\tfor key := range dimensions {"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "\t\tkeys = append(keys, key)"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\tsort.Slice(keys, func(i, j int) bool { return keys[i].team+\"\\x00\"+keys[i].author \u003c keys[j].team+\"\\x00\"+keys[j].author })"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\tfor _, key := range keys {"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\t\tvar selected []Event"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "\t\tfor _, event := range events {"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "\t\t\tif (key.team == \"\" || event.Team == key.team) \u0026\u0026 (key.author == \"\" || event.Author == key.author) {"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "\t\t\t\tselected = append(selected, event)"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "\t\trow, err := RollupDay(installationID, repositoryID, day, selected)"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "\t\t\treturn nil, err"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "\t\trow.Team, row.Author = key.team, key.author"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "\t\trows = append(rows, row)"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "\treturn rows, nil"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "func utcDay(day time.Time) time.Time {"
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "\treturn time.Date(day.UTC().Year(), day.UTC().Month(), day.UTC().Day(), 0, 0, 0, 0, time.UTC)"
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "func validEvent(event Event) bool {"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": "\tif event.OccurredAt.IsZero() || (event.Kind != ReviewEvent \u0026\u0026 event.Kind != FindingEvent \u0026\u0026 event.Kind != FeedbackEvent) {"
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": "\t\treturn false"
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "\tif event.Kind == ReviewEvent {"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "\t\treturn event.ReviewLatency \u003e= 0 \u0026\u0026 event.Severity == \"\" \u0026\u0026 !event.Addressed \u0026\u0026 !event.Downvoted"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "\tif event.Kind == FindingEvent {"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "\t\treturn event.ReviewLatency == 0 \u0026\u0026 (event.Severity == \"P0\" || event.Severity == \"P1\" || event.Severity == \"P2\")"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "\treturn event.ReviewLatency == 0 \u0026\u0026 event.Severity == \"\" \u0026\u0026 !event.Addressed"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/analytics/events_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/analytics/events_test.go b/internal/hosted/analytics/events_test.go\nnew file mode 100644\nindex 0000000..703c733\n--- /dev/null\n+++ b/internal/hosted/analytics/events_test.go\n@@ -0,0 +1,45 @@\n+package analytics\n+\n+import (\n+\t\"testing\"\n+\t\"time\"\n+)\n+\n+func TestRollupDayAggregatesTenantScopedEvents(t *testing.T) {\n+\tday := time.Date(2026, 10, 27, 10, 0, 0, 0, time.FixedZone(\"IST\", 19800))\n+\tevents := []Event{\n+\t\t{ID: \"r1\", InstallationID: 1, RepositoryID: 2, Team: \"platform\", Author: \"ada\", Kind: ReviewEvent, ReviewLatency: 2 * time.Minute, OccurredAt: time.Date(2026, 10, 27, 1, 0, 0, 0, time.UTC)},\n+\t\t{ID: \"r2\", InstallationID: 1, RepositoryID: 2, Kind: ReviewEvent, ReviewLatency: 4 * time.Minute, OccurredAt: time.Date(2026, 10, 27, 2, 0, 0, 0, time.UTC)},\n+\t\t{ID: \"f1\", InstallationID: 1, RepositoryID: 2, Kind: FindingEvent, Severity: \"P1\", Addressed: true, OccurredAt: time.Date(2026, 10, 27, 3, 0, 0, 0, time.UTC)},\n+\t}\n+\tgot, err := RollupDay(1, 2, day, events)\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif got.Reviews != 2 || got.Findings != 1 || got.AddressedFindings != 1 || got.MedianReviewLatency != 3*time.Minute || got.Day.Location() != time.UTC {\n+\t\tt.Fatalf(\"metrics = %#v\", got)\n+\t}\n+}\n+\n+func TestRollupDayByDimensionCreatesFilterRows(t *testing.T) {\n+\tnow := time.Date(2026, 10, 27, 1, 0, 0, 0, time.UTC)\n+\trows, err := RollupDayByDimension(1, 2, now, []Event{{ID: \"r1\", InstallationID: 1, RepositoryID: 2, Team: \"platform\", Author: \"ada\", Kind: ReviewEvent, ReviewLatency: time.Minute, OccurredAt: now}})\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif len(rows) != 4 || rows[0].Team != \"\" || rows[0].Author != \"\" {\n+\t\tt.Fatalf(\"rows = %#v\", rows)\n+\t}\n+}\n+\n+func TestRollupDayRejectsCrossTenantAndDuplicateEvents(t *testing.T) {\n+\tnow := time.Now()\n+\tfor _, events := range [][]Event{\n+\t\t{{ID: \"x\", InstallationID: 9, RepositoryID: 2, Kind: ReviewEvent, OccurredAt: now}},\n+\t\t{{ID: \"x\", InstallationID: 1, RepositoryID: 2, Kind: ReviewEvent, OccurredAt: now}, {ID: \"x\", InstallationID: 1, RepositoryID: 2, Kind: ReviewEvent, OccurredAt: now}},\n+\t} {\n+\t\tif _, err := RollupDay(1, 2, now, events); err == nil {\n+\t\t\tt.Fatal(\"accepted invalid analytics events\")\n+\t\t}\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-38ee6e650a0f3d82",
+          "header": "@@ -0,0 +1,45 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package analytics"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "func TestRollupDayAggregatesTenantScopedEvents(t *testing.T) {"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\tday := time.Date(2026, 10, 27, 10, 0, 0, 0, time.FixedZone(\"IST\", 19800))"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\tevents := []Event{"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\t{ID: \"r1\", InstallationID: 1, RepositoryID: 2, Team: \"platform\", Author: \"ada\", Kind: ReviewEvent, ReviewLatency: 2 * time.Minute, OccurredAt: time.Date(2026, 10, 27, 1, 0, 0, 0, time.UTC)},"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\t{ID: \"r2\", InstallationID: 1, RepositoryID: 2, Kind: ReviewEvent, ReviewLatency: 4 * time.Minute, OccurredAt: time.Date(2026, 10, 27, 2, 0, 0, 0, time.UTC)},"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t\t{ID: \"f1\", InstallationID: 1, RepositoryID: 2, Kind: FindingEvent, Severity: \"P1\", Addressed: true, OccurredAt: time.Date(2026, 10, 27, 3, 0, 0, 0, time.UTC)},"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tgot, err := RollupDay(1, 2, day, events)"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tif got.Reviews != 2 || got.Findings != 1 || got.AddressedFindings != 1 || got.MedianReviewLatency != 3*time.Minute || got.Day.Location() != time.UTC {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"metrics = %#v\", got)"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "func TestRollupDayByDimensionCreatesFilterRows(t *testing.T) {"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tnow := time.Date(2026, 10, 27, 1, 0, 0, 0, time.UTC)"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\trows, err := RollupDayByDimension(1, 2, now, []Event{{ID: \"r1\", InstallationID: 1, RepositoryID: 2, Team: \"platform\", Author: \"ada\", Kind: ReviewEvent, ReviewLatency: time.Minute, OccurredAt: now}})"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tif len(rows) != 4 || rows[0].Team != \"\" || rows[0].Author != \"\" {"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"rows = %#v\", rows)"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "func TestRollupDayRejectsCrossTenantAndDuplicateEvents(t *testing.T) {"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tnow := time.Now()"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\tfor _, events := range [][]Event{"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\t\t{{ID: \"x\", InstallationID: 9, RepositoryID: 2, Kind: ReviewEvent, OccurredAt: now}},"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t\t{{ID: \"x\", InstallationID: 1, RepositoryID: 2, Kind: ReviewEvent, OccurredAt: now}, {ID: \"x\", InstallationID: 1, RepositoryID: 2, Kind: ReviewEvent, OccurredAt: now}},"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t} {"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t\tif _, err := RollupDay(1, 2, now, events); err == nil {"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t\t\tt.Fatal(\"accepted invalid analytics events\")"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "migrations/0010_analytics_events.down.sql",
+      "status": "A",
+      "diff": "diff --git a/migrations/0010_analytics_events.down.sql b/migrations/0010_analytics_events.down.sql\nnew file mode 100644\nindex 0000000..a9130da\n--- /dev/null\n+++ b/migrations/0010_analytics_events.down.sql\n@@ -0,0 +1,6 @@\n+BEGIN;\n+\n+DROP TABLE IF EXISTS daily_metrics;\n+DROP TABLE IF EXISTS analytics_events;\n+\n+COMMIT;\n",
+      "hunks": [
+        {
+          "id": "diff-c404878d4d1c8e6f",
+          "header": "@@ -0,0 +1,6 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "BEGIN;"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "DROP TABLE IF EXISTS daily_metrics;"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "DROP TABLE IF EXISTS analytics_events;"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "COMMIT;"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "migrations/0010_analytics_events.up.sql",
+      "status": "A",
+      "diff": "diff --git a/migrations/0010_analytics_events.up.sql b/migrations/0010_analytics_events.up.sql\nnew file mode 100644\nindex 0000000..d25e303\n--- /dev/null\n+++ b/migrations/0010_analytics_events.up.sql\n@@ -0,0 +1,51 @@\n+BEGIN;\n+\n+CREATE TABLE analytics_events (\n+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n+    source_id text NOT NULL CHECK (length(source_id) BETWEEN 1 AND 200),\n+    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,\n+    repository_id bigint NOT NULL,\n+    team text NOT NULL DEFAULT '' CHECK (length(team) \u003c= 200),\n+    author_login text NOT NULL DEFAULT '' CHECK (length(author_login) \u003c= 200),\n+    event_kind text NOT NULL CHECK (event_kind IN ('review', 'finding', 'feedback')),\n+    severity text CHECK (severity IN ('P0', 'P1', 'P2')),\n+    addressed boolean NOT NULL DEFAULT false,\n+    downvoted boolean NOT NULL DEFAULT false,\n+    review_latency_ms bigint NOT NULL DEFAULT 0 CHECK (review_latency_ms \u003e= 0),\n+    occurred_at timestamptz NOT NULL,\n+    created_at timestamptz NOT NULL DEFAULT now(),\n+    CHECK (\n+        (event_kind = 'review' AND severity IS NULL AND NOT addressed AND NOT downvoted) OR\n+        (event_kind = 'finding' AND severity IS NOT NULL AND review_latency_ms = 0) OR\n+        (event_kind = 'feedback' AND severity IS NULL AND NOT addressed AND review_latency_ms = 0)\n+    ),\n+    UNIQUE (installation_id, source_id),\n+    FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE\n+);\n+\n+CREATE TABLE daily_metrics (\n+    installation_id bigint NOT NULL,\n+    repository_id bigint NOT NULL,\n+    metric_day date NOT NULL,\n+    team text NOT NULL DEFAULT '',\n+    author_login text NOT NULL DEFAULT '',\n+    reviews integer NOT NULL CHECK (reviews \u003e= 0),\n+    findings integer NOT NULL CHECK (findings \u003e= 0),\n+    addressed_findings integer NOT NULL CHECK (addressed_findings BETWEEN 0 AND findings),\n+    downvoted_findings integer NOT NULL CHECK (downvoted_findings BETWEEN 0 AND findings),\n+    median_review_latency_ms bigint NOT NULL CHECK (median_review_latency_ms \u003e= 0),\n+    updated_at timestamptz NOT NULL DEFAULT now(),\n+    PRIMARY KEY (installation_id, repository_id, metric_day, team, author_login),\n+    FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE\n+);\n+\n+CREATE INDEX analytics_events_rollup ON analytics_events (installation_id, repository_id, occurred_at);\n+\n+ALTER TABLE analytics_events ENABLE ROW LEVEL SECURITY;\n+ALTER TABLE analytics_events FORCE ROW LEVEL SECURITY;\n+CREATE POLICY tenant_isolation ON analytics_events USING (installation_id = current_setting('px1.installation_id', true)::bigint) WITH CHECK (installation_id = current_setting('px1.installation_id', true)::bigint);\n+ALTER TABLE daily_metrics ENABLE ROW LEVEL SECURITY;\n+ALTER TABLE daily_metrics FORCE ROW LEVEL SECURITY;\n+CREATE POLICY tenant_isolation ON daily_metrics USING (installation_id = current_setting('px1.installation_id', true)::bigint) WITH CHECK (installation_id = current_setting('px1.installation_id', true)::bigint);\n+\n+COMMIT;\n",
+      "hunks": [
+        {
+          "id": "diff-5df4aab2ab9cf7a8",
+          "header": "@@ -0,0 +1,51 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "BEGIN;"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "CREATE TABLE analytics_events ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "    source_id text NOT NULL CHECK (length(source_id) BETWEEN 1 AND 200),"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "    repository_id bigint NOT NULL,"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "    team text NOT NULL DEFAULT '' CHECK (length(team) \u003c= 200),"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "    author_login text NOT NULL DEFAULT '' CHECK (length(author_login) \u003c= 200),"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "    event_kind text NOT NULL CHECK (event_kind IN ('review', 'finding', 'feedback')),"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "    severity text CHECK (severity IN ('P0', 'P1', 'P2')),"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "    addressed boolean NOT NULL DEFAULT false,"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "    downvoted boolean NOT NULL DEFAULT false,"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "    review_latency_ms bigint NOT NULL DEFAULT 0 CHECK (review_latency_ms \u003e= 0),"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "    occurred_at timestamptz NOT NULL,"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "    created_at timestamptz NOT NULL DEFAULT now(),"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "    CHECK ("
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "        (event_kind = 'review' AND severity IS NULL AND NOT addressed AND NOT downvoted) OR"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "        (event_kind = 'finding' AND severity IS NOT NULL AND review_latency_ms = 0) OR"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "        (event_kind = 'feedback' AND severity IS NULL AND NOT addressed AND review_latency_ms = 0)"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "    ),"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "    UNIQUE (installation_id, source_id),"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "    FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": ");"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "CREATE TABLE daily_metrics ("
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "    installation_id bigint NOT NULL,"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "    repository_id bigint NOT NULL,"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "    metric_day date NOT NULL,"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "    team text NOT NULL DEFAULT '',"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "    author_login text NOT NULL DEFAULT '',"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "    reviews integer NOT NULL CHECK (reviews \u003e= 0),"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "    findings integer NOT NULL CHECK (findings \u003e= 0),"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "    addressed_findings integer NOT NULL CHECK (addressed_findings BETWEEN 0 AND findings),"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "    downvoted_findings integer NOT NULL CHECK (downvoted_findings BETWEEN 0 AND findings),"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "    median_review_latency_ms bigint NOT NULL CHECK (median_review_latency_ms \u003e= 0),"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "    updated_at timestamptz NOT NULL DEFAULT now(),"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "    PRIMARY KEY (installation_id, repository_id, metric_day, team, author_login),"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "    FOREIGN KEY (installation_id, repository_id) REFERENCES repositories(installation_id, id) ON DELETE CASCADE"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": ");"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "CREATE INDEX analytics_events_rollup ON analytics_events (installation_id, repository_id, occurred_at);"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "ALTER TABLE analytics_events ENABLE ROW LEVEL SECURITY;"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "ALTER TABLE analytics_events FORCE ROW LEVEL SECURITY;"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "CREATE POLICY tenant_isolation ON analytics_events USING (installation_id = current_setting('px1.installation_id', true)::bigint) WITH CHECK (installation_id = current_setting('px1.installation_id', true)::bigint);"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "ALTER TABLE daily_metrics ENABLE ROW LEVEL SECURITY;"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "ALTER TABLE daily_metrics FORCE ROW LEVEL SECURITY;"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "CREATE POLICY tenant_isolation ON daily_metrics USING (installation_id = current_setting('px1.installation_id', true)::bigint) WITH CHECK (installation_id = current_setting('px1.installation_id', true)::bigint);"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "COMMIT;"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-2b5a61ba64d68eb1",
+      "title": "Analytics_events changes",
+      "summary": "5 related files share the \"analytics_events\" change signal.",
+      "paths": [
+        "analytics_schema_test.go",
+        "internal/hosted/analytics/events.go",
+        "internal/hosted/analytics/events_test.go",
+        "migrations/0010_analytics_events.down.sql",
+        "migrations/0010_analytics_events.up.sql"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-7f6f085261995c19",
+      "path": "internal/hosted/analytics/events.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/analytics/events_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-b014c2eeac077c11",
+      "path": "internal/hosted/analytics/events.go",
+      "line": 53,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func (j NightlyRollupJob) Run(ctx context.Context, installationID, repositoryID int64, day time.Time) (int, error) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    },
+    {
+      "id": "inspect-d869623a41e32c61",
+      "path": "migrations/0010_analytics_events.down.sql",
+      "kind": "schema",
+      "observation": "The changed path is migration, schema, or SQL-related: migrations/0010_analytics_events.down.sql.",
+      "question": "What happens to existing data during deploy, rollback, and mixed-version operation?",
+      "related": []
+    },
+    {
+      "id": "inspect-3ffce37c8d935e4e",
+      "path": "migrations/0010_analytics_events.up.sql",
+      "kind": "schema",
+      "observation": "The changed path is migration, schema, or SQL-related: migrations/0010_analytics_events.up.sql.",
+      "question": "What happens to existing data during deploy, rollback, and mixed-version operation?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 5,
+    "filesAnalyzed": 5,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "analytics-daily-rollups",
+      "path": "internal/hosted/analytics/events.go",
+      "lineStart": 55,
+      "lineEnd": 99,
+      "title": "Daily metrics are computed from validated tenant events",
+      "summary": "Daily rollups use UTC calendar days, reject invalid, duplicate, or cross-tenant events, and calculate review, finding, addressed-finding, downvoted-finding, and median-latency metrics. The job replaces the stored day’s metrics, allowing a rerun to refresh that day."
+    },
+    {
+      "id": "analytics-dimension-rollups",
+      "path": "internal/hosted/analytics/events.go",
+      "lineStart": 103,
+      "lineEnd": 148,
+      "title": "Rollups include filter-specific totals",
+      "summary": "The rollup now emits an overall row plus separate team, author, and team-author rows. These rows provide explicit totals for dashboard filters rather than requiring filters to infer their denominators."
+    },
+    {
+      "id": "analytics-events-tenant-uniqueness",
+      "path": "migrations/0010_analytics_events.up.sql",
+      "lineStart": 4,
+      "lineEnd": 24,
+      "title": "Event ingestion has a tenant-scoped deduplication key",
+      "summary": "Events are now scoped to an installation and repository, with a per-installation unique source ID. Replaying the same source event for one installation cannot create a second row."
+    },
+    {
+      "id": "analytics-rls",
+      "path": "migrations/0010_analytics_events.up.sql",
+      "lineStart": 45,
+      "lineEnd": 49,
+      "title": "Analytics rows are isolated by tenant",
+      "summary": "Both analytics tables enforce row-level tenant isolation using the installation ID in the database session, including for table owners."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "1d895a91d97a6dfbb9be64fe128372c7345bb1b3",
+      "revision": "24d4f828f572f19880edadb524b6ea1298ad4f1c",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "1d895a91d97a6dfbb9be64fe128372c7345bb1b3",
+      "revision": "24d4f828f572f19880edadb524b6ea1298ad4f1c",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "24d4f828f572f19880edadb524b6ea1298ad4f1c",
+      "detail": "4 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "24d4f828f572f19880edadb524b6ea1298ad4f1c",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-961df4519b2f2a97",
+      "rule": "schema",
+      "title": "Schema or migration",
+      "reason": "Schema and migration changes can affect stored data and deployment order.",
+      "path": "analytics_schema_test.go",
+      "evidence": "analytics_schema_test.go"
+    },
+    {
+      "id": "attention-7f44d8817c744422",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/analytics/events.go",
+      "line": 53,
+      "evidence": "func (j NightlyRollupJob) Run(ctx context.Context, installationID, repositoryID int64, day time.Time) (int, error) {"
+    },
+    {
+      "id": "attention-59b5de0e1981ac6d",
+      "rule": "schema",
+      "title": "Schema or migration",
+      "reason": "Schema and migration changes can affect stored data and deployment order.",
+      "path": "migrations/0010_analytics_events.down.sql",
+      "evidence": "migrations/0010_analytics_events.down.sql"
+    },
+    {
+      "id": "attention-21e9d55e76fa40e4",
+      "rule": "schema",
+      "title": "Schema or migration",
+      "reason": "Schema and migration changes can affect stored data and deployment order.",
+      "path": "migrations/0010_analytics_events.up.sql",
+      "evidence": "migrations/0010_analytics_events.up.sql"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "24d4f828f572f19880edadb524b6ea1298ad4f1c",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40392698850",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40392698850/job/121818221165",
+        "startedAt": "2026-10-26T20:08:00Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40392698571/job/121817541772",
+        "startedAt": "2026-10-26T20:06:40Z"
+      }
+    ]
+  }
+}
