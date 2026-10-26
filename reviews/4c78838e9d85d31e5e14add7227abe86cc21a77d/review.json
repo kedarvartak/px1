@@ -1,0 +1,1010 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "86133c56b4a5f80b92679ce822f59fe927b32cac",
+  "head": "4c78838e9d85d31e5e14add7227abe86cc21a77d",
+  "generatedAt": "2026-10-26T11:01:13.979202693Z",
+  "files": [
+    {
+      "path": "ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/ROADMAP.md b/ROADMAP.md\nindex 0f93ac0..748e45e 100644\n--- a/ROADMAP.md\n+++ b/ROADMAP.md\n@@ -123,17 +123,31 @@ backend-foundation tasks are:\n    thread-scoped memory with `@px1 remember \u003ctext\u003e`.\n 49. [x] **Make review memory controllable.** Add `@px1 forget`, and expose every\n    repository memory with its evidence so reviewers can inspect and delete it.\n-50. [ ] **Publish a confidence rubric.** Score reviews from zero to five using\n+50. [x] **Publish a confidence rubric.** Score reviews from zero to five using\n    deterministic, visible inputs rather than an opaque model judgement.\n-51. [ ] **Generate bounded diagrams.** Convert qualifying graph slices to safe\n+51. [x] **Generate bounded diagrams.** Convert qualifying graph slices to safe\n    Mermaid diagrams and omit output when validation fails.\n-52. [ ] **Summarize blast radius.** List unchanged callers and tests connected to\n+52. [x] **Summarize blast radius.** List unchanged callers and tests connected to\n    changed symbols without implying that they are broken.\n-53. [ ] **Explain why each comment exists.** Show context chunks, graph paths,\n+53. [x] **Explain why each comment exists.** Show context chunks, graph paths,\n    memories, and verifier disposition behind each AI finding.\n-54. [ ] **Resolve cascading configuration.** Inherit directory `.px1` settings,\n+54. [x] **Resolve cascading configuration.** Inherit directory `.px1` settings,\n    apply strict gating safely, and add `validate-config`.\n \n+55. [x] **Reference reviewer-owned files.** Parse bounded `.px1/files.json`\n+   declarations and attach matching repository-local context without allowing\n+   path escapes or unbounded report inputs.\n+56. [ ] **Authorize cross-repository context.** Resolve `context.repos` only when\n+   the same GitHub App installation can read every referenced repository.\n+57. [ ] **Expand the v2 evaluation gate.** Require 100 seeded bugs, including at\n+   least 40 auditable cross-file cases.\n+58. [ ] **Measure weekly review outcomes.** Track comments per PR, addressed and\n+   downvote rates, and suppression counts per repository and UTC week.\n+59. [ ] **Create the dashboard foundation.** Define a typed route manifest and\n+   shared design tokens for the Next.js dashboard without coupling the Action.\n+60. [ ] **Secure dashboard sessions.** Define provider-neutral OAuth sessions,\n+   constant-time CSRF validation, and authorized organization switching.\n+\n The v1 review pipeline, indexing, report hosting, evaluation, and launch gates\n follow these foundations. AI findings must remain auditable: evidence,\n retrieved context, confidence inputs, and verifier disposition are visible.\n",
+      "hunks": [
+        {
+          "id": "diff-6d00b7b6665cb6a0",
+          "header": "@@ -123,17 +123,31 @@ backend-foundation tasks are:",
+          "lines": [
+            {
+              "oldLine": 123,
+              "newLine": 123,
+              "kind": "context",
+              "text": "   thread-scoped memory with `@px1 remember \u003ctext\u003e`."
+            },
+            {
+              "oldLine": 124,
+              "newLine": 124,
+              "kind": "context",
+              "text": "49. [x] **Make review memory controllable.** Add `@px1 forget`, and expose every"
+            },
+            {
+              "oldLine": 125,
+              "newLine": 125,
+              "kind": "context",
+              "text": "   repository memory with its evidence so reviewers can inspect and delete it."
+            },
+            {
+              "oldLine": 126,
+              "kind": "removed",
+              "text": "50. [ ] **Publish a confidence rubric.** Score reviews from zero to five using"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "50. [x] **Publish a confidence rubric.** Score reviews from zero to five using"
+            },
+            {
+              "oldLine": 127,
+              "newLine": 127,
+              "kind": "context",
+              "text": "   deterministic, visible inputs rather than an opaque model judgement."
+            },
+            {
+              "oldLine": 128,
+              "kind": "removed",
+              "text": "51. [ ] **Generate bounded diagrams.** Convert qualifying graph slices to safe"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "51. [x] **Generate bounded diagrams.** Convert qualifying graph slices to safe"
+            },
+            {
+              "oldLine": 129,
+              "newLine": 129,
+              "kind": "context",
+              "text": "   Mermaid diagrams and omit output when validation fails."
+            },
+            {
+              "oldLine": 130,
+              "kind": "removed",
+              "text": "52. [ ] **Summarize blast radius.** List unchanged callers and tests connected to"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "52. [x] **Summarize blast radius.** List unchanged callers and tests connected to"
+            },
+            {
+              "oldLine": 131,
+              "newLine": 131,
+              "kind": "context",
+              "text": "   changed symbols without implying that they are broken."
+            },
+            {
+              "oldLine": 132,
+              "kind": "removed",
+              "text": "53. [ ] **Explain why each comment exists.** Show context chunks, graph paths,"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "53. [x] **Explain why each comment exists.** Show context chunks, graph paths,"
+            },
+            {
+              "oldLine": 133,
+              "newLine": 133,
+              "kind": "context",
+              "text": "   memories, and verifier disposition behind each AI finding."
+            },
+            {
+              "oldLine": 134,
+              "kind": "removed",
+              "text": "54. [ ] **Resolve cascading configuration.** Inherit directory `.px1` settings,"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "54. [x] **Resolve cascading configuration.** Inherit directory `.px1` settings,"
+            },
+            {
+              "oldLine": 135,
+              "newLine": 135,
+              "kind": "context",
+              "text": "   apply strict gating safely, and add `validate-config`."
+            },
+            {
+              "oldLine": 136,
+              "newLine": 136,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "55. [x] **Reference reviewer-owned files.** Parse bounded `.px1/files.json`"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "   declarations and attach matching repository-local context without allowing"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "   path escapes or unbounded report inputs."
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "56. [ ] **Authorize cross-repository context.** Resolve `context.repos` only when"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "   the same GitHub App installation can read every referenced repository."
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "57. [ ] **Expand the v2 evaluation gate.** Require 100 seeded bugs, including at"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "   least 40 auditable cross-file cases."
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "58. [ ] **Measure weekly review outcomes.** Track comments per PR, addressed and"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "   downvote rates, and suppression counts per repository and UTC week."
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "59. [ ] **Create the dashboard foundation.** Define a typed route manifest and"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "   shared design tokens for the Next.js dashboard without coupling the Action."
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "60. [ ] **Secure dashboard sessions.** Define provider-neutral OAuth sessions,"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "   constant-time CSRF validation, and authorized organization switching."
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 137,
+              "newLine": 151,
+              "kind": "context",
+              "text": "The v1 review pipeline, indexing, report hosting, evaluation, and launch gates"
+            },
+            {
+              "oldLine": 138,
+              "newLine": 152,
+              "kind": "context",
+              "text": "follow these foundations. AI findings must remain auditable: evidence,"
+            },
+            {
+              "oldLine": 139,
+              "newLine": 153,
+              "kind": "context",
+              "text": "retrieved context, confidence inputs, and verifier disposition are visible."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/review/reference_files.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/review/reference_files.go b/internal/hosted/review/reference_files.go\nnew file mode 100644\nindex 0000000..6037987\n--- /dev/null\n+++ b/internal/hosted/review/reference_files.go\n@@ -0,0 +1,97 @@\n+package review\n+\n+import (\n+\t\"bytes\"\n+\t\"encoding/json\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"io\"\n+\t\"path\"\n+\t\"strings\"\n+)\n+\n+const maxReferenceFileBytes = 64 \u003c\u003c 10\n+\n+// ReferenceFiles is the bounded .px1/files.json contract. References add\n+// reviewer context; they never authorize reading outside the checked-out repo.\n+type ReferenceFiles struct {\n+\tVersion int             `json:\"version\"`\n+\tFiles   []ReferenceFile `json:\"files\"`\n+}\n+\n+type ReferenceFile struct {\n+\tPath        string   `json:\"path\"`\n+\tFor         []string `json:\"for\"`\n+\tDescription string   `json:\"description,omitempty\"`\n+}\n+\n+func DecodeReferenceFiles(data []byte) (ReferenceFiles, error) {\n+\tif len(data) \u003e maxReferenceFileBytes {\n+\t\treturn ReferenceFiles{}, errors.New(\"files.json exceeds 64 KiB\")\n+\t}\n+\tdecoder := json.NewDecoder(bytes.NewReader(data))\n+\tdecoder.DisallowUnknownFields()\n+\tvar config ReferenceFiles\n+\tif err := decoder.Decode(\u0026config); err != nil {\n+\t\treturn ReferenceFiles{}, fmt.Errorf(\"decode files.json: %w\", err)\n+\t}\n+\tvar extra any\n+\tif err := decoder.Decode(\u0026extra); err != io.EOF {\n+\t\treturn ReferenceFiles{}, errors.New(\"files.json contains trailing data\")\n+\t}\n+\tif config.Version != 1 || len(config.Files) \u003e 100 {\n+\t\treturn ReferenceFiles{}, errors.New(\"files.json requires version 1 and at most 100 files\")\n+\t}\n+\tseen := map[string]bool{}\n+\tfor i, file := range config.Files {\n+\t\tif !safeRepoPath(file.Path) || seen[file.Path] || len(file.For) == 0 || len(file.For) \u003e 20 || len(file.Description) \u003e 500 {\n+\t\t\treturn ReferenceFiles{}, fmt.Errorf(\"files.json entry %d is invalid\", i)\n+\t\t}\n+\t\tseen[file.Path] = true\n+\t\tfor _, pattern := range file.For {\n+\t\t\tif !safePattern(pattern) {\n+\t\t\t\treturn ReferenceFiles{}, fmt.Errorf(\"files.json entry %d has invalid scope\", i)\n+\t\t\t}\n+\t\t}\n+\t}\n+\treturn config, nil\n+}\n+\n+func (c ReferenceFiles) ForPath(changedPath string) []ReferenceFile {\n+\tif !safeRepoPath(changedPath) {\n+\t\treturn nil\n+\t}\n+\tvar result []ReferenceFile\n+\tfor _, file := range c.Files {\n+\t\tif !safeRepoPath(file.Path) {\n+\t\t\tcontinue\n+\t\t}\n+\t\tfor _, pattern := range file.For {\n+\t\t\tif globMatch(pattern, changedPath) {\n+\t\t\t\tresult = append(result, file)\n+\t\t\t\tbreak\n+\t\t\t}\n+\t\t}\n+\t}\n+\treturn result\n+}\n+\n+func safeRepoPath(value string) bool {\n+\treturn value != \"\" \u0026\u0026 value == path.Clean(value) \u0026\u0026 value != \".\" \u0026\u0026 !strings.HasPrefix(value, \"/\") \u0026\u0026 value != \"..\" \u0026\u0026 !strings.HasPrefix(value, \"../\")\n+}\n+\n+func safePattern(value string) bool {\n+\tif value == \"\" || strings.HasPrefix(value, \"/\") || strings.Contains(value, \"..\") || strings.ContainsAny(value, \"\\\\\\x00\") {\n+\t\treturn false\n+\t}\n+\t_, err := path.Match(strings.ReplaceAll(value, \"**\", \"*\"), \"probe\")\n+\treturn err == nil\n+}\n+\n+func globMatch(pattern, value string) bool {\n+\tif strings.HasSuffix(pattern, \"/**\") {\n+\t\treturn strings.HasPrefix(value, strings.TrimSuffix(pattern, \"**\"))\n+\t}\n+\tmatched, _ := path.Match(pattern, value)\n+\treturn matched\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-7275d19071ec260a",
+          "header": "@@ -0,0 +1,97 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package review"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"bytes\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"io\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"path\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "const maxReferenceFileBytes = 64 \u003c\u003c 10"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "// ReferenceFiles is the bounded .px1/files.json contract. References add"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "// reviewer context; they never authorize reading outside the checked-out repo."
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "type ReferenceFiles struct {"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tVersion int             `json:\"version\"`"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tFiles   []ReferenceFile `json:\"files\"`"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "type ReferenceFile struct {"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tPath        string   `json:\"path\"`"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tFor         []string `json:\"for\"`"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tDescription string   `json:\"description,omitempty\"`"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "func DecodeReferenceFiles(data []byte) (ReferenceFiles, error) {"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tif len(data) \u003e maxReferenceFileBytes {"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t\treturn ReferenceFiles{}, errors.New(\"files.json exceeds 64 KiB\")"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tdecoder := json.NewDecoder(bytes.NewReader(data))"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tdecoder.DisallowUnknownFields()"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tvar config ReferenceFiles"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tif err := decoder.Decode(\u0026config); err != nil {"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t\treturn ReferenceFiles{}, fmt.Errorf(\"decode files.json: %w\", err)"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tvar extra any"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tif err := decoder.Decode(\u0026extra); err != io.EOF {"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t\treturn ReferenceFiles{}, errors.New(\"files.json contains trailing data\")"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tif config.Version != 1 || len(config.Files) \u003e 100 {"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t\treturn ReferenceFiles{}, errors.New(\"files.json requires version 1 and at most 100 files\")"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\tseen := map[string]bool{}"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\tfor i, file := range config.Files {"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\tif !safeRepoPath(file.Path) || seen[file.Path] || len(file.For) == 0 || len(file.For) \u003e 20 || len(file.Description) \u003e 500 {"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\t\treturn ReferenceFiles{}, fmt.Errorf(\"files.json entry %d is invalid\", i)"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t\tseen[file.Path] = true"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t\tfor _, pattern := range file.For {"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\t\tif !safePattern(pattern) {"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t\t\t\treturn ReferenceFiles{}, fmt.Errorf(\"files.json entry %d has invalid scope\", i)"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\treturn config, nil"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "func (c ReferenceFiles) ForPath(changedPath string) []ReferenceFile {"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\tif !safeRepoPath(changedPath) {"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t\treturn nil"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\tvar result []ReferenceFile"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\tfor _, file := range c.Files {"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\tif !safeRepoPath(file.Path) {"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\tfor _, pattern := range file.For {"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\t\tif globMatch(pattern, changedPath) {"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\t\t\tresult = append(result, file)"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t\t\t\tbreak"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\treturn result"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "func safeRepoPath(value string) bool {"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\treturn value != \"\" \u0026\u0026 value == path.Clean(value) \u0026\u0026 value != \".\" \u0026\u0026 !strings.HasPrefix(value, \"/\") \u0026\u0026 value != \"..\" \u0026\u0026 !strings.HasPrefix(value, \"../\")"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "func safePattern(value string) bool {"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\tif value == \"\" || strings.HasPrefix(value, \"/\") || strings.Contains(value, \"..\") || strings.ContainsAny(value, \"\\\\\\x00\") {"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\t\treturn false"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\t_, err := path.Match(strings.ReplaceAll(value, \"**\", \"*\"), \"probe\")"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\treturn err == nil"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "func globMatch(pattern, value string) bool {"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\tif strings.HasSuffix(pattern, \"/**\") {"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\t\treturn strings.HasPrefix(value, strings.TrimSuffix(pattern, \"**\"))"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\tmatched, _ := path.Match(pattern, value)"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\treturn matched"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/review/reference_files_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/review/reference_files_test.go b/internal/hosted/review/reference_files_test.go\nnew file mode 100644\nindex 0000000..6c77379\n--- /dev/null\n+++ b/internal/hosted/review/reference_files_test.go\n@@ -0,0 +1,29 @@\n+package review\n+\n+import \"testing\"\n+\n+func TestReferenceFilesSelectsBoundedRepositoryContext(t *testing.T) {\n+\tconfig, err := DecodeReferenceFiles([]byte(`{\"version\":1,\"files\":[{\"path\":\"docs/api.md\",\"for\":[\"internal/api/**\"],\"description\":\"API contract\"},{\"path\":\"go.mod\",\"for\":[\"*.go\"]}]}`))\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tgot := config.ForPath(\"internal/api/handler.go\")\n+\tif len(got) != 1 || got[0].Path != \"docs/api.md\" {\n+\t\tt.Fatalf(\"references = %#v\", got)\n+\t}\n+\tif got := config.ForPath(\"../secret\"); got != nil {\n+\t\tt.Fatalf(\"unsafe path returned references: %#v\", got)\n+\t}\n+}\n+\n+func TestReferenceFilesRejectsEscapesAndUnknownFields(t *testing.T) {\n+\tfor _, input := range []string{\n+\t\t`{\"version\":1,\"files\":[{\"path\":\"../secret\",\"for\":[\"src/**\"]}]}`,\n+\t\t`{\"version\":1,\"files\":[{\"path\":\"README.md\",\"for\":[\"../**\"]}]}`,\n+\t\t`{\"version\":1,\"files\":[],\"extra\":true}`,\n+\t} {\n+\t\tif _, err := DecodeReferenceFiles([]byte(input)); err == nil {\n+\t\t\tt.Fatalf(\"accepted %s\", input)\n+\t\t}\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-6d84aa04e1f4ae19",
+          "header": "@@ -0,0 +1,29 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package review"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import \"testing\""
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "func TestReferenceFilesSelectsBoundedRepositoryContext(t *testing.T) {"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\tconfig, err := DecodeReferenceFiles([]byte(`{\"version\":1,\"files\":[{\"path\":\"docs/api.md\",\"for\":[\"internal/api/**\"],\"description\":\"API contract\"},{\"path\":\"go.mod\",\"for\":[\"*.go\"]}]}`))"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\tgot := config.ForPath(\"internal/api/handler.go\")"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\tif len(got) != 1 || got[0].Path != \"docs/api.md\" {"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"references = %#v\", got)"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tif got := config.ForPath(\"../secret\"); got != nil {"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"unsafe path returned references: %#v\", got)"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "func TestReferenceFilesRejectsEscapesAndUnknownFields(t *testing.T) {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tfor _, input := range []string{"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t\t`{\"version\":1,\"files\":[{\"path\":\"../secret\",\"for\":[\"src/**\"]}]}`,"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\t\t`{\"version\":1,\"files\":[{\"path\":\"README.md\",\"for\":[\"../**\"]}]}`,"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t\t`{\"version\":1,\"files\":[],\"extra\":true}`,"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t} {"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t\tif _, err := DecodeReferenceFiles([]byte(input)); err == nil {"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"accepted %s\", input)"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-6fd1a361987e656a",
+      "title": "Files changes",
+      "summary": "3 related files share the \"files\" change signal.",
+      "paths": [
+        "ROADMAP.md",
+        "internal/hosted/review/reference_files.go",
+        "internal/hosted/review/reference_files_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-a9e88c836b91a7b5",
+      "path": "internal/hosted/review/reference_files.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/review/reference_files_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-471ba0868b5f5436",
+      "path": "internal/hosted/review/reference_files.go",
+      "line": 28,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func DecodeReferenceFiles(data []byte) (ReferenceFiles, error) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 3,
+    "filesAnalyzed": 3,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "reference-files-validation",
+      "path": "internal/hosted/review/reference_files.go",
+      "lineStart": 28,
+      "lineEnd": 53,
+      "title": "Validate and bound reference declarations",
+      "summary": "Reviewer context declarations are accepted only as bounded version-1 JSON: oversized files, unknown fields, trailing data, excessive entries, and invalid or unsafe declarations are rejected."
+    },
+    {
+      "id": "reference-files-matching",
+      "path": "internal/hosted/review/reference_files.go",
+      "lineStart": 56,
+      "lineEnd": 95,
+      "title": "Match context files to changed paths",
+      "summary": "A changed repository path can select declared context files through their `for` patterns. Unsafe changed paths return no matches, and only repository-local reference paths are considered."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "86133c56b4a5f80b92679ce822f59fe927b32cac",
+      "revision": "4c78838e9d85d31e5e14add7227abe86cc21a77d",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "86133c56b4a5f80b92679ce822f59fe927b32cac",
+      "revision": "4c78838e9d85d31e5e14add7227abe86cc21a77d",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "4c78838e9d85d31e5e14add7227abe86cc21a77d",
+      "detail": "2 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "4c78838e9d85d31e5e14add7227abe86cc21a77d",
+      "detail": "1 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-98105d9ee8f9f7ba",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/review/reference_files.go",
+      "line": 28,
+      "evidence": "func DecodeReferenceFiles(data []byte) (ReferenceFiles, error) {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "4c78838e9d85d31e5e14add7227abe86cc21a77d",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40311691288",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40311691288/job/121534189594",
+        "startedAt": "2026-10-26T10:59:52Z"
+      }
+    ]
+  }
+}
