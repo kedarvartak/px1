@@ -1,0 +1,1474 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "4b3427b07dfc5a9c2bf69b19eaed2a89bd45bdad",
+  "head": "676a5d41fe75cb6676d4296b50d50f26163061e9",
+  "generatedAt": "2026-10-26T10:39:18.681724155Z",
+  "files": [
+    {
+      "path": "ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/ROADMAP.md b/ROADMAP.md\nindex 9dd8149..0f93ac0 100644\n--- a/ROADMAP.md\n+++ b/ROADMAP.md\n@@ -111,16 +111,28 @@ backend-foundation tasks are:\n    minutes for fourteen days and store idempotent feedback events.\n 43. [x] **Classify reviewer replies.** Use a bounded low-cost model to label\n    replies as agree, disagree, context, or question and answer questions in-thread.\n-44. [ ] **Detect addressed findings.** Compare the reviewed range from the review\n+44. [x] **Detect addressed findings.** Compare the reviewed range from the review\n    SHA through the merge SHA and record whether the author changed it.\n-45. [ ] **Create scoped review memory.** Store evidence-backed memories and\n+45. [x] **Create scoped review memory.** Store evidence-backed memories and\n    retrieve at most twenty by tenant, repository, path, language, and similarity.\n-46. [ ] **Suppress repeated noise.** Suppress eligible categories after repeated\n+46. [x] **Suppress repeated noise.** Suppress eligible categories after repeated\n    ignores or downvotes while never auto-suppressing P0, security, or logic issues.\n-47. [ ] **Propose learned rules weekly.** Cluster recurring human comments and\n+47. [x] **Propose learned rules weekly.** Cluster recurring human comments and\n    open a reviewable `.px1/rules.md` proposal with evidence links.\n-48. [ ] **Add explicit remember commands.** Let authorized reviewers write a\n+48. [x] **Add explicit remember commands.** Let authorized reviewers write a\n    thread-scoped memory with `@px1 remember \u003ctext\u003e`.\n+49. [x] **Make review memory controllable.** Add `@px1 forget`, and expose every\n+   repository memory with its evidence so reviewers can inspect and delete it.\n+50. [ ] **Publish a confidence rubric.** Score reviews from zero to five using\n+   deterministic, visible inputs rather than an opaque model judgement.\n+51. [ ] **Generate bounded diagrams.** Convert qualifying graph slices to safe\n+   Mermaid diagrams and omit output when validation fails.\n+52. [ ] **Summarize blast radius.** List unchanged callers and tests connected to\n+   changed symbols without implying that they are broken.\n+53. [ ] **Explain why each comment exists.** Show context chunks, graph paths,\n+   memories, and verifier disposition behind each AI finding.\n+54. [ ] **Resolve cascading configuration.** Inherit directory `.px1` settings,\n+   apply strict gating safely, and add `validate-config`.\n \n The v1 review pipeline, indexing, report hosting, evaluation, and launch gates\n follow these foundations. AI findings must remain auditable: evidence,\n",
+      "hunks": [
+        {
+          "id": "diff-9a4262f66ce4b880",
+          "header": "@@ -111,16 +111,28 @@ backend-foundation tasks are:",
+          "lines": [
+            {
+              "oldLine": 111,
+              "newLine": 111,
+              "kind": "context",
+              "text": "   minutes for fourteen days and store idempotent feedback events."
+            },
+            {
+              "oldLine": 112,
+              "newLine": 112,
+              "kind": "context",
+              "text": "43. [x] **Classify reviewer replies.** Use a bounded low-cost model to label"
+            },
+            {
+              "oldLine": 113,
+              "newLine": 113,
+              "kind": "context",
+              "text": "   replies as agree, disagree, context, or question and answer questions in-thread."
+            },
+            {
+              "oldLine": 114,
+              "kind": "removed",
+              "text": "44. [ ] **Detect addressed findings.** Compare the reviewed range from the review"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "44. [x] **Detect addressed findings.** Compare the reviewed range from the review"
+            },
+            {
+              "oldLine": 115,
+              "newLine": 115,
+              "kind": "context",
+              "text": "   SHA through the merge SHA and record whether the author changed it."
+            },
+            {
+              "oldLine": 116,
+              "kind": "removed",
+              "text": "45. [ ] **Create scoped review memory.** Store evidence-backed memories and"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "45. [x] **Create scoped review memory.** Store evidence-backed memories and"
+            },
+            {
+              "oldLine": 117,
+              "newLine": 117,
+              "kind": "context",
+              "text": "   retrieve at most twenty by tenant, repository, path, language, and similarity."
+            },
+            {
+              "oldLine": 118,
+              "kind": "removed",
+              "text": "46. [ ] **Suppress repeated noise.** Suppress eligible categories after repeated"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "46. [x] **Suppress repeated noise.** Suppress eligible categories after repeated"
+            },
+            {
+              "oldLine": 119,
+              "newLine": 119,
+              "kind": "context",
+              "text": "   ignores or downvotes while never auto-suppressing P0, security, or logic issues."
+            },
+            {
+              "oldLine": 120,
+              "kind": "removed",
+              "text": "47. [ ] **Propose learned rules weekly.** Cluster recurring human comments and"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "47. [x] **Propose learned rules weekly.** Cluster recurring human comments and"
+            },
+            {
+              "oldLine": 121,
+              "newLine": 121,
+              "kind": "context",
+              "text": "   open a reviewable `.px1/rules.md` proposal with evidence links."
+            },
+            {
+              "oldLine": 122,
+              "kind": "removed",
+              "text": "48. [ ] **Add explicit remember commands.** Let authorized reviewers write a"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "48. [x] **Add explicit remember commands.** Let authorized reviewers write a"
+            },
+            {
+              "oldLine": 123,
+              "newLine": 123,
+              "kind": "context",
+              "text": "   thread-scoped memory with `@px1 remember \u003ctext\u003e`."
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "49. [x] **Make review memory controllable.** Add `@px1 forget`, and expose every"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "   repository memory with its evidence so reviewers can inspect and delete it."
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "50. [ ] **Publish a confidence rubric.** Score reviews from zero to five using"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "   deterministic, visible inputs rather than an opaque model judgement."
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "51. [ ] **Generate bounded diagrams.** Convert qualifying graph slices to safe"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "   Mermaid diagrams and omit output when validation fails."
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "52. [ ] **Summarize blast radius.** List unchanged callers and tests connected to"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "   changed symbols without implying that they are broken."
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "53. [ ] **Explain why each comment exists.** Show context chunks, graph paths,"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "   memories, and verifier disposition behind each AI finding."
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "54. [ ] **Resolve cascading configuration.** Inherit directory `.px1` settings,"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "   apply strict gating safely, and add `validate-config`."
+            },
+            {
+              "oldLine": 124,
+              "newLine": 136,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 125,
+              "newLine": 137,
+              "kind": "context",
+              "text": "The v1 review pipeline, indexing, report hosting, evaluation, and launch gates"
+            },
+            {
+              "oldLine": 126,
+              "newLine": 138,
+              "kind": "context",
+              "text": "follow these foundations. AI findings must remain auditable: evidence,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/githubapp/commands.go",
+      "status": "M",
+      "diff": "diff --git a/internal/hosted/githubapp/commands.go b/internal/hosted/githubapp/commands.go\nindex b05011a..83d577f 100644\n--- a/internal/hosted/githubapp/commands.go\n+++ b/internal/hosted/githubapp/commands.go\n@@ -13,9 +13,10 @@ import (\n )\n \n type Command struct {\n-\tName string\n-\tPath string\n-\tText string\n+\tName     string\n+\tPath     string\n+\tText     string\n+\tMemoryID string\n }\n \n // ParseCommand accepts one explicit command on the first non-empty line.\n@@ -51,11 +52,34 @@ func ParseCommand(body string) (Command, bool) {\n \t\t\treturn Command{}, false\n \t\t}\n \t\treturn Command{Name: \"remember\", Text: text}, true\n+\tcase \"forget\":\n+\t\tif len(fields) != 3 || !validMemoryID(fields[2]) {\n+\t\t\treturn Command{}, false\n+\t\t}\n+\t\treturn Command{Name: \"forget\", MemoryID: strings.ToLower(fields[2])}, true\n \tdefault:\n \t\treturn Command{}, false\n \t}\n }\n \n+func validMemoryID(value string) bool {\n+\tif len(value) != 36 {\n+\t\treturn false\n+\t}\n+\tfor i, r := range value {\n+\t\tif i == 8 || i == 13 || i == 18 || i == 23 {\n+\t\t\tif r != '-' {\n+\t\t\t\treturn false\n+\t\t\t}\n+\t\t\tcontinue\n+\t\t}\n+\t\tif !((r \u003e= '0' \u0026\u0026 r \u003c= '9') || (r \u003e= 'a' \u0026\u0026 r \u003c= 'f') || (r \u003e= 'A' \u0026\u0026 r \u003c= 'F')) {\n+\t\t\treturn false\n+\t\t}\n+\t}\n+\treturn true\n+}\n+\n type CommandAuthorizer struct {\n \tClient  APIClient\n \tBaseURL string\n",
+      "hunks": [
+        {
+          "id": "diff-f4efba574e98d945",
+          "header": "@@ -13,9 +13,10 @@ import (",
+          "lines": [
+            {
+              "oldLine": 13,
+              "newLine": 13,
+              "kind": "context",
+              "text": ")"
+            },
+            {
+              "oldLine": 14,
+              "newLine": 14,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 15,
+              "newLine": 15,
+              "kind": "context",
+              "text": "type Command struct {"
+            },
+            {
+              "oldLine": 16,
+              "kind": "removed",
+              "text": "\tName string"
+            },
+            {
+              "oldLine": 17,
+              "kind": "removed",
+              "text": "\tPath string"
+            },
+            {
+              "oldLine": 18,
+              "kind": "removed",
+              "text": "\tText string"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tName     string"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tPath     string"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tText     string"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tMemoryID string"
+            },
+            {
+              "oldLine": 19,
+              "newLine": 20,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 20,
+              "newLine": 21,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 21,
+              "newLine": 22,
+              "kind": "context",
+              "text": "// ParseCommand accepts one explicit command on the first non-empty line."
+            }
+          ]
+        },
+        {
+          "id": "diff-918d61aa154d4568",
+          "header": "@@ -51,11 +52,34 @@ func ParseCommand(body string) (Command, bool) {",
+          "lines": [
+            {
+              "oldLine": 51,
+              "newLine": 52,
+              "kind": "context",
+              "text": "\t\t\treturn Command{}, false"
+            },
+            {
+              "oldLine": 52,
+              "newLine": 53,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 53,
+              "newLine": 54,
+              "kind": "context",
+              "text": "\t\treturn Command{Name: \"remember\", Text: text}, true"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\tcase \"forget\":"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t\tif len(fields) != 3 || !validMemoryID(fields[2]) {"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\t\treturn Command{}, false"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t\treturn Command{Name: \"forget\", MemoryID: strings.ToLower(fields[2])}, true"
+            },
+            {
+              "oldLine": 54,
+              "newLine": 60,
+              "kind": "context",
+              "text": "\tdefault:"
+            },
+            {
+              "oldLine": 55,
+              "newLine": 61,
+              "kind": "context",
+              "text": "\t\treturn Command{}, false"
+            },
+            {
+              "oldLine": 56,
+              "newLine": 62,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 57,
+              "newLine": 63,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 58,
+              "newLine": 64,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "func validMemoryID(value string) bool {"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\tif len(value) != 36 {"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\treturn false"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\tfor i, r := range value {"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\tif i == 8 || i == 13 || i == 18 || i == 23 {"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\t\tif r != '-' {"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t\t\t\treturn false"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t\tif !((r \u003e= '0' \u0026\u0026 r \u003c= '9') || (r \u003e= 'a' \u0026\u0026 r \u003c= 'f') || (r \u003e= 'A' \u0026\u0026 r \u003c= 'F')) {"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t\t\treturn false"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\treturn true"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 59,
+              "newLine": 83,
+              "kind": "context",
+              "text": "type CommandAuthorizer struct {"
+            },
+            {
+              "oldLine": 60,
+              "newLine": 84,
+              "kind": "context",
+              "text": "\tClient  APIClient"
+            },
+            {
+              "oldLine": 61,
+              "newLine": 85,
+              "kind": "context",
+              "text": "\tBaseURL string"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/githubapp/commands_test.go",
+      "status": "M",
+      "diff": "diff --git a/internal/hosted/githubapp/commands_test.go b/internal/hosted/githubapp/commands_test.go\nindex 52e8efc..7ceb8ec 100644\n--- a/internal/hosted/githubapp/commands_test.go\n+++ b/internal/hosted/githubapp/commands_test.go\n@@ -21,8 +21,9 @@ func (f *commandAPIFake) Do(_ context.Context, _ int64, _ *http.Request) (*http.\n func TestParseCommand(t *testing.T) {\n \tfor input, want := range map[string]Command{\n \t\t\"@px1 review\": {Name: \"review\"}, \"hello\\n@px1 why\": {},\n-\t\t\"\\n @PX1 explain internal/api.go\\nmore\":    {Name: \"explain\", Path: \"internal/api.go\"},\n-\t\t\"@px1 remember Prefer wrapped errors here\": {Name: \"remember\", Text: \"Prefer wrapped errors here\"},\n+\t\t\"\\n @PX1 explain internal/api.go\\nmore\":            {Name: \"explain\", Path: \"internal/api.go\"},\n+\t\t\"@px1 remember Prefer wrapped errors here\":         {Name: \"remember\", Text: \"Prefer wrapped errors here\"},\n+\t\t\"@px1 forget 550e8400-e29b-41d4-a716-446655440000\": {Name: \"forget\", MemoryID: \"550e8400-e29b-41d4-a716-446655440000\"},\n \t} {\n \t\tgot, ok := ParseCommand(input)\n \t\tif want.Name == \"\" {\n@@ -36,6 +37,9 @@ func TestParseCommand(t *testing.T) {\n \tif _, ok := ParseCommand(\"@px1 explain ../secret\"); ok {\n \t\tt.Fatal(\"accepted escaping path\")\n \t}\n+\tif _, ok := ParseCommand(\"@px1 forget not-a-memory\"); ok {\n+\t\tt.Fatal(\"accepted invalid memory id\")\n+\t}\n }\n \n func TestCommandAuthorizerRequiresWriteAccess(t *testing.T) {\n",
+      "hunks": [
+        {
+          "id": "diff-727c714a8145aeae",
+          "header": "@@ -21,8 +21,9 @@ func (f *commandAPIFake) Do(_ context.Context, _ int64, _ *http.Request) (*http.",
+          "lines": [
+            {
+              "oldLine": 21,
+              "newLine": 21,
+              "kind": "context",
+              "text": "func TestParseCommand(t *testing.T) {"
+            },
+            {
+              "oldLine": 22,
+              "newLine": 22,
+              "kind": "context",
+              "text": "\tfor input, want := range map[string]Command{"
+            },
+            {
+              "oldLine": 23,
+              "newLine": 23,
+              "kind": "context",
+              "text": "\t\t\"@px1 review\": {Name: \"review\"}, \"hello\\n@px1 why\": {},"
+            },
+            {
+              "oldLine": 24,
+              "kind": "removed",
+              "text": "\t\t\"\\n @PX1 explain internal/api.go\\nmore\":    {Name: \"explain\", Path: \"internal/api.go\"},"
+            },
+            {
+              "oldLine": 25,
+              "kind": "removed",
+              "text": "\t\t\"@px1 remember Prefer wrapped errors here\": {Name: \"remember\", Text: \"Prefer wrapped errors here\"},"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\t\"\\n @PX1 explain internal/api.go\\nmore\":            {Name: \"explain\", Path: \"internal/api.go\"},"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t\t\"@px1 remember Prefer wrapped errors here\":         {Name: \"remember\", Text: \"Prefer wrapped errors here\"},"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t\t\"@px1 forget 550e8400-e29b-41d4-a716-446655440000\": {Name: \"forget\", MemoryID: \"550e8400-e29b-41d4-a716-446655440000\"},"
+            },
+            {
+              "oldLine": 26,
+              "newLine": 27,
+              "kind": "context",
+              "text": "\t} {"
+            },
+            {
+              "oldLine": 27,
+              "newLine": 28,
+              "kind": "context",
+              "text": "\t\tgot, ok := ParseCommand(input)"
+            },
+            {
+              "oldLine": 28,
+              "newLine": 29,
+              "kind": "context",
+              "text": "\t\tif want.Name == \"\" {"
+            }
+          ]
+        },
+        {
+          "id": "diff-b0ee9102e565136b",
+          "header": "@@ -36,6 +37,9 @@ func TestParseCommand(t *testing.T) {",
+          "lines": [
+            {
+              "oldLine": 36,
+              "newLine": 37,
+              "kind": "context",
+              "text": "\tif _, ok := ParseCommand(\"@px1 explain ../secret\"); ok {"
+            },
+            {
+              "oldLine": 37,
+              "newLine": 38,
+              "kind": "context",
+              "text": "\t\tt.Fatal(\"accepted escaping path\")"
+            },
+            {
+              "oldLine": 38,
+              "newLine": 39,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tif _, ok := ParseCommand(\"@px1 forget not-a-memory\"); ok {"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"accepted invalid memory id\")"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 39,
+              "newLine": 43,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 40,
+              "newLine": 44,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 41,
+              "newLine": 45,
+              "kind": "context",
+              "text": "func TestCommandAuthorizerRequiresWriteAccess(t *testing.T) {"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/githubapp/forget.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/githubapp/forget.go b/internal/hosted/githubapp/forget.go\nnew file mode 100644\nindex 0000000..b3bbbfa\n--- /dev/null\n+++ b/internal/hosted/githubapp/forget.go\n@@ -0,0 +1,21 @@\n+package githubapp\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+)\n+\n+type ForgetMemoryStore interface {\n+\tDeleteExplicitMemory(context.Context, int64, int64, string, int64) (bool, error)\n+}\n+\n+type ForgetHandler struct{ Store ForgetMemoryStore }\n+\n+// Handle deletes one tenant-scoped memory after CommandAuthorizer has\n+// established that the actor has write access to the repository.\n+func (h ForgetHandler) Handle(ctx context.Context, command Command, installationID, repositoryID, actorID int64) (bool, error) {\n+\tif h.Store == nil || command.Name != \"forget\" || !validMemoryID(command.MemoryID) || installationID \u003c= 0 || repositoryID \u003c= 0 || actorID \u003c= 0 {\n+\t\treturn false, errors.New(\"authorized forget command and tenant-scoped memory are required\")\n+\t}\n+\treturn h.Store.DeleteExplicitMemory(ctx, installationID, repositoryID, command.MemoryID, actorID)\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-fb90bbafc23db977",
+          "header": "@@ -0,0 +1,21 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package githubapp"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "type ForgetMemoryStore interface {"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\tDeleteExplicitMemory(context.Context, int64, int64, string, int64) (bool, error)"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "type ForgetHandler struct{ Store ForgetMemoryStore }"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "// Handle deletes one tenant-scoped memory after CommandAuthorizer has"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "// established that the actor has write access to the repository."
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "func (h ForgetHandler) Handle(ctx context.Context, command Command, installationID, repositoryID, actorID int64) (bool, error) {"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tif h.Store == nil || command.Name != \"forget\" || !validMemoryID(command.MemoryID) || installationID \u003c= 0 || repositoryID \u003c= 0 || actorID \u003c= 0 {"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t\treturn false, errors.New(\"authorized forget command and tenant-scoped memory are required\")"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\treturn h.Store.DeleteExplicitMemory(ctx, installationID, repositoryID, command.MemoryID, actorID)"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/githubapp/forget_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/githubapp/forget_test.go b/internal/hosted/githubapp/forget_test.go\nnew file mode 100644\nindex 0000000..9548bd4\n--- /dev/null\n+++ b/internal/hosted/githubapp/forget_test.go\n@@ -0,0 +1,24 @@\n+package githubapp\n+\n+import (\n+\t\"context\"\n+\t\"testing\"\n+)\n+\n+type forgetStoreFunc func(context.Context, int64, int64, string, int64) (bool, error)\n+\n+func (f forgetStoreFunc) DeleteExplicitMemory(ctx context.Context, installationID, repositoryID int64, memoryID string, actorID int64) (bool, error) {\n+\treturn f(ctx, installationID, repositoryID, memoryID, actorID)\n+}\n+\n+func TestForgetHandlerKeepsTenantAndActorScope(t *testing.T) {\n+\tcalled := false\n+\tstore := forgetStoreFunc(func(_ context.Context, installationID, repositoryID int64, memoryID string, actorID int64) (bool, error) {\n+\t\tcalled = installationID == 1 \u0026\u0026 repositoryID == 2 \u0026\u0026 actorID == 3 \u0026\u0026 memoryID == \"550e8400-e29b-41d4-a716-446655440000\"\n+\t\treturn true, nil\n+\t})\n+\tdeleted, err := (ForgetHandler{Store: store}).Handle(context.Background(), Command{Name: \"forget\", MemoryID: \"550e8400-e29b-41d4-a716-446655440000\"}, 1, 2, 3)\n+\tif err != nil || !deleted || !called {\n+\t\tt.Fatalf(\"forget = %v, %v; called=%v\", deleted, err, called)\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-a30fba05bb318d5a",
+          "header": "@@ -0,0 +1,24 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package githubapp"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "type forgetStoreFunc func(context.Context, int64, int64, string, int64) (bool, error)"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "func (f forgetStoreFunc) DeleteExplicitMemory(ctx context.Context, installationID, repositoryID int64, memoryID string, actorID int64) (bool, error) {"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\treturn f(ctx, installationID, repositoryID, memoryID, actorID)"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "func TestForgetHandlerKeepsTenantAndActorScope(t *testing.T) {"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tcalled := false"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tstore := forgetStoreFunc(func(_ context.Context, installationID, repositoryID int64, memoryID string, actorID int64) (bool, error) {"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t\tcalled = installationID == 1 \u0026\u0026 repositoryID == 2 \u0026\u0026 actorID == 3 \u0026\u0026 memoryID == \"550e8400-e29b-41d4-a716-446655440000\""
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t\treturn true, nil"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t})"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tdeleted, err := (ForgetHandler{Store: store}).Handle(context.Background(), Command{Name: \"forget\", MemoryID: \"550e8400-e29b-41d4-a716-446655440000\"}, 1, 2, 3)"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tif err != nil || !deleted || !called {"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"forget = %v, %v; called=%v\", deleted, err, called)"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/learning/catalog.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/learning/catalog.go b/internal/hosted/learning/catalog.go\nnew file mode 100644\nindex 0000000..a0d880f\n--- /dev/null\n+++ b/internal/hosted/learning/catalog.go\n@@ -0,0 +1,48 @@\n+package learning\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"net/url\"\n+\t\"strings\"\n+)\n+\n+const MemoryPageSize = 100\n+\n+type MemoryCatalogStore interface {\n+\tListMemories(context.Context, int64, int64, string, int) ([]Memory, error)\n+}\n+\n+type MemoryPage struct {\n+\tItems       []Memory\n+\tNextAfterID string\n+}\n+\n+// VisibleMemoryPage returns a bounded page for the report. The cursor allows\n+// every memory to remain reachable without an unbounded report payload.\n+func VisibleMemoryPage(ctx context.Context, store MemoryCatalogStore, installationID, repositoryID int64, afterID string) (MemoryPage, error) {\n+\tif store == nil || installationID \u003c= 0 || repositoryID \u003c= 0 {\n+\t\treturn MemoryPage{}, errors.New(\"memory catalogue requires store and tenant\")\n+\t}\n+\tmemories, err := store.ListMemories(ctx, installationID, repositoryID, afterID, MemoryPageSize+1)\n+\tif err != nil {\n+\t\treturn MemoryPage{}, err\n+\t}\n+\tpage := MemoryPage{Items: memories}\n+\tif len(page.Items) \u003e MemoryPageSize {\n+\t\tpage.Items = page.Items[:MemoryPageSize]\n+\t\tpage.NextAfterID = page.Items[len(page.Items)-1].ID\n+\t}\n+\tfor _, memory := range page.Items {\n+\t\tif memory.ID == \"\" || strings.TrimSpace(memory.Text) == \"\" || len(memory.EvidenceLinks) == 0 {\n+\t\t\treturn MemoryPage{}, errors.New(\"visible memory requires id, text, and evidence\")\n+\t\t}\n+\t\tfor _, raw := range memory.EvidenceLinks {\n+\t\t\tevidence, err := url.Parse(raw)\n+\t\t\tif err != nil || evidence.Scheme != \"https\" || !strings.EqualFold(evidence.Host, \"github.com\") {\n+\t\t\t\treturn MemoryPage{}, errors.New(\"visible memory evidence must be an HTTPS GitHub URL\")\n+\t\t\t}\n+\t\t}\n+\t}\n+\treturn page, nil\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-96c52077f9bdc37a",
+          "header": "@@ -0,0 +1,48 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package learning"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"net/url\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "const MemoryPageSize = 100"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "type MemoryCatalogStore interface {"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\tListMemories(context.Context, int64, int64, string, int) ([]Memory, error)"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "type MemoryPage struct {"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tItems       []Memory"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tNextAfterID string"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "// VisibleMemoryPage returns a bounded page for the report. The cursor allows"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "// every memory to remain reachable without an unbounded report payload."
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "func VisibleMemoryPage(ctx context.Context, store MemoryCatalogStore, installationID, repositoryID int64, afterID string) (MemoryPage, error) {"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tif store == nil || installationID \u003c= 0 || repositoryID \u003c= 0 {"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t\treturn MemoryPage{}, errors.New(\"memory catalogue requires store and tenant\")"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tmemories, err := store.ListMemories(ctx, installationID, repositoryID, afterID, MemoryPageSize+1)"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t\treturn MemoryPage{}, err"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tpage := MemoryPage{Items: memories}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tif len(page.Items) \u003e MemoryPageSize {"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t\tpage.Items = page.Items[:MemoryPageSize]"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t\tpage.NextAfterID = page.Items[len(page.Items)-1].ID"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tfor _, memory := range page.Items {"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t\tif memory.ID == \"\" || strings.TrimSpace(memory.Text) == \"\" || len(memory.EvidenceLinks) == 0 {"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\t\t\treturn MemoryPage{}, errors.New(\"visible memory requires id, text, and evidence\")"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t\tfor _, raw := range memory.EvidenceLinks {"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t\t\tevidence, err := url.Parse(raw)"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t\t\tif err != nil || evidence.Scheme != \"https\" || !strings.EqualFold(evidence.Host, \"github.com\") {"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t\t\t\treturn MemoryPage{}, errors.New(\"visible memory evidence must be an HTTPS GitHub URL\")"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\treturn page, nil"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/learning/catalog_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/learning/catalog_test.go b/internal/hosted/learning/catalog_test.go\nnew file mode 100644\nindex 0000000..c9b3db4\n--- /dev/null\n+++ b/internal/hosted/learning/catalog_test.go\n@@ -0,0 +1,29 @@\n+package learning\n+\n+import (\n+\t\"context\"\n+\t\"testing\"\n+)\n+\n+type catalogStoreFunc func(context.Context, int64, int64, string, int) ([]Memory, error)\n+\n+func (f catalogStoreFunc) ListMemories(ctx context.Context, installationID, repositoryID int64, afterID string, limit int) ([]Memory, error) {\n+\treturn f(ctx, installationID, repositoryID, afterID, limit)\n+}\n+\n+func TestVisibleMemoryPageRequiresEvidenceAndAppliesCursorLimit(t *testing.T) {\n+\tstore := catalogStoreFunc(func(_ context.Context, installationID, repositoryID int64, afterID string, limit int) ([]Memory, error) {\n+\t\tif installationID != 1 || repositoryID != 2 || afterID != \"previous\" || limit != MemoryPageSize+1 {\n+\t\t\tt.Fatal(\"catalogue query lost its bounds\")\n+\t\t}\n+\t\tmemories := make([]Memory, MemoryPageSize+1)\n+\t\tfor i := range memories {\n+\t\t\tmemories[i] = Memory{ID: string(rune('a' + i)), Text: \"Prefer wrapped errors\", EvidenceLinks: []string{\"https://github.com/acme/repo/pull/1#discussion_r1\"}}\n+\t\t}\n+\t\treturn memories, nil\n+\t})\n+\tpage, err := VisibleMemoryPage(context.Background(), store, 1, 2, \"previous\")\n+\tif err != nil || len(page.Items) != MemoryPageSize || page.NextAfterID == \"\" {\n+\t\tt.Fatalf(\"page = %#v, %v\", page, err)\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-3884d83f9b161645",
+          "header": "@@ -0,0 +1,29 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package learning"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "type catalogStoreFunc func(context.Context, int64, int64, string, int) ([]Memory, error)"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "func (f catalogStoreFunc) ListMemories(ctx context.Context, installationID, repositoryID int64, afterID string, limit int) ([]Memory, error) {"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\treturn f(ctx, installationID, repositoryID, afterID, limit)"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "func TestVisibleMemoryPageRequiresEvidenceAndAppliesCursorLimit(t *testing.T) {"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tstore := catalogStoreFunc(func(_ context.Context, installationID, repositoryID int64, afterID string, limit int) ([]Memory, error) {"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t\tif installationID != 1 || repositoryID != 2 || afterID != \"previous\" || limit != MemoryPageSize+1 {"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t\t\tt.Fatal(\"catalogue query lost its bounds\")"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t\tmemories := make([]Memory, MemoryPageSize+1)"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t\tfor i := range memories {"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t\t\tmemories[i] = Memory{ID: string(rune('a' + i)), Text: \"Prefer wrapped errors\", EvidenceLinks: []string{\"https://github.com/acme/repo/pull/1#discussion_r1\"}}"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t\treturn memories, nil"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t})"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tpage, err := VisibleMemoryPage(context.Background(), store, 1, 2, \"previous\")"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tif err != nil || len(page.Items) != MemoryPageSize || page.NextAfterID == \"\" {"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"page = %#v, %v\", page, err)"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-b086b2788984f282",
+      "title": "Forget changes",
+      "summary": "7 related files share the \"forget\" change signal.",
+      "paths": [
+        "ROADMAP.md",
+        "internal/hosted/githubapp/commands.go",
+        "internal/hosted/githubapp/commands_test.go",
+        "internal/hosted/githubapp/forget.go",
+        "internal/hosted/githubapp/forget_test.go",
+        "internal/hosted/learning/catalog.go",
+        "internal/hosted/learning/catalog_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-0d310804c29a9ab6",
+      "path": "internal/hosted/githubapp/commands.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/githubapp/commands_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-3e68f6ad28a418bc",
+      "path": "internal/hosted/githubapp/forget.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/githubapp/forget_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-d199800c21e8cd2e",
+      "path": "internal/hosted/githubapp/forget.go",
+      "line": 16,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func (h ForgetHandler) Handle(ctx context.Context, command Command, installationID, repositoryID, actorID int64) (bool, error) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    },
+    {
+      "id": "inspect-8bec0e816397656b",
+      "path": "internal/hosted/learning/catalog.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/learning/catalog_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-76c4a6ad43fdebd3",
+      "path": "internal/hosted/learning/catalog.go",
+      "line": 23,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func VisibleMemoryPage(ctx context.Context, store MemoryCatalogStore, installationID, repositoryID int64, afterID string) (MemoryPage, error) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 7,
+    "filesAnalyzed": 7,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "forget-command",
+      "path": "internal/hosted/githubapp/commands.go",
+      "lineStart": 55,
+      "lineEnd": 81,
+      "title": "Add a validated forget command",
+      "summary": "The command parser now accepts `@px1 forget \u003cUUID\u003e` only when the ID has a valid UUID format, and normalizes it to lowercase. Invalid IDs are rejected before handling."
+    },
+    {
+      "id": "scoped-memory-deletion",
+      "path": "internal/hosted/githubapp/forget.go",
+      "lineStart": 12,
+      "lineEnd": 20,
+      "title": "Scope memory deletion",
+      "summary": "The forget handler passes the installation, repository, memory ID, and actor to the store, so deletion can be scoped to the repository and the reviewer who issued the command."
+    },
+    {
+      "id": "memory-catalog-pagination",
+      "path": "internal/hosted/learning/catalog.go",
+      "lineStart": 22,
+      "lineEnd": 34,
+      "title": "Bound memory catalogue pages",
+      "summary": "Memory listings are capped at 100 items per page. When more items exist, the returned cursor lets callers fetch the next page without putting the entire catalogue in one response."
+    },
+    {
+      "id": "memory-evidence-validation",
+      "path": "internal/hosted/learning/catalog.go",
+      "lineStart": 35,
+      "lineEnd": 45,
+      "title": "Require evidence for visible memories",
+      "summary": "A memory is omitted from the visible page if it lacks an ID, text, or evidence, or if its evidence is not an HTTPS GitHub URL. This keeps the exposed catalogue tied to inspectable evidence."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "4b3427b07dfc5a9c2bf69b19eaed2a89bd45bdad",
+      "revision": "676a5d41fe75cb6676d4296b50d50f26163061e9",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "4b3427b07dfc5a9c2bf69b19eaed2a89bd45bdad",
+      "revision": "676a5d41fe75cb6676d4296b50d50f26163061e9",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "676a5d41fe75cb6676d4296b50d50f26163061e9",
+      "detail": "4 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "676a5d41fe75cb6676d4296b50d50f26163061e9",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-52aa70e9ec7a380b",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/githubapp/forget.go",
+      "line": 16,
+      "evidence": "func (h ForgetHandler) Handle(ctx context.Context, command Command, installationID, repositoryID, actorID int64) (bool, error) {"
+    },
+    {
+      "id": "attention-6810f1f9fcc6c569",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/learning/catalog.go",
+      "line": 23,
+      "evidence": "func VisibleMemoryPage(ctx context.Context, store MemoryCatalogStore, installationID, repositoryID int64, afterID string) (MemoryPage, error) {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "676a5d41fe75cb6676d4296b50d50f26163061e9",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40308982871",
+    "checks": [
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40308985531/job/121525107135",
+        "startedAt": "2026-10-26T10:38:30Z"
+      },
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40308982871/job/121525100617",
+        "startedAt": "2026-10-26T10:38:31Z"
+      }
+    ]
+  }
+}
