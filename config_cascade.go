@@ -23,6 +23,9 @@ type configInput struct {
 	DisabledRules     []string `json:"disabledRules,omitempty"`
 	MaxInlineComments *int     `json:"maxInlineComments,omitempty"`
 	FailOnP0          *bool    `json:"failOnP0,omitempty"`
+	Context           *struct {
+		Repos []string `json:"repos,omitempty"`
+	} `json:"context,omitempty"`
 }
 
 type resolvedConfig struct {
@@ -32,6 +35,7 @@ type resolvedConfig struct {
 	DisabledRules     []string `json:"disabledRules"`
 	MaxInlineComments int      `json:"maxInlineComments"`
 	FailOnP0          bool     `json:"failOnP0"`
+	ContextRepos      []string `json:"contextRepos,omitempty"`
 }
 
 // resolveCascadingConfig applies root-to-leaf .px1/config.json files. Gating
@@ -46,6 +50,7 @@ func resolveCascadingConfig(target string, files map[string][]byte) (resolvedCon
 	}
 	result := resolvedConfig{Strictness: 2, CommentTypes: []string{"logic", "security", "style", "syntax"}, MaxInlineComments: 15}
 	disabled := map[string]bool{}
+	contextRepos := map[string]bool{}
 	for _, candidate := range configCandidates(clean) {
 		body, ok := files[candidate]
 		if !ok {
@@ -71,11 +76,23 @@ func resolveCascadingConfig(target string, files map[string][]byte) (resolvedCon
 		for _, id := range input.DisabledRules {
 			disabled[id] = true
 		}
+		if input.Context != nil {
+			for _, repository := range input.Context.Repos {
+				contextRepos[strings.ToLower(repository)] = true
+			}
+		}
 	}
 	for id := range disabled {
 		result.DisabledRules = append(result.DisabledRules, id)
 	}
 	sort.Strings(result.DisabledRules)
+	for repository := range contextRepos {
+		result.ContextRepos = append(result.ContextRepos, repository)
+	}
+	if len(result.ContextRepos) > 10 {
+		return resolvedConfig{}, errors.New("resolved context.repos cannot exceed 10 repositories")
+	}
+	sort.Strings(result.ContextRepos)
 	return result, nil
 }
 
@@ -120,7 +137,33 @@ func decodeConfig(body []byte) (configInput, error) {
 		}
 		disabledSeen[id] = true
 	}
+	if input.Context != nil {
+		if len(input.Context.Repos) > 10 {
+			return input, errors.New("context.repos cannot exceed 10 repositories")
+		}
+		seenRepos := map[string]bool{}
+		for _, repository := range input.Context.Repos {
+			parts := strings.Split(repository, "/")
+			key := strings.ToLower(repository)
+			if len(parts) != 2 || !configSlug(parts[0]) || !configSlug(parts[1]) || seenRepos[key] {
+				return input, errors.New("context.repos contains an invalid or duplicate owner/repository")
+			}
+			seenRepos[key] = true
+		}
+	}
 	return input, nil
+}
+
+func configSlug(value string) bool {
+	if value == "" || value == "." || value == ".." {
+		return false
+	}
+	for _, r := range value {
+		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_' || r == '.') {
+			return false
+		}
+	}
+	return true
 }
 
 func configCandidates(target string) []string {
