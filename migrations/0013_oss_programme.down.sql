@@ -1,0 +1,3 @@
+BEGIN;
+DROP TABLE IF EXISTS oss_applications;
+COMMIT;
