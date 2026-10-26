@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://px1.dev/schemas/config.schema.json",
+  "title": "px1 cascading configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version"],
+  "properties": {
+    "version": { "const": 1 },
+    "strictness": { "type": "integer", "minimum": 1, "maximum": 3 },
+    "commentTypes": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "enum": ["logic", "syntax", "style", "security"] }
+    },
+    "disabledRules": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 80 }
+    },
+    "maxInlineComments": { "type": "integer", "minimum": 1, "maximum": 50 },
+    "failOnP0": { "type": "boolean" }
+  }
+}
