@@ -1,0 +1,11 @@
+.chart {
+  padding: 1rem;
+  border: 1px solid var(--px1-line);
+  border-radius: .5rem;
+  background: var(--px1-surface);
+}
+
+.chart svg { width: 100%; height: 12rem; }
+.chart polyline { stroke: var(--px1-brand); stroke-width: 2; }
+.chart table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.chart th, .chart td { padding: .35rem; border-top: 1px solid var(--px1-line); text-align: left; }
