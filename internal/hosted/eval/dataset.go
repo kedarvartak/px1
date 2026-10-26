@@ -25,8 +25,40 @@ type Case struct {
 	HeadSHA        string  `json:"head_sha"`
 	BugFixSHA      string  `json:"bug_fix_sha,omitempty"`
 	MutationID     string  `json:"mutation_id,omitempty"`
+	CrossFile      bool    `json:"cross_file,omitempty"`
 	Labels         []Label `json:"labels"`
 }
+
+// ValidateV2Coverage raises the seeded benchmark floor and requires cross-file
+// cases to carry labels in multiple files so the designation is auditable.
+func (d Dataset) ValidateV2Coverage() error {
+	if err := d.Validate(); err != nil {
+		return err
+	}
+	seeded, crossFile := 0, 0
+	for _, c := range d.Cases {
+		if c.Kind != "seeded" {
+			continue
+		}
+		seeded++
+		if !c.CrossFile {
+			continue
+		}
+		paths := map[string]bool{}
+		for _, label := range c.Labels {
+			paths[label.Path] = true
+		}
+		if len(paths) < 2 {
+			return fmt.Errorf("cross-file case %s requires labels in at least two files", c.ID)
+		}
+		crossFile++
+	}
+	if seeded < 100 || crossFile < 40 {
+		return fmt.Errorf("v2 eval coverage is %d seeded and %d cross-file; require 100 and 40", seeded, crossFile)
+	}
+	return nil
+}
+
 type Label struct {
 	Path      string `json:"path"`
 	BugClass  string `json:"bug_class"`
