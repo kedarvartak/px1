@@ -1,0 +1,1155 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "86133c56b4a5f80b92679ce822f59fe927b32cac",
+  "head": "4f855ea5d8b1ea3893f8c63b9ac68d4c178d25ab",
+  "generatedAt": "2026-10-26T11:03:20.954431307Z",
+  "files": [
+    {
+      "path": "dashboard_session_schema_test.go",
+      "status": "A",
+      "diff": "diff --git a/dashboard_session_schema_test.go b/dashboard_session_schema_test.go\nnew file mode 100644\nindex 0000000..f83e584\n--- /dev/null\n+++ b/dashboard_session_schema_test.go\n@@ -0,0 +1,22 @@\n+package main\n+\n+import (\n+\t\"os\"\n+\t\"strings\"\n+\t\"testing\"\n+)\n+\n+func TestDashboardSessionsStoreOnlyHashedCredentials(t *testing.T) {\n+\tbody, err := os.ReadFile(\"migrations/0009_dashboard_sessions.up.sql\")\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tfor _, want := range []string{\"provider IN ('github', 'gitlab')\", \"token_hash bytea PRIMARY KEY\", \"csrf_hash bytea NOT NULL\", \"REFERENCES dashboard_memberships(user_id, installation_id)\"} {\n+\t\tif !strings.Contains(string(body), want) {\n+\t\t\tt.Fatalf(\"migration missing %q\", want)\n+\t\t}\n+\t}\n+\tif strings.Contains(string(body), \"access_token\") || strings.Contains(string(body), \"refresh_token\") {\n+\t\tt.Fatal(\"migration persists OAuth bearer tokens\")\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-5a4768343c8e0166",
+          "header": "@@ -0,0 +1,22 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package main"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "func TestDashboardSessionsStoreOnlyHashedCredentials(t *testing.T) {"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\tbody, err := os.ReadFile(\"migrations/0009_dashboard_sessions.up.sql\")"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tfor _, want := range []string{\"provider IN ('github', 'gitlab')\", \"token_hash bytea PRIMARY KEY\", \"csrf_hash bytea NOT NULL\", \"REFERENCES dashboard_memberships(user_id, installation_id)\"} {"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\t\tif !strings.Contains(string(body), want) {"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"migration missing %q\", want)"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tif strings.Contains(string(body), \"access_token\") || strings.Contains(string(body), \"refresh_token\") {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"migration persists OAuth bearer tokens\")"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/dashboard/auth.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/dashboard/auth.go b/internal/hosted/dashboard/auth.go\nnew file mode 100644\nindex 0000000..b718f91\n--- /dev/null\n+++ b/internal/hosted/dashboard/auth.go\n@@ -0,0 +1,67 @@\n+// Package dashboard defines provider-neutral contracts for the hosted UI.\n+package dashboard\n+\n+import (\n+\t\"crypto/hmac\"\n+\t\"crypto/rand\"\n+\t\"encoding/base64\"\n+\t\"errors\"\n+\t\"strings\"\n+\t\"time\"\n+)\n+\n+type Provider string\n+\n+const (\n+\tProviderGitHub Provider = \"github\"\n+\tProviderGitLab Provider = \"gitlab\"\n+)\n+\n+type Session struct {\n+\tID             string\n+\tUserID         string\n+\tProvider       Provider\n+\tOrganizationID string\n+\tCSRFToken      string\n+\tExpiresAt      time.Time\n+}\n+\n+type Membership struct {\n+\tOrganizationID string\n+\tActive         bool\n+}\n+\n+func NewSession(id, userID string, provider Provider, organizationID string, expiresAt time.Time) (Session, error) {\n+\tif strings.TrimSpace(id) == \"\" || strings.TrimSpace(userID) == \"\" || !validProvider(provider) || strings.TrimSpace(organizationID) == \"\" || !expiresAt.After(time.Now()) {\n+\t\treturn Session{}, errors.New(\"valid session identity, provider, organization, and expiry are required\")\n+\t}\n+\ttoken := make([]byte, 32)\n+\tif _, err := rand.Read(token); err != nil {\n+\t\treturn Session{}, err\n+\t}\n+\treturn Session{ID: id, UserID: userID, Provider: provider, OrganizationID: organizationID, CSRFToken: base64.RawURLEncoding.EncodeToString(token), ExpiresAt: expiresAt.UTC()}, nil\n+}\n+\n+func (s Session) ValidateCSRF(token string, now time.Time) error {\n+\tif s.ID == \"\" || !now.Before(s.ExpiresAt) || token == \"\" || !hmac.Equal([]byte(s.CSRFToken), []byte(token)) {\n+\t\treturn errors.New(\"invalid or expired session request\")\n+\t}\n+\treturn nil\n+}\n+\n+func (s Session) SwitchOrganization(organizationID string, memberships []Membership, now time.Time) (Session, error) {\n+\tif s.ID == \"\" || !now.Before(s.ExpiresAt) || organizationID == \"\" {\n+\t\treturn Session{}, errors.New(\"active session and organization are required\")\n+\t}\n+\tfor _, membership := range memberships {\n+\t\tif membership.Active \u0026\u0026 hmac.Equal([]byte(membership.OrganizationID), []byte(organizationID)) {\n+\t\t\ts.OrganizationID = organizationID\n+\t\t\treturn s, nil\n+\t\t}\n+\t}\n+\treturn Session{}, errors.New(\"user is not an active organization member\")\n+}\n+\n+func validProvider(provider Provider) bool {\n+\treturn provider == ProviderGitHub || provider == ProviderGitLab\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-5f37bb80ca630cec",
+          "header": "@@ -0,0 +1,67 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "// Package dashboard defines provider-neutral contracts for the hosted UI."
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "package dashboard"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"crypto/hmac\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"crypto/rand\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"encoding/base64\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "type Provider string"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "const ("
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tProviderGitHub Provider = \"github\""
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tProviderGitLab Provider = \"gitlab\""
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "type Session struct {"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tID             string"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tUserID         string"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tProvider       Provider"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tOrganizationID string"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tCSRFToken      string"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tExpiresAt      time.Time"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "type Membership struct {"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tOrganizationID string"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tActive         bool"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "func NewSession(id, userID string, provider Provider, organizationID string, expiresAt time.Time) (Session, error) {"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tif strings.TrimSpace(id) == \"\" || strings.TrimSpace(userID) == \"\" || !validProvider(provider) || strings.TrimSpace(organizationID) == \"\" || !expiresAt.After(time.Now()) {"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t\treturn Session{}, errors.New(\"valid session identity, provider, organization, and expiry are required\")"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\ttoken := make([]byte, 32)"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tif _, err := rand.Read(token); err != nil {"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t\treturn Session{}, err"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\treturn Session{ID: id, UserID: userID, Provider: provider, OrganizationID: organizationID, CSRFToken: base64.RawURLEncoding.EncodeToString(token), ExpiresAt: expiresAt.UTC()}, nil"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "func (s Session) ValidateCSRF(token string, now time.Time) error {"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\tif s.ID == \"\" || !now.Before(s.ExpiresAt) || token == \"\" || !hmac.Equal([]byte(s.CSRFToken), []byte(token)) {"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"invalid or expired session request\")"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "func (s Session) SwitchOrganization(organizationID string, memberships []Membership, now time.Time) (Session, error) {"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\tif s.ID == \"\" || !now.Before(s.ExpiresAt) || organizationID == \"\" {"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\treturn Session{}, errors.New(\"active session and organization are required\")"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\tfor _, membership := range memberships {"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\tif membership.Active \u0026\u0026 hmac.Equal([]byte(membership.OrganizationID), []byte(organizationID)) {"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t\t\ts.OrganizationID = organizationID"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t\t\treturn s, nil"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\treturn Session{}, errors.New(\"user is not an active organization member\")"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "func validProvider(provider Provider) bool {"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\treturn provider == ProviderGitHub || provider == ProviderGitLab"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/dashboard/auth_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/dashboard/auth_test.go b/internal/hosted/dashboard/auth_test.go\nnew file mode 100644\nindex 0000000..2cc1dc7\n--- /dev/null\n+++ b/internal/hosted/dashboard/auth_test.go\n@@ -0,0 +1,42 @@\n+package dashboard\n+\n+import (\n+\t\"testing\"\n+\t\"time\"\n+)\n+\n+func TestSessionCSRFAndOrganizationSwitch(t *testing.T) {\n+\tnow := time.Date(2026, 10, 26, 10, 0, 0, 0, time.UTC)\n+\t// NewSession checks the real clock, so use a future expiry and validate at a\n+\t// fixed earlier instant to keep request-boundary assertions deterministic.\n+\tsession, err := NewSession(\"session-1\", \"user-1\", ProviderGitHub, \"org-1\", time.Now().Add(time.Hour))\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif err := session.ValidateCSRF(session.CSRFToken, now); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif err := session.ValidateCSRF(\"wrong\", now); err == nil {\n+\t\tt.Fatal(\"accepted wrong CSRF token\")\n+\t}\n+\tswitched, err := session.SwitchOrganization(\"org-2\", []Membership{{OrganizationID: \"org-2\", Active: true}}, now)\n+\tif err != nil || switched.OrganizationID != \"org-2\" {\n+\t\tt.Fatalf(\"session=%#v err=%v\", switched, err)\n+\t}\n+\tif _, err := session.SwitchOrganization(\"org-3\", []Membership{{OrganizationID: \"org-3\", Active: false}}, now); err == nil {\n+\t\tt.Fatal(\"switched to inactive organization\")\n+\t}\n+}\n+\n+func TestSessionRejectsUnknownProviderAndExpiredRequests(t *testing.T) {\n+\tif _, err := NewSession(\"s\", \"u\", Provider(\"other\"), \"org\", time.Now().Add(time.Hour)); err == nil {\n+\t\tt.Fatal(\"accepted unsupported OAuth provider\")\n+\t}\n+\tsession, err := NewSession(\"s\", \"u\", ProviderGitLab, \"org\", time.Now().Add(time.Hour))\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif err := session.ValidateCSRF(session.CSRFToken, session.ExpiresAt); err == nil {\n+\t\tt.Fatal(\"accepted expired session\")\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-049a0f20be1ae0ef",
+          "header": "@@ -0,0 +1,42 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package dashboard"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "func TestSessionCSRFAndOrganizationSwitch(t *testing.T) {"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\tnow := time.Date(2026, 10, 26, 10, 0, 0, 0, time.UTC)"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t// NewSession checks the real clock, so use a future expiry and validate at a"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t// fixed earlier instant to keep request-boundary assertions deterministic."
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\tsession, err := NewSession(\"session-1\", \"user-1\", ProviderGitHub, \"org-1\", time.Now().Add(time.Hour))"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tif err := session.ValidateCSRF(session.CSRFToken, now); err != nil {"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tif err := session.ValidateCSRF(\"wrong\", now); err == nil {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"accepted wrong CSRF token\")"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tswitched, err := session.SwitchOrganization(\"org-2\", []Membership{{OrganizationID: \"org-2\", Active: true}}, now)"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tif err != nil || switched.OrganizationID != \"org-2\" {"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"session=%#v err=%v\", switched, err)"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tif _, err := session.SwitchOrganization(\"org-3\", []Membership{{OrganizationID: \"org-3\", Active: false}}, now); err == nil {"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"switched to inactive organization\")"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "func TestSessionRejectsUnknownProviderAndExpiredRequests(t *testing.T) {"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tif _, err := NewSession(\"s\", \"u\", Provider(\"other\"), \"org\", time.Now().Add(time.Hour)); err == nil {"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"accepted unsupported OAuth provider\")"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tsession, err := NewSession(\"s\", \"u\", ProviderGitLab, \"org\", time.Now().Add(time.Hour))"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tif err := session.ValidateCSRF(session.CSRFToken, session.ExpiresAt); err == nil {"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"accepted expired session\")"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "migrations/0009_dashboard_sessions.down.sql",
+      "status": "A",
+      "diff": "diff --git a/migrations/0009_dashboard_sessions.down.sql b/migrations/0009_dashboard_sessions.down.sql\nnew file mode 100644\nindex 0000000..2e115b3\n--- /dev/null\n+++ b/migrations/0009_dashboard_sessions.down.sql\n@@ -0,0 +1,7 @@\n+BEGIN;\n+\n+DROP TABLE IF EXISTS dashboard_sessions;\n+DROP TABLE IF EXISTS dashboard_memberships;\n+DROP TABLE IF EXISTS dashboard_users;\n+\n+COMMIT;\n",
+      "hunks": [
+        {
+          "id": "diff-376b6d0956ccab67",
+          "header": "@@ -0,0 +1,7 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "BEGIN;"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "DROP TABLE IF EXISTS dashboard_sessions;"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "DROP TABLE IF EXISTS dashboard_memberships;"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "DROP TABLE IF EXISTS dashboard_users;"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "COMMIT;"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "migrations/0009_dashboard_sessions.up.sql",
+      "status": "A",
+      "diff": "diff --git a/migrations/0009_dashboard_sessions.up.sql b/migrations/0009_dashboard_sessions.up.sql\nnew file mode 100644\nindex 0000000..a815461\n--- /dev/null\n+++ b/migrations/0009_dashboard_sessions.up.sql\n@@ -0,0 +1,31 @@\n+BEGIN;\n+\n+CREATE TABLE dashboard_users (\n+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n+    provider text NOT NULL CHECK (provider IN ('github', 'gitlab')),\n+    provider_user_id text NOT NULL,\n+    created_at timestamptz NOT NULL DEFAULT now(),\n+    UNIQUE (provider, provider_user_id)\n+);\n+\n+CREATE TABLE dashboard_memberships (\n+    user_id uuid NOT NULL REFERENCES dashboard_users(id) ON DELETE CASCADE,\n+    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,\n+    active boolean NOT NULL DEFAULT true,\n+    created_at timestamptz NOT NULL DEFAULT now(),\n+    PRIMARY KEY (user_id, installation_id)\n+);\n+\n+CREATE TABLE dashboard_sessions (\n+    token_hash bytea PRIMARY KEY CHECK (octet_length(token_hash) = 32),\n+    user_id uuid NOT NULL,\n+    installation_id bigint NOT NULL,\n+    csrf_hash bytea NOT NULL CHECK (octet_length(csrf_hash) = 32),\n+    expires_at timestamptz NOT NULL,\n+    created_at timestamptz NOT NULL DEFAULT now(),\n+    FOREIGN KEY (user_id, installation_id) REFERENCES dashboard_memberships(user_id, installation_id) ON DELETE CASCADE\n+);\n+\n+CREATE INDEX dashboard_sessions_expiry ON dashboard_sessions (expires_at);\n+\n+COMMIT;\n",
+      "hunks": [
+        {
+          "id": "diff-8fc9fd8c8187fd57",
+          "header": "@@ -0,0 +1,31 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "BEGIN;"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "CREATE TABLE dashboard_users ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "    provider text NOT NULL CHECK (provider IN ('github', 'gitlab')),"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "    provider_user_id text NOT NULL,"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "    created_at timestamptz NOT NULL DEFAULT now(),"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "    UNIQUE (provider, provider_user_id)"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ");"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "CREATE TABLE dashboard_memberships ("
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "    user_id uuid NOT NULL REFERENCES dashboard_users(id) ON DELETE CASCADE,"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "    active boolean NOT NULL DEFAULT true,"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "    created_at timestamptz NOT NULL DEFAULT now(),"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "    PRIMARY KEY (user_id, installation_id)"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": ");"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "CREATE TABLE dashboard_sessions ("
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "    token_hash bytea PRIMARY KEY CHECK (octet_length(token_hash) = 32),"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "    user_id uuid NOT NULL,"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "    installation_id bigint NOT NULL,"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "    csrf_hash bytea NOT NULL CHECK (octet_length(csrf_hash) = 32),"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "    expires_at timestamptz NOT NULL,"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "    created_at timestamptz NOT NULL DEFAULT now(),"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "    FOREIGN KEY (user_id, installation_id) REFERENCES dashboard_memberships(user_id, installation_id) ON DELETE CASCADE"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": ");"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "CREATE INDEX dashboard_sessions_expiry ON dashboard_sessions (expires_at);"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "COMMIT;"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-fd32f1441e0a0f6f",
+      "title": "Dashboard_sessions changes",
+      "summary": "5 related files share the \"dashboard_sessions\" change signal.",
+      "paths": [
+        "dashboard_session_schema_test.go",
+        "internal/hosted/dashboard/auth.go",
+        "internal/hosted/dashboard/auth_test.go",
+        "migrations/0009_dashboard_sessions.down.sql",
+        "migrations/0009_dashboard_sessions.up.sql"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-130ac462a8bf6db4",
+      "path": "internal/hosted/dashboard/auth.go",
+      "kind": "authentication",
+      "observation": "The changed path contains an authentication or authorization term: internal/hosted/dashboard/auth.go.",
+      "question": "What access decision changes here, and which allowed and denied cases demonstrate it?",
+      "related": []
+    },
+    {
+      "id": "inspect-dfc415f3b0084d7b",
+      "path": "internal/hosted/dashboard/auth.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/dashboard/auth_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-bedfc99d6277ab79",
+      "path": "internal/hosted/dashboard/auth.go",
+      "line": 34,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func NewSession(id, userID string, provider Provider, organizationID string, expiresAt time.Time) (Session, error) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    },
+    {
+      "id": "inspect-f8511dc3862a6927",
+      "path": "migrations/0009_dashboard_sessions.down.sql",
+      "kind": "schema",
+      "observation": "The changed path is migration, schema, or SQL-related: migrations/0009_dashboard_sessions.down.sql.",
+      "question": "What happens to existing data during deploy, rollback, and mixed-version operation?",
+      "related": []
+    },
+    {
+      "id": "inspect-48f07fa02c425408",
+      "path": "migrations/0009_dashboard_sessions.up.sql",
+      "kind": "schema",
+      "observation": "The changed path is migration, schema, or SQL-related: migrations/0009_dashboard_sessions.up.sql.",
+      "question": "What happens to existing data during deploy, rollback, and mixed-version operation?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 5,
+    "filesAnalyzed": 5,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "1",
+      "path": "internal/hosted/dashboard/auth.go",
+      "lineStart": 14,
+      "lineEnd": 42,
+      "title": "Add validated dashboard session creation",
+      "summary": "Sessions are limited to GitHub and GitLab identities, require a non-empty user and organization plus a future expiry, and receive a newly generated CSRF token when created."
+    },
+    {
+      "id": "2",
+      "path": "internal/hosted/dashboard/auth.go",
+      "lineStart": 44,
+      "lineEnd": 63,
+      "title": "Validate requests and organization switches",
+      "summary": "Requests can be rejected when the session is expired or the CSRF token does not match. Organization switches now require an active membership and an unexpired session."
+    },
+    {
+      "id": "3",
+      "path": "migrations/0009_dashboard_sessions.up.sql",
+      "lineStart": 3,
+      "lineEnd": 18,
+      "title": "Persist dashboard identities and memberships",
+      "summary": "The migration adds dashboard identities unique per provider user and memberships linking users to installations. Memberships are active by default and are removed when the related user or installation is deleted."
+    },
+    {
+      "id": "4",
+      "path": "migrations/0009_dashboard_sessions.up.sql",
+      "lineStart": 20,
+      "lineEnd": 29,
+      "title": "Persist hashed session credentials",
+      "summary": "Dashboard sessions store fixed-length token and CSRF hashes rather than OAuth bearer-token columns, and must reference an existing user membership. Deleting that membership removes its sessions; an expiry index supports expiry-based queries."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "86133c56b4a5f80b92679ce822f59fe927b32cac",
+      "revision": "4f855ea5d8b1ea3893f8c63b9ac68d4c178d25ab",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "86133c56b4a5f80b92679ce822f59fe927b32cac",
+      "revision": "4f855ea5d8b1ea3893f8c63b9ac68d4c178d25ab",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "4f855ea5d8b1ea3893f8c63b9ac68d4c178d25ab",
+      "detail": "4 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "4f855ea5d8b1ea3893f8c63b9ac68d4c178d25ab",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-e557e9a3e345df61",
+      "rule": "authentication",
+      "title": "Authentication path",
+      "reason": "This path looks related to authentication or authorization.",
+      "path": "dashboard_session_schema_test.go",
+      "evidence": "dashboard_session_schema_test.go"
+    },
+    {
+      "id": "attention-93a383ac8c787e6f",
+      "rule": "schema",
+      "title": "Schema or migration",
+      "reason": "Schema and migration changes can affect stored data and deployment order.",
+      "path": "dashboard_session_schema_test.go",
+      "evidence": "dashboard_session_schema_test.go"
+    },
+    {
+      "id": "attention-a85c710d4fc7b168",
+      "rule": "authentication",
+      "title": "Authentication path",
+      "reason": "This path looks related to authentication or authorization.",
+      "path": "internal/hosted/dashboard/auth.go",
+      "evidence": "internal/hosted/dashboard/auth.go"
+    },
+    {
+      "id": "attention-719f7fc9e8b9d26b",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/dashboard/auth.go",
+      "line": 34,
+      "evidence": "func NewSession(id, userID string, provider Provider, organizationID string, expiresAt time.Time) (Session, error) {"
+    },
+    {
+      "id": "attention-d441524910553807",
+      "rule": "authentication",
+      "title": "Authentication path",
+      "reason": "This path looks related to authentication or authorization.",
+      "path": "internal/hosted/dashboard/auth_test.go",
+      "evidence": "internal/hosted/dashboard/auth_test.go"
+    },
+    {
+      "id": "attention-da8634e689f50e52",
+      "rule": "schema",
+      "title": "Schema or migration",
+      "reason": "Schema and migration changes can affect stored data and deployment order.",
+      "path": "migrations/0009_dashboard_sessions.down.sql",
+      "evidence": "migrations/0009_dashboard_sessions.down.sql"
+    },
+    {
+      "id": "attention-bc76a8faf6f275f6",
+      "rule": "schema",
+      "title": "Schema or migration",
+      "reason": "Schema and migration changes can affect stored data and deployment order.",
+      "path": "migrations/0009_dashboard_sessions.up.sql",
+      "evidence": "migrations/0009_dashboard_sessions.up.sql"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "4f855ea5d8b1ea3893f8c63b9ac68d4c178d25ab",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40311692905",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40311692905/job/121535129039",
+        "startedAt": "2026-10-26T11:02:03Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40311914289/job/121534912074",
+        "startedAt": "2026-10-26T11:01:30Z"
+      }
+    ]
+  }
+}
