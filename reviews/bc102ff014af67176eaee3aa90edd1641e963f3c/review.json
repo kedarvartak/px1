@@ -1,0 +1,1180 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "b2abc8abf510458bfdef37b5a8e58a0608ac8bfa",
+  "head": "bc102ff014af67176eaee3aa90edd1641e963f3c",
+  "generatedAt": "2026-10-26T21:08:03.658328098Z",
+  "files": [
+    {
+      "path": "internal/hosted/scm/provider.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/scm/provider.go b/internal/hosted/scm/provider.go\nnew file mode 100644\nindex 0000000..6294d09\n--- /dev/null\n+++ b/internal/hosted/scm/provider.go\n@@ -0,0 +1,140 @@\n+// Package scm defines the provider-neutral source-control boundary used by hosted reviews.\n+package scm\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"io\"\n+\t\"time\"\n+)\n+\n+type Repository struct {\n+\tInstallationID int64\n+\tOwner, Name    string\n+}\n+type PullRequest struct {\n+\tNumber           int\n+\tBaseSHA, HeadSHA string\n+}\n+type File struct {\n+\tPath, Status         string\n+\tAdditions, Deletions int\n+}\n+type Diff struct {\n+\tBaseSHA, HeadSHA string\n+\tPatch            []byte\n+}\n+type Comment struct {\n+\tID, Body, Path string\n+\tLine           int\n+\tCreatedAt      time.Time\n+}\n+type Thread struct {\n+\tID       string\n+\tResolved bool\n+\tComments []Comment\n+}\n+type CheckStatus struct{ Name, State, Summary, DetailsURL string }\n+type Webhook struct {\n+\tDeliveryID, Event string\n+\tBody              []byte\n+}\n+\n+type Provider interface {\n+\tDiff(context.Context, Repository, PullRequest) (Diff, error)\n+\tFiles(context.Context, Repository, PullRequest) ([]File, error)\n+\tUpsertSummary(context.Context, Repository, PullRequest, string, string) (Comment, error)\n+\tThreads(context.Context, Repository, PullRequest) ([]Thread, error)\n+\tSetStatus(context.Context, Repository, PullRequest, CheckStatus) error\n+\tVerifyWebhook(io.Reader, string, string) (Webhook, error)\n+}\n+\n+func ValidateRepository(repository Repository) error {\n+\tif repository.InstallationID \u003c= 0 || repository.Owner == \"\" || repository.Name == \"\" {\n+\t\treturn errors.New(\"installation, owner, and repository name are required\")\n+\t}\n+\treturn nil\n+}\n+\n+func ValidatePullRequest(pull PullRequest) error {\n+\tif pull.Number \u003c= 0 || !fullSHA(pull.BaseSHA) || !fullSHA(pull.HeadSHA) || pull.BaseSHA == pull.HeadSHA {\n+\t\treturn errors.New(\"pull number and distinct full base/head SHAs are required\")\n+\t}\n+\treturn nil\n+}\n+\n+func fullSHA(value string) bool {\n+\tif len(value) != 40 {\n+\t\treturn false\n+\t}\n+\tfor _, r := range value {\n+\t\tif !((r \u003e= '0' \u0026\u0026 r \u003c= '9') || (r \u003e= 'a' \u0026\u0026 r \u003c= 'f') || (r \u003e= 'A' \u0026\u0026 r \u003c= 'F')) {\n+\t\t\treturn false\n+\t\t}\n+\t}\n+\treturn true\n+}\n+\n+// GitHubOperations is implemented by the existing GitHub App delivery layer.\n+// Keeping it separate lets the adapter be contract-tested without GitHub calls.\n+type GitHubOperations interface {\n+\tDiff(context.Context, Repository, PullRequest) (Diff, error)\n+\tFiles(context.Context, Repository, PullRequest) ([]File, error)\n+\tUpsertSummary(context.Context, Repository, PullRequest, string, string) (Comment, error)\n+\tThreads(context.Context, Repository, PullRequest) ([]Thread, error)\n+\tSetStatus(context.Context, Repository, PullRequest, CheckStatus) error\n+\tVerifyWebhook(io.Reader, string, string) (Webhook, error)\n+}\n+\n+type GitHubProvider struct{ Operations GitHubOperations }\n+\n+func (p GitHubProvider) ready(repository Repository, pull PullRequest) error {\n+\tif p.Operations == nil {\n+\t\treturn errors.New(\"GitHub operations are required\")\n+\t}\n+\tif err := ValidateRepository(repository); err != nil {\n+\t\treturn err\n+\t}\n+\treturn ValidatePullRequest(pull)\n+}\n+func (p GitHubProvider) Diff(ctx context.Context, r Repository, pr PullRequest) (Diff, error) {\n+\tif err := p.ready(r, pr); err != nil {\n+\t\treturn Diff{}, err\n+\t}\n+\treturn p.Operations.Diff(ctx, r, pr)\n+}\n+func (p GitHubProvider) Files(ctx context.Context, r Repository, pr PullRequest) ([]File, error) {\n+\tif err := p.ready(r, pr); err != nil {\n+\t\treturn nil, err\n+\t}\n+\treturn p.Operations.Files(ctx, r, pr)\n+}\n+func (p GitHubProvider) UpsertSummary(ctx context.Context, r Repository, pr PullRequest, marker, body string) (Comment, error) {\n+\tif err := p.ready(r, pr); err != nil || marker == \"\" || body == \"\" {\n+\t\treturn Comment{}, errors.New(\"valid pull request, marker, and summary are required\")\n+\t}\n+\treturn p.Operations.UpsertSummary(ctx, r, pr, marker, body)\n+}\n+func (p GitHubProvider) Threads(ctx context.Context, r Repository, pr PullRequest) ([]Thread, error) {\n+\tif err := p.ready(r, pr); err != nil {\n+\t\treturn nil, err\n+\t}\n+\treturn p.Operations.Threads(ctx, r, pr)\n+}\n+func (p GitHubProvider) SetStatus(ctx context.Context, r Repository, pr PullRequest, status CheckStatus) error {\n+\tif err := p.ready(r, pr); err != nil {\n+\t\treturn err\n+\t}\n+\tif status.Name == \"\" || status.State == \"\" {\n+\t\treturn errors.New(\"status name and state are required\")\n+\t}\n+\treturn p.Operations.SetStatus(ctx, r, pr, status)\n+}\n+func (p GitHubProvider) VerifyWebhook(body io.Reader, delivery, signature string) (Webhook, error) {\n+\tif p.Operations == nil || body == nil || delivery == \"\" || signature == \"\" {\n+\t\treturn Webhook{}, errors.New(\"GitHub operations, body, delivery, and signature are required\")\n+\t}\n+\treturn p.Operations.VerifyWebhook(body, delivery, signature)\n+}\n+\n+var _ Provider = GitHubProvider{}\n",
+      "hunks": [
+        {
+          "id": "diff-e6563c5cc028f0c0",
+          "header": "@@ -0,0 +1,140 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "// Package scm defines the provider-neutral source-control boundary used by hosted reviews."
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "package scm"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"io\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "type Repository struct {"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\tInstallationID int64"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\tOwner, Name    string"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "type PullRequest struct {"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tNumber           int"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tBaseSHA, HeadSHA string"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "type File struct {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tPath, Status         string"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tAdditions, Deletions int"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "type Diff struct {"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tBaseSHA, HeadSHA string"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tPatch            []byte"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "type Comment struct {"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tID, Body, Path string"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tLine           int"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tCreatedAt      time.Time"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "type Thread struct {"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tID       string"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tResolved bool"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tComments []Comment"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "type CheckStatus struct{ Name, State, Summary, DetailsURL string }"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "type Webhook struct {"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tDeliveryID, Event string"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tBody              []byte"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "type Provider interface {"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tDiff(context.Context, Repository, PullRequest) (Diff, error)"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\tFiles(context.Context, Repository, PullRequest) ([]File, error)"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\tUpsertSummary(context.Context, Repository, PullRequest, string, string) (Comment, error)"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\tThreads(context.Context, Repository, PullRequest) ([]Thread, error)"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\tSetStatus(context.Context, Repository, PullRequest, CheckStatus) error"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\tVerifyWebhook(io.Reader, string, string) (Webhook, error)"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "func ValidateRepository(repository Repository) error {"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\tif repository.InstallationID \u003c= 0 || repository.Owner == \"\" || repository.Name == \"\" {"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"installation, owner, and repository name are required\")"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "func ValidatePullRequest(pull PullRequest) error {"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\tif pull.Number \u003c= 0 || !fullSHA(pull.BaseSHA) || !fullSHA(pull.HeadSHA) || pull.BaseSHA == pull.HeadSHA {"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"pull number and distinct full base/head SHAs are required\")"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "func fullSHA(value string) bool {"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\tif len(value) != 40 {"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\treturn false"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\tfor _, r := range value {"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\tif !((r \u003e= '0' \u0026\u0026 r \u003c= '9') || (r \u003e= 'a' \u0026\u0026 r \u003c= 'f') || (r \u003e= 'A' \u0026\u0026 r \u003c= 'F')) {"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t\t\treturn false"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\treturn true"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "// GitHubOperations is implemented by the existing GitHub App delivery layer."
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "// Keeping it separate lets the adapter be contract-tested without GitHub calls."
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "type GitHubOperations interface {"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\tDiff(context.Context, Repository, PullRequest) (Diff, error)"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\tFiles(context.Context, Repository, PullRequest) ([]File, error)"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\tUpsertSummary(context.Context, Repository, PullRequest, string, string) (Comment, error)"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\tThreads(context.Context, Repository, PullRequest) ([]Thread, error)"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\tSetStatus(context.Context, Repository, PullRequest, CheckStatus) error"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\tVerifyWebhook(io.Reader, string, string) (Webhook, error)"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "type GitHubProvider struct{ Operations GitHubOperations }"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "func (p GitHubProvider) ready(repository Repository, pull PullRequest) error {"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\tif p.Operations == nil {"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"GitHub operations are required\")"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\tif err := ValidateRepository(repository); err != nil {"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\treturn ValidatePullRequest(pull)"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "func (p GitHubProvider) Diff(ctx context.Context, r Repository, pr PullRequest) (Diff, error) {"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\tif err := p.ready(r, pr); err != nil {"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\t\treturn Diff{}, err"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\treturn p.Operations.Diff(ctx, r, pr)"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "func (p GitHubProvider) Files(ctx context.Context, r Repository, pr PullRequest) ([]File, error) {"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\tif err := p.ready(r, pr); err != nil {"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\treturn p.Operations.Files(ctx, r, pr)"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "func (p GitHubProvider) UpsertSummary(ctx context.Context, r Repository, pr PullRequest, marker, body string) (Comment, error) {"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\tif err := p.ready(r, pr); err != nil || marker == \"\" || body == \"\" {"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "\t\treturn Comment{}, errors.New(\"valid pull request, marker, and summary are required\")"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "\treturn p.Operations.UpsertSummary(ctx, r, pr, marker, body)"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "func (p GitHubProvider) Threads(ctx context.Context, r Repository, pr PullRequest) ([]Thread, error) {"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\tif err := p.ready(r, pr); err != nil {"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\treturn p.Operations.Threads(ctx, r, pr)"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "func (p GitHubProvider) SetStatus(ctx context.Context, r Repository, pr PullRequest, status CheckStatus) error {"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\tif err := p.ready(r, pr); err != nil {"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\tif status.Name == \"\" || status.State == \"\" {"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"status name and state are required\")"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\treturn p.Operations.SetStatus(ctx, r, pr, status)"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "func (p GitHubProvider) VerifyWebhook(body io.Reader, delivery, signature string) (Webhook, error) {"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\tif p.Operations == nil || body == nil || delivery == \"\" || signature == \"\" {"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\t\treturn Webhook{}, errors.New(\"GitHub operations, body, delivery, and signature are required\")"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\treturn p.Operations.VerifyWebhook(body, delivery, signature)"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "var _ Provider = GitHubProvider{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/scm/provider_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/scm/provider_test.go b/internal/hosted/scm/provider_test.go\nnew file mode 100644\nindex 0000000..8dcc465\n--- /dev/null\n+++ b/internal/hosted/scm/provider_test.go\n@@ -0,0 +1,60 @@\n+package scm\n+\n+import (\n+\t\"context\"\n+\t\"io\"\n+\t\"strings\"\n+\t\"testing\"\n+)\n+\n+type fakeGitHub struct{ calls []string }\n+\n+func (f *fakeGitHub) Diff(context.Context, Repository, PullRequest) (Diff, error) {\n+\tf.calls = append(f.calls, \"diff\")\n+\treturn Diff{}, nil\n+}\n+func (f *fakeGitHub) Files(context.Context, Repository, PullRequest) ([]File, error) {\n+\tf.calls = append(f.calls, \"files\")\n+\treturn nil, nil\n+}\n+func (f *fakeGitHub) UpsertSummary(context.Context, Repository, PullRequest, string, string) (Comment, error) {\n+\tf.calls = append(f.calls, \"summary\")\n+\treturn Comment{}, nil\n+}\n+func (f *fakeGitHub) Threads(context.Context, Repository, PullRequest) ([]Thread, error) {\n+\tf.calls = append(f.calls, \"threads\")\n+\treturn nil, nil\n+}\n+func (f *fakeGitHub) SetStatus(context.Context, Repository, PullRequest, CheckStatus) error {\n+\tf.calls = append(f.calls, \"status\")\n+\treturn nil\n+}\n+func (f *fakeGitHub) VerifyWebhook(io.Reader, string, string) (Webhook, error) {\n+\tf.calls = append(f.calls, \"webhook\")\n+\treturn Webhook{}, nil\n+}\n+\n+func TestGitHubProviderDelegatesEveryCapability(t *testing.T) {\n+\toperations := \u0026fakeGitHub{}\n+\tprovider := GitHubProvider{Operations: operations}\n+\trepository := Repository{InstallationID: 1, Owner: \"acme\", Name: \"project\"}\n+\tpull := PullRequest{Number: 4, BaseSHA: strings.Repeat(\"a\", 40), HeadSHA: strings.Repeat(\"b\", 40)}\n+\t_, _ = provider.Diff(context.Background(), repository, pull)\n+\t_, _ = provider.Files(context.Background(), repository, pull)\n+\t_, _ = provider.UpsertSummary(context.Background(), repository, pull, \"px1\", \"summary\")\n+\t_, _ = provider.Threads(context.Background(), repository, pull)\n+\t_ = provider.SetStatus(context.Background(), repository, pull, CheckStatus{Name: \"px1\", State: \"completed\"})\n+\t_, _ = provider.VerifyWebhook(strings.NewReader(\"{}\"), \"delivery\", \"sha256=x\")\n+\tif got := strings.Join(operations.calls, \",\"); got != \"diff,files,summary,threads,status,webhook\" {\n+\t\tt.Fatalf(\"calls = %s\", got)\n+\t}\n+}\n+\n+func TestGitHubProviderRejectsInvalidTenantBeforeDelegating(t *testing.T) {\n+\toperations := \u0026fakeGitHub{}\n+\tprovider := GitHubProvider{Operations: operations}\n+\t_, err := provider.Files(context.Background(), Repository{Owner: \"acme\", Name: \"project\"}, PullRequest{Number: 1, BaseSHA: strings.Repeat(\"a\", 40), HeadSHA: strings.Repeat(\"b\", 40)})\n+\tif err == nil || len(operations.calls) != 0 {\n+\t\tt.Fatal(\"invalid tenant reached provider operations\")\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-bf4b6ee3cfb2c556",
+          "header": "@@ -0,0 +1,60 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package scm"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"io\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "type fakeGitHub struct{ calls []string }"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "func (f *fakeGitHub) Diff(context.Context, Repository, PullRequest) (Diff, error) {"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\tf.calls = append(f.calls, \"diff\")"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\treturn Diff{}, nil"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "func (f *fakeGitHub) Files(context.Context, Repository, PullRequest) ([]File, error) {"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tf.calls = append(f.calls, \"files\")"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\treturn nil, nil"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "func (f *fakeGitHub) UpsertSummary(context.Context, Repository, PullRequest, string, string) (Comment, error) {"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tf.calls = append(f.calls, \"summary\")"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\treturn Comment{}, nil"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "func (f *fakeGitHub) Threads(context.Context, Repository, PullRequest) ([]Thread, error) {"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tf.calls = append(f.calls, \"threads\")"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\treturn nil, nil"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "func (f *fakeGitHub) SetStatus(context.Context, Repository, PullRequest, CheckStatus) error {"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tf.calls = append(f.calls, \"status\")"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "func (f *fakeGitHub) VerifyWebhook(io.Reader, string, string) (Webhook, error) {"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tf.calls = append(f.calls, \"webhook\")"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\treturn Webhook{}, nil"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "func TestGitHubProviderDelegatesEveryCapability(t *testing.T) {"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\toperations := \u0026fakeGitHub{}"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tprovider := GitHubProvider{Operations: operations}"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\trepository := Repository{InstallationID: 1, Owner: \"acme\", Name: \"project\"}"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\tpull := PullRequest{Number: 4, BaseSHA: strings.Repeat(\"a\", 40), HeadSHA: strings.Repeat(\"b\", 40)}"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t_, _ = provider.Diff(context.Background(), repository, pull)"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t_, _ = provider.Files(context.Background(), repository, pull)"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t_, _ = provider.UpsertSummary(context.Background(), repository, pull, \"px1\", \"summary\")"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t_, _ = provider.Threads(context.Background(), repository, pull)"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t_ = provider.SetStatus(context.Background(), repository, pull, CheckStatus{Name: \"px1\", State: \"completed\"})"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t_, _ = provider.VerifyWebhook(strings.NewReader(\"{}\"), \"delivery\", \"sha256=x\")"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\tif got := strings.Join(operations.calls, \",\"); got != \"diff,files,summary,threads,status,webhook\" {"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"calls = %s\", got)"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "func TestGitHubProviderRejectsInvalidTenantBeforeDelegating(t *testing.T) {"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\toperations := \u0026fakeGitHub{}"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\tprovider := GitHubProvider{Operations: operations}"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t_, err := provider.Files(context.Background(), Repository{Owner: \"acme\", Name: \"project\"}, PullRequest{Number: 1, BaseSHA: strings.Repeat(\"a\", 40), HeadSHA: strings.Repeat(\"b\", 40)})"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\tif err == nil || len(operations.calls) != 0 {"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"invalid tenant reached provider operations\")"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-8633a46c5bff5aaa",
+      "title": "Provider changes",
+      "summary": "2 related files share the \"provider\" change signal.",
+      "paths": [
+        "internal/hosted/scm/provider.go",
+        "internal/hosted/scm/provider_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-68d030358cc9d144",
+      "path": "internal/hosted/scm/provider.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/scm/provider_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-57ea389c68603d6e",
+      "path": "internal/hosted/scm/provider.go",
+      "line": 52,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func ValidateRepository(repository Repository) error {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 2,
+    "filesAnalyzed": 2,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "scm-provider-contract",
+      "path": "internal/hosted/scm/provider.go",
+      "lineStart": 12,
+      "lineEnd": 45,
+      "title": "Introduces an SCM provider boundary",
+      "summary": "Adds a provider-neutral interface for retrieving diffs and files, managing review comments and status, and verifying webhooks. Callers can use these capabilities without depending directly on GitHub-specific operations."
+    },
+    {
+      "id": "scm-input-validation",
+      "path": "internal/hosted/scm/provider.go",
+      "lineStart": 47,
+      "lineEnd": 139,
+      "title": "Validates requests before delegation",
+      "summary": "The GitHub adapter rejects calls with missing operations, invalid repository or pull-request details, or missing summary/status fields before delegating. Webhook verification likewise requires a body, delivery ID, and signature, preventing incomplete inputs from reaching the backend."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "b2abc8abf510458bfdef37b5a8e58a0608ac8bfa",
+      "revision": "bc102ff014af67176eaee3aa90edd1641e963f3c",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "b2abc8abf510458bfdef37b5a8e58a0608ac8bfa",
+      "revision": "bc102ff014af67176eaee3aa90edd1641e963f3c",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "bc102ff014af67176eaee3aa90edd1641e963f3c",
+      "detail": "2 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "bc102ff014af67176eaee3aa90edd1641e963f3c",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-035b3067bdf82b0b",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/scm/provider.go",
+      "line": 52,
+      "evidence": "func ValidateRepository(repository Repository) error {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "bc102ff014af67176eaee3aa90edd1641e963f3c",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40401597145",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40401597145/job/121848573261",
+        "startedAt": "2026-10-26T21:07:06Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40401598104/job/121848572559",
+        "startedAt": "2026-10-26T21:07:04Z"
+      }
+    ]
+  }
+}
