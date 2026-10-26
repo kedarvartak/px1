@@ -17,6 +17,23 @@ func TestResolveCascadingConfigKeepsGatesStrict(t *testing.T) {
 	}
 }
 
+func TestCascadingConfigCollectsBoundedContextRepositories(t *testing.T) {
+	files := map[string][]byte{
+		".px1/config.json":     []byte(`{"version":1,"context":{"repos":["Acme/API"]}}`),
+		"src/.px1/config.json": []byte(`{"version":1,"context":{"repos":["acme/api","acme/web"]}}`),
+	}
+	config, err := resolveCascadingConfig("src/handler.go", files)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(config.ContextRepos) != 2 || config.ContextRepos[0] != "acme/api" || config.ContextRepos[1] != "acme/web" {
+		t.Fatalf("context repos = %#v", config.ContextRepos)
+	}
+	if _, err := decodeConfig([]byte(`{"version":1,"context":{"repos":["../private"]}}`)); err == nil {
+		t.Fatal("accepted invalid context repository")
+	}
+}
+
 func TestResolveCascadingConfigRejectsUnknownFields(t *testing.T) {
 	_, err := resolveCascadingConfig("a.go", map[string][]byte{".px1/config.json": []byte(`{"version":1,"surprise":true}`)})
 	if err == nil {

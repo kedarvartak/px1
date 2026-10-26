@@ -19,6 +19,18 @@
       "items": { "type": "string", "minLength": 1, "maxLength": 80 }
     },
     "maxInlineComments": { "type": "integer", "minimum": 1, "maximum": 50 },
-    "failOnP0": { "type": "boolean" }
+    "failOnP0": { "type": "boolean" },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repos": {
+          "type": "array",
+          "maxItems": 10,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" }
+        }
+      }
+    }
   }
 }
