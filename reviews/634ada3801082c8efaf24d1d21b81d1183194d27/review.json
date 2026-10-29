@@ -1,0 +1,822 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "b3b27fe5fbd307aa139afbfff60b1e6a551d6751",
+  "head": "634ada3801082c8efaf24d1d21b81d1183194d27",
+  "generatedAt": "2026-10-29T16:26:42.821359096Z",
+  "files": [
+    {
+      "path": ".github/workflows/gitlab-ce-contract.yml",
+      "status": "A",
+      "diff": "diff --git a/.github/workflows/gitlab-ce-contract.yml b/.github/workflows/gitlab-ce-contract.yml\nnew file mode 100644\nindex 0000000..e5add0b\n--- /dev/null\n+++ b/.github/workflows/gitlab-ce-contract.yml\n@@ -0,0 +1,47 @@\n+name: GitLab CE provider contract\n+\n+on:\n+  workflow_dispatch:\n+  pull_request:\n+    paths:\n+      - \"internal/hosted/gitlab/**\"\n+      - \"internal/hosted/scm/**\"\n+      - \"integration/gitlabce/**\"\n+      - \".github/workflows/gitlab-ce-contract.yml\"\n+\n+permissions:\n+  contents: read\n+\n+jobs:\n+  contract:\n+    runs-on: ubuntu-latest\n+    timeout-minutes: 30\n+    env:\n+      GITLAB_ROOT_PASSWORD: px1-contract-password-2026\n+      GITLAB_TOKEN: glpat-px1-contract-token-2026-secure\n+      GITLAB_CE_URL: http://127.0.0.1:8929\n+    steps:\n+      - uses: actions/checkout@v4\n+      - uses: actions/setup-go@v5\n+        with:\n+          go-version-file: go.mod\n+      - name: Start pinned GitLab CE\n+        run: |\n+          docker run --detach --name gitlab-ce --hostname gitlab.local \\\n+            --publish 8929:8929 --shm-size 256m \\\n+            --env GITLAB_ROOT_PASSWORD=\"$GITLAB_ROOT_PASSWORD\" \\\n+            --env \"GITLAB_OMNIBUS_CONFIG=external_url 'http://gitlab.local:8929'; gitlab_rails['initial_root_password'] = '$GITLAB_ROOT_PASSWORD'; prometheus_monitoring['enable'] = false;\" \\\n+            gitlab/gitlab-ce:19.5.0-ce.0\n+      - name: Wait for GitLab\n+        run: |\n+          for attempt in $(seq 1 90); do\n+            if curl --fail --silent \"$GITLAB_CE_URL/-/health\" | grep -q \"GitLab OK\"; then exit 0; fi\n+            sleep 10\n+          done\n+          docker logs gitlab-ce\n+          exit 1\n+      - name: Run provider contract\n+        run: |\n+          docker exec --env PX1_CONTRACT_TOKEN=\"$GITLAB_TOKEN\" gitlab-ce gitlab-rails runner \\\n+            \"token = User.find_by_username('root').personal_access_tokens.create!(name: 'px1-contract', scopes: [:api]); token.set_token(ENV.fetch('PX1_CONTRACT_TOKEN')); token.save!\"\n+          go test -tags=gitlabce -count=1 ./integration/gitlabce\n",
+      "hunks": [
+        {
+          "id": "diff-636ce064c4c4341c",
+          "header": "@@ -0,0 +1,47 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "name: GitLab CE provider contract"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "on:"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "  workflow_dispatch:"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "  pull_request:"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "    paths:"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "      - \"internal/hosted/gitlab/**\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "      - \"internal/hosted/scm/**\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "      - \"integration/gitlabce/**\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "      - \".github/workflows/gitlab-ce-contract.yml\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "permissions:"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "  contents: read"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "jobs:"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "  contract:"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "    runs-on: ubuntu-latest"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "    timeout-minutes: 30"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "    env:"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "      GITLAB_ROOT_PASSWORD: px1-contract-password-2026"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "      GITLAB_TOKEN: glpat-px1-contract-token-2026-secure"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "      GITLAB_CE_URL: http://127.0.0.1:8929"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "    steps:"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "      - uses: actions/checkout@v4"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "      - uses: actions/setup-go@v5"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "        with:"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "          go-version-file: go.mod"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "      - name: Start pinned GitLab CE"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "        run: |"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "          docker run --detach --name gitlab-ce --hostname gitlab.local \\"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "            --publish 8929:8929 --shm-size 256m \\"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "            --env GITLAB_ROOT_PASSWORD=\"$GITLAB_ROOT_PASSWORD\" \\"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "            --env \"GITLAB_OMNIBUS_CONFIG=external_url 'http://gitlab.local:8929'; gitlab_rails['initial_root_password'] = '$GITLAB_ROOT_PASSWORD'; prometheus_monitoring['enable'] = false;\" \\"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "            gitlab/gitlab-ce:19.5.0-ce.0"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "      - name: Wait for GitLab"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "        run: |"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "          for attempt in $(seq 1 90); do"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "            if curl --fail --silent \"$GITLAB_CE_URL/-/health\" | grep -q \"GitLab OK\"; then exit 0; fi"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "            sleep 10"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "          done"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "          docker logs gitlab-ce"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "          exit 1"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "      - name: Run provider contract"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "        run: |"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "          docker exec --env PX1_CONTRACT_TOKEN=\"$GITLAB_TOKEN\" gitlab-ce gitlab-rails runner \\"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "            \"token = User.find_by_username('root').personal_access_tokens.create!(name: 'px1-contract', scopes: [:api]); token.set_token(ENV.fetch('PX1_CONTRACT_TOKEN')); token.save!\""
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "          go test -tags=gitlabce -count=1 ./integration/gitlabce"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "integration/gitlabce/contract_test.go",
+      "status": "A",
+      "diff": "diff --git a/integration/gitlabce/contract_test.go b/integration/gitlabce/contract_test.go\nnew file mode 100644\nindex 0000000..bc6e8f2\n--- /dev/null\n+++ b/integration/gitlabce/contract_test.go\n@@ -0,0 +1,87 @@\n+//go:build gitlabce\n+\n+package gitlabce\n+\n+import (\n+\t\"bytes\"\n+\t\"encoding/json\"\n+\t\"fmt\"\n+\t\"io\"\n+\t\"net/http\"\n+\t\"os\"\n+\t\"testing\"\n+\t\"time\"\n+)\n+\n+func TestGitLabCEProviderContract(t *testing.T) {\n+\tbase, token := os.Getenv(\"GITLAB_CE_URL\"), os.Getenv(\"GITLAB_TOKEN\")\n+\tif base == \"\" || token == \"\" {\n+\t\tt.Fatal(\"GITLAB_CE_URL and GITLAB_TOKEN are required\")\n+\t}\n+\tclient := \u0026http.Client{Timeout: 20 * time.Second}\n+\n+\tprojectName := fmt.Sprintf(\"px1-contract-%d\", time.Now().UnixNano())\n+\tproject := requestJSON(t, client, token, http.MethodPost, base+\"/api/v4/projects\", map[string]any{\"name\": projectName, \"initialize_with_readme\": true})\n+\tprojectID := int(project[\"id\"].(float64))\n+\trequestJSON(t, client, token, http.MethodPost, fmt.Sprintf(\"%s/api/v4/projects/%d/repository/branches\", base, projectID), map[string]any{\"branch\": \"feature\", \"ref\": \"main\"})\n+\trequestJSON(t, client, token, http.MethodPost, fmt.Sprintf(\"%s/api/v4/projects/%d/repository/files/demo.txt\", base, projectID), map[string]any{\"branch\": \"feature\", \"content\": \"contract\\n\", \"commit_message\": \"add contract file\"})\n+\tmergeRequest := requestJSON(t, client, token, http.MethodPost, fmt.Sprintf(\"%s/api/v4/projects/%d/merge_requests\", base, projectID), map[string]any{\"source_branch\": \"feature\", \"target_branch\": \"main\", \"title\": \"Provider contract\"})\n+\tiid := int(mergeRequest[\"iid\"].(float64))\n+\tchanges := requestJSONList(t, client, token, fmt.Sprintf(\"%s/api/v4/projects/%d/merge_requests/%d/diffs?per_page=100\", base, projectID, iid))\n+\tif len(changes) != 1 {\n+\t\tt.Fatalf(\"changes=%#v\", changes)\n+\t}\n+\trequestJSON(t, client, token, http.MethodPost, fmt.Sprintf(\"%s/api/v4/projects/%d/merge_requests/%d/notes\", base, projectID, iid), map[string]any{\"body\": \"\u003c!-- px1-summary --\u003e contract\"})\n+\tdiscussions := requestJSONList(t, client, token, fmt.Sprintf(\"%s/api/v4/projects/%d/merge_requests/%d/discussions\", base, projectID, iid))\n+\tif len(discussions) == 0 {\n+\t\tt.Fatal(\"summary note was not visible through discussions\")\n+\t}\n+}\n+\n+func requestJSON(t *testing.T, client *http.Client, token, method, endpoint string, payload any) map[string]any {\n+\tt.Helper()\n+\tvar body io.Reader\n+\tif payload != nil {\n+\t\tencoded, err := json.Marshal(payload)\n+\t\tif err != nil {\n+\t\t\tt.Fatal(err)\n+\t\t}\n+\t\tbody = bytes.NewReader(encoded)\n+\t}\n+\trequest, err := http.NewRequest(method, endpoint, body)\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\trequest.Header.Set(\"Authorization\", \"Bearer \"+token)\n+\trequest.Header.Set(\"Content-Type\", \"application/json\")\n+\tresponse, err := client.Do(request)\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tdefer response.Body.Close()\n+\tif response.StatusCode \u003c 200 || response.StatusCode \u003e= 300 {\n+\t\tdata, _ := io.ReadAll(io.LimitReader(response.Body, 4096))\n+\t\tt.Fatalf(\"%s %s: %d %s\", method, endpoint, response.StatusCode, data)\n+\t}\n+\tvar output map[string]any\n+\tif err := json.NewDecoder(io.LimitReader(response.Body, 4\u003c\u003c20)).Decode(\u0026output); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\treturn output\n+}\n+\n+func requestJSONList(t *testing.T, client *http.Client, token, endpoint string) []any {\n+\tt.Helper()\n+\trequest, _ := http.NewRequest(http.MethodGet, endpoint, nil)\n+\trequest.Header.Set(\"Authorization\", \"Bearer \"+token)\n+\tresponse, err := client.Do(request)\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tdefer response.Body.Close()\n+\tvar output []any\n+\tif response.StatusCode != http.StatusOK || json.NewDecoder(io.LimitReader(response.Body, 4\u003c\u003c20)).Decode(\u0026output) != nil {\n+\t\tt.Fatalf(\"GET %s: %d\", endpoint, response.StatusCode)\n+\t}\n+\treturn output\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-c1b7472e28d892ad",
+          "header": "@@ -0,0 +1,87 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "//go:build gitlabce"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "package gitlabce"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"bytes\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"io\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"net/http\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "func TestGitLabCEProviderContract(t *testing.T) {"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tbase, token := os.Getenv(\"GITLAB_CE_URL\"), os.Getenv(\"GITLAB_TOKEN\")"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tif base == \"\" || token == \"\" {"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"GITLAB_CE_URL and GITLAB_TOKEN are required\")"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tclient := \u0026http.Client{Timeout: 20 * time.Second}"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tprojectName := fmt.Sprintf(\"px1-contract-%d\", time.Now().UnixNano())"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tproject := requestJSON(t, client, token, http.MethodPost, base+\"/api/v4/projects\", map[string]any{\"name\": projectName, \"initialize_with_readme\": true})"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tprojectID := int(project[\"id\"].(float64))"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\trequestJSON(t, client, token, http.MethodPost, fmt.Sprintf(\"%s/api/v4/projects/%d/repository/branches\", base, projectID), map[string]any{\"branch\": \"feature\", \"ref\": \"main\"})"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\trequestJSON(t, client, token, http.MethodPost, fmt.Sprintf(\"%s/api/v4/projects/%d/repository/files/demo.txt\", base, projectID), map[string]any{\"branch\": \"feature\", \"content\": \"contract\\n\", \"commit_message\": \"add contract file\"})"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tmergeRequest := requestJSON(t, client, token, http.MethodPost, fmt.Sprintf(\"%s/api/v4/projects/%d/merge_requests\", base, projectID), map[string]any{\"source_branch\": \"feature\", \"target_branch\": \"main\", \"title\": \"Provider contract\"})"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tiid := int(mergeRequest[\"iid\"].(float64))"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tchanges := requestJSONList(t, client, token, fmt.Sprintf(\"%s/api/v4/projects/%d/merge_requests/%d/diffs?per_page=100\", base, projectID, iid))"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tif len(changes) != 1 {"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"changes=%#v\", changes)"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\trequestJSON(t, client, token, http.MethodPost, fmt.Sprintf(\"%s/api/v4/projects/%d/merge_requests/%d/notes\", base, projectID, iid), map[string]any{\"body\": \"\u003c!-- px1-summary --\u003e contract\"})"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tdiscussions := requestJSONList(t, client, token, fmt.Sprintf(\"%s/api/v4/projects/%d/merge_requests/%d/discussions\", base, projectID, iid))"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tif len(discussions) == 0 {"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"summary note was not visible through discussions\")"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "func requestJSON(t *testing.T, client *http.Client, token, method, endpoint string, payload any) map[string]any {"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tt.Helper()"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tvar body io.Reader"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tif payload != nil {"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t\tencoded, err := json.Marshal(payload)"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\tbody = bytes.NewReader(encoded)"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\trequest, err := http.NewRequest(method, endpoint, body)"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\trequest.Header.Set(\"Authorization\", \"Bearer \"+token)"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\trequest.Header.Set(\"Content-Type\", \"application/json\")"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\tresponse, err := client.Do(request)"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\tdefer response.Body.Close()"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\tif response.StatusCode \u003c 200 || response.StatusCode \u003e= 300 {"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t\tdata, _ := io.ReadAll(io.LimitReader(response.Body, 4096))"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"%s %s: %d %s\", method, endpoint, response.StatusCode, data)"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\tvar output map[string]any"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\tif err := json.NewDecoder(io.LimitReader(response.Body, 4\u003c\u003c20)).Decode(\u0026output); err != nil {"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\treturn output"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "func requestJSONList(t *testing.T, client *http.Client, token, endpoint string) []any {"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\tt.Helper()"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\trequest, _ := http.NewRequest(http.MethodGet, endpoint, nil)"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\trequest.Header.Set(\"Authorization\", \"Bearer \"+token)"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\tresponse, err := client.Do(request)"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\tdefer response.Body.Close()"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\tvar output []any"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\tif response.StatusCode != http.StatusOK || json.NewDecoder(io.LimitReader(response.Body, 4\u003c\u003c20)).Decode(\u0026output) != nil {"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"GET %s: %d\", endpoint, response.StatusCode)"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\treturn output"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-fa1f57c3653d86e0",
+      "title": "Contract changes",
+      "summary": "2 related files share the \"contract\" change signal.",
+      "paths": [
+        ".github/workflows/gitlab-ce-contract.yml",
+        "integration/gitlabce/contract_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 2,
+    "filesAnalyzed": 2,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "gitlab-ce-contract-workflow",
+      "path": ".github/workflows/gitlab-ce-contract.yml",
+      "lineStart": 1,
+      "lineEnd": 47,
+      "title": "Adds a GitLab CE contract job",
+      "summary": "Adds an on-demand and change-filtered CI job that starts GitLab CE 19.5 and runs the tagged provider contract test against it. This checks the provider against a real GitLab instance rather than relying only on mocks."
+    },
+    {
+      "id": "gitlab-ce-contract-test",
+      "path": "integration/gitlabce/contract_test.go",
+      "lineStart": 21,
+      "lineEnd": 47,
+      "title": "Checks core GitLab API behavior",
+      "summary": "The contract test now checks that GitLab can create a project and branch, commit a file, create a merge request, return its diff, and expose a posted note through discussions. Failures in those API behaviors fail the test."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "b3b27fe5fbd307aa139afbfff60b1e6a551d6751",
+      "revision": "634ada3801082c8efaf24d1d21b81d1183194d27",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "b3b27fe5fbd307aa139afbfff60b1e6a551d6751",
+      "revision": "634ada3801082c8efaf24d1d21b81d1183194d27",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "634ada3801082c8efaf24d1d21b81d1183194d27",
+      "detail": "2 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "634ada3801082c8efaf24d1d21b81d1183194d27",
+      "detail": "3 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "634ada3801082c8efaf24d1d21b81d1183194d27",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40911404383",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40911404383/job/123580104428",
+        "startedAt": "2026-10-29T16:25:33Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40911408882/job/123580046745",
+        "startedAt": "2026-10-29T16:25:25Z"
+      },
+      {
+        "name": "contract",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40911408927/job/123580046061",
+        "startedAt": "2026-10-29T16:25:25Z"
+      }
+    ]
+  }
+}
