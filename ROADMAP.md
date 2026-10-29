@@ -150,16 +150,28 @@ backend-foundation tasks are:
 61. [x] **Build dashboard pages.** Add organization-scoped overview, repository,
    pull-request detail, rules, memories, analytics, billing, members, and
    settings surfaces, including the commit-pinned report frame.
-62. [ ] **Add the settings editor.** Write settings to the hosted database or a
+62. [x] **Add the settings editor.** Write settings to the hosted database or a
    `.px1/config.json` pull request while keeping repository config authoritative.
-63. [ ] **Add the rule-proposal queue.** Let reviewers accept, edit, or reject a
+63. [x] **Add the rule-proposal queue.** Let reviewers accept, edit, or reject a
    proposed rule with its evidence links and an auditable state transition.
-64. [ ] **Build the analytics event pipeline.** Store review, finding, and
+64. [x] **Build the analytics event pipeline.** Store review, finding, and
    feedback events and aggregate tenant-scoped nightly daily metrics.
-65. [ ] **Draw review analytics.** Chart findings, addressed rate, and review
+65. [x] **Draw review analytics.** Chart findings, addressed rate, and review
    latency with repository, team, and author filters.
-66. [ ] **Publish metric definitions.** Explain each customer-visible metric and
+66. [x] **Publish metric definitions.** Explain each customer-visible metric and
    its denominator so teams can audit claims such as bugs caught.
+67. [x] **Add an append-only credit ledger.** Reserve estimated review credits,
+   settle actual usage, and refund failed work with idempotent transactions.
+68. [ ] **Integrate Stripe billing.** Track customers and subscriptions, verify
+   billing webhooks, and expose the Stripe customer portal.
+69. [ ] **Enforce credit limits visibly.** Skip unaffordable reviews with a
+   durable, human-readable reason instead of failing silently.
+70. [ ] **Add the open-source programme.** Accept and audit applications, with
+   explicit approval or rejection transitions and credit grants.
+71. [ ] **Monitor hosted gross margin.** Compare weekly LLM cost with credit
+   revenue per organization and alert below a sixty-percent threshold.
+72. [ ] **Abstract the source-control provider.** Put diffs, files, comments,
+   threads, statuses, and webhook handling behind a provider-neutral contract.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,
