@@ -162,16 +162,28 @@ backend-foundation tasks are:
    its denominator so teams can audit claims such as bugs caught.
 67. [x] **Add an append-only credit ledger.** Reserve estimated review credits,
    settle actual usage, and refund failed work with idempotent transactions.
-68. [ ] **Integrate Stripe billing.** Track customers and subscriptions, verify
+68. [x] **Integrate Stripe billing.** Track customers and subscriptions, verify
    billing webhooks, and expose the Stripe customer portal.
-69. [ ] **Enforce credit limits visibly.** Skip unaffordable reviews with a
+69. [x] **Enforce credit limits visibly.** Skip unaffordable reviews with a
    durable, human-readable reason instead of failing silently.
-70. [ ] **Add the open-source programme.** Accept and audit applications, with
+70. [x] **Add the open-source programme.** Accept and audit applications, with
    explicit approval or rejection transitions and credit grants.
-71. [ ] **Monitor hosted gross margin.** Compare weekly LLM cost with credit
+71. [x] **Monitor hosted gross margin.** Compare weekly LLM cost with credit
    revenue per organization and alert below a sixty-percent threshold.
-72. [ ] **Abstract the source-control provider.** Put diffs, files, comments,
+72. [x] **Abstract the source-control provider.** Put diffs, files, comments,
    threads, statuses, and webhook handling behind a provider-neutral contract.
+73. [x] **Add the GitLab provider.** Support merge-request diffs, files, notes,
+   discussions, statuses, webhooks, and GitLab-specific diff positions.
+74. [ ] **Gate GitLab against GitLab CE.** Run a black-box provider contract
+   suite against a disposable GitLab CE service in CI.
+75. [ ] **Add the Slack app.** Implement OAuth v2, Block Kit digests and alerts,
+   and the `/px1 status` command with signed-request verification.
+76. [ ] **Add Linear and Jira context.** Use OAuth to fetch linked issue details
+   and acceptance criteria detected from branch names and pull-request text.
+77. [ ] **Report requirement coverage.** Ground a prompt section in linked issue
+   requirements and render auditable coverage in the review summary.
+78. [ ] **Demo value during onboarding.** Review the latest merged pull request
+   after installation with explicit provenance and idempotent scheduling.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,
