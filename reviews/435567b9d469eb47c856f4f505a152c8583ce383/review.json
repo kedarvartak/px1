@@ -1,0 +1,1817 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "b3b27fe5fbd307aa139afbfff60b1e6a551d6751",
+  "head": "435567b9d469eb47c856f4f505a152c8583ce383",
+  "generatedAt": "2026-10-29T10:32:38.050574038Z",
+  "files": [
+    {
+      "path": "internal/hosted/integrations/issues/issues.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/integrations/issues/issues.go b/internal/hosted/integrations/issues/issues.go\nnew file mode 100644\nindex 0000000..71cf8a8\n--- /dev/null\n+++ b/internal/hosted/integrations/issues/issues.go\n@@ -0,0 +1,240 @@\n+// Package issues retrieves bounded, OAuth-authorized work-item context.\n+package issues\n+\n+import (\n+\t\"bytes\"\n+\t\"context\"\n+\t\"encoding/json\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"io\"\n+\t\"net/http\"\n+\t\"net/url\"\n+\t\"regexp\"\n+\t\"sort\"\n+\t\"strings\"\n+\t\"time\"\n+)\n+\n+const maxIssueResponse = 2 \u003c\u003c 20\n+\n+var issueKeyPattern = regexp.MustCompile(`\\b[A-Z][A-Z0-9]{1,9}-[1-9][0-9]*\\b`)\n+\n+type Provider string\n+\n+const (\n+\tLinear Provider = \"linear\"\n+\tJira   Provider = \"jira\"\n+)\n+\n+type Issue struct {\n+\tProvider                Provider\n+\tKey, Title, Description string\n+\tAcceptanceCriteria      []string\n+\tURL                     string\n+}\n+type TokenSource interface {\n+\tOAuthToken(context.Context, int64, Provider) (string, error)\n+}\n+type Tracker interface {\n+\tFetchIssue(context.Context, int64, string) (Issue, error)\n+}\n+\n+type OAuthGrant struct {\n+\tProvider     Provider\n+\tAccountID    string\n+\tBaseURL      string\n+\tAccessToken  string\n+\tRefreshToken string\n+\tExpiresAt    time.Time\n+}\n+type OAuthExchanger interface {\n+\tExchangeOAuthCode(context.Context, Provider, string, string) (OAuthGrant, error)\n+}\n+type ConnectionStore interface {\n+\tSaveOAuthConnection(context.Context, int64, OAuthGrant) error\n+}\n+\n+// CompleteOAuth binds the provider and tenant from the already-verified\n+// dashboard session rather than trusting callback query parameters.\n+func CompleteOAuth(ctx context.Context, exchanger OAuthExchanger, store ConnectionStore, installationID int64, provider Provider, code, redirectURI string) error {\n+\tif exchanger == nil || store == nil || installationID \u003c= 0 || (provider != Linear \u0026\u0026 provider != Jira) || code == \"\" || !strings.HasPrefix(redirectURI, \"https://\") {\n+\t\treturn errors.New(\"OAuth exchanger, store, tenant, provider, code, and HTTPS redirect are required\")\n+\t}\n+\tgrant, err := exchanger.ExchangeOAuthCode(ctx, provider, code, redirectURI)\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\tif grant.Provider != provider || grant.AccountID == \"\" || grant.AccessToken == \"\" {\n+\t\treturn errors.New(\"issue tracker OAuth grant is incomplete or for the wrong provider\")\n+\t}\n+\treturn store.SaveOAuthConnection(ctx, installationID, grant)\n+}\n+\n+func DetectIssueKeys(branch, pullBody string) []string {\n+\tseen := map[string]bool{}\n+\tvar keys []string\n+\tfor _, source := range []string{branch, pullBody} {\n+\t\tfor _, key := range issueKeyPattern.FindAllString(strings.ToUpper(source), -1) {\n+\t\t\tif !seen[key] \u0026\u0026 len(keys) \u003c 10 {\n+\t\t\t\tseen[key] = true\n+\t\t\t\tkeys = append(keys, key)\n+\t\t\t}\n+\t\t}\n+\t}\n+\tsort.Strings(keys)\n+\treturn keys\n+}\n+\n+func ExtractAcceptanceCriteria(description string) []string {\n+\tvar criteria []string\n+\tinSection := false\n+\tfor _, raw := range strings.Split(description, \"\\n\") {\n+\t\tline := strings.TrimSpace(raw)\n+\t\tlower := strings.ToLower(strings.Trim(line, \"#*: \"))\n+\t\tif lower == \"acceptance criteria\" || lower == \"acceptance criterion\" {\n+\t\t\tinSection = true\n+\t\t\tcontinue\n+\t\t}\n+\t\tif inSection \u0026\u0026 strings.HasPrefix(line, \"#\") {\n+\t\t\tbreak\n+\t\t}\n+\t\tif strings.HasPrefix(line, \"- [ ] \") || strings.HasPrefix(line, \"- [x] \") || strings.HasPrefix(line, \"- [X] \") {\n+\t\t\tcriteria = append(criteria, strings.TrimSpace(line[6:]))\n+\t\t\tcontinue\n+\t\t}\n+\t\tif inSection \u0026\u0026 (strings.HasPrefix(line, \"- \") || strings.HasPrefix(line, \"* \")) {\n+\t\t\tcriteria = append(criteria, strings.TrimSpace(line[2:]))\n+\t\t}\n+\t\tif len(criteria) == 20 {\n+\t\t\tbreak\n+\t\t}\n+\t}\n+\treturn criteria\n+}\n+\n+type LinearClient struct {\n+\tHTTP    *http.Client\n+\tTokens  TokenSource\n+\tBaseURL string\n+}\n+\n+func (c LinearClient) FetchIssue(ctx context.Context, installationID int64, key string) (Issue, error) {\n+\tif !issueKeyPattern.MatchString(key) {\n+\t\treturn Issue{}, errors.New(\"valid Linear issue key is required\")\n+\t}\n+\tvar response struct {\n+\t\tData struct {\n+\t\t\tIssue struct{ Identifier, Title, Description, URL string } `json:\"issue\"`\n+\t\t} `json:\"data\"`\n+\t\tErrors []any `json:\"errors\"`\n+\t}\n+\tpayload := map[string]any{\"query\": \"query Px1Issue($id: String!) { issue(id: $id) { identifier title description url } }\", \"variables\": map[string]string{\"id\": key}}\n+\tif err := request(ctx, c.HTTP, c.Tokens, installationID, Linear, first(c.BaseURL, \"https://api.linear.app/graphql\"), http.MethodPost, payload, \u0026response); err != nil {\n+\t\treturn Issue{}, err\n+\t}\n+\tif len(response.Errors) \u003e 0 || response.Data.Issue.Identifier == \"\" {\n+\t\treturn Issue{}, errors.New(\"Linear issue was not found\")\n+\t}\n+\titem := response.Data.Issue\n+\treturn Issue{Provider: Linear, Key: item.Identifier, Title: item.Title, Description: item.Description, AcceptanceCriteria: ExtractAcceptanceCriteria(item.Description), URL: item.URL}, nil\n+}\n+\n+type JiraClient struct {\n+\tHTTP    *http.Client\n+\tTokens  TokenSource\n+\tBaseURL string\n+}\n+\n+func (c JiraClient) FetchIssue(ctx context.Context, installationID int64, key string) (Issue, error) {\n+\tif !issueKeyPattern.MatchString(key) || !strings.HasPrefix(c.BaseURL, \"https://\") {\n+\t\treturn Issue{}, errors.New(\"valid Jira URL and issue key are required\")\n+\t}\n+\tvar response struct {\n+\t\tKey    string `json:\"key\"`\n+\t\tFields struct {\n+\t\t\tSummary     string `json:\"summary\"`\n+\t\t\tDescription any    `json:\"description\"`\n+\t\t} `json:\"fields\"`\n+\t}\n+\tendpoint := strings.TrimRight(c.BaseURL, \"/\") + \"/rest/api/3/issue/\" + url.PathEscape(key) + \"?fields=summary,description\"\n+\tif err := request(ctx, c.HTTP, c.Tokens, installationID, Jira, endpoint, http.MethodGet, nil, \u0026response); err != nil {\n+\t\treturn Issue{}, err\n+\t}\n+\tdescription := flattenText(response.Fields.Description)\n+\treturn Issue{Provider: Jira, Key: response.Key, Title: response.Fields.Summary, Description: description, AcceptanceCriteria: ExtractAcceptanceCriteria(description), URL: strings.TrimRight(c.BaseURL, \"/\") + \"/browse/\" + url.PathEscape(response.Key)}, nil\n+}\n+\n+func request(ctx context.Context, client *http.Client, tokens TokenSource, installationID int64, provider Provider, endpoint, method string, payload, output any) error {\n+\tif tokens == nil || installationID \u003c= 0 {\n+\t\treturn errors.New(\"OAuth token source and tenant are required\")\n+\t}\n+\ttoken, err := tokens.OAuthToken(ctx, installationID, provider)\n+\tif err != nil || token == \"\" {\n+\t\treturn errors.New(\"OAuth token is unavailable\")\n+\t}\n+\tvar body io.Reader\n+\tif payload != nil {\n+\t\tencoded, err := json.Marshal(payload)\n+\t\tif err != nil {\n+\t\t\treturn err\n+\t\t}\n+\t\tbody = bytes.NewReader(encoded)\n+\t}\n+\treq, err := http.NewRequestWithContext(ctx, method, endpoint, body)\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\treq.Header.Set(\"Authorization\", \"Bearer \"+token)\n+\treq.Header.Set(\"Accept\", \"application/json\")\n+\tif payload != nil {\n+\t\treq.Header.Set(\"Content-Type\", \"application/json\")\n+\t}\n+\tif client == nil {\n+\t\tclient = \u0026http.Client{Timeout: 10 * time.Second}\n+\t}\n+\tres, err := client.Do(req)\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\tdefer res.Body.Close()\n+\tif res.StatusCode \u003c 200 || res.StatusCode \u003e= 300 {\n+\t\t_, _ = io.Copy(io.Discard, io.LimitReader(res.Body, maxIssueResponse))\n+\t\treturn fmt.Errorf(\"%s returned status %d\", provider, res.StatusCode)\n+\t}\n+\treturn json.NewDecoder(io.LimitReader(res.Body, maxIssueResponse)).Decode(output)\n+}\n+\n+func flattenText(value any) string {\n+\tvar parts []string\n+\tvar walk func(any)\n+\twalk = func(node any) {\n+\t\tswitch typed := node.(type) {\n+\t\tcase string:\n+\t\t\tif strings.TrimSpace(typed) != \"\" {\n+\t\t\t\tparts = append(parts, typed)\n+\t\t\t}\n+\t\tcase []any:\n+\t\t\tfor _, child := range typed {\n+\t\t\t\twalk(child)\n+\t\t\t}\n+\t\tcase map[string]any:\n+\t\t\tif text, ok := typed[\"text\"]; ok {\n+\t\t\t\twalk(text)\n+\t\t\t} else if content, ok := typed[\"content\"]; ok {\n+\t\t\t\twalk(content)\n+\t\t\t}\n+\t\t}\n+\t}\n+\twalk(value)\n+\treturn strings.Join(parts, \"\\n\")\n+}\n+\n+func first(values ...string) string {\n+\tfor _, value := range values {\n+\t\tif value != \"\" {\n+\t\t\treturn value\n+\t\t}\n+\t}\n+\treturn \"\"\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-70a5f8cc1a0d8597",
+          "header": "@@ -0,0 +1,240 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "// Package issues retrieves bounded, OAuth-authorized work-item context."
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "package issues"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"bytes\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"io\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"net/http\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\"net/url\""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t\"regexp\""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\t\"sort\""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "const maxIssueResponse = 2 \u003c\u003c 20"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "var issueKeyPattern = regexp.MustCompile(`\\b[A-Z][A-Z0-9]{1,9}-[1-9][0-9]*\\b`)"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "type Provider string"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "const ("
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tLinear Provider = \"linear\""
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tJira   Provider = \"jira\""
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "type Issue struct {"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tProvider                Provider"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tKey, Title, Description string"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tAcceptanceCriteria      []string"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tURL                     string"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "type TokenSource interface {"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\tOAuthToken(context.Context, int64, Provider) (string, error)"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "type Tracker interface {"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tFetchIssue(context.Context, int64, string) (Issue, error)"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "type OAuthGrant struct {"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tProvider     Provider"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\tAccountID    string"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\tBaseURL      string"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\tAccessToken  string"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\tRefreshToken string"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\tExpiresAt    time.Time"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "type OAuthExchanger interface {"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\tExchangeOAuthCode(context.Context, Provider, string, string) (OAuthGrant, error)"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "type ConnectionStore interface {"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\tSaveOAuthConnection(context.Context, int64, OAuthGrant) error"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "// CompleteOAuth binds the provider and tenant from the already-verified"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "// dashboard session rather than trusting callback query parameters."
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "func CompleteOAuth(ctx context.Context, exchanger OAuthExchanger, store ConnectionStore, installationID int64, provider Provider, code, redirectURI string) error {"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\tif exchanger == nil || store == nil || installationID \u003c= 0 || (provider != Linear \u0026\u0026 provider != Jira) || code == \"\" || !strings.HasPrefix(redirectURI, \"https://\") {"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"OAuth exchanger, store, tenant, provider, code, and HTTPS redirect are required\")"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\tgrant, err := exchanger.ExchangeOAuthCode(ctx, provider, code, redirectURI)"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\tif grant.Provider != provider || grant.AccountID == \"\" || grant.AccessToken == \"\" {"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"issue tracker OAuth grant is incomplete or for the wrong provider\")"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\treturn store.SaveOAuthConnection(ctx, installationID, grant)"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "func DetectIssueKeys(branch, pullBody string) []string {"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\tseen := map[string]bool{}"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\tvar keys []string"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\tfor _, source := range []string{branch, pullBody} {"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t\tfor _, key := range issueKeyPattern.FindAllString(strings.ToUpper(source), -1) {"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\t\t\tif !seen[key] \u0026\u0026 len(keys) \u003c 10 {"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t\t\t\tseen[key] = true"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\t\t\t\tkeys = append(keys, key)"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\tsort.Strings(keys)"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\treturn keys"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "func ExtractAcceptanceCriteria(description string) []string {"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\tvar criteria []string"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\tinSection := false"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\tfor _, raw := range strings.Split(description, \"\\n\") {"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\t\tline := strings.TrimSpace(raw)"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t\tlower := strings.ToLower(strings.Trim(line, \"#*: \"))"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t\tif lower == \"acceptance criteria\" || lower == \"acceptance criterion\" {"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\t\t\tinSection = true"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\t\tif inSection \u0026\u0026 strings.HasPrefix(line, \"#\") {"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\t\t\tbreak"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\t\tif strings.HasPrefix(line, \"- [ ] \") || strings.HasPrefix(line, \"- [x] \") || strings.HasPrefix(line, \"- [X] \") {"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t\t\tcriteria = append(criteria, strings.TrimSpace(line[6:]))"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\t\tif inSection \u0026\u0026 (strings.HasPrefix(line, \"- \") || strings.HasPrefix(line, \"* \")) {"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\t\t\tcriteria = append(criteria, strings.TrimSpace(line[2:]))"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\t\tif len(criteria) == 20 {"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\t\t\tbreak"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\treturn criteria"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "type LinearClient struct {"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\tHTTP    *http.Client"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\tTokens  TokenSource"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\tBaseURL string"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "func (c LinearClient) FetchIssue(ctx context.Context, installationID int64, key string) (Issue, error) {"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "\tif !issueKeyPattern.MatchString(key) {"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\t\treturn Issue{}, errors.New(\"valid Linear issue key is required\")"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\tvar response struct {"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\t\tData struct {"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\t\t\tIssue struct{ Identifier, Title, Description, URL string } `json:\"issue\"`"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\t\t} `json:\"data\"`"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\t\tErrors []any `json:\"errors\"`"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\tpayload := map[string]any{\"query\": \"query Px1Issue($id: String!) { issue(id: $id) { identifier title description url } }\", \"variables\": map[string]string{\"id\": key}}"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\tif err := request(ctx, c.HTTP, c.Tokens, installationID, Linear, first(c.BaseURL, \"https://api.linear.app/graphql\"), http.MethodPost, payload, \u0026response); err != nil {"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\t\treturn Issue{}, err"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\tif len(response.Errors) \u003e 0 || response.Data.Issue.Identifier == \"\" {"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\t\treturn Issue{}, errors.New(\"Linear issue was not found\")"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\titem := response.Data.Issue"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "\treturn Issue{Provider: Linear, Key: item.Identifier, Title: item.Title, Description: item.Description, AcceptanceCriteria: ExtractAcceptanceCriteria(item.Description), URL: item.URL}, nil"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "type JiraClient struct {"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\tHTTP    *http.Client"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\tTokens  TokenSource"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\tBaseURL string"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "func (c JiraClient) FetchIssue(ctx context.Context, installationID int64, key string) (Issue, error) {"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "\tif !issueKeyPattern.MatchString(key) || !strings.HasPrefix(c.BaseURL, \"https://\") {"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "\t\treturn Issue{}, errors.New(\"valid Jira URL and issue key are required\")"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "\tvar response struct {"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "\t\tKey    string `json:\"key\"`"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "\t\tFields struct {"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "\t\t\tSummary     string `json:\"summary\"`"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "\t\t\tDescription any    `json:\"description\"`"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "\t\t} `json:\"fields\"`"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "\tendpoint := strings.TrimRight(c.BaseURL, \"/\") + \"/rest/api/3/issue/\" + url.PathEscape(key) + \"?fields=summary,description\""
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "\tif err := request(ctx, c.HTTP, c.Tokens, installationID, Jira, endpoint, http.MethodGet, nil, \u0026response); err != nil {"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "\t\treturn Issue{}, err"
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "\tdescription := flattenText(response.Fields.Description)"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": "\treturn Issue{Provider: Jira, Key: response.Key, Title: response.Fields.Summary, Description: description, AcceptanceCriteria: ExtractAcceptanceCriteria(description), URL: strings.TrimRight(c.BaseURL, \"/\") + \"/browse/\" + url.PathEscape(response.Key)}, nil"
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": "func request(ctx context.Context, client *http.Client, tokens TokenSource, installationID int64, provider Provider, endpoint, method string, payload, output any) error {"
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "\tif tokens == nil || installationID \u003c= 0 {"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"OAuth token source and tenant are required\")"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "\ttoken, err := tokens.OAuthToken(ctx, installationID, provider)"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "\tif err != nil || token == \"\" {"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"OAuth token is unavailable\")"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "\tvar body io.Reader"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": "\tif payload != nil {"
+            },
+            {
+              "newLine": 178,
+              "kind": "added",
+              "text": "\t\tencoded, err := json.Marshal(payload)"
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 180,
+              "kind": "added",
+              "text": "\t\t\treturn err"
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": "\t\tbody = bytes.NewReader(encoded)"
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 184,
+              "kind": "added",
+              "text": "\treq, err := http.NewRequestWithContext(ctx, method, endpoint, body)"
+            },
+            {
+              "newLine": 185,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 186,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": "\treq.Header.Set(\"Authorization\", \"Bearer \"+token)"
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "\treq.Header.Set(\"Accept\", \"application/json\")"
+            },
+            {
+              "newLine": 190,
+              "kind": "added",
+              "text": "\tif payload != nil {"
+            },
+            {
+              "newLine": 191,
+              "kind": "added",
+              "text": "\t\treq.Header.Set(\"Content-Type\", \"application/json\")"
+            },
+            {
+              "newLine": 192,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 193,
+              "kind": "added",
+              "text": "\tif client == nil {"
+            },
+            {
+              "newLine": 194,
+              "kind": "added",
+              "text": "\t\tclient = \u0026http.Client{Timeout: 10 * time.Second}"
+            },
+            {
+              "newLine": 195,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 196,
+              "kind": "added",
+              "text": "\tres, err := client.Do(req)"
+            },
+            {
+              "newLine": 197,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 198,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 199,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 200,
+              "kind": "added",
+              "text": "\tdefer res.Body.Close()"
+            },
+            {
+              "newLine": 201,
+              "kind": "added",
+              "text": "\tif res.StatusCode \u003c 200 || res.StatusCode \u003e= 300 {"
+            },
+            {
+              "newLine": 202,
+              "kind": "added",
+              "text": "\t\t_, _ = io.Copy(io.Discard, io.LimitReader(res.Body, maxIssueResponse))"
+            },
+            {
+              "newLine": 203,
+              "kind": "added",
+              "text": "\t\treturn fmt.Errorf(\"%s returned status %d\", provider, res.StatusCode)"
+            },
+            {
+              "newLine": 204,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 205,
+              "kind": "added",
+              "text": "\treturn json.NewDecoder(io.LimitReader(res.Body, maxIssueResponse)).Decode(output)"
+            },
+            {
+              "newLine": 206,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 207,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 208,
+              "kind": "added",
+              "text": "func flattenText(value any) string {"
+            },
+            {
+              "newLine": 209,
+              "kind": "added",
+              "text": "\tvar parts []string"
+            },
+            {
+              "newLine": 210,
+              "kind": "added",
+              "text": "\tvar walk func(any)"
+            },
+            {
+              "newLine": 211,
+              "kind": "added",
+              "text": "\twalk = func(node any) {"
+            },
+            {
+              "newLine": 212,
+              "kind": "added",
+              "text": "\t\tswitch typed := node.(type) {"
+            },
+            {
+              "newLine": 213,
+              "kind": "added",
+              "text": "\t\tcase string:"
+            },
+            {
+              "newLine": 214,
+              "kind": "added",
+              "text": "\t\t\tif strings.TrimSpace(typed) != \"\" {"
+            },
+            {
+              "newLine": 215,
+              "kind": "added",
+              "text": "\t\t\t\tparts = append(parts, typed)"
+            },
+            {
+              "newLine": 216,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 217,
+              "kind": "added",
+              "text": "\t\tcase []any:"
+            },
+            {
+              "newLine": 218,
+              "kind": "added",
+              "text": "\t\t\tfor _, child := range typed {"
+            },
+            {
+              "newLine": 219,
+              "kind": "added",
+              "text": "\t\t\t\twalk(child)"
+            },
+            {
+              "newLine": 220,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 221,
+              "kind": "added",
+              "text": "\t\tcase map[string]any:"
+            },
+            {
+              "newLine": 222,
+              "kind": "added",
+              "text": "\t\t\tif text, ok := typed[\"text\"]; ok {"
+            },
+            {
+              "newLine": 223,
+              "kind": "added",
+              "text": "\t\t\t\twalk(text)"
+            },
+            {
+              "newLine": 224,
+              "kind": "added",
+              "text": "\t\t\t} else if content, ok := typed[\"content\"]; ok {"
+            },
+            {
+              "newLine": 225,
+              "kind": "added",
+              "text": "\t\t\t\twalk(content)"
+            },
+            {
+              "newLine": 226,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 227,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 228,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 229,
+              "kind": "added",
+              "text": "\twalk(value)"
+            },
+            {
+              "newLine": 230,
+              "kind": "added",
+              "text": "\treturn strings.Join(parts, \"\\n\")"
+            },
+            {
+              "newLine": 231,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 232,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 233,
+              "kind": "added",
+              "text": "func first(values ...string) string {"
+            },
+            {
+              "newLine": 234,
+              "kind": "added",
+              "text": "\tfor _, value := range values {"
+            },
+            {
+              "newLine": 235,
+              "kind": "added",
+              "text": "\t\tif value != \"\" {"
+            },
+            {
+              "newLine": 236,
+              "kind": "added",
+              "text": "\t\t\treturn value"
+            },
+            {
+              "newLine": 237,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 238,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 239,
+              "kind": "added",
+              "text": "\treturn \"\""
+            },
+            {
+              "newLine": 240,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/integrations/issues/issues_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/integrations/issues/issues_test.go b/internal/hosted/integrations/issues/issues_test.go\nnew file mode 100644\nindex 0000000..84cc4d7\n--- /dev/null\n+++ b/internal/hosted/integrations/issues/issues_test.go\n@@ -0,0 +1,50 @@\n+package issues\n+\n+import (\n+\t\"context\"\n+\t\"io\"\n+\t\"net/http\"\n+\t\"net/http/httptest\"\n+\t\"reflect\"\n+\t\"testing\"\n+)\n+\n+type tokens struct{}\n+\n+func (tokens) OAuthToken(context.Context, int64, Provider) (string, error) { return \"oauth-token\", nil }\n+\n+func TestDetectIssueKeysAndAcceptanceCriteria(t *testing.T) {\n+\tkeys := DetectIssueKeys(\"feature/eng-123\", \"Implements OPS-9 and ENG-123\")\n+\tif !reflect.DeepEqual(keys, []string{\"ENG-123\", \"OPS-9\"}) {\n+\t\tt.Fatalf(\"keys=%v\", keys)\n+\t}\n+\tcriteria := ExtractAcceptanceCriteria(\"## Acceptance criteria\\n- [ ] retries safely\\n- preserves evidence\\n## Notes\\n- ignore\")\n+\tif !reflect.DeepEqual(criteria, []string{\"retries safely\", \"preserves evidence\"}) {\n+\t\tt.Fatalf(\"criteria=%v\", criteria)\n+\t}\n+}\n+\n+func TestLinearClientFetchesBoundedOAuthContext(t *testing.T) {\n+\tserver := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {\n+\t\tif r.Header.Get(\"Authorization\") != \"Bearer oauth-token\" {\n+\t\t\tt.Fatal(\"missing OAuth token\")\n+\t\t}\n+\t\t_, _ = io.WriteString(w, `{\"data\":{\"issue\":{\"identifier\":\"ENG-123\",\"title\":\"Retry safely\",\"description\":\"## Acceptance criteria\\n- [ ] retries safely\",\"url\":\"https://linear.app/acme/issue/ENG-123\"}}}`)\n+\t}))\n+\tdefer server.Close()\n+\tissue, err := (LinearClient{HTTP: server.Client(), Tokens: tokens{}, BaseURL: server.URL}).FetchIssue(context.Background(), 1, \"ENG-123\")\n+\tif err != nil || issue.Title != \"Retry safely\" || len(issue.AcceptanceCriteria) != 1 {\n+\t\tt.Fatalf(\"issue=%#v err=%v\", issue, err)\n+\t}\n+}\n+\n+func TestJiraClientFlattensADFDescription(t *testing.T) {\n+\tserver := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {\n+\t\t_, _ = io.WriteString(w, `{\"key\":\"OPS-9\",\"fields\":{\"summary\":\"Keep evidence\",\"description\":{\"content\":[{\"content\":[{\"text\":\"Acceptance criteria\"}]},{\"content\":[{\"text\":\"- [ ] show provenance\"}]}]}}}`)\n+\t}))\n+\tdefer server.Close()\n+\tissue, err := (JiraClient{HTTP: server.Client(), Tokens: tokens{}, BaseURL: server.URL}).FetchIssue(context.Background(), 1, \"OPS-9\")\n+\tif err != nil || issue.Key != \"OPS-9\" || len(issue.AcceptanceCriteria) != 1 {\n+\t\tt.Fatalf(\"issue=%#v err=%v\", issue, err)\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-af69b0b5a323d90c",
+          "header": "@@ -0,0 +1,50 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package issues"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"io\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"net/http\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"net/http/httptest\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"reflect\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "type tokens struct{}"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "func (tokens) OAuthToken(context.Context, int64, Provider) (string, error) { return \"oauth-token\", nil }"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "func TestDetectIssueKeysAndAcceptanceCriteria(t *testing.T) {"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tkeys := DetectIssueKeys(\"feature/eng-123\", \"Implements OPS-9 and ENG-123\")"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tif !reflect.DeepEqual(keys, []string{\"ENG-123\", \"OPS-9\"}) {"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"keys=%v\", keys)"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tcriteria := ExtractAcceptanceCriteria(\"## Acceptance criteria\\n- [ ] retries safely\\n- preserves evidence\\n## Notes\\n- ignore\")"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tif !reflect.DeepEqual(criteria, []string{\"retries safely\", \"preserves evidence\"}) {"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"criteria=%v\", criteria)"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "func TestLinearClientFetchesBoundedOAuthContext(t *testing.T) {"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tserver := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t\tif r.Header.Get(\"Authorization\") != \"Bearer oauth-token\" {"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t\t\tt.Fatal(\"missing OAuth token\")"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t\t_, _ = io.WriteString(w, `{\"data\":{\"issue\":{\"identifier\":\"ENG-123\",\"title\":\"Retry safely\",\"description\":\"## Acceptance criteria\\n- [ ] retries safely\",\"url\":\"https://linear.app/acme/issue/ENG-123\"}}}`)"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t}))"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tdefer server.Close()"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tissue, err := (LinearClient{HTTP: server.Client(), Tokens: tokens{}, BaseURL: server.URL}).FetchIssue(context.Background(), 1, \"ENG-123\")"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tif err != nil || issue.Title != \"Retry safely\" || len(issue.AcceptanceCriteria) != 1 {"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"issue=%#v err=%v\", issue, err)"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "func TestJiraClientFlattensADFDescription(t *testing.T) {"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tserver := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t\t_, _ = io.WriteString(w, `{\"key\":\"OPS-9\",\"fields\":{\"summary\":\"Keep evidence\",\"description\":{\"content\":[{\"content\":[{\"text\":\"Acceptance criteria\"}]},{\"content\":[{\"text\":\"- [ ] show provenance\"}]}]}}}`)"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t}))"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\tdefer server.Close()"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\tissue, err := (JiraClient{HTTP: server.Client(), Tokens: tokens{}, BaseURL: server.URL}).FetchIssue(context.Background(), 1, \"OPS-9\")"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\tif err != nil || issue.Key != \"OPS-9\" || len(issue.AcceptanceCriteria) != 1 {"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"issue=%#v err=%v\", issue, err)"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "migrations/0016_issue_tracker_connections.down.sql",
+      "status": "A",
+      "diff": "diff --git a/migrations/0016_issue_tracker_connections.down.sql b/migrations/0016_issue_tracker_connections.down.sql\nnew file mode 100644\nindex 0000000..a060297\n--- /dev/null\n+++ b/migrations/0016_issue_tracker_connections.down.sql\n@@ -0,0 +1,3 @@\n+BEGIN;\n+DROP TABLE IF EXISTS issue_tracker_connections;\n+COMMIT;\n",
+      "hunks": [
+        {
+          "id": "diff-5e240d3804f18a6f",
+          "header": "@@ -0,0 +1,3 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "BEGIN;"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "DROP TABLE IF EXISTS issue_tracker_connections;"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "COMMIT;"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "migrations/0016_issue_tracker_connections.up.sql",
+      "status": "A",
+      "diff": "diff --git a/migrations/0016_issue_tracker_connections.up.sql b/migrations/0016_issue_tracker_connections.up.sql\nnew file mode 100644\nindex 0000000..7f8708c\n--- /dev/null\n+++ b/migrations/0016_issue_tracker_connections.up.sql\n@@ -0,0 +1,16 @@\n+BEGIN;\n+CREATE TABLE issue_tracker_connections (\n+    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,\n+    provider text NOT NULL CHECK (provider IN ('linear', 'jira')),\n+    account_id text NOT NULL CHECK (length(account_id) BETWEEN 1 AND 200),\n+    base_url text NOT NULL DEFAULT '',\n+    encrypted_access_token bytea NOT NULL,\n+    encrypted_refresh_token bytea,\n+    expires_at timestamptz,\n+    connected_at timestamptz NOT NULL DEFAULT now(),\n+    PRIMARY KEY (installation_id, provider, account_id)\n+);\n+ALTER TABLE issue_tracker_connections ENABLE ROW LEVEL SECURITY;\n+ALTER TABLE issue_tracker_connections FORCE ROW LEVEL SECURITY;\n+CREATE POLICY tenant_isolation ON issue_tracker_connections USING (installation_id = current_setting('px1.installation_id', true)::bigint) WITH CHECK (installation_id = current_setting('px1.installation_id', true)::bigint);\n+COMMIT;\n",
+      "hunks": [
+        {
+          "id": "diff-3347dd576b10056e",
+          "header": "@@ -0,0 +1,16 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "BEGIN;"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "CREATE TABLE issue_tracker_connections ("
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "    provider text NOT NULL CHECK (provider IN ('linear', 'jira')),"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "    account_id text NOT NULL CHECK (length(account_id) BETWEEN 1 AND 200),"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "    base_url text NOT NULL DEFAULT '',"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "    encrypted_access_token bytea NOT NULL,"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "    encrypted_refresh_token bytea,"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "    expires_at timestamptz,"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "    connected_at timestamptz NOT NULL DEFAULT now(),"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "    PRIMARY KEY (installation_id, provider, account_id)"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ");"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "ALTER TABLE issue_tracker_connections ENABLE ROW LEVEL SECURITY;"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "ALTER TABLE issue_tracker_connections FORCE ROW LEVEL SECURITY;"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "CREATE POLICY tenant_isolation ON issue_tracker_connections USING (installation_id = current_setting('px1.installation_id', true)::bigint) WITH CHECK (installation_id = current_setting('px1.installation_id', true)::bigint);"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "COMMIT;"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-873be71aed1a3199",
+      "title": "Issue_tracker_connections changes",
+      "summary": "4 related files share the \"issue_tracker_connections\" change signal.",
+      "paths": [
+        "internal/hosted/integrations/issues/issues.go",
+        "internal/hosted/integrations/issues/issues_test.go",
+        "migrations/0016_issue_tracker_connections.down.sql",
+        "migrations/0016_issue_tracker_connections.up.sql"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-0d04c8c434cf897e",
+      "path": "internal/hosted/integrations/issues/issues.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/integrations/issues/issues_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-bf62dd4d82fe9d9d",
+      "path": "internal/hosted/integrations/issues/issues.go",
+      "line": 60,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func CompleteOAuth(ctx context.Context, exchanger OAuthExchanger, store ConnectionStore, installationID int64, provider Provider, code, redirectURI string) error {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    },
+    {
+      "id": "inspect-e814bd81700590b2",
+      "path": "migrations/0016_issue_tracker_connections.down.sql",
+      "kind": "schema",
+      "observation": "The changed path is migration, schema, or SQL-related: migrations/0016_issue_tracker_connections.down.sql.",
+      "question": "What happens to existing data during deploy, rollback, and mixed-version operation?",
+      "related": []
+    },
+    {
+      "id": "inspect-963ee32efeb1eb6d",
+      "path": "migrations/0016_issue_tracker_connections.up.sql",
+      "kind": "schema",
+      "observation": "The changed path is migration, schema, or SQL-related: migrations/0016_issue_tracker_connections.up.sql.",
+      "question": "What happens to existing data during deploy, rollback, and mixed-version operation?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 4,
+    "filesAnalyzed": 4,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "oauth-completion",
+      "path": "internal/hosted/integrations/issues/issues.go",
+      "lineStart": 60,
+      "lineEnd": 68,
+      "title": "Bind tracker OAuth connections to the installation",
+      "summary": "OAuth completion uses the verified installation and requested provider, rejects incomplete or mismatched grants, and saves the resulting connection for that installation."
+    },
+    {
+      "id": "issue-key-detection",
+      "path": "internal/hosted/integrations/issues/issues.go",
+      "lineStart": 70,
+      "lineEnd": 82,
+      "title": "Detect a bounded set of issue keys",
+      "summary": "Issue keys found in branch names and pull-request text are normalized, deduplicated, sorted, and limited to ten results."
+    },
+    {
+      "id": "acceptance-criteria",
+      "path": "internal/hosted/integrations/issues/issues.go",
+      "lineStart": 84,
+      "lineEnd": 108,
+      "title": "Extract acceptance criteria from descriptions",
+      "summary": "Descriptions can yield up to 20 acceptance criteria from acceptance-criteria sections and checklist items, giving callers structured requirements alongside the raw text."
+    },
+    {
+      "id": "tracker-fetch",
+      "path": "internal/hosted/integrations/issues/issues.go",
+      "lineStart": 114,
+      "lineEnd": 154,
+      "title": "Fetch issue context from Linear or Jira",
+      "summary": "Linear and Jira clients fetch issue details using the installation’s OAuth token and return a common issue shape; Jira’s structured description is flattened before criteria are extracted."
+    },
+    {
+      "id": "bounded-requests",
+      "path": "internal/hosted/integrations/issues/issues.go",
+      "lineStart": 156,
+      "lineEnd": 192,
+      "title": "Bound tracker request handling",
+      "summary": "Tracker requests use a ten-second default timeout and limit response processing to 2 MiB, including when discarding an error response body."
+    },
+    {
+      "id": "tenant-storage",
+      "path": "migrations/0016_issue_tracker_connections.up.sql",
+      "lineStart": 2,
+      "lineEnd": 15,
+      "title": "Store tracker connections with tenant isolation",
+      "summary": "Tracker connections are stored per installation, provider, and account, with token fields for encrypted credentials; row-level security restricts access to the active installation."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "b3b27fe5fbd307aa139afbfff60b1e6a551d6751",
+      "revision": "435567b9d469eb47c856f4f505a152c8583ce383",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "b3b27fe5fbd307aa139afbfff60b1e6a551d6751",
+      "revision": "435567b9d469eb47c856f4f505a152c8583ce383",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "435567b9d469eb47c856f4f505a152c8583ce383",
+      "detail": "6 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "435567b9d469eb47c856f4f505a152c8583ce383",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-9c13e429f84f512e",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/integrations/issues/issues.go",
+      "line": 60,
+      "evidence": "func CompleteOAuth(ctx context.Context, exchanger OAuthExchanger, store ConnectionStore, installationID int64, provider Provider, code, redirectURI string) error {"
+    },
+    {
+      "id": "attention-b1be88bb5f543b33",
+      "rule": "schema",
+      "title": "Schema or migration",
+      "reason": "Schema and migration changes can affect stored data and deployment order.",
+      "path": "migrations/0016_issue_tracker_connections.down.sql",
+      "evidence": "migrations/0016_issue_tracker_connections.down.sql"
+    },
+    {
+      "id": "attention-f9dbbe5befa1bb4e",
+      "rule": "schema",
+      "title": "Schema or migration",
+      "reason": "Schema and migration changes can affect stored data and deployment order.",
+      "path": "migrations/0016_issue_tracker_connections.up.sql",
+      "evidence": "migrations/0016_issue_tracker_connections.up.sql"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "435567b9d469eb47c856f4f505a152c8583ce383",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/40858237304",
+    "checks": [
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40858239881/job/123394575348",
+        "startedAt": "2026-10-29T10:31:34Z"
+      },
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/40858237304/job/123394569770",
+        "startedAt": "2026-10-29T10:31:35Z"
+      }
+    ]
+  }
+}
