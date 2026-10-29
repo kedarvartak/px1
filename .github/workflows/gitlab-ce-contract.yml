@@ -1,0 +1,47 @@
+name: GitLab CE provider contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "internal/hosted/gitlab/**"
+      - "internal/hosted/scm/**"
+      - "integration/gitlabce/**"
+      - ".github/workflows/gitlab-ce-contract.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GITLAB_ROOT_PASSWORD: px1-contract-password-2026
+      GITLAB_TOKEN: glpat-px1-contract-token-2026-secure
+      GITLAB_CE_URL: http://127.0.0.1:8929
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Start pinned GitLab CE
+        run: |
+          docker run --detach --name gitlab-ce --hostname gitlab.local \
+            --publish 8929:8929 --shm-size 256m \
+            --env GITLAB_ROOT_PASSWORD="$GITLAB_ROOT_PASSWORD" \
+            --env "GITLAB_OMNIBUS_CONFIG=external_url 'http://gitlab.local:8929'; gitlab_rails['initial_root_password'] = '$GITLAB_ROOT_PASSWORD'; prometheus_monitoring['enable'] = false;" \
+            gitlab/gitlab-ce:19.5.0-ce.0
+      - name: Wait for GitLab
+        run: |
+          for attempt in $(seq 1 90); do
+            if curl --fail --silent "$GITLAB_CE_URL/-/readiness" >/dev/null; then exit 0; fi
+            sleep 10
+          done
+          docker logs gitlab-ce
+          exit 1
+      - name: Run provider contract
+        run: |
+          docker exec --env PX1_CONTRACT_TOKEN="$GITLAB_TOKEN" gitlab-ce gitlab-rails runner \
+            "token = User.find_by_username('root').personal_access_tokens.create!(name: 'px1-contract', scopes: [:api]); token.set_token(ENV.fetch('PX1_CONTRACT_TOKEN')); token.save!"
+          go test -tags=gitlabce -count=1 ./integration/gitlabce
