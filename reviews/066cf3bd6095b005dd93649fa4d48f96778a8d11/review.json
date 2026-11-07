@@ -3,7 +3,7 @@
   "repository": "px1",
   "base": "88809fc86626e5a754d07d321c55f366eed55da9",
   "head": "066cf3bd6095b005dd93649fa4d48f96778a8d11",
-  "generatedAt": "2026-11-07T09:22:42.054961595Z",
+  "generatedAt": "2026-11-07T09:39:33.389437746Z",
   "files": [
     {
       "path": "ROADMAP.md",
@@ -3338,74 +3338,58 @@
     {
       "id": "1",
       "path": "internal/hosted/agent/tools.go",
-      "lineStart": 109,
-      "lineEnd": 130,
-      "title": "Hide unavailable tools",
-      "summary": "The model is offered only tools with configured backing stores, so it cannot select tools that are unavailable for a review."
+      "lineStart": 119,
+      "lineEnd": 146,
+      "title": "Tools are enabled per configured store",
+      "summary": "The model is offered only tools with configured backing stores. Calls to unavailable or unknown tools fail instead of silently using a fallback."
     },
     {
       "id": "2",
       "path": "internal/hosted/agent/tools.go",
-      "lineStart": 150,
-      "lineEnd": 155,
-      "title": "Require a pinned review scope",
-      "summary": "Dispatch rejects calls unless they include a positive installation and repository ID and a full lowercase 40-character commit SHA. This prevents tool reads without a pinned tenant and revision."
+      "lineStart": 161,
+      "lineEnd": 194,
+      "title": "Calls require a pinned review scope",
+      "summary": "Every dispatch requires an installation, repository, and full head SHA, so tool calls are rejected unless they are scoped to a specific tenant and review revision."
     },
     {
       "id": "3",
       "path": "internal/hosted/agent/tools.go",
-      "lineStart": 154,
-      "lineEnd": 172,
-      "title": "Reject invalid calls",
-      "summary": "Calls with oversized arguments, unknown tool names, or tool-specific validation errors fail before returning tool output."
-    },
-    {
-      "id": "5",
-      "path": "internal/hosted/agent/tools.go",
-      "lineStart": 210,
-      "lineEnd": 238,
-      "title": "Bound code search",
-      "summary": "Search queries must be 1–200 bytes, and results are capped at 20 even if the backing search returns more."
-    },
-    {
-      "id": "6",
-      "path": "internal/hosted/agent/tools.go",
-      "lineStart": 240,
-      "lineEnd": 269,
-      "title": "Scope graph lookups",
-      "summary": "Graph lookups resolve the requested symbol in the scoped repository and revision, then query callers or callees with a two-hop, 50-symbol bound. Missing symbols return an explanatory result rather than failing the call."
-    },
-    {
-      "id": "7",
-      "path": "internal/hosted/agent/tools.go",
-      "lineStart": 271,
-      "lineEnd": 310,
-      "title": "Bound history reads",
-      "summary": "Blame uses the bounded line-range validation, while file history is limited to 20 commits."
-    },
-    {
-      "id": "8",
-      "path": "internal/hosted/agent/tools.go",
-      "lineStart": 312,
-      "lineEnd": 341,
-      "title": "Restrict issue reads to linked keys",
-      "summary": "Issue reads are allowed only for keys already linked from the pull request, preventing a call from fetching an unrelated issue in the same tenant."
+      "lineStart": 205,
+      "lineEnd": 229,
+      "title": "File access is constrained",
+      "summary": "File reads and blame requests accept only normalized repository-relative paths and valid ranges of at most 400 lines. Arguments also reject unknown fields and trailing data, with a 4 KiB limit."
     },
     {
       "id": "4",
       "path": "internal/hosted/agent/tools.go",
-      "lineStart": 345,
-      "lineEnd": 380,
-      "title": "Constrain arguments and paths",
-      "summary": "Argument decoding rejects unknown fields and trailing data. File and history ranges are limited to 400 lines, and paths are normalized and rejected if they escape the repository."
+      "lineStart": 231,
+      "lineEnd": 281,
+      "title": "Search and graph results are bounded",
+      "summary": "Search is limited to 20 hits. Graph lookups resolve a symbol in the pinned repository and limit traversal to two hops and 50 symbols."
     },
     {
-      "id": "9",
+      "id": "5",
       "path": "internal/hosted/agent/tools.go",
-      "lineStart": 381,
-      "lineEnd": 397,
-      "title": "Cap tool output",
-      "summary": "Tool results are capped at 16 KiB by default, cut at a valid UTF-8 boundary, and marked when truncated."
+      "lineStart": 283,
+      "lineEnd": 348,
+      "title": "History queries have fixed limits",
+      "summary": "History access is limited to one file at a time, with at most 400 blame lines or 20 recent commits."
+    },
+    {
+      "id": "6",
+      "path": "internal/hosted/agent/tools.go",
+      "lineStart": 350,
+      "lineEnd": 375,
+      "title": "Issue reads are limited to linked tickets",
+      "summary": "Issue lookup checks the requested key against the pull request’s linked issues before fetching it, preventing a tool call from reading an unrelated issue in the same tenant."
+    },
+    {
+      "id": "7",
+      "path": "internal/hosted/agent/tools.go",
+      "lineStart": 390,
+      "lineEnd": 408,
+      "title": "Tool output is capped",
+      "summary": "Tool responses are capped at 16 KiB by default, truncated on a UTF-8 boundary, and marked when truncated."
     }
   ],
   "findings": [],
@@ -3444,7 +3428,7 @@
       "label": "AI explanations",
       "state": "available",
       "revision": "066cf3bd6095b005dd93649fa4d48f96778a8d11",
-      "detail": "9 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "detail": "7 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
       "limits": []
     },
     {
@@ -3452,7 +3436,7 @@
       "label": "CI verification",
       "state": "available",
       "revision": "066cf3bd6095b005dd93649fa4d48f96778a8d11",
-      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "detail": "4 recorded GitHub Actions checks; this is not a live status feed.",
       "limits": []
     }
   ],
@@ -3479,19 +3463,33 @@
     "available": true,
     "source": "github-actions",
     "revision": "066cf3bd6095b005dd93649fa4d48f96778a8d11",
-    "url": "https://github.com/kedarvartak/px1/actions/runs/42359379406",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42360565995",
     "checks": [
       {
         "name": "publish",
         "status": "running",
-        "url": "https://github.com/kedarvartak/px1/actions/runs/42359379406/job/128364285581",
-        "startedAt": "2026-11-07T09:21:21Z"
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42360565995/job/128367872160",
+        "startedAt": "2026-11-07T09:38:14Z"
       },
       {
         "name": "browser",
         "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42360565655/job/128367869839",
+        "startedAt": "2026-11-07T09:38:11Z"
+      },
+      {
+        "name": "publish (2)",
+        "status": "passed",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42359379406/job/128364285581",
+        "startedAt": "2026-11-07T09:21:21Z",
+        "finishedAt": "2026-11-07T09:22:55Z"
+      },
+      {
+        "name": "browser (2)",
+        "status": "passed",
         "url": "https://github.com/kedarvartak/px1/actions/runs/42359379387/job/128364284117",
-        "startedAt": "2026-11-07T09:21:19Z"
+        "startedAt": "2026-11-07T09:21:19Z",
+        "finishedAt": "2026-11-07T09:23:07Z"
       }
     ]
   }
