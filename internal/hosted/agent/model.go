@@ -22,6 +22,10 @@ type Model struct {
 	MaxOutputTokens int
 	Meter           *Meter
 	Trace           *Trace
+	// Record, when set, sees every call's prompt and reply (or error). It is
+	// for local debugging by the operator; nothing it receives is written to
+	// reports or traces.
+	Record func(agent, role string, prompt Prompt, reply string, err error)
 	// ContentionWait is how long to wait before retrying a reservation that
 	// other in-flight calls are holding. Defaults to 50ms.
 	ContentionWait time.Duration
@@ -63,6 +67,9 @@ func (m Model) Call(ctx context.Context, agent, role string, prompt Prompt) (str
 		usage = llm.Usage{InputTokens: input}
 	}
 	_ = reservation.Settle(usage.InputTokens, usage.OutputTokens, ActualCost(m.Price, usage))
+	if m.Record != nil {
+		m.Record(agent, role, prompt, response.Text, callErr)
+	}
 	if m.Trace != nil {
 		m.Trace.Model(agent, role, usage.InputTokens, usage.OutputTokens, callErr != nil, elapsed)
 	}

@@ -182,6 +182,13 @@ go run . validate-rules --file .px1/rules.json --json
 Invalid patterns, globs, severities, duplicate IDs, and unsupported schema
 versions fail with a non-zero exit status and a rule-specific message.
 
+## Agentic review of a local clone
+
+`px1 agentic-review` runs the planner, sub-agent, judge, and verifier pipeline
+on two commits of a local clone and writes a report. It previews what it would
+send (`--dry-run`), enforces a cost cap, and blocks secrets and excluded paths
+from the model and every tool. See [the CLI guide](docs/AGENTIC_REVIEW_CLI.md).
+
 ## Agent access over MCP
 
 Coding agents can read px1 reviews and findings through MCP. Run

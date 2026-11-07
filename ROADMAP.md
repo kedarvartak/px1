@@ -219,6 +219,10 @@ backend-foundation tasks are:
 89. [x] **Chain the agentic pipeline.** Plan, investigate in parallel, judge,
     and verify, with a narrowing fallback at every model-dependent stage, a
     privacy guard on every tool, and only verified findings reported.
+90. [x] **Review a local clone from the command line.** `px1 agentic-review`
+    previews what leaves the machine, requires consent, enforces a cost cap,
+    blocks secrets and excluded paths, and writes a report, trace, and feedback
+    sheet.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,

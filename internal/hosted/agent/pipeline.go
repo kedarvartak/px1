@@ -151,7 +151,7 @@ func (p Pipeline) Run(ctx context.Context, in PipelineInput) (PipelineResult, er
 	verified, err := p.verify(ctx, judged, files, note)
 	if err != nil {
 		result.Unverified = judged
-		note("verifying", "verification did not complete (%v); %d candidates are not reported as verified", err, len(judged))
+		note("verifying", "verification did not complete (%s); %d candidates are not reported as verified", describeError(err), len(judged))
 		return finish(nil)
 	}
 	result.Findings = review.RankAndCapFindings(verified, MaxJudgedFindings)
@@ -213,7 +213,7 @@ func (p Pipeline) judge(ctx context.Context, candidates []review.Finding, note f
 	}
 	kept, dropped, err := DecodeJudgmentLenient(reply, candidates)
 	if err != nil {
-		note("judging", "the judge reply was unusable (%v); keeping all %d candidates", err, len(candidates))
+		note("judging", "the judge reply was unusable (%s); keeping all %d candidates", describeError(err), len(candidates))
 		return candidates
 	}
 	for _, drop := range dropped {
@@ -250,7 +250,7 @@ func (p Pipeline) verify(ctx context.Context, findings []review.Finding, files m
 		if result, err = verifier.Verify(ctx, candidates); err == nil || errors.Is(err, ErrBudgetExhausted) || ctx.Err() != nil {
 			break
 		}
-		note("verifying", "verification attempt %d failed: %v", attempt+1, err)
+		note("verifying", "verification attempt %d failed: %s", attempt+1, describeError(err))
 	}
 	if err != nil {
 		return nil, err
@@ -330,4 +330,20 @@ func diffContext(diff string, start, end int) string {
 		}
 	}
 	return clip(strings.Join(picked, "\n"), 2_000)
+}
+
+// describeError classifies a failure for reports and traces. Provider error
+// text is for the operator's terminal only, so a provider failure is reduced to
+// its status code.
+func describeError(err error) string {
+	var provider llm.ProviderError
+	switch {
+	case errors.As(err, &provider):
+		return fmt.Sprintf("the provider returned status %d", provider.StatusCode)
+	case errors.Is(err, ErrBudgetExhausted):
+		return "the review budget ran out"
+	case errors.Is(err, context.DeadlineExceeded):
+		return "the review time limit was reached"
+	}
+	return "the reply was not in the expected format"
 }
