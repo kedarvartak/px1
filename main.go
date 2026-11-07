@@ -44,6 +44,12 @@ func main() {
 		}
 		return
 	}
+	if len(os.Args) > 1 && os.Args[1] == "mcp" {
+		if err := runMCP(os.Args[2:]); err != nil {
+			fatal(err)
+		}
+		return
+	}
 	if len(os.Args) > 1 && os.Args[1] == "export-review" {
 		if err := runExportReview(os.Args[2:]); err != nil {
 			fatal(err)

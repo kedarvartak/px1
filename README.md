@@ -182,6 +182,12 @@ go run . validate-rules --file .px1/rules.json --json
 Invalid patterns, globs, severities, duplicate IDs, and unsupported schema
 versions fail with a non-zero exit status and a rule-specific message.
 
+## Agent access over MCP
+
+Coding agents can read px1 reviews and findings through MCP. Run
+`PX1_API_KEY=px1k_... px1 mcp` as a stdio server; see
+[the MCP server docs](docs/MCP_SERVER.md).
+
 ## Optional explanations
 
 Set `explanation-model` on the px1 Action and provide `OPENAI_API_KEY` through
