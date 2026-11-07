@@ -254,3 +254,27 @@ test('inspection questions separate evidence from prompts and link back to code'
   assert.equal(await page.locator('.inspection-card .act').count(),0,'questions must not become acknowledgement findings');
   await page.close();
 });
+
+test('agentic trace renders as inert text and only when attached',async()=>{
+  const page=await browser.newPage();
+  await page.setContent(reportHTML,{waitUntil:'load'});
+  assert.equal(await page.locator('#how-px1-reviewed').count(),0,'reports without a trace must not show the section');
+  const payload='<img src=x onerror="window.__pwned=1">';
+  const traced=reportVariant((data)=>{data.trace={revision:data.head,tier:'plus',spend:{input_tokens:900,output_tokens:120,cost_microusd:42000,model_calls:3,tool_calls:2,exhausted:'output tokens'},dropped:4,events:[
+    {seq:1,agent:'planner',kind:'model',name:'planner',input_tokens:300,output_tokens:40,elapsed_ms:800},
+    {seq:2,agent:'g1',kind:'tool',name:'read_file',detail:'{"path":"src/orders.ts","start_line":1,"end_line":3}',preview:payload,result_bytes:120,elapsed_ms:12},
+    {seq:3,agent:'g1',kind:'task',name:'failed',detail:'review budget exhausted during this task',failed:true,elapsed_ms:0},
+  ]}});
+  await page.setContent(traced,{waitUntil:'load'});
+  const section=page.locator('#how-px1-reviewed');
+  assert.match(await section.textContent(),/plus tier · 3 model calls · 2 tool calls · \$0\.04 model cost/);
+  assert.match(await section.textContent(),/output tokens budget ran out/);
+  assert.match(await section.textContent(),/4 later steps exceeded the trace limit/);
+  assert.match(await section.textContent(),/does not show that unexamined code is correct/);
+  await section.locator('summary').click();
+  assert.equal(await section.locator('.trace-step').count(),3);
+  assert.equal(await section.locator('.trace-preview').textContent(),payload);
+  assert.equal(await section.locator('img').count(),0,'trace content must never become markup');
+  assert.equal(await page.evaluate(()=>window.__pwned),undefined);
+  await page.close();
+});

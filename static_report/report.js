@@ -162,6 +162,42 @@ for(const source of evidence){
 }
 if(!evidence.length)evidenceList.append(h('li','evidence-source evidence-missing','Evidence metadata is unavailable in this older snapshot. Treat every source as limited.'));
 evidenceSec.append(evidenceHead,evidenceIntro,evidenceList);rail.append(evidenceSec);
+/* The agentic trace shows how findings were produced, step by step. Every
+   string is set with textContent: tool arguments and previews are repository
+   data. The trace explains the process; it is not evidence the code is safe. */
+const trace=report.trace&&Array.isArray(report.trace.events)?report.trace:null;
+if(trace){
+  const traceSec=h('section','evidence trace');traceSec.id='how-px1-reviewed';
+  traceSec.append(h('h2','eyebrow','How px1 reviewed this'));
+  const spend=trace.spend||{};
+  traceSec.append(h('p','evidence-intro',trace.tier+' tier · '+plural(spend.model_calls||0,'model call')+' · '+plural(spend.tool_calls||0,'tool call')+' · $'+((spend.cost_microusd||0)/1e6).toFixed(2)+' model cost'));
+  if(spend.exhausted)traceSec.append(h('p','evidence-limit','Exploration stopped early: the '+spend.exhausted+' budget ran out.'));
+  if(trace.dropped)traceSec.append(h('p','evidence-limit',plural(trace.dropped,'later step')+' exceeded the trace limit and are not shown.'));
+  const tasks=trace.events.filter((e)=>e.kind==='task');
+  const taskList=h('ul','evidence-list');
+  for(const task of tasks){
+    const li=h('li','evidence-source');const head=h('div','evidence-head');
+    head.append(h('span','evidence-label',task.agent),h('span','evidence-state'+(task.failed?' state-limited':''),task.name));
+    li.append(head);if(task.detail)li.append(h('p','evidence-limit',task.detail));taskList.append(li);
+  }
+  if(tasks.length)traceSec.append(taskList);
+  const steps=h('details','trace-steps');steps.append(h('summary',null,'All '+plural(trace.events.length,'step')));
+  const stepList=h('ol','trace-list');
+  for(const e of trace.events){
+    const li=h('li',e.failed?'trace-step failed':'trace-step');
+    li.append(h('span','evidence-label',e.agent+' · '+e.kind+' · '+e.name+(e.failed?' (failed)':'')));
+    const facts=[];
+    if(e.kind==='model')facts.push((e.input_tokens||0)+' in / '+(e.output_tokens||0)+' out tokens');
+    if(e.result_bytes)facts.push(e.result_bytes+' bytes'+(e.truncated?', truncated':''));
+    facts.push((e.elapsed_ms||0)+' ms');
+    li.append(h('p','evidence-detail',facts.join(' · ')));
+    if(e.detail&&e.kind==='tool')li.append(h('code','trace-args',e.detail));
+    if(e.preview)li.append(h('pre','trace-preview',e.preview));
+    stepList.append(li);
+  }
+  steps.append(stepList);traceSec.append(steps,h('p','evidence-limit','This log shows what px1 looked at. It does not show that unexamined code is correct.'));
+  rail.append(traceSec);
+}
 const progressSec=h('section','review-progress');
 progressSec.append(h('h2','eyebrow','Your code review'));
 const progressSummary=h('p','review-summary');progressSummary.setAttribute('role','status');

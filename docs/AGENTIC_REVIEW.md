@@ -91,3 +91,24 @@ locking. Each partial carries `Done`/`Total` and `Provisional: true`. Its
 findings have not been judged or verified yet and must be labelled that way.
 The final candidates follow plan order, not completion order, so the judge's
 input does not depend on timing.
+
+## Review trace
+
+`agent.Trace` records each model call, tool call, and task outcome of an
+agentic review, in order. Sub-agents call tools through `Trace.Dispatch`.
+The runner adds task outcomes when its `Trace` field is set. `Trace.File` writes
+a `review.TraceFile` pinned to the head SHA. Pass it to the exporter with
+`px1 export-review --trace-file trace.json`. The report then shows a
+**How px1 reviewed this** section: the tier, spend, any exhausted budget,
+task outcomes, and an expandable list of every step.
+
+| Recorded | Not recorded |
+| --- | --- |
+| Tool name, arguments (512 bytes), result size, truncation, a 512-byte result preview, and elapsed time | Linked-issue content: reports can be shared more widely than the tracker it came from |
+| Model role and settled token counts | Prompts, model output, and provider error text |
+| Task outcome and its generic reason | Anything past 2,000 events, which is counted as `dropped` |
+
+The exporter rejects a trace for any other revision, a Base tier, unknown
+fields, out-of-order sequence numbers, or oversized text. The report renders
+every trace string as text, never markup. The section states that the log shows
+what px1 looked at, not that unexamined code is correct.
