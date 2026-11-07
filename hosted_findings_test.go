@@ -38,3 +38,36 @@ func TestHostedFindingsRenderAsSeparateAIItems(t *testing.T) {
 		}
 	}
 }
+
+func TestExportAttachesOnlyATraceForTheHeadRevision(t *testing.T) {
+	root := t.TempDir()
+	runGitTest(t, root, "init")
+	runGitTest(t, root, "config", "user.email", "test@example.com")
+	runGitTest(t, root, "config", "user.name", "px1 test")
+	writeExportTestFile(t, root, "api.go", "package api\n")
+	runGitTest(t, root, "add", ".")
+	runGitTest(t, root, "commit", "-m", "base")
+	base := strings.TrimSpace(runGitTest(t, root, "rev-parse", "HEAD"))
+	writeExportTestFile(t, root, "api.go", "package api\n\nvar Ready = true\n")
+	runGitTest(t, root, "commit", "-am", "head")
+	head := strings.TrimSpace(runGitTest(t, root, "rev-parse", "HEAD"))
+	write := func(revision string) string {
+		path := filepath.Join(t.TempDir(), "trace.json")
+		body := `{"revision":"` + revision + `","tier":"plus","spend":{"input_tokens":0,"output_tokens":0,"cost_microusd":0,"model_calls":1,"tool_calls":0},"events":[{"seq":1,"agent":"planner","kind":"model","name":"planner","elapsed_ms":1}]}`
+		if err := os.WriteFile(path, []byte(body), 0600); err != nil {
+			t.Fatal(err)
+		}
+		return path
+	}
+	report, err := generateStaticReviewWithOptions(root, base, head, staticReviewOptions{TraceFile: write(head)})
+	if err != nil || report.Trace == nil || len(report.Trace.Events) != 1 {
+		t.Fatalf("trace not attached: %#v %v", report.Trace, err)
+	}
+	if _, err := generateStaticReviewWithOptions(root, base, head, staticReviewOptions{TraceFile: write(base)}); err == nil || !strings.Contains(err.Error(), "does not match report head") {
+		t.Fatalf("stale trace accepted: %v", err)
+	}
+	plain, err := generateStaticReview(root, base, head)
+	if err != nil || plain.Trace != nil {
+		t.Fatalf("reports without a trace must omit it: %#v %v", plain.Trace, err)
+	}
+}

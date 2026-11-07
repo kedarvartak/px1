@@ -92,6 +92,9 @@ type Runner struct {
 	Limiter   *OrgLimiter
 	SubAgent  SubAgent
 	OnPartial func(Partial)
+	// Trace, when set, records each task outcome alongside the model and
+	// tool calls the sub-agents recorded through it.
+	Trace *Trace
 }
 
 // Run starts every task in parallel, subject to the organization limit and
@@ -126,6 +129,9 @@ func (r Runner) Run(ctx context.Context, installationID int64, tasks []PlanTask,
 		partial := <-results
 		partial.Done, partial.Total = done, len(tasks)
 		byBlock[partial.BlockID] = partial
+		if r.Trace != nil {
+			r.Trace.task(partial)
+		}
 		if r.OnPartial != nil {
 			r.OnPartial(partial)
 		}

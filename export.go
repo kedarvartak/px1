@@ -37,7 +37,10 @@ type staticReviewReport struct {
 	RuleHits            []staticReviewHit          `json:"ruleHits"`
 	Explanations        []staticExplanation        `json:"explanations"`
 	Findings            []hostedreview.Finding     `json:"findings"`
-	Evidence            []staticEvidenceSource     `json:"evidence"`
+	// Trace is the agentic review's step log, or nil when the review did not
+	// use the agentic engine.
+	Trace    *hostedreview.TraceFile `json:"trace,omitempty"`
+	Evidence []staticEvidenceSource  `json:"evidence"`
 	// Attention lists the risk signals px1 raises on the diff itself, such as
 	// workflow permission changes or new public API. Snapshots written before
 	// the field existed decode to nil, and the page renders that as none.
@@ -113,8 +116,9 @@ func runExportReview(args []string) error {
 	verificationFile := fs.String("verification-file", "", "optional verification JSON file to validate for the head commit")
 	explanationsFile := fs.String("explanations-file", "", "optional AI explanation JSON file to validate for the head commit")
 	findingsFile := fs.String("findings-file", "", "optional hosted AI findings JSON file to validate for the head commit")
+	traceFile := fs.String("trace-file", "", "optional agentic review trace JSON file to validate for the head commit")
 	fs.Usage = func() {
-		fmt.Fprintln(fs.Output(), "usage: px1 export-review --base <commit> [--head <commit>] [--root <repo>] [--verification-file <path>] [--explanations-file <path>] [--findings-file <path>] [--snapshot-out <file>] [--out <dir>]")
+		fmt.Fprintln(fs.Output(), "usage: px1 export-review --base <commit> [--head <commit>] [--root <repo>] [--verification-file <path>] [--explanations-file <path>] [--findings-file <path>] [--trace-file <path>] [--snapshot-out <file>] [--out <dir>]")
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {
@@ -132,7 +136,7 @@ func runExportReview(args []string) error {
 	if err != nil {
 		return fmt.Errorf("resolve output: %w", err)
 	}
-	report, err := generateStaticReviewWithOptions(repoRoot, *base, *head, staticReviewOptions{VerificationFile: *verificationFile, ExplanationsFile: *explanationsFile, FindingsFile: *findingsFile})
+	report, err := generateStaticReviewWithOptions(repoRoot, *base, *head, staticReviewOptions{VerificationFile: *verificationFile, ExplanationsFile: *explanationsFile, FindingsFile: *findingsFile, TraceFile: *traceFile})
 	if err != nil {
 		return err
 	}
@@ -174,6 +178,7 @@ type staticReviewOptions struct {
 	VerificationFile string
 	ExplanationsFile string
 	FindingsFile     string
+	TraceFile        string
 }
 
 func generateStaticReviewWithOptions(root, base, head string, options staticReviewOptions) (staticReviewReport, error) {
@@ -220,6 +225,18 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi
 			return staticReviewReport{}, err
 		}
 	}
+	var trace *hostedreview.TraceFile
+	if options.TraceFile != "" {
+		data, err := os.ReadFile(options.TraceFile)
+		if err != nil {
+			return staticReviewReport{}, fmt.Errorf("read review trace: %w", err)
+		}
+		decoded, err := hostedreview.DecodeTraceFile(data, headSHA)
+		if err != nil {
+			return staticReviewReport{}, err
+		}
+		trace = &decoded
+	}
 	explanations := []staticExplanation{}
 	if options.ExplanationsFile != "" {
 		explanations, err = explanationsAtFile(options.ExplanationsFile, headSHA, changed)
@@ -247,6 +264,7 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi
 		RuleHits:            staticHits,
 		Explanations:        explanations,
 		Findings:            findings,
+		Trace:               trace,
 		Evidence:            evidence,
 		Attention:           flags,
 		Verification:        verification,

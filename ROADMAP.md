@@ -198,6 +198,9 @@ backend-foundation tasks are:
 82. [x] **Run sub-agents in parallel.** Cap concurrent sub-agents per
     organization, contain sub-agent failures and panics, skip work once a
     budget is exhausted, and stream provisional partial results in order.
+83. [x] **Show how px1 reviewed each change.** Record a bounded,
+    revision-pinned trace of every model call, tool call, and task outcome,
+    and render it in the report without copying linked-issue content.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,
