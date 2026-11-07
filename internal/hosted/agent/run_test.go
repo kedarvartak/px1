@@ -194,3 +194,27 @@ func TestRunRejectsInvalidPlans(t *testing.T) {
 		t.Fatal("zero limit accepted")
 	}
 }
+
+func TestToolLimitAndContentionDoNotSkipOtherTasks(t *testing.T) {
+	limiter, _ := NewOrgLimiter(1)
+	runner := Runner{Limiter: limiter, SubAgent: func(_ context.Context, task PlanTask, meter *Meter) ([]review.Finding, error) {
+		switch task.BlockID {
+		case "tools":
+			for {
+				if err := meter.UseTool(task.BlockID); err != nil {
+					return nil, err
+				}
+			}
+		case "contended":
+			return nil, ErrBudgetContended
+		}
+		return []review.Finding{finding("ok.go", 1, 1, "P2")}, nil
+	}}
+	result, err := runner.Run(context.Background(), 7, tasksFor("tools", "contended", "ok"), NewMeter(runBudget(3, time.Minute), time.Now(), nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Outcomes["tools"].Reason != "sub-agent reached its tool-call limit" || result.Outcomes["contended"].Outcome != TaskFailed || result.Outcomes["ok"].Outcome != TaskCompleted {
+		t.Fatalf("outcomes: %#v", result.Outcomes)
+	}
+}

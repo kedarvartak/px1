@@ -173,6 +173,10 @@ func failureReason(err error) string {
 	switch {
 	case errors.Is(err, ErrBudgetExhausted):
 		return "review budget exhausted during this task"
+	case errors.Is(err, ErrToolCallLimit):
+		return "sub-agent reached its tool-call limit"
+	case errors.Is(err, ErrBudgetContended):
+		return "review budget was held by other in-flight sub-agents"
 	case errors.Is(err, context.DeadlineExceeded):
 		return "review wall time reached during this task"
 	case errors.Is(err, context.Canceled):
