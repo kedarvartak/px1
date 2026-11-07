@@ -204,6 +204,9 @@ backend-foundation tasks are:
 84. [x] **Gate agentic tiers against Base.** Launch a tier only when the
     full seeded benchmark shows at least a 20% relative recall lift at no
     more than 3× cost, with precision within three points.
+85. [x] **Add organization API keys.** Issue scoped, digest-only,
+    tenant-isolated keys with overlapping rotation, revocation, and per-key
+    rate limits for the API and MCP server.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,
