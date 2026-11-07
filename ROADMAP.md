@@ -188,6 +188,9 @@ backend-foundation tasks are:
     pages under `/-/`, generate pricing from one validated table, gate the
     changelog on merged-PR links, and report status without claiming health
     that was not probed.
+80. [x] **Define agentic review tools.** Give sub-agents strict, read-only,
+    tenant- and SHA-pinned file, search, graph, history, and linked-issue
+    tools with bounded output.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,
