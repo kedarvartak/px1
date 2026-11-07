@@ -1,0 +1,2356 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "b300ab7e1f53419de615b6fdfb0d18b08f0e20d1",
+  "head": "ca222e2d4d875ecbb2ea1c9ebb6c7117fd395ac5",
+  "generatedAt": "2026-11-07T09:27:26.386002265Z",
+  "files": [
+    {
+      "path": "ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/ROADMAP.md b/ROADMAP.md\nindex 9116388..a8c2322 100644\n--- a/ROADMAP.md\n+++ b/ROADMAP.md\n@@ -195,6 +195,9 @@ backend-foundation tasks are:\n     Fence untrusted content, validate every role's output, stop the judge from\n     inventing or escalating findings, and reserve worst-case token, cost,\n     call, and wall-time spend per tier before each model call.\n+82. [x] **Run sub-agents in parallel.** Cap concurrent sub-agents per\n+    organization, contain sub-agent failures and panics, skip work once a\n+    budget is exhausted, and stream provisional partial results in order.\n \n The v1 review pipeline, indexing, report hosting, evaluation, and launch gates\n follow these foundations. AI findings must remain auditable: evidence,\n",
+      "hunks": [
+        {
+          "id": "diff-2de1f7bd330b065a",
+          "header": "@@ -195,6 +195,9 @@ backend-foundation tasks are:",
+          "lines": [
+            {
+              "oldLine": 195,
+              "newLine": 195,
+              "kind": "context",
+              "text": "    Fence untrusted content, validate every role's output, stop the judge from"
+            },
+            {
+              "oldLine": 196,
+              "newLine": 196,
+              "kind": "context",
+              "text": "    inventing or escalating findings, and reserve worst-case token, cost,"
+            },
+            {
+              "oldLine": 197,
+              "newLine": 197,
+              "kind": "context",
+              "text": "    call, and wall-time spend per tier before each model call."
+            },
+            {
+              "newLine": 198,
+              "kind": "added",
+              "text": "82. [x] **Run sub-agents in parallel.** Cap concurrent sub-agents per"
+            },
+            {
+              "newLine": 199,
+              "kind": "added",
+              "text": "    organization, contain sub-agent failures and panics, skip work once a"
+            },
+            {
+              "newLine": 200,
+              "kind": "added",
+              "text": "    budget is exhausted, and stream provisional partial results in order."
+            },
+            {
+              "oldLine": 198,
+              "newLine": 201,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 199,
+              "newLine": 202,
+              "kind": "context",
+              "text": "The v1 review pipeline, indexing, report hosting, evaluation, and launch gates"
+            },
+            {
+              "oldLine": 200,
+              "newLine": 203,
+              "kind": "context",
+              "text": "follow these foundations. AI findings must remain auditable: evidence,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/AGENTIC_REVIEW.md",
+      "status": "M",
+      "diff": "diff --git a/docs/AGENTIC_REVIEW.md b/docs/AGENTIC_REVIEW.md\nindex 2dc8e45..2917c6b 100644\n--- a/docs/AGENTIC_REVIEW.md\n+++ b/docs/AGENTIC_REVIEW.md\n@@ -54,3 +54,35 @@ sent. `Settle` replaces the hold with actual usage; usage above a reservation\n is still recorded and returned as an error so provider adapters can be fixed.\n When a budget runs out, `Spend().Exhausted` names the first limit reached so\n the summary can say why exploration stopped.\n+\n+## Parallel execution\n+\n+`Runner.Run` starts one goroutine per planned task. Each one waits for a slot\n+from a shared `OrgLimiter` before calling its sub-agent. The limiter caps\n+concurrent sub-agents per installation across every review in the process, so\n+one large organization cannot starve the others. Idle installations are dropped\n+from the limiter. The cap is per process: with N reviewer workers an\n+installation can run up to N × limit sub-agents, so a cluster-wide cap still\n+needs a shared store.\n+\n+The whole run shares the meter's wall-time deadline. A task ends one of three\n+ways:\n+\n+| Outcome | When | Reason shown |\n+| --- | --- | --- |\n+| `completed` | The sub-agent returned findings | — |\n+| `failed` | It returned an error or panicked | The failure class only, never provider or tool error text |\n+| `skipped` | The deadline passed while it waited for a slot, or a budget was exhausted before it started | Names the exhausted limit |\n+\n+One failing or panicking sub-agent never fails the review or crashes the\n+worker. `RunResult.Complete` is true only when every task completed, so a\n+summary can say the review covered only part of the change.\n+\n+### Streaming\n+\n+`OnPartial` is called as each task finishes, in completion order, one at a time\n+on the caller's goroutine. That lets the summary post early without its own\n+locking. Each partial carries `Done`/`Total` and `Provisional: true`. Its\n+findings have not been judged or verified yet and must be labelled that way.\n+The final candidates follow plan order, not completion order, so the judge's\n+input does not depend on timing.\n",
+      "hunks": [
+        {
+          "id": "diff-2e2646016a6e3c01",
+          "header": "@@ -54,3 +54,35 @@ sent. `Settle` replaces the hold with actual usage; usage above a reservation",
+          "lines": [
+            {
+              "oldLine": 54,
+              "newLine": 54,
+              "kind": "context",
+              "text": "is still recorded and returned as an error so provider adapters can be fixed."
+            },
+            {
+              "oldLine": 55,
+              "newLine": 55,
+              "kind": "context",
+              "text": "When a budget runs out, `Spend().Exhausted` names the first limit reached so"
+            },
+            {
+              "oldLine": 56,
+              "newLine": 56,
+              "kind": "context",
+              "text": "the summary can say why exploration stopped."
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "## Parallel execution"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "`Runner.Run` starts one goroutine per planned task. Each one waits for a slot"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "from a shared `OrgLimiter` before calling its sub-agent. The limiter caps"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "concurrent sub-agents per installation across every review in the process, so"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "one large organization cannot starve the others. Idle installations are dropped"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "from the limiter. The cap is per process: with N reviewer workers an"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "installation can run up to N × limit sub-agents, so a cluster-wide cap still"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "needs a shared store."
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "The whole run shares the meter's wall-time deadline. A task ends one of three"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "ways:"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "| Outcome | When | Reason shown |"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "| --- | --- | --- |"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "| `completed` | The sub-agent returned findings | — |"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "| `failed` | It returned an error or panicked | The failure class only, never provider or tool error text |"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "| `skipped` | The deadline passed while it waited for a slot, or a budget was exhausted before it started | Names the exhausted limit |"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "One failing or panicking sub-agent never fails the review or crashes the"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "worker. `RunResult.Complete` is true only when every task completed, so a"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "summary can say the review covered only part of the change."
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "### Streaming"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "`OnPartial` is called as each task finishes, in completion order, one at a time"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "on the caller's goroutine. That lets the summary post early without its own"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "locking. Each partial carries `Done`/`Total` and `Provisional: true`. Its"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "findings have not been judged or verified yet and must be labelled that way."
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "The final candidates follow plan order, not completion order, so the judge's"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "input does not depend on timing."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/agent/run.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/agent/run.go b/internal/hosted/agent/run.go\nnew file mode 100644\nindex 0000000..fd26b50\n--- /dev/null\n+++ b/internal/hosted/agent/run.go\n@@ -0,0 +1,183 @@\n+package agent\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"sync\"\n+\n+\t\"px1/internal/hosted/review\"\n+)\n+\n+// OrgLimiter caps concurrently running sub-agents per installation across all\n+// reviews in this process, so one large organization cannot starve others.\n+// It is process-local: N workers allow up to N × limit per installation.\n+type OrgLimiter struct {\n+\tlimit int\n+\tmu    sync.Mutex\n+\tslots map[int64]*orgSlot\n+}\n+\n+type orgSlot struct {\n+\tsem   chan struct{}\n+\tusers int\n+}\n+\n+func NewOrgLimiter(limit int) (*OrgLimiter, error) {\n+\tif limit \u003c= 0 {\n+\t\treturn nil, errors.New(\"per-organization concurrency limit must be positive\")\n+\t}\n+\treturn \u0026OrgLimiter{limit: limit, slots: map[int64]*orgSlot{}}, nil\n+}\n+\n+// Acquire blocks until the installation has a free slot or ctx ends. Idle\n+// installations are forgotten so the map does not grow with tenant count.\n+func (l *OrgLimiter) Acquire(ctx context.Context, installationID int64) (func(), error) {\n+\tl.mu.Lock()\n+\tslot := l.slots[installationID]\n+\tif slot == nil {\n+\t\tslot = \u0026orgSlot{sem: make(chan struct{}, l.limit)}\n+\t\tl.slots[installationID] = slot\n+\t}\n+\tslot.users++\n+\tl.mu.Unlock()\n+\tleave := func() {\n+\t\tl.mu.Lock()\n+\t\tif slot.users--; slot.users == 0 {\n+\t\t\tdelete(l.slots, installationID)\n+\t\t}\n+\t\tl.mu.Unlock()\n+\t}\n+\tselect {\n+\tcase slot.sem \u003c- struct{}{}:\n+\t\tvar once sync.Once\n+\t\treturn func() { once.Do(func() { \u003c-slot.sem; leave() }) }, nil\n+\tcase \u003c-ctx.Done():\n+\t\tleave()\n+\t\treturn nil, ctx.Err()\n+\t}\n+}\n+\n+// SubAgent runs one planned task to completion: the model and tool loop that\n+// spends from meter. It returns candidate findings for the judge.\n+type SubAgent func(ctx context.Context, task PlanTask, meter *Meter) ([]review.Finding, error)\n+\n+type TaskOutcome string\n+\n+const (\n+\tTaskCompleted TaskOutcome = \"completed\"\n+\tTaskFailed    TaskOutcome = \"failed\"\n+\tTaskSkipped   TaskOutcome = \"skipped\"\n+)\n+\n+// Partial is streamed as each task finishes so the summary can post early.\n+// Its findings are provisional: they have not been judged or verified and\n+// must be labelled that way wherever they are shown.\n+type Partial struct {\n+\tBlockID     string\n+\tOutcome     TaskOutcome\n+\tReason      string\n+\tFindings    []review.Finding\n+\tProvisional bool\n+\tDone, Total int\n+}\n+\n+type RunResult struct {\n+\tCandidates []review.Finding\n+\tOutcomes   map[string]Partial\n+\tComplete   bool\n+}\n+\n+type Runner struct {\n+\tLimiter   *OrgLimiter\n+\tSubAgent  SubAgent\n+\tOnPartial func(Partial)\n+}\n+\n+// Run starts every task in parallel, subject to the organization limit and\n+// the review's wall-time deadline. A failed or panicking sub-agent becomes a\n+// failed task, not a failed review. Once any budget is exhausted, tasks that\n+// have not started yet are skipped with that reason. OnPartial is called\n+// from this goroutine only, one task at a time, in completion order.\n+func (r Runner) Run(ctx context.Context, installationID int64, tasks []PlanTask, meter *Meter) (RunResult, error) {\n+\tif r.Limiter == nil || r.SubAgent == nil || meter == nil || installationID \u003c= 0 {\n+\t\treturn RunResult{}, errors.New(\"runner needs a limiter, sub-agent, meter, and tenant\")\n+\t}\n+\tif len(tasks) == 0 || len(tasks) \u003e meter.budget.MaxSubAgents {\n+\t\treturn RunResult{}, fmt.Errorf(\"run needs 1 to %d tasks\", meter.budget.MaxSubAgents)\n+\t}\n+\tseen := map[string]bool{}\n+\tfor _, task := range tasks {\n+\t\tif task.BlockID == \"\" || seen[task.BlockID] {\n+\t\t\treturn RunResult{}, errors.New(\"tasks need unique change-group IDs\")\n+\t\t}\n+\t\tseen[task.BlockID] = true\n+\t}\n+\tctx, cancel := context.WithDeadline(ctx, meter.Deadline())\n+\tdefer cancel()\n+\n+\tresults := make(chan Partial, len(tasks))\n+\tfor _, task := range tasks {\n+\t\tgo func() { results \u003c- r.runOne(ctx, installationID, task, meter) }()\n+\t}\n+\n+\tbyBlock := make(map[string]Partial, len(tasks))\n+\tfor done := 1; done \u003c= len(tasks); done++ {\n+\t\tpartial := \u003c-results\n+\t\tpartial.Done, partial.Total = done, len(tasks)\n+\t\tbyBlock[partial.BlockID] = partial\n+\t\tif r.OnPartial != nil {\n+\t\t\tr.OnPartial(partial)\n+\t\t}\n+\t}\n+\n+\tresult := RunResult{Outcomes: byBlock, Complete: true}\n+\tfor _, task := range tasks {\n+\t\tpartial := byBlock[task.BlockID]\n+\t\tresult.Candidates = append(result.Candidates, partial.Findings...)\n+\t\tresult.Complete = result.Complete \u0026\u0026 partial.Outcome == TaskCompleted\n+\t}\n+\treturn result, nil\n+}\n+\n+func (r Runner) runOne(ctx context.Context, installationID int64, task PlanTask, meter *Meter) (partial Partial) {\n+\tpartial = Partial{BlockID: task.BlockID, Provisional: true}\n+\trelease, err := r.Limiter.Acquire(ctx, installationID)\n+\tif err != nil {\n+\t\tpartial.Outcome, partial.Reason = TaskSkipped, \"review deadline reached before a sub-agent slot was free\"\n+\t\treturn partial\n+\t}\n+\tdefer release()\n+\tif limit := meter.Spend().Exhausted; limit != \"\" {\n+\t\tpartial.Outcome, partial.Reason = TaskSkipped, \"review budget exhausted (\"+limit+\") before this task started\"\n+\t\treturn partial\n+\t}\n+\tdefer func() {\n+\t\tif recovered := recover(); recovered != nil {\n+\t\t\tpartial = Partial{BlockID: task.BlockID, Outcome: TaskFailed, Reason: \"sub-agent panicked\", Provisional: true}\n+\t\t}\n+\t}()\n+\tfindings, err := r.SubAgent(ctx, task, meter)\n+\tif err != nil {\n+\t\tpartial.Outcome, partial.Reason = TaskFailed, failureReason(err)\n+\t\tpartial.Findings = findings\n+\t\treturn partial\n+\t}\n+\tpartial.Outcome, partial.Findings = TaskCompleted, findings\n+\treturn partial\n+}\n+\n+// failureReason keeps provider and tool error text out of PR summaries; only\n+// the class of failure is reported.\n+func failureReason(err error) string {\n+\tswitch {\n+\tcase errors.Is(err, ErrBudgetExhausted):\n+\t\treturn \"review budget exhausted during this task\"\n+\tcase errors.Is(err, context.DeadlineExceeded):\n+\t\treturn \"review wall time reached during this task\"\n+\tcase errors.Is(err, context.Canceled):\n+\t\treturn \"review cancelled\"\n+\tdefault:\n+\t\treturn \"sub-agent failed\"\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-a671f67de018da05",
+          "header": "@@ -0,0 +1,183 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package agent"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"sync\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"px1/internal/hosted/review\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "// OrgLimiter caps concurrently running sub-agents per installation across all"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "// reviews in this process, so one large organization cannot starve others."
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "// It is process-local: N workers allow up to N × limit per installation."
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "type OrgLimiter struct {"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tlimit int"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tmu    sync.Mutex"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tslots map[int64]*orgSlot"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "type orgSlot struct {"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tsem   chan struct{}"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tusers int"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "func NewOrgLimiter(limit int) (*OrgLimiter, error) {"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tif limit \u003c= 0 {"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t\treturn nil, errors.New(\"per-organization concurrency limit must be positive\")"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\treturn \u0026OrgLimiter{limit: limit, slots: map[int64]*orgSlot{}}, nil"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "// Acquire blocks until the installation has a free slot or ctx ends. Idle"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "// installations are forgotten so the map does not grow with tenant count."
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "func (l *OrgLimiter) Acquire(ctx context.Context, installationID int64) (func(), error) {"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tl.mu.Lock()"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\tslot := l.slots[installationID]"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tif slot == nil {"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t\tslot = \u0026orgSlot{sem: make(chan struct{}, l.limit)}"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t\tl.slots[installationID] = slot"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tslot.users++"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tl.mu.Unlock()"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tleave := func() {"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t\tl.mu.Lock()"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t\tif slot.users--; slot.users == 0 {"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\t\tdelete(l.slots, installationID)"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\tl.mu.Unlock()"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\tselect {"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\tcase slot.sem \u003c- struct{}{}:"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t\tvar once sync.Once"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\treturn func() { once.Do(func() { \u003c-slot.sem; leave() }) }, nil"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\tcase \u003c-ctx.Done():"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t\tleave()"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\treturn nil, ctx.Err()"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "// SubAgent runs one planned task to completion: the model and tool loop that"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "// spends from meter. It returns candidate findings for the judge."
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "type SubAgent func(ctx context.Context, task PlanTask, meter *Meter) ([]review.Finding, error)"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "type TaskOutcome string"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "const ("
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\tTaskCompleted TaskOutcome = \"completed\""
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\tTaskFailed    TaskOutcome = \"failed\""
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\tTaskSkipped   TaskOutcome = \"skipped\""
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "// Partial is streamed as each task finishes so the summary can post early."
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "// Its findings are provisional: they have not been judged or verified and"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "// must be labelled that way wherever they are shown."
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "type Partial struct {"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\tBlockID     string"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\tOutcome     TaskOutcome"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\tReason      string"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\tFindings    []review.Finding"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\tProvisional bool"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\tDone, Total int"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "type RunResult struct {"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\tCandidates []review.Finding"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\tOutcomes   map[string]Partial"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\tComplete   bool"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "type Runner struct {"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\tLimiter   *OrgLimiter"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\tSubAgent  SubAgent"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\tOnPartial func(Partial)"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "// Run starts every task in parallel, subject to the organization limit and"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "// the review's wall-time deadline. A failed or panicking sub-agent becomes a"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "// failed task, not a failed review. Once any budget is exhausted, tasks that"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "// have not started yet are skipped with that reason. OnPartial is called"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "// from this goroutine only, one task at a time, in completion order."
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "func (r Runner) Run(ctx context.Context, installationID int64, tasks []PlanTask, meter *Meter) (RunResult, error) {"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\tif r.Limiter == nil || r.SubAgent == nil || meter == nil || installationID \u003c= 0 {"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t\treturn RunResult{}, errors.New(\"runner needs a limiter, sub-agent, meter, and tenant\")"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\tif len(tasks) == 0 || len(tasks) \u003e meter.budget.MaxSubAgents {"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\t\treturn RunResult{}, fmt.Errorf(\"run needs 1 to %d tasks\", meter.budget.MaxSubAgents)"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\tseen := map[string]bool{}"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\tfor _, task := range tasks {"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\t\tif task.BlockID == \"\" || seen[task.BlockID] {"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\t\t\treturn RunResult{}, errors.New(\"tasks need unique change-group IDs\")"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "\t\tseen[task.BlockID] = true"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "\tctx, cancel := context.WithDeadline(ctx, meter.Deadline())"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\tdefer cancel()"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\tresults := make(chan Partial, len(tasks))"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\tfor _, task := range tasks {"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\t\tgo func() { results \u003c- r.runOne(ctx, installationID, task, meter) }()"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\tbyBlock := make(map[string]Partial, len(tasks))"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\tfor done := 1; done \u003c= len(tasks); done++ {"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\t\tpartial := \u003c-results"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\t\tpartial.Done, partial.Total = done, len(tasks)"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\t\tbyBlock[partial.BlockID] = partial"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\t\tif r.OnPartial != nil {"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\t\t\tr.OnPartial(partial)"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\tresult := RunResult{Outcomes: byBlock, Complete: true}"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\tfor _, task := range tasks {"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\t\tpartial := byBlock[task.BlockID]"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\t\tresult.Candidates = append(result.Candidates, partial.Findings...)"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\t\tresult.Complete = result.Complete \u0026\u0026 partial.Outcome == TaskCompleted"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "\treturn result, nil"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "func (r Runner) runOne(ctx context.Context, installationID int64, task PlanTask, meter *Meter) (partial Partial) {"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\tpartial = Partial{BlockID: task.BlockID, Provisional: true}"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\trelease, err := r.Limiter.Acquire(ctx, installationID)"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "\t\tpartial.Outcome, partial.Reason = TaskSkipped, \"review deadline reached before a sub-agent slot was free\""
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "\t\treturn partial"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "\tdefer release()"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "\tif limit := meter.Spend().Exhausted; limit != \"\" {"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "\t\tpartial.Outcome, partial.Reason = TaskSkipped, \"review budget exhausted (\"+limit+\") before this task started\""
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "\t\treturn partial"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "\tdefer func() {"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "\t\tif recovered := recover(); recovered != nil {"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "\t\t\tpartial = Partial{BlockID: task.BlockID, Outcome: TaskFailed, Reason: \"sub-agent panicked\", Provisional: true}"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "\t}()"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "\tfindings, err := r.SubAgent(ctx, task, meter)"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "\t\tpartial.Outcome, partial.Reason = TaskFailed, failureReason(err)"
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "\t\tpartial.Findings = findings"
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "\t\treturn partial"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "\tpartial.Outcome, partial.Findings = TaskCompleted, findings"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": "\treturn partial"
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "// failureReason keeps provider and tool error text out of PR summaries; only"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "// the class of failure is reported."
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "func failureReason(err error) string {"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "\tswitch {"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "\tcase errors.Is(err, ErrBudgetExhausted):"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "\t\treturn \"review budget exhausted during this task\""
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "\tcase errors.Is(err, context.DeadlineExceeded):"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": "\t\treturn \"review wall time reached during this task\""
+            },
+            {
+              "newLine": 178,
+              "kind": "added",
+              "text": "\tcase errors.Is(err, context.Canceled):"
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": "\t\treturn \"review cancelled\""
+            },
+            {
+              "newLine": 180,
+              "kind": "added",
+              "text": "\tdefault:"
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": "\t\treturn \"sub-agent failed\""
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/agent/run_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/agent/run_test.go b/internal/hosted/agent/run_test.go\nnew file mode 100644\nindex 0000000..a928c9a\n--- /dev/null\n+++ b/internal/hosted/agent/run_test.go\n@@ -0,0 +1,196 @@\n+package agent\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"strings\"\n+\t\"sync\"\n+\t\"sync/atomic\"\n+\t\"testing\"\n+\t\"time\"\n+\n+\t\"px1/internal/hosted/review\"\n+)\n+\n+func runBudget(subAgents int, wall time.Duration) Budget {\n+\treturn Budget{MaxSubAgents: subAgents, MaxInputTokens: 1_000, MaxOutputTokens: 1_000, MaxCostMicrousd: 1_000, MaxModelCalls: 100, MaxToolCallsPerAgent: 5, WallTime: wall}\n+}\n+\n+func tasksFor(ids ...string) []PlanTask {\n+\ttasks := make([]PlanTask, len(ids))\n+\tfor i, id := range ids {\n+\t\ttasks[i] = PlanTask{BlockID: id, Focus: \"check \" + id}\n+\t}\n+\treturn tasks\n+}\n+\n+func TestRunnerCapsConcurrencyPerOrganization(t *testing.T) {\n+\tlimiter, _ := NewOrgLimiter(2)\n+\tvar active, peak atomic.Int32\n+\tagent := func(ctx context.Context, task PlanTask, _ *Meter) ([]review.Finding, error) {\n+\t\tnow := active.Add(1)\n+\t\tfor {\n+\t\t\told := peak.Load()\n+\t\t\tif now \u003c= old || peak.CompareAndSwap(old, now) {\n+\t\t\t\tbreak\n+\t\t\t}\n+\t\t}\n+\t\ttime.Sleep(10 * time.Millisecond)\n+\t\tactive.Add(-1)\n+\t\treturn []review.Finding{finding(task.BlockID+\".go\", 1, 1, \"P2\")}, nil\n+\t}\n+\trunner := Runner{Limiter: limiter, SubAgent: agent}\n+\tvar wg sync.WaitGroup\n+\tfor run := 0; run \u003c 2; run++ {\n+\t\twg.Add(1)\n+\t\tgo func() {\n+\t\t\tdefer wg.Done()\n+\t\t\tmeter := NewMeter(runBudget(6, time.Minute), time.Now(), nil)\n+\t\t\tresult, err := runner.Run(context.Background(), 7, tasksFor(\"a\", \"b\", \"c\", \"d\", \"e\", \"f\"), meter)\n+\t\t\tif err != nil || !result.Complete || len(result.Candidates) != 6 {\n+\t\t\t\tt.Errorf(\"result=%#v err=%v\", result, err)\n+\t\t\t}\n+\t\t}()\n+\t}\n+\twg.Wait()\n+\tif peak.Load() \u003e 2 {\n+\t\tt.Fatalf(\"installation ran %d sub-agents at once across reviews; cap is 2\", peak.Load())\n+\t}\n+\tif len(limiter.slots) != 0 {\n+\t\tt.Fatalf(\"idle installations retained: %d\", len(limiter.slots))\n+\t}\n+}\n+\n+func TestOrganizationsDoNotShareSlots(t *testing.T) {\n+\tlimiter, _ := NewOrgLimiter(1)\n+\tholdA, err := limiter.Acquire(context.Background(), 1)\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tdefer holdA()\n+\tctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)\n+\tdefer cancel()\n+\tholdB, err := limiter.Acquire(ctx, 2)\n+\tif err != nil {\n+\t\tt.Fatal(\"a busy installation blocked another installation\")\n+\t}\n+\tholdB()\n+\tif _, err := limiter.Acquire(ctx, 1); !errors.Is(err, context.DeadlineExceeded) {\n+\t\tt.Fatalf(\"second slot for a capped installation: %v\", err)\n+\t}\n+}\n+\n+func TestPartialsStreamSeriallyAndAreProvisional(t *testing.T) {\n+\tlimiter, _ := NewOrgLimiter(3)\n+\tvar calls atomic.Int32\n+\tvar seen []Partial\n+\trunner := Runner{\n+\t\tLimiter: limiter,\n+\t\tSubAgent: func(_ context.Context, task PlanTask, _ *Meter) ([]review.Finding, error) {\n+\t\t\treturn []review.Finding{finding(task.BlockID+\".go\", 1, 1, \"P1\")}, nil\n+\t\t},\n+\t\tOnPartial: func(p Partial) {\n+\t\t\tif calls.Add(1) != 1 {\n+\t\t\t\tt.Error(\"OnPartial called concurrently\")\n+\t\t\t}\n+\t\t\tseen = append(seen, p)\n+\t\t\tcalls.Add(-1)\n+\t\t},\n+\t}\n+\tresult, err := runner.Run(context.Background(), 7, tasksFor(\"a\", \"b\", \"c\"), NewMeter(runBudget(3, time.Minute), time.Now(), nil))\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tfor i, p := range seen {\n+\t\tif p.Done != i+1 || p.Total != 3 || !p.Provisional || p.Outcome != TaskCompleted {\n+\t\t\tt.Fatalf(\"partial %d: %#v\", i, p)\n+\t\t}\n+\t}\n+\tif result.Candidates[0].Path != \"a.go\" || result.Candidates[2].Path != \"c.go\" {\n+\t\tt.Fatalf(\"candidates must follow plan order, got %v\", result.Candidates)\n+\t}\n+}\n+\n+func TestFailuresAndPanicsStayInsideTheirTask(t *testing.T) {\n+\tlimiter, _ := NewOrgLimiter(3)\n+\trunner := Runner{Limiter: limiter, SubAgent: func(_ context.Context, task PlanTask, _ *Meter) ([]review.Finding, error) {\n+\t\tswitch task.BlockID {\n+\t\tcase \"boom\":\n+\t\t\tpanic(\"nil map\")\n+\t\tcase \"bad\":\n+\t\t\treturn nil, fmt.Errorf(\"provider said: sk-live-secret rejected\")\n+\t\t}\n+\t\treturn []review.Finding{finding(\"ok.go\", 1, 1, \"P2\")}, nil\n+\t}}\n+\tresult, err := runner.Run(context.Background(), 7, tasksFor(\"ok\", \"bad\", \"boom\"), NewMeter(runBudget(3, time.Minute), time.Now(), nil))\n+\tif err != nil || result.Complete || len(result.Candidates) != 1 {\n+\t\tt.Fatalf(\"result=%#v err=%v\", result, err)\n+\t}\n+\tif result.Outcomes[\"boom\"].Outcome != TaskFailed || result.Outcomes[\"bad\"].Outcome != TaskFailed {\n+\t\tt.Fatalf(\"outcomes: %#v\", result.Outcomes)\n+\t}\n+\tif strings.Contains(result.Outcomes[\"bad\"].Reason, \"secret\") {\n+\t\tt.Fatal(\"provider error text leaked into the task reason\")\n+\t}\n+}\n+\n+func TestExhaustedBudgetSkipsUnstartedTasks(t *testing.T) {\n+\tlimiter, _ := NewOrgLimiter(1)\n+\trunner := Runner{Limiter: limiter, SubAgent: func(_ context.Context, _ PlanTask, meter *Meter) ([]review.Finding, error) {\n+\t\t_, err := meter.Reserve(2_000, 1, 1)\n+\t\treturn nil, err\n+\t}}\n+\tresult, err := runner.Run(context.Background(), 7, tasksFor(\"a\", \"b\", \"c\"), NewMeter(runBudget(3, time.Minute), time.Now(), nil))\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tfailed, skipped := 0, 0\n+\tfor _, outcome := range result.Outcomes {\n+\t\tswitch outcome.Outcome {\n+\t\tcase TaskFailed:\n+\t\t\tfailed++\n+\t\t\tif outcome.Reason != \"review budget exhausted during this task\" {\n+\t\t\t\tt.Fatalf(\"reason %q\", outcome.Reason)\n+\t\t\t}\n+\t\tcase TaskSkipped:\n+\t\t\tskipped++\n+\t\t\tif !strings.Contains(outcome.Reason, \"input tokens\") {\n+\t\t\t\tt.Fatalf(\"skip reason %q does not name the exhausted limit\", outcome.Reason)\n+\t\t\t}\n+\t\t}\n+\t}\n+\tif failed != 1 || skipped != 2 || result.Complete {\n+\t\tt.Fatalf(\"failed=%d skipped=%d complete=%v\", failed, skipped, result.Complete)\n+\t}\n+}\n+\n+func TestWallTimeBoundsTheWholeRun(t *testing.T) {\n+\tlimiter, _ := NewOrgLimiter(1)\n+\trunner := Runner{Limiter: limiter, SubAgent: func(ctx context.Context, _ PlanTask, _ *Meter) ([]review.Finding, error) {\n+\t\t\u003c-ctx.Done()\n+\t\treturn nil, ctx.Err()\n+\t}}\n+\tstarted := time.Now()\n+\tresult, err := runner.Run(context.Background(), 7, tasksFor(\"a\", \"b\"), NewMeter(runBudget(2, 30*time.Millisecond), started, nil))\n+\tif err != nil || time.Since(started) \u003e time.Second {\n+\t\tt.Fatalf(\"run ignored the deadline: %v\", err)\n+\t}\n+\tif result.Outcomes[\"a\"].Outcome == TaskCompleted || result.Outcomes[\"b\"].Outcome == TaskCompleted {\n+\t\tt.Fatalf(\"tasks completed past the deadline: %#v\", result.Outcomes)\n+\t}\n+}\n+\n+func TestRunRejectsInvalidPlans(t *testing.T) {\n+\tlimiter, _ := NewOrgLimiter(1)\n+\trunner := Runner{Limiter: limiter, SubAgent: func(context.Context, PlanTask, *Meter) ([]review.Finding, error) { return nil, nil }}\n+\tmeter := NewMeter(runBudget(2, time.Minute), time.Now(), nil)\n+\tfor name, tasks := range map[string][]PlanTask{\"empty\": nil, \"too many\": tasksFor(\"a\", \"b\", \"c\"), \"duplicate\": tasksFor(\"a\", \"a\")} {\n+\t\tif _, err := runner.Run(context.Background(), 7, tasks, meter); err == nil {\n+\t\t\tt.Fatalf(\"%s accepted\", name)\n+\t\t}\n+\t}\n+\tif _, err := NewOrgLimiter(0); err == nil {\n+\t\tt.Fatal(\"zero limit accepted\")\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-3fdd432fcfbb660c",
+          "header": "@@ -0,0 +1,196 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package agent"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"sync\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"sync/atomic\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t\"px1/internal/hosted/review\""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "func runBudget(subAgents int, wall time.Duration) Budget {"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\treturn Budget{MaxSubAgents: subAgents, MaxInputTokens: 1_000, MaxOutputTokens: 1_000, MaxCostMicrousd: 1_000, MaxModelCalls: 100, MaxToolCallsPerAgent: 5, WallTime: wall}"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "func tasksFor(ids ...string) []PlanTask {"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\ttasks := make([]PlanTask, len(ids))"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tfor i, id := range ids {"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t\ttasks[i] = PlanTask{BlockID: id, Focus: \"check \" + id}"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\treturn tasks"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "func TestRunnerCapsConcurrencyPerOrganization(t *testing.T) {"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tlimiter, _ := NewOrgLimiter(2)"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tvar active, peak atomic.Int32"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tagent := func(ctx context.Context, task PlanTask, _ *Meter) ([]review.Finding, error) {"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t\tnow := active.Add(1)"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t\tfor {"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t\t\told := peak.Load()"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t\t\tif now \u003c= old || peak.CompareAndSwap(old, now) {"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t\t\t\tbreak"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t\ttime.Sleep(10 * time.Millisecond)"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t\tactive.Add(-1)"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t\treturn []review.Finding{finding(task.BlockID+\".go\", 1, 1, \"P2\")}, nil"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\trunner := Runner{Limiter: limiter, SubAgent: agent}"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tvar wg sync.WaitGroup"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\tfor run := 0; run \u003c 2; run++ {"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t\twg.Add(1)"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\tgo func() {"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\t\tdefer wg.Done()"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\t\tmeter := NewMeter(runBudget(6, time.Minute), time.Now(), nil)"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t\t\tresult, err := runner.Run(context.Background(), 7, tasksFor(\"a\", \"b\", \"c\", \"d\", \"e\", \"f\"), meter)"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t\t\tif err != nil || !result.Complete || len(result.Candidates) != 6 {"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\t\t\tt.Errorf(\"result=%#v err=%v\", result, err)"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\t}()"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\twg.Wait()"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\tif peak.Load() \u003e 2 {"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"installation ran %d sub-agents at once across reviews; cap is 2\", peak.Load())"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\tif len(limiter.slots) != 0 {"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"idle installations retained: %d\", len(limiter.slots))"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "func TestOrganizationsDoNotShareSlots(t *testing.T) {"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\tlimiter, _ := NewOrgLimiter(1)"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\tholdA, err := limiter.Acquire(context.Background(), 1)"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\tdefer holdA()"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\tctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\tdefer cancel()"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\tholdB, err := limiter.Acquire(ctx, 2)"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"a busy installation blocked another installation\")"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\tholdB()"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\tif _, err := limiter.Acquire(ctx, 1); !errors.Is(err, context.DeadlineExceeded) {"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"second slot for a capped installation: %v\", err)"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "func TestPartialsStreamSeriallyAndAreProvisional(t *testing.T) {"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\tlimiter, _ := NewOrgLimiter(3)"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\tvar calls atomic.Int32"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\tvar seen []Partial"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\trunner := Runner{"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\t\tLimiter: limiter,"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t\tSubAgent: func(_ context.Context, task PlanTask, _ *Meter) ([]review.Finding, error) {"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t\t\treturn []review.Finding{finding(task.BlockID+\".go\", 1, 1, \"P1\")}, nil"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\t\t},"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\t\tOnPartial: func(p Partial) {"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t\t\tif calls.Add(1) != 1 {"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t\t\t\tt.Error(\"OnPartial called concurrently\")"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t\t\tseen = append(seen, p)"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t\t\tcalls.Add(-1)"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\t\t},"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\tresult, err := runner.Run(context.Background(), 7, tasksFor(\"a\", \"b\", \"c\"), NewMeter(runBudget(3, time.Minute), time.Now(), nil))"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\tfor i, p := range seen {"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\t\tif p.Done != i+1 || p.Total != 3 || !p.Provisional || p.Outcome != TaskCompleted {"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"partial %d: %#v\", i, p)"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\tif result.Candidates[0].Path != \"a.go\" || result.Candidates[2].Path != \"c.go\" {"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"candidates must follow plan order, got %v\", result.Candidates)"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "func TestFailuresAndPanicsStayInsideTheirTask(t *testing.T) {"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "\tlimiter, _ := NewOrgLimiter(3)"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\trunner := Runner{Limiter: limiter, SubAgent: func(_ context.Context, task PlanTask, _ *Meter) ([]review.Finding, error) {"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\t\tswitch task.BlockID {"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\t\tcase \"boom\":"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\t\t\tpanic(\"nil map\")"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\t\tcase \"bad\":"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\t\t\treturn nil, fmt.Errorf(\"provider said: sk-live-secret rejected\")"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\t\treturn []review.Finding{finding(\"ok.go\", 1, 1, \"P2\")}, nil"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\t}}"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\tresult, err := runner.Run(context.Background(), 7, tasksFor(\"ok\", \"bad\", \"boom\"), NewMeter(runBudget(3, time.Minute), time.Now(), nil))"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\tif err != nil || result.Complete || len(result.Candidates) != 1 {"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"result=%#v err=%v\", result, err)"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\tif result.Outcomes[\"boom\"].Outcome != TaskFailed || result.Outcomes[\"bad\"].Outcome != TaskFailed {"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"outcomes: %#v\", result.Outcomes)"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\tif strings.Contains(result.Outcomes[\"bad\"].Reason, \"secret\") {"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"provider error text leaked into the task reason\")"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "func TestExhaustedBudgetSkipsUnstartedTasks(t *testing.T) {"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\tlimiter, _ := NewOrgLimiter(1)"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "\trunner := Runner{Limiter: limiter, SubAgent: func(_ context.Context, _ PlanTask, meter *Meter) ([]review.Finding, error) {"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "\t\t_, err := meter.Reserve(2_000, 1, 1)"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "\t}}"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\tresult, err := runner.Run(context.Background(), 7, tasksFor(\"a\", \"b\", \"c\"), NewMeter(runBudget(3, time.Minute), time.Now(), nil))"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "\tfailed, skipped := 0, 0"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "\tfor _, outcome := range result.Outcomes {"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "\t\tswitch outcome.Outcome {"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "\t\tcase TaskFailed:"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "\t\t\tfailed++"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "\t\t\tif outcome.Reason != \"review budget exhausted during this task\" {"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "\t\t\t\tt.Fatalf(\"reason %q\", outcome.Reason)"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "\t\tcase TaskSkipped:"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "\t\t\tskipped++"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "\t\t\tif !strings.Contains(outcome.Reason, \"input tokens\") {"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "\t\t\t\tt.Fatalf(\"skip reason %q does not name the exhausted limit\", outcome.Reason)"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "\tif failed != 1 || skipped != 2 || result.Complete {"
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"failed=%d skipped=%d complete=%v\", failed, skipped, result.Complete)"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": "func TestWallTimeBoundsTheWholeRun(t *testing.T) {"
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "\tlimiter, _ := NewOrgLimiter(1)"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "\trunner := Runner{Limiter: limiter, SubAgent: func(ctx context.Context, _ PlanTask, _ *Meter) ([]review.Finding, error) {"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "\t\t\u003c-ctx.Done()"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "\t\treturn nil, ctx.Err()"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "\t}}"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "\tstarted := time.Now()"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "\tresult, err := runner.Run(context.Background(), 7, tasksFor(\"a\", \"b\"), NewMeter(runBudget(2, 30*time.Millisecond), started, nil))"
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "\tif err != nil || time.Since(started) \u003e time.Second {"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"run ignored the deadline: %v\", err)"
+            },
+            {
+              "newLine": 178,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": "\tif result.Outcomes[\"a\"].Outcome == TaskCompleted || result.Outcomes[\"b\"].Outcome == TaskCompleted {"
+            },
+            {
+              "newLine": 180,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"tasks completed past the deadline: %#v\", result.Outcomes)"
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 184,
+              "kind": "added",
+              "text": "func TestRunRejectsInvalidPlans(t *testing.T) {"
+            },
+            {
+              "newLine": 185,
+              "kind": "added",
+              "text": "\tlimiter, _ := NewOrgLimiter(1)"
+            },
+            {
+              "newLine": 186,
+              "kind": "added",
+              "text": "\trunner := Runner{Limiter: limiter, SubAgent: func(context.Context, PlanTask, *Meter) ([]review.Finding, error) { return nil, nil }}"
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "\tmeter := NewMeter(runBudget(2, time.Minute), time.Now(), nil)"
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": "\tfor name, tasks := range map[string][]PlanTask{\"empty\": nil, \"too many\": tasksFor(\"a\", \"b\", \"c\"), \"duplicate\": tasksFor(\"a\", \"a\")} {"
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "\t\tif _, err := runner.Run(context.Background(), 7, tasks, meter); err == nil {"
+            },
+            {
+              "newLine": 190,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"%s accepted\", name)"
+            },
+            {
+              "newLine": 191,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 192,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 193,
+              "kind": "added",
+              "text": "\tif _, err := NewOrgLimiter(0); err == nil {"
+            },
+            {
+              "newLine": 194,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"zero limit accepted\")"
+            },
+            {
+              "newLine": 195,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 196,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-8174045ef40ea4ae",
+      "title": "Agent changes",
+      "summary": "4 related files share the \"agent\" change signal.",
+      "paths": [
+        "ROADMAP.md",
+        "docs/AGENTIC_REVIEW.md",
+        "internal/hosted/agent/run.go",
+        "internal/hosted/agent/run_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-032d73d8971b39c6",
+      "path": "internal/hosted/agent/run.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/agent/run_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-5832a93892def5b6",
+      "path": "internal/hosted/agent/run.go",
+      "line": 26,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func NewOrgLimiter(limit int) (*OrgLimiter, error) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 4,
+    "filesAnalyzed": 4,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "1",
+      "path": "internal/hosted/agent/run.go",
+      "lineStart": 13,
+      "lineEnd": 30,
+      "title": "Limit concurrency per installation",
+      "summary": "Concurrent sub-agents are capped per installation across reviews handled by this process, while different installations have separate limits. The cap is not shared across reviewer processes."
+    },
+    {
+      "id": "5",
+      "path": "internal/hosted/agent/run.go",
+      "lineStart": 67,
+      "lineEnd": 137,
+      "title": "Stream provisional results without changing final ordering",
+      "summary": "Each task completion can be sent to `OnPartial` serially on the caller’s goroutine, marked provisional and numbered by completion order. The final candidate list is assembled in plan order instead."
+    },
+    {
+      "id": "2",
+      "path": "internal/hosted/agent/run.go",
+      "lineStart": 98,
+      "lineEnd": 137,
+      "title": "Run planned tasks in parallel",
+      "summary": "The runner starts a goroutine for each planned task, applies the meter’s deadline to the whole run, and rejects empty, oversized, or duplicate-ID plans before starting work."
+    },
+    {
+      "id": "3",
+      "path": "internal/hosted/agent/run.go",
+      "lineStart": 139,
+      "lineEnd": 183,
+      "title": "Contain sub-agent failures",
+      "summary": "A sub-agent error or panic is contained to its task, so other tasks can still contribute findings. Failure reasons omit provider and tool error text, and any non-completed task makes the overall result incomplete."
+    },
+    {
+      "id": "4",
+      "path": "internal/hosted/agent/run.go",
+      "lineStart": 139,
+      "lineEnd": 160,
+      "title": "Skip work when the budget is exhausted",
+      "summary": "Tasks check the shared budget after acquiring a slot, so work that has not started is skipped when a limit is exhausted. Errors from work already in progress remain failed tasks."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "b300ab7e1f53419de615b6fdfb0d18b08f0e20d1",
+      "revision": "ca222e2d4d875ecbb2ea1c9ebb6c7117fd395ac5",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "b300ab7e1f53419de615b6fdfb0d18b08f0e20d1",
+      "revision": "ca222e2d4d875ecbb2ea1c9ebb6c7117fd395ac5",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "ca222e2d4d875ecbb2ea1c9ebb6c7117fd395ac5",
+      "detail": "5 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "ca222e2d4d875ecbb2ea1c9ebb6c7117fd395ac5",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-9db8871afd3d9a00",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/agent/run.go",
+      "line": 26,
+      "evidence": "func NewOrgLimiter(limit int) (*OrgLimiter, error) {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "ca222e2d4d875ecbb2ea1c9ebb6c7117fd395ac5",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42359736695",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42359736695/job/128365372286",
+        "startedAt": "2026-11-07T09:26:25Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42359736699/job/128365371538",
+        "startedAt": "2026-11-07T09:26:23Z"
+      }
+    ]
+  }
+}
