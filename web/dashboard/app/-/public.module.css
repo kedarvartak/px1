@@ -1,0 +1,26 @@
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 48px 16px;
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.card {
+  border: 1px solid var(--border, #d0d7de);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.price {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.note {
+  color: var(--muted, #57606a);
+}

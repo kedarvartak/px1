@@ -176,14 +176,18 @@ backend-foundation tasks are:
    discussions, statuses, webhooks, and GitLab-specific diff positions.
 74. [ ] **Gate GitLab against GitLab CE.** Run a black-box provider contract
    suite against a disposable GitLab CE service in CI.
-75. [ ] **Add the Slack app.** Implement OAuth v2, Block Kit digests and alerts,
+75. [x] **Add the Slack app.** Implement OAuth v2, Block Kit digests and alerts,
    and the `/px1 status` command with signed-request verification.
-76. [ ] **Add Linear and Jira context.** Use OAuth to fetch linked issue details
+76. [x] **Add Linear and Jira context.** Use OAuth to fetch linked issue details
    and acceptance criteria detected from branch names and pull-request text.
-77. [ ] **Report requirement coverage.** Ground a prompt section in linked issue
+77. [x] **Report requirement coverage.** Ground a prompt section in linked issue
    requirements and render auditable coverage in the review summary.
-78. [ ] **Demo value during onboarding.** Review the latest merged pull request
+78. [x] **Demo value during onboarding.** Review the latest merged pull request
    after installation with explicit provenance and idempotent scheduling.
+79. [x] **Publish pricing, docs, changelog, and status.** Serve tenant-free
+    pages under `/-/`, generate pricing from one validated table, gate the
+    changelog on merged-PR links, and report status without claiming health
+    that was not probed.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,

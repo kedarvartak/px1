@@ -14,6 +14,7 @@ import (
 	"github.com/getsentry/sentry-go/http"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
+	"px1/internal/hosted/publicsite"
 	hostedruntime "px1/internal/hosted/runtime"
 )
 
@@ -43,6 +44,14 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) })
+	if cfg.Role == "web" {
+		components, err := publicsite.ParseStatusComponents(os.Getenv("PX1_STATUS_COMPONENTS"))
+		if err != nil {
+			slog.Error("invalid status components", "error", err)
+			os.Exit(1)
+		}
+		mux.Handle("GET /status.json", publicsite.StatusChecker{Components: components}.Handler())
+	}
 	sentryMiddleware := sentryhttp.New(sentryhttp.Options{Repanic: true})
 	handler := otelhttp.NewHandler(sentryMiddleware.Handle(mux), "px1.http")
 	server := &http.Server{Addr: cfg.Address, Handler: handler, ReadHeaderTimeout: 5 * time.Second}
