@@ -72,6 +72,7 @@ type Principal struct {
 	InstallationID int64
 	KeyID          string
 	Scopes         []Scope
+	ExpiresAt      time.Time
 }
 
 func (p Principal) Has(scope Scope) bool { return slices.Contains(p.Scopes, scope) }
@@ -170,7 +171,7 @@ func (m Manager) Authenticate(ctx context.Context, token string, required Scope)
 	if !key.RevokedAt.IsZero() || !m.now().Before(key.ExpiresAt) {
 		return Principal{}, ErrUnauthorized
 	}
-	principal := Principal{InstallationID: key.InstallationID, KeyID: key.ID, Scopes: append([]Scope{}, key.Scopes...)}
+	principal := Principal{InstallationID: key.InstallationID, KeyID: key.ID, Scopes: append([]Scope{}, key.Scopes...), ExpiresAt: key.ExpiresAt}
 	if required != "" && !principal.Has(required) {
 		return principal, ErrForbidden
 	}

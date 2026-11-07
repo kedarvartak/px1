@@ -207,6 +207,9 @@ backend-foundation tasks are:
 85. [x] **Add organization API keys.** Issue scoped, digest-only,
     tenant-isolated keys with overlapping rotation, revocation, and per-key
     rate limits for the API and MCP server.
+86. [x] **Serve px1 over MCP.** Expose nine scoped review tools on the
+    official SDK over streamable HTTP, pin sessions to their API key, and
+    proxy the same tools over stdio with `px1 mcp`.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,
