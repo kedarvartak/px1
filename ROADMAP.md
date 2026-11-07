@@ -213,6 +213,9 @@ backend-foundation tasks are:
 87. [x] **Back agent tools with local git.** Read files, list directories,
     search text, blame, and log at a pinned commit without running anything the
     repository configures, so reviews can run before the hosted index exists.
+88. [x] **Run the sub-agent loop.** Drive tools through a JSON protocol over the
+    single-prompt gateway, with metered model calls, tolerant parsing of model
+    output, and every dropped finding recorded in the trace.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,

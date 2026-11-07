@@ -17,7 +17,7 @@ reviews keep the v2 pipeline and have no agent budget.
 | Role | Output | Rejected when |
 | --- | --- | --- |
 | Planner | `{"tasks":[{"block_id","focus","files"}]}` | Unknown or repeated group, more tasks than the tier allows, empty or long focus, more than 10 files, a path outside the repository, unknown fields |
-| Sub-agent | Finding array | Any finding fails `review.Finding.Validate` |
+| Sub-agent | One JSON object per turn: `{"tool","arguments"}` or `{"findings":[…]}` | Not valid JSON twice in a row. An invalid finding is dropped, not fatal (see below) |
 | Judge | Finding array, at most 50 | A finding overlaps no candidate in the same file, or is more severe than the candidates it overlaps |
 
 The judge can narrow a review but never widen it: it cannot invent findings,
@@ -112,3 +112,37 @@ The exporter rejects a trace for any other revision, a Base tier, unknown
 fields, out-of-order sequence numbers, or oversized text. The report renders
 every trace string as text, never markup. The section states that the log shows
 what px1 looked at, not that unexamined code is correct.
+
+## The sub-agent loop
+
+`agent.Loop` runs one sub-agent over the single-prompt model gateway, so it
+works with any provider. Each turn the model returns one JSON object: a tool
+call, or its findings. The loop runs the tool and replays the whole transcript
+on the next turn.
+
+- **Metered.** `agent.Model` reserves the worst case before every call (input
+  estimated at three bytes per token, which errs high), waits when other
+  in-flight calls hold the headroom, and settles real usage with cached input
+  priced separately. A failed call is settled at its input size with no output,
+  so a provider that bills incomplete requests is not ignored. `Spend().Overruns`
+  counts calls whose real input exceeded the estimate.
+- **Results are data.** Each step is JSON inside an `<untrusted_tool_step>`
+  tag, so a file containing `</untrusted_tool_step>` cannot close it.
+- **Errors go back to the model.** A bad path, unknown tool, or invalid
+  arguments becomes a failed step the model can correct. Tool errors never
+  include git's stderr or local paths.
+- **Bounded.** The tool-call limit is announced when reached ("You cannot call
+  more tools"); a model that still asks for tools fails the task with
+  `ErrToolCallLimit`. When the transcript outgrows 120 KiB, the oldest results
+  are replaced by a marker and the model is asked for its findings.
+- **Tolerant of imperfect output, strict about what ships.** Replies may be
+  wrapped in a code fence or prose, and one invalid reply gets a repair note.
+  Findings are validated one by one: unknown fields are ignored and severity
+  case is normalized, but a finding that still fails `Validate` is dropped and
+  recorded as a `dropped_finding` trace note with the reason, instead of
+  rejecting the whole answer.
+
+Because the transcript is replayed every turn, input tokens grow with each tool
+call. A sub-agent that makes twelve calls can read a large multiple of its
+final transcript, which is why input tokens are the budget most likely to run
+out first.
