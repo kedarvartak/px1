@@ -1,0 +1,3854 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "1cb6c3914866c01af87abd70c133188c54fb6357",
+  "head": "de5b5de90ca5c23ece11f5127804a31254b3568b",
+  "generatedAt": "2026-11-07T20:10:42.446479301Z",
+  "files": [
+    {
+      "path": "ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/ROADMAP.md b/ROADMAP.md\nindex f70a02b..51a4ee4 100644\n--- a/ROADMAP.md\n+++ b/ROADMAP.md\n@@ -210,6 +210,9 @@ backend-foundation tasks are:\n 86. [x] **Serve px1 over MCP.** Expose nine scoped review tools on the\n     official SDK over streamable HTTP, pin sessions to their API key, and\n     proxy the same tools over stdio with `px1 mcp`.\n+87. [x] **Back agent tools with local git.** Read files, list directories,\n+    search text, blame, and log at a pinned commit without running anything the\n+    repository configures, so reviews can run before the hosted index exists.\n \n The v1 review pipeline, indexing, report hosting, evaluation, and launch gates\n follow these foundations. AI findings must remain auditable: evidence,\n",
+      "hunks": [
+        {
+          "id": "diff-b789825de263fb62",
+          "header": "@@ -210,6 +210,9 @@ backend-foundation tasks are:",
+          "lines": [
+            {
+              "oldLine": 210,
+              "newLine": 210,
+              "kind": "context",
+              "text": "86. [x] **Serve px1 over MCP.** Expose nine scoped review tools on the"
+            },
+            {
+              "oldLine": 211,
+              "newLine": 211,
+              "kind": "context",
+              "text": "    official SDK over streamable HTTP, pin sessions to their API key, and"
+            },
+            {
+              "oldLine": 212,
+              "newLine": 212,
+              "kind": "context",
+              "text": "    proxy the same tools over stdio with `px1 mcp`."
+            },
+            {
+              "newLine": 213,
+              "kind": "added",
+              "text": "87. [x] **Back agent tools with local git.** Read files, list directories,"
+            },
+            {
+              "newLine": 214,
+              "kind": "added",
+              "text": "    search text, blame, and log at a pinned commit without running anything the"
+            },
+            {
+              "newLine": 215,
+              "kind": "added",
+              "text": "    repository configures, so reviews can run before the hosted index exists."
+            },
+            {
+              "oldLine": 213,
+              "newLine": 216,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 214,
+              "newLine": 217,
+              "kind": "context",
+              "text": "The v1 review pipeline, indexing, report hosting, evaluation, and launch gates"
+            },
+            {
+              "oldLine": 215,
+              "newLine": 218,
+              "kind": "context",
+              "text": "follow these foundations. AI findings must remain auditable: evidence,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/AGENT_TOOLS.md",
+      "status": "M",
+      "diff": "diff --git a/docs/AGENT_TOOLS.md b/docs/AGENT_TOOLS.md\nindex c57058a..d9ba60b 100644\n--- a/docs/AGENT_TOOLS.md\n+++ b/docs/AGENT_TOOLS.md\n@@ -8,7 +8,8 @@ it is deliberately absent until that sandbox exists.\n | Tool | Reads | Bound |\n | --- | --- | --- |\n | `read_file` | One line range at the reviewed head | 400 lines |\n-| `search_code` | Embedding and exact-text index | 20 hits |\n+| `list_files` | One directory at the reviewed head | 200 entries |\n+| `search_code` | Embedding and exact-text index; local git backing is exact, case-sensitive text | 20 hits, 3 per file |\n | `graph_callers`, `graph_callees` | Symbol graph from a path and symbol name | Two hops, 50 symbols |\n | `git_blame` | Last commit per line in a range | 400 lines |\n | `git_log` | Recent commits to one file | 20 commits |\n@@ -36,3 +37,28 @@ providers restrict tool names to letters, digits, `_`, and `-`.\n \n Tool output is repository content. Prompts must present it as untrusted data,\n never as instructions.\n+\n+## Local git backing\n+\n+`agent.GitRepo` backs the tools with read-only `git` queries against a local\n+clone, pinned to the head SHA, so a review can run without the hosted index.\n+It supports `read_file`, `list_files`, `search_code` (`git grep`, literal text\n+only), `git_blame`, and `git_log`. It does not provide the symbol graph,\n+embeddings, or linked issues, so `graph_*` and `read_issue` stay hidden.\n+\n+Git can run commands that a repository configures: `textconv` filters and\n+`core.fsmonitor` both execute during `git blame`. Cloned repositories are\n+untrusted data, so every call passes `-c core.fsmonitor=false`,\n+`-c core.hooksPath=/dev/null`, and `--no-textconv`. A test configures a hostile\n+repository and fails if any tool call runs its script.\n+\n+Other behavior to know:\n+\n+- Files are read from the commit, never the working tree. Symbolic links,\n+  directories, binary files, and files over 2 MiB are refused with a reason.\n+- A search with no matches returns an empty list. A failing search (for\n+  example an unknown revision) is an error, not an empty list.\n+- Blame and log report author names but not email addresses.\n+- Errors name the failing git command only. Git's stderr can contain local\n+  paths and is never shown to a model.\n+- Each call has a 20-second timeout and a 512 KiB output cap.\n",
+      "hunks": [
+        {
+          "id": "diff-e800de453c83d1ea",
+          "header": "@@ -8,7 +8,8 @@ it is deliberately absent until that sandbox exists.",
+          "lines": [
+            {
+              "oldLine": 8,
+              "newLine": 8,
+              "kind": "context",
+              "text": "| Tool | Reads | Bound |"
+            },
+            {
+              "oldLine": 9,
+              "newLine": 9,
+              "kind": "context",
+              "text": "| --- | --- | --- |"
+            },
+            {
+              "oldLine": 10,
+              "newLine": 10,
+              "kind": "context",
+              "text": "| `read_file` | One line range at the reviewed head | 400 lines |"
+            },
+            {
+              "oldLine": 11,
+              "kind": "removed",
+              "text": "| `search_code` | Embedding and exact-text index | 20 hits |"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "| `list_files` | One directory at the reviewed head | 200 entries |"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "| `search_code` | Embedding and exact-text index; local git backing is exact, case-sensitive text | 20 hits, 3 per file |"
+            },
+            {
+              "oldLine": 12,
+              "newLine": 13,
+              "kind": "context",
+              "text": "| `graph_callers`, `graph_callees` | Symbol graph from a path and symbol name | Two hops, 50 symbols |"
+            },
+            {
+              "oldLine": 13,
+              "newLine": 14,
+              "kind": "context",
+              "text": "| `git_blame` | Last commit per line in a range | 400 lines |"
+            },
+            {
+              "oldLine": 14,
+              "newLine": 15,
+              "kind": "context",
+              "text": "| `git_log` | Recent commits to one file | 20 commits |"
+            }
+          ]
+        },
+        {
+          "id": "diff-f39a7701cf56a366",
+          "header": "@@ -36,3 +37,28 @@ providers restrict tool names to letters, digits, `_`, and `-`.",
+          "lines": [
+            {
+              "oldLine": 36,
+              "newLine": 37,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 37,
+              "newLine": 38,
+              "kind": "context",
+              "text": "Tool output is repository content. Prompts must present it as untrusted data,"
+            },
+            {
+              "oldLine": 38,
+              "newLine": 39,
+              "kind": "context",
+              "text": "never as instructions."
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "## Local git backing"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "`agent.GitRepo` backs the tools with read-only `git` queries against a local"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "clone, pinned to the head SHA, so a review can run without the hosted index."
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "It supports `read_file`, `list_files`, `search_code` (`git grep`, literal text"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "only), `git_blame`, and `git_log`. It does not provide the symbol graph,"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "embeddings, or linked issues, so `graph_*` and `read_issue` stay hidden."
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "Git can run commands that a repository configures: `textconv` filters and"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "`core.fsmonitor` both execute during `git blame`. Cloned repositories are"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "untrusted data, so every call passes `-c core.fsmonitor=false`,"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "`-c core.hooksPath=/dev/null`, and `--no-textconv`. A test configures a hostile"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "repository and fails if any tool call runs its script."
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "Other behavior to know:"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "- Files are read from the commit, never the working tree. Symbolic links,"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "  directories, binary files, and files over 2 MiB are refused with a reason."
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "- A search with no matches returns an empty list. A failing search (for"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "  example an unknown revision) is an error, not an empty list."
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "- Blame and log report author names but not email addresses."
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "- Errors name the failing git command only. Git's stderr can contain local"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "  paths and is never shown to a model."
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "- Each call has a 20-second timeout and a 512 KiB output cap."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/agent/gitstore.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/agent/gitstore.go b/internal/hosted/agent/gitstore.go\nnew file mode 100644\nindex 0000000..ff89619\n--- /dev/null\n+++ b/internal/hosted/agent/gitstore.go\n@@ -0,0 +1,332 @@\n+package agent\n+\n+import (\n+\t\"bytes\"\n+\t\"context\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"io\"\n+\t\"os\"\n+\t\"os/exec\"\n+\t\"strconv\"\n+\t\"strings\"\n+\t\"time\"\n+\t\"unicode/utf8\"\n+)\n+\n+const (\n+\tmaxBlobBytes     = 2 \u003c\u003c 20\n+\tmaxGitOutput     = 512 \u003c\u003c 10\n+\tmaxHitsPerFile   = 3\n+\tmaxSnippetBytes  = 300\n+\tmaxListedEntries = 200\n+\tmaxSummaryBytes  = 200\n+\tdefaultGitTime   = 20 * time.Second\n+)\n+\n+// GitRepo backs the agent tools with read-only git queries against a local\n+// clone, pinned to Scope.HeadSHA. It never checks out files and never runs\n+// anything the repository configures: git can execute repo-chosen commands\n+// (textconv filters, fsmonitor hooks) during blame and status-like reads, so\n+// those are disabled on every call. The clone is treated as untrusted data.\n+type GitRepo struct {\n+\tRoot    string\n+\tGitPath string\n+\tTimeout time.Duration\n+}\n+\n+var errNotFound = errors.New(\"not found at this revision\")\n+\n+// gitError reports a failed git command by name and exit code only: stderr\n+// can contain local paths, so it is never surfaced to tools or models.\n+type gitError struct {\n+\tcommand string\n+\tcode    int\n+}\n+\n+func (e *gitError) Error() string { return \"git \" + e.command + \" failed\" }\n+\n+func (g GitRepo) git(ctx context.Context, limit int, args ...string) (out []byte, truncated bool, err error) {\n+\tif g.Root == \"\" {\n+\t\treturn nil, false, errors.New(\"git repository root is required\")\n+\t}\n+\ttimeout := g.Timeout\n+\tif timeout \u003c= 0 {\n+\t\ttimeout = defaultGitTime\n+\t}\n+\tctx, cancel := context.WithTimeout(ctx, timeout)\n+\tdefer cancel()\n+\tbinary := g.GitPath\n+\tif binary == \"\" {\n+\t\tbinary = \"git\"\n+\t}\n+\tfull := append([]string{\n+\t\t\"-C\", g.Root, \"--no-pager\",\n+\t\t\"-c\", \"core.fsmonitor=false\",\n+\t\t\"-c\", \"core.hooksPath=\" + os.DevNull,\n+\t\t\"-c\", \"core.quotePath=false\",\n+\t}, args...)\n+\tcmd := exec.CommandContext(ctx, binary, full...)\n+\tcmd.Env = append(os.Environ(), \"GIT_TERMINAL_PROMPT=0\", \"GIT_OPTIONAL_LOCKS=0\", \"GIT_PAGER=cat\", \"LC_ALL=C\")\n+\tstdout, err := cmd.StdoutPipe()\n+\tif err != nil {\n+\t\treturn nil, false, err\n+\t}\n+\tvar stderr bytes.Buffer\n+\tcmd.Stderr = \u0026limitedBuffer{buf: \u0026stderr, max: 2 \u003c\u003c 10}\n+\tif err := cmd.Start(); err != nil {\n+\t\treturn nil, false, fmt.Errorf(\"start git: %w\", err)\n+\t}\n+\tdata, readErr := io.ReadAll(io.LimitReader(stdout, int64(limit)+1))\n+\tif len(data) \u003e limit {\n+\t\ttruncated = true\n+\t\tdata = data[:limit]\n+\t\tcancel()\n+\t}\n+\twaitErr := cmd.Wait()\n+\tif readErr != nil {\n+\t\treturn nil, false, readErr\n+\t}\n+\tif truncated {\n+\t\treturn data, true, nil\n+\t}\n+\tif waitErr != nil {\n+\t\tif ctx.Err() != nil {\n+\t\t\treturn nil, false, fmt.Errorf(\"git %s timed out\", args[0])\n+\t\t}\n+\t\tvar exit *exec.ExitError\n+\t\tcode := -1\n+\t\tif errors.As(waitErr, \u0026exit) {\n+\t\t\tcode = exit.ExitCode()\n+\t\t}\n+\t\treturn nil, false, \u0026gitError{command: args[0], code: code}\n+\t}\n+\treturn data, false, nil\n+}\n+\n+type limitedBuffer struct {\n+\tbuf *bytes.Buffer\n+\tmax int\n+}\n+\n+func (b *limitedBuffer) Write(p []byte) (int, error) {\n+\tif room := b.max - b.buf.Len(); room \u003e 0 {\n+\t\tb.buf.Write(p[:min(room, len(p))])\n+\t}\n+\treturn len(p), nil\n+}\n+\n+// blobInfo returns the size of a regular file at the revision.\n+func (g GitRepo) blobInfo(ctx context.Context, sha, path string) (int, error) {\n+\tout, _, err := g.git(ctx, 4\u003c\u003c10, \"ls-tree\", \"-l\", sha, \"--\", path)\n+\tif err != nil {\n+\t\treturn 0, err\n+\t}\n+\tfields := strings.Fields(strings.SplitN(string(out), \"\\t\", 2)[0])\n+\tif len(fields) \u003c 4 {\n+\t\treturn 0, errNotFound\n+\t}\n+\tswitch {\n+\tcase fields[1] == \"tree\":\n+\t\treturn 0, errors.New(\"path is a directory; use list_files\")\n+\tcase fields[0] == \"120000\":\n+\t\treturn 0, errors.New(\"path is a symbolic link\")\n+\tcase fields[1] != \"blob\":\n+\t\treturn 0, errors.New(\"path is not a regular file\")\n+\t}\n+\tsize, err := strconv.Atoi(fields[3])\n+\tif err != nil {\n+\t\treturn 0, errNotFound\n+\t}\n+\treturn size, nil\n+}\n+\n+func (g GitRepo) ReadLines(ctx context.Context, scope Scope, path string, start, end int) (string, error) {\n+\tclean, err := repositoryPath(path)\n+\tif err != nil {\n+\t\treturn \"\", err\n+\t}\n+\tsize, err := g.blobInfo(ctx, scope.HeadSHA, clean)\n+\tif err != nil {\n+\t\treturn \"\", err\n+\t}\n+\tif size \u003e maxBlobBytes {\n+\t\treturn \"\", fmt.Errorf(\"file is %d bytes; files over %d bytes cannot be read, use search_code\", size, maxBlobBytes)\n+\t}\n+\tdata, _, err := g.git(ctx, maxBlobBytes, \"show\", scope.HeadSHA+\":\"+clean)\n+\tif err != nil {\n+\t\treturn \"\", err\n+\t}\n+\tif bytes.IndexByte(data[:min(len(data), 8000)], 0) \u003e= 0 {\n+\t\treturn \"\", errors.New(\"file is binary\")\n+\t}\n+\tlines := strings.Split(strings.TrimSuffix(string(data), \"\\n\"), \"\\n\")\n+\tif len(data) == 0 {\n+\t\tlines = nil\n+\t}\n+\tif start \u003e len(lines) {\n+\t\treturn \"\", fmt.Errorf(\"file has only %d lines\", len(lines))\n+\t}\n+\tend = min(end, len(lines))\n+\tvar out strings.Builder\n+\tfmt.Fprintf(\u0026out, \"%s lines %d-%d of %d\\n\", clean, start, end, len(lines))\n+\tfor i := start; i \u003c= end; i++ {\n+\t\tfmt.Fprintf(\u0026out, \"%d\\t%s\\n\", i, strings.TrimSuffix(lines[i-1], \"\\r\"))\n+\t}\n+\treturn out.String(), nil\n+}\n+\n+func (g GitRepo) Search(ctx context.Context, scope Scope, query string, limit int) ([]SearchHit, error) {\n+\tif strings.ContainsAny(query, \"\\x00\\n\\r\") {\n+\t\treturn nil, errors.New(\"query must be a single line of text\")\n+\t}\n+\tout, _, err := g.git(ctx, maxGitOutput, \"grep\", \"-n\", \"-z\", \"-F\", \"-I\", \"--no-color\", \"-e\", query, scope.HeadSHA, \"--\")\n+\tif err != nil {\n+\t\t// git grep exits 1 when nothing matches; every other failure is real.\n+\t\tvar failed *gitError\n+\t\tif errors.As(err, \u0026failed) \u0026\u0026 failed.code == 1 {\n+\t\t\treturn []SearchHit{}, nil\n+\t\t}\n+\t\treturn nil, err\n+\t}\n+\tprefix := scope.HeadSHA + \":\"\n+\tperFile := map[string]int{}\n+\thits := []SearchHit{}\n+\tfor _, record := range strings.Split(string(out), \"\\n\") {\n+\t\tparts := strings.SplitN(record, \"\\x00\", 3)\n+\t\tif len(parts) != 3 || !strings.HasPrefix(parts[0], prefix) {\n+\t\t\tcontinue\n+\t\t}\n+\t\tpath := strings.TrimPrefix(parts[0], prefix)\n+\t\tline, err := strconv.Atoi(parts[1])\n+\t\tif err != nil || perFile[path] \u003e= maxHitsPerFile {\n+\t\t\tcontinue\n+\t\t}\n+\t\tperFile[path]++\n+\t\thits = append(hits, SearchHit{Path: path, StartLine: line, EndLine: line, Snippet: clipText(parts[2], maxSnippetBytes), Source: \"git-grep\"})\n+\t\tif len(hits) \u003e= limit {\n+\t\t\tbreak\n+\t\t}\n+\t}\n+\treturn hits, nil\n+}\n+\n+func (g GitRepo) Blame(ctx context.Context, scope Scope, path string, start, end int) ([]BlameLine, error) {\n+\tclean, err := repositoryPath(path)\n+\tif err != nil {\n+\t\treturn nil, err\n+\t}\n+\tif _, err := g.blobInfo(ctx, scope.HeadSHA, clean); err != nil {\n+\t\treturn nil, err\n+\t}\n+\tout, _, err := g.git(ctx, maxGitOutput, \"blame\", \"--no-textconv\", \"--porcelain\", \"-L\", fmt.Sprintf(\"%d,%d\", start, end), scope.HeadSHA, \"--\", clean)\n+\tif err != nil {\n+\t\treturn nil, errors.New(\"line range is not valid for this file at this revision\")\n+\t}\n+\ttype commitInfo struct{ author, summary string }\n+\tcommits := map[string]*commitInfo{}\n+\tvar lines []BlameLine\n+\tvar current string\n+\tvar finalLine int\n+\tfor _, raw := range strings.Split(string(out), \"\\n\") {\n+\t\tswitch {\n+\t\tcase strings.HasPrefix(raw, \"\\t\"):\n+\t\t\tinfo := commits[current]\n+\t\t\tif info != nil {\n+\t\t\t\tlines = append(lines, BlameLine{Line: finalLine, Commit: current, Author: info.author, Summary: info.summary})\n+\t\t\t}\n+\t\tcase isBlameHeader(raw):\n+\t\t\tfields := strings.Fields(raw)\n+\t\t\tcurrent = fields[0]\n+\t\t\tfinalLine, _ = strconv.Atoi(fields[2])\n+\t\t\tif commits[current] == nil {\n+\t\t\t\tcommits[current] = \u0026commitInfo{}\n+\t\t\t}\n+\t\tcase strings.HasPrefix(raw, \"author \"):\n+\t\t\tcommits[current].author = clipText(strings.TrimPrefix(raw, \"author \"), maxSummaryBytes)\n+\t\tcase strings.HasPrefix(raw, \"summary \"):\n+\t\t\tcommits[current].summary = clipText(strings.TrimPrefix(raw, \"summary \"), maxSummaryBytes)\n+\t\t}\n+\t}\n+\treturn lines, nil\n+}\n+\n+func isBlameHeader(line string) bool {\n+\tfields := strings.Fields(line)\n+\tif len(fields) \u003c 3 || len(fields[0]) != 40 {\n+\t\treturn false\n+\t}\n+\tfor _, r := range fields[0] {\n+\t\tif !((r \u003e= '0' \u0026\u0026 r \u003c= '9') || (r \u003e= 'a' \u0026\u0026 r \u003c= 'f')) {\n+\t\t\treturn false\n+\t\t}\n+\t}\n+\t_, a := strconv.Atoi(fields[1])\n+\t_, b := strconv.Atoi(fields[2])\n+\treturn a == nil \u0026\u0026 b == nil\n+}\n+\n+func (g GitRepo) Log(ctx context.Context, scope Scope, path string, limit int) ([]Commit, error) {\n+\tclean, err := repositoryPath(path)\n+\tif err != nil {\n+\t\treturn nil, err\n+\t}\n+\tout, _, err := g.git(ctx, maxGitOutput, \"log\", \"-n\", strconv.Itoa(limit), \"--format=%H%x1f%an%x1f%aI%x1f%s%x1e\", scope.HeadSHA, \"--\", clean)\n+\tif err != nil {\n+\t\treturn nil, err\n+\t}\n+\tcommits := []Commit{}\n+\tfor _, record := range strings.Split(string(out), \"\\x1e\") {\n+\t\tfields := strings.Split(strings.TrimSpace(record), \"\\x1f\")\n+\t\tif len(fields) != 4 {\n+\t\t\tcontinue\n+\t\t}\n+\t\tcommits = append(commits, Commit{SHA: fields[0], Author: clipText(fields[1], maxSummaryBytes), Date: fields[2], Summary: clipText(fields[3], maxSummaryBytes)})\n+\t}\n+\treturn commits, nil\n+}\n+\n+// ListFiles lists one directory (not recursive) at the revision. Directories\n+// end with \"/\". An empty directory means the repository root.\n+func (g GitRepo) ListFiles(ctx context.Context, scope Scope, directory string) ([]string, error) {\n+\tspec := scope.HeadSHA\n+\tif directory != \"\" \u0026\u0026 directory != \".\" {\n+\t\tclean, err := repositoryPath(directory)\n+\t\tif err != nil {\n+\t\t\treturn nil, err\n+\t\t}\n+\t\tspec += \":\" + clean\n+\t}\n+\tout, _, err := g.git(ctx, maxGitOutput, \"ls-tree\", \"-z\", spec)\n+\tif err != nil {\n+\t\treturn nil, errors.New(\"directory not found at this revision\")\n+\t}\n+\tentries := []string{}\n+\tfor _, record := range strings.Split(string(out), \"\\x00\") {\n+\t\tmeta, name, ok := strings.Cut(record, \"\\t\")\n+\t\tif !ok {\n+\t\t\tcontinue\n+\t\t}\n+\t\tif strings.Contains(meta, \" tree \") {\n+\t\t\tname += \"/\"\n+\t\t}\n+\t\tentries = append(entries, name)\n+\t\tif len(entries) \u003e= maxListedEntries {\n+\t\t\tentries = append(entries, \"[listing truncated]\")\n+\t\t\tbreak\n+\t\t}\n+\t}\n+\treturn entries, nil\n+}\n+\n+func clipText(value string, limit int) string {\n+\tvalue = strings.ToValidUTF8(value, \"�\")\n+\tif len(value) \u003c= limit {\n+\t\treturn value\n+\t}\n+\tcut := limit\n+\tfor cut \u003e 0 \u0026\u0026 !utf8.RuneStart(value[cut]) {\n+\t\tcut--\n+\t}\n+\treturn value[:cut] + \"…\"\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-3194aab27a8bf588",
+          "header": "@@ -0,0 +1,332 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package agent"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"bytes\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"io\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"os/exec\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"strconv\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\t\"unicode/utf8\""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "const ("
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tmaxBlobBytes     = 2 \u003c\u003c 20"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tmaxGitOutput     = 512 \u003c\u003c 10"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tmaxHitsPerFile   = 3"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tmaxSnippetBytes  = 300"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tmaxListedEntries = 200"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tmaxSummaryBytes  = 200"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tdefaultGitTime   = 20 * time.Second"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "// GitRepo backs the agent tools with read-only git queries against a local"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "// clone, pinned to Scope.HeadSHA. It never checks out files and never runs"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "// anything the repository configures: git can execute repo-chosen commands"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "// (textconv filters, fsmonitor hooks) during blame and status-like reads, so"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "// those are disabled on every call. The clone is treated as untrusted data."
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "type GitRepo struct {"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tRoot    string"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tGitPath string"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tTimeout time.Duration"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "var errNotFound = errors.New(\"not found at this revision\")"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "// gitError reports a failed git command by name and exit code only: stderr"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "// can contain local paths, so it is never surfaced to tools or models."
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "type gitError struct {"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tcommand string"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tcode    int"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "func (e *gitError) Error() string { return \"git \" + e.command + \" failed\" }"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "func (g GitRepo) git(ctx context.Context, limit int, args ...string) (out []byte, truncated bool, err error) {"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\tif g.Root == \"\" {"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t\treturn nil, false, errors.New(\"git repository root is required\")"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\ttimeout := g.Timeout"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\tif timeout \u003c= 0 {"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t\ttimeout = defaultGitTime"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\tctx, cancel := context.WithTimeout(ctx, timeout)"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\tdefer cancel()"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\tbinary := g.GitPath"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\tif binary == \"\" {"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t\tbinary = \"git\""
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\tfull := append([]string{"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t\t\"-C\", g.Root, \"--no-pager\","
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t\t\"-c\", \"core.fsmonitor=false\","
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\t\"-c\", \"core.hooksPath=\" + os.DevNull,"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\t\"-c\", \"core.quotePath=false\","
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t}, args...)"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\tcmd := exec.CommandContext(ctx, binary, full...)"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\tcmd.Env = append(os.Environ(), \"GIT_TERMINAL_PROMPT=0\", \"GIT_OPTIONAL_LOCKS=0\", \"GIT_PAGER=cat\", \"LC_ALL=C\")"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\tstdout, err := cmd.StdoutPipe()"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\treturn nil, false, err"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\tvar stderr bytes.Buffer"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\tcmd.Stderr = \u0026limitedBuffer{buf: \u0026stderr, max: 2 \u003c\u003c 10}"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\tif err := cmd.Start(); err != nil {"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t\treturn nil, false, fmt.Errorf(\"start git: %w\", err)"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\tdata, readErr := io.ReadAll(io.LimitReader(stdout, int64(limit)+1))"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\tif len(data) \u003e limit {"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\t\ttruncated = true"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t\tdata = data[:limit]"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\t\tcancel()"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\twaitErr := cmd.Wait()"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\tif readErr != nil {"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\t\treturn nil, false, readErr"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\tif truncated {"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t\treturn data, true, nil"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\tif waitErr != nil {"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t\tif ctx.Err() != nil {"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t\t\treturn nil, false, fmt.Errorf(\"git %s timed out\", args[0])"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t\tvar exit *exec.ExitError"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t\tcode := -1"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\t\tif errors.As(waitErr, \u0026exit) {"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\t\t\tcode = exit.ExitCode()"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\t\treturn nil, false, \u0026gitError{command: args[0], code: code}"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\treturn data, false, nil"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "type limitedBuffer struct {"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\tbuf *bytes.Buffer"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\tmax int"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "func (b *limitedBuffer) Write(p []byte) (int, error) {"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\tif room := b.max - b.buf.Len(); room \u003e 0 {"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "\t\tb.buf.Write(p[:min(room, len(p))])"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "\treturn len(p), nil"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "// blobInfo returns the size of a regular file at the revision."
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "func (g GitRepo) blobInfo(ctx context.Context, sha, path string) (int, error) {"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\tout, _, err := g.git(ctx, 4\u003c\u003c10, \"ls-tree\", \"-l\", sha, \"--\", path)"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "\t\treturn 0, err"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\tfields := strings.Fields(strings.SplitN(string(out), \"\\t\", 2)[0])"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\tif len(fields) \u003c 4 {"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\t\treturn 0, errNotFound"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\tswitch {"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\tcase fields[1] == \"tree\":"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\t\treturn 0, errors.New(\"path is a directory; use list_files\")"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\tcase fields[0] == \"120000\":"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\t\treturn 0, errors.New(\"path is a symbolic link\")"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\tcase fields[1] != \"blob\":"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\t\treturn 0, errors.New(\"path is not a regular file\")"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\tsize, err := strconv.Atoi(fields[3])"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\t\treturn 0, errNotFound"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "\treturn size, nil"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "func (g GitRepo) ReadLines(ctx context.Context, scope Scope, path string, start, end int) (string, error) {"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\tclean, err := repositoryPath(path)"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "\t\treturn \"\", err"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "\tsize, err := g.blobInfo(ctx, scope.HeadSHA, clean)"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "\t\treturn \"\", err"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "\tif size \u003e maxBlobBytes {"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "\t\treturn \"\", fmt.Errorf(\"file is %d bytes; files over %d bytes cannot be read, use search_code\", size, maxBlobBytes)"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "\tdata, _, err := g.git(ctx, maxBlobBytes, \"show\", scope.HeadSHA+\":\"+clean)"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "\t\treturn \"\", err"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "\tif bytes.IndexByte(data[:min(len(data), 8000)], 0) \u003e= 0 {"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "\t\treturn \"\", errors.New(\"file is binary\")"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "\tlines := strings.Split(strings.TrimSuffix(string(data), \"\\n\"), \"\\n\")"
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "\tif len(data) == 0 {"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": "\t\tlines = nil"
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": "\tif start \u003e len(lines) {"
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": "\t\treturn \"\", fmt.Errorf(\"file has only %d lines\", len(lines))"
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "\tend = min(end, len(lines))"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "\tvar out strings.Builder"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "\tfmt.Fprintf(\u0026out, \"%s lines %d-%d of %d\\n\", clean, start, end, len(lines))"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "\tfor i := start; i \u003c= end; i++ {"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "\t\tfmt.Fprintf(\u0026out, \"%d\\t%s\\n\", i, strings.TrimSuffix(lines[i-1], \"\\r\"))"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "\treturn out.String(), nil"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 178,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": "func (g GitRepo) Search(ctx context.Context, scope Scope, query string, limit int) ([]SearchHit, error) {"
+            },
+            {
+              "newLine": 180,
+              "kind": "added",
+              "text": "\tif strings.ContainsAny(query, \"\\x00\\n\\r\") {"
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": "\t\treturn nil, errors.New(\"query must be a single line of text\")"
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": "\tout, _, err := g.git(ctx, maxGitOutput, \"grep\", \"-n\", \"-z\", \"-F\", \"-I\", \"--no-color\", \"-e\", query, scope.HeadSHA, \"--\")"
+            },
+            {
+              "newLine": 184,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 185,
+              "kind": "added",
+              "text": "\t\t// git grep exits 1 when nothing matches; every other failure is real."
+            },
+            {
+              "newLine": 186,
+              "kind": "added",
+              "text": "\t\tvar failed *gitError"
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "\t\tif errors.As(err, \u0026failed) \u0026\u0026 failed.code == 1 {"
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": "\t\t\treturn []SearchHit{}, nil"
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 190,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 191,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 192,
+              "kind": "added",
+              "text": "\tprefix := scope.HeadSHA + \":\""
+            },
+            {
+              "newLine": 193,
+              "kind": "added",
+              "text": "\tperFile := map[string]int{}"
+            },
+            {
+              "newLine": 194,
+              "kind": "added",
+              "text": "\thits := []SearchHit{}"
+            },
+            {
+              "newLine": 195,
+              "kind": "added",
+              "text": "\tfor _, record := range strings.Split(string(out), \"\\n\") {"
+            },
+            {
+              "newLine": 196,
+              "kind": "added",
+              "text": "\t\tparts := strings.SplitN(record, \"\\x00\", 3)"
+            },
+            {
+              "newLine": 197,
+              "kind": "added",
+              "text": "\t\tif len(parts) != 3 || !strings.HasPrefix(parts[0], prefix) {"
+            },
+            {
+              "newLine": 198,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 199,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 200,
+              "kind": "added",
+              "text": "\t\tpath := strings.TrimPrefix(parts[0], prefix)"
+            },
+            {
+              "newLine": 201,
+              "kind": "added",
+              "text": "\t\tline, err := strconv.Atoi(parts[1])"
+            },
+            {
+              "newLine": 202,
+              "kind": "added",
+              "text": "\t\tif err != nil || perFile[path] \u003e= maxHitsPerFile {"
+            },
+            {
+              "newLine": 203,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 204,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 205,
+              "kind": "added",
+              "text": "\t\tperFile[path]++"
+            },
+            {
+              "newLine": 206,
+              "kind": "added",
+              "text": "\t\thits = append(hits, SearchHit{Path: path, StartLine: line, EndLine: line, Snippet: clipText(parts[2], maxSnippetBytes), Source: \"git-grep\"})"
+            },
+            {
+              "newLine": 207,
+              "kind": "added",
+              "text": "\t\tif len(hits) \u003e= limit {"
+            },
+            {
+              "newLine": 208,
+              "kind": "added",
+              "text": "\t\t\tbreak"
+            },
+            {
+              "newLine": 209,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 210,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 211,
+              "kind": "added",
+              "text": "\treturn hits, nil"
+            },
+            {
+              "newLine": 212,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 213,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 214,
+              "kind": "added",
+              "text": "func (g GitRepo) Blame(ctx context.Context, scope Scope, path string, start, end int) ([]BlameLine, error) {"
+            },
+            {
+              "newLine": 215,
+              "kind": "added",
+              "text": "\tclean, err := repositoryPath(path)"
+            },
+            {
+              "newLine": 216,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 217,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 218,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 219,
+              "kind": "added",
+              "text": "\tif _, err := g.blobInfo(ctx, scope.HeadSHA, clean); err != nil {"
+            },
+            {
+              "newLine": 220,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 221,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 222,
+              "kind": "added",
+              "text": "\tout, _, err := g.git(ctx, maxGitOutput, \"blame\", \"--no-textconv\", \"--porcelain\", \"-L\", fmt.Sprintf(\"%d,%d\", start, end), scope.HeadSHA, \"--\", clean)"
+            },
+            {
+              "newLine": 223,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 224,
+              "kind": "added",
+              "text": "\t\treturn nil, errors.New(\"line range is not valid for this file at this revision\")"
+            },
+            {
+              "newLine": 225,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 226,
+              "kind": "added",
+              "text": "\ttype commitInfo struct{ author, summary string }"
+            },
+            {
+              "newLine": 227,
+              "kind": "added",
+              "text": "\tcommits := map[string]*commitInfo{}"
+            },
+            {
+              "newLine": 228,
+              "kind": "added",
+              "text": "\tvar lines []BlameLine"
+            },
+            {
+              "newLine": 229,
+              "kind": "added",
+              "text": "\tvar current string"
+            },
+            {
+              "newLine": 230,
+              "kind": "added",
+              "text": "\tvar finalLine int"
+            },
+            {
+              "newLine": 231,
+              "kind": "added",
+              "text": "\tfor _, raw := range strings.Split(string(out), \"\\n\") {"
+            },
+            {
+              "newLine": 232,
+              "kind": "added",
+              "text": "\t\tswitch {"
+            },
+            {
+              "newLine": 233,
+              "kind": "added",
+              "text": "\t\tcase strings.HasPrefix(raw, \"\\t\"):"
+            },
+            {
+              "newLine": 234,
+              "kind": "added",
+              "text": "\t\t\tinfo := commits[current]"
+            },
+            {
+              "newLine": 235,
+              "kind": "added",
+              "text": "\t\t\tif info != nil {"
+            },
+            {
+              "newLine": 236,
+              "kind": "added",
+              "text": "\t\t\t\tlines = append(lines, BlameLine{Line: finalLine, Commit: current, Author: info.author, Summary: info.summary})"
+            },
+            {
+              "newLine": 237,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 238,
+              "kind": "added",
+              "text": "\t\tcase isBlameHeader(raw):"
+            },
+            {
+              "newLine": 239,
+              "kind": "added",
+              "text": "\t\t\tfields := strings.Fields(raw)"
+            },
+            {
+              "newLine": 240,
+              "kind": "added",
+              "text": "\t\t\tcurrent = fields[0]"
+            },
+            {
+              "newLine": 241,
+              "kind": "added",
+              "text": "\t\t\tfinalLine, _ = strconv.Atoi(fields[2])"
+            },
+            {
+              "newLine": 242,
+              "kind": "added",
+              "text": "\t\t\tif commits[current] == nil {"
+            },
+            {
+              "newLine": 243,
+              "kind": "added",
+              "text": "\t\t\t\tcommits[current] = \u0026commitInfo{}"
+            },
+            {
+              "newLine": 244,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 245,
+              "kind": "added",
+              "text": "\t\tcase strings.HasPrefix(raw, \"author \"):"
+            },
+            {
+              "newLine": 246,
+              "kind": "added",
+              "text": "\t\t\tcommits[current].author = clipText(strings.TrimPrefix(raw, \"author \"), maxSummaryBytes)"
+            },
+            {
+              "newLine": 247,
+              "kind": "added",
+              "text": "\t\tcase strings.HasPrefix(raw, \"summary \"):"
+            },
+            {
+              "newLine": 248,
+              "kind": "added",
+              "text": "\t\t\tcommits[current].summary = clipText(strings.TrimPrefix(raw, \"summary \"), maxSummaryBytes)"
+            },
+            {
+              "newLine": 249,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 250,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 251,
+              "kind": "added",
+              "text": "\treturn lines, nil"
+            },
+            {
+              "newLine": 252,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 253,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 254,
+              "kind": "added",
+              "text": "func isBlameHeader(line string) bool {"
+            },
+            {
+              "newLine": 255,
+              "kind": "added",
+              "text": "\tfields := strings.Fields(line)"
+            },
+            {
+              "newLine": 256,
+              "kind": "added",
+              "text": "\tif len(fields) \u003c 3 || len(fields[0]) != 40 {"
+            },
+            {
+              "newLine": 257,
+              "kind": "added",
+              "text": "\t\treturn false"
+            },
+            {
+              "newLine": 258,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 259,
+              "kind": "added",
+              "text": "\tfor _, r := range fields[0] {"
+            },
+            {
+              "newLine": 260,
+              "kind": "added",
+              "text": "\t\tif !((r \u003e= '0' \u0026\u0026 r \u003c= '9') || (r \u003e= 'a' \u0026\u0026 r \u003c= 'f')) {"
+            },
+            {
+              "newLine": 261,
+              "kind": "added",
+              "text": "\t\t\treturn false"
+            },
+            {
+              "newLine": 262,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 263,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 264,
+              "kind": "added",
+              "text": "\t_, a := strconv.Atoi(fields[1])"
+            },
+            {
+              "newLine": 265,
+              "kind": "added",
+              "text": "\t_, b := strconv.Atoi(fields[2])"
+            },
+            {
+              "newLine": 266,
+              "kind": "added",
+              "text": "\treturn a == nil \u0026\u0026 b == nil"
+            },
+            {
+              "newLine": 267,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 268,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 269,
+              "kind": "added",
+              "text": "func (g GitRepo) Log(ctx context.Context, scope Scope, path string, limit int) ([]Commit, error) {"
+            },
+            {
+              "newLine": 270,
+              "kind": "added",
+              "text": "\tclean, err := repositoryPath(path)"
+            },
+            {
+              "newLine": 271,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 272,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 273,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 274,
+              "kind": "added",
+              "text": "\tout, _, err := g.git(ctx, maxGitOutput, \"log\", \"-n\", strconv.Itoa(limit), \"--format=%H%x1f%an%x1f%aI%x1f%s%x1e\", scope.HeadSHA, \"--\", clean)"
+            },
+            {
+              "newLine": 275,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 276,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 277,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 278,
+              "kind": "added",
+              "text": "\tcommits := []Commit{}"
+            },
+            {
+              "newLine": 279,
+              "kind": "added",
+              "text": "\tfor _, record := range strings.Split(string(out), \"\\x1e\") {"
+            },
+            {
+              "newLine": 280,
+              "kind": "added",
+              "text": "\t\tfields := strings.Split(strings.TrimSpace(record), \"\\x1f\")"
+            },
+            {
+              "newLine": 281,
+              "kind": "added",
+              "text": "\t\tif len(fields) != 4 {"
+            },
+            {
+              "newLine": 282,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 283,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 284,
+              "kind": "added",
+              "text": "\t\tcommits = append(commits, Commit{SHA: fields[0], Author: clipText(fields[1], maxSummaryBytes), Date: fields[2], Summary: clipText(fields[3], maxSummaryBytes)})"
+            },
+            {
+              "newLine": 285,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 286,
+              "kind": "added",
+              "text": "\treturn commits, nil"
+            },
+            {
+              "newLine": 287,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 288,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 289,
+              "kind": "added",
+              "text": "// ListFiles lists one directory (not recursive) at the revision. Directories"
+            },
+            {
+              "newLine": 290,
+              "kind": "added",
+              "text": "// end with \"/\". An empty directory means the repository root."
+            },
+            {
+              "newLine": 291,
+              "kind": "added",
+              "text": "func (g GitRepo) ListFiles(ctx context.Context, scope Scope, directory string) ([]string, error) {"
+            },
+            {
+              "newLine": 292,
+              "kind": "added",
+              "text": "\tspec := scope.HeadSHA"
+            },
+            {
+              "newLine": 293,
+              "kind": "added",
+              "text": "\tif directory != \"\" \u0026\u0026 directory != \".\" {"
+            },
+            {
+              "newLine": 294,
+              "kind": "added",
+              "text": "\t\tclean, err := repositoryPath(directory)"
+            },
+            {
+              "newLine": 295,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 296,
+              "kind": "added",
+              "text": "\t\t\treturn nil, err"
+            },
+            {
+              "newLine": 297,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 298,
+              "kind": "added",
+              "text": "\t\tspec += \":\" + clean"
+            },
+            {
+              "newLine": 299,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 300,
+              "kind": "added",
+              "text": "\tout, _, err := g.git(ctx, maxGitOutput, \"ls-tree\", \"-z\", spec)"
+            },
+            {
+              "newLine": 301,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 302,
+              "kind": "added",
+              "text": "\t\treturn nil, errors.New(\"directory not found at this revision\")"
+            },
+            {
+              "newLine": 303,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 304,
+              "kind": "added",
+              "text": "\tentries := []string{}"
+            },
+            {
+              "newLine": 305,
+              "kind": "added",
+              "text": "\tfor _, record := range strings.Split(string(out), \"\\x00\") {"
+            },
+            {
+              "newLine": 306,
+              "kind": "added",
+              "text": "\t\tmeta, name, ok := strings.Cut(record, \"\\t\")"
+            },
+            {
+              "newLine": 307,
+              "kind": "added",
+              "text": "\t\tif !ok {"
+            },
+            {
+              "newLine": 308,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 309,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 310,
+              "kind": "added",
+              "text": "\t\tif strings.Contains(meta, \" tree \") {"
+            },
+            {
+              "newLine": 311,
+              "kind": "added",
+              "text": "\t\t\tname += \"/\""
+            },
+            {
+              "newLine": 312,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 313,
+              "kind": "added",
+              "text": "\t\tentries = append(entries, name)"
+            },
+            {
+              "newLine": 314,
+              "kind": "added",
+              "text": "\t\tif len(entries) \u003e= maxListedEntries {"
+            },
+            {
+              "newLine": 315,
+              "kind": "added",
+              "text": "\t\t\tentries = append(entries, \"[listing truncated]\")"
+            },
+            {
+              "newLine": 316,
+              "kind": "added",
+              "text": "\t\t\tbreak"
+            },
+            {
+              "newLine": 317,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 318,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 319,
+              "kind": "added",
+              "text": "\treturn entries, nil"
+            },
+            {
+              "newLine": 320,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 321,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 322,
+              "kind": "added",
+              "text": "func clipText(value string, limit int) string {"
+            },
+            {
+              "newLine": 323,
+              "kind": "added",
+              "text": "\tvalue = strings.ToValidUTF8(value, \"�\")"
+            },
+            {
+              "newLine": 324,
+              "kind": "added",
+              "text": "\tif len(value) \u003c= limit {"
+            },
+            {
+              "newLine": 325,
+              "kind": "added",
+              "text": "\t\treturn value"
+            },
+            {
+              "newLine": 326,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 327,
+              "kind": "added",
+              "text": "\tcut := limit"
+            },
+            {
+              "newLine": 328,
+              "kind": "added",
+              "text": "\tfor cut \u003e 0 \u0026\u0026 !utf8.RuneStart(value[cut]) {"
+            },
+            {
+              "newLine": 329,
+              "kind": "added",
+              "text": "\t\tcut--"
+            },
+            {
+              "newLine": 330,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 331,
+              "kind": "added",
+              "text": "\treturn value[:cut] + \"…\""
+            },
+            {
+              "newLine": 332,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/agent/gitstore_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/agent/gitstore_test.go b/internal/hosted/agent/gitstore_test.go\nnew file mode 100644\nindex 0000000..8dbe59b\n--- /dev/null\n+++ b/internal/hosted/agent/gitstore_test.go\n@@ -0,0 +1,253 @@\n+package agent\n+\n+import (\n+\t\"context\"\n+\t\"os\"\n+\t\"os/exec\"\n+\t\"path/filepath\"\n+\t\"strings\"\n+\t\"testing\"\n+)\n+\n+type fixture struct {\n+\trepo   GitRepo\n+\tscope  Scope\n+\tfirst  string\n+\tmarker string\n+}\n+\n+func runGit(t *testing.T, root string, args ...string) string {\n+\tt.Helper()\n+\tcmd := exec.Command(\"git\", append([]string{\"-C\", root, \"-c\", \"user.email=t@example.com\", \"-c\", \"user.name=Tess Tester\", \"-c\", \"commit.gpgsign=false\"}, args...)...)\n+\tout, err := cmd.CombinedOutput()\n+\tif err != nil {\n+\t\tt.Fatalf(\"git %s: %v\\n%s\", strings.Join(args, \" \"), err, out)\n+\t}\n+\treturn strings.TrimSpace(string(out))\n+}\n+\n+func write(t *testing.T, root, name, content string) {\n+\tt.Helper()\n+\tpath := filepath.Join(root, filepath.FromSlash(name))\n+\tif err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif err := os.WriteFile(path, []byte(content), 0o644); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+}\n+\n+// newFixture builds a two-commit repository whose own configuration is\n+// hostile: it points textconv and fsmonitor at a script that records a run.\n+func newFixture(t *testing.T) fixture {\n+\tt.Helper()\n+\troot := t.TempDir()\n+\trunGit(t, root, \"init\", \"-q\")\n+\twrite(t, root, \"pkg/a.go\", \"package pkg\\n\\nfunc Charge() {}\\n\")\n+\twrite(t, root, \"b.txt\", \"-x needle\\r\\nsecond\\n\")\n+\twrite(t, root, \"d:ir/we:ird.txt\", \"needle in a odd path\\n\")\n+\twrite(t, root, \"bin.dat\", \"ab\\x00cd\")\n+\twrite(t, root, \"big.txt\", strings.Repeat(\"x\", maxBlobBytes+10))\n+\twrite(t, root, \".gitattributes\", \"*.go diff=evil\\n*.txt diff=evil\\n\")\n+\tif err := os.Symlink(\"pkg/a.go\", filepath.Join(root, \"link.go\")); err != nil {\n+\t\tt.Skip(\"symlinks unavailable\")\n+\t}\n+\trunGit(t, root, \"add\", \"-A\")\n+\trunGit(t, root, \"commit\", \"-qm\", \"first commit\")\n+\tfirst := runGit(t, root, \"rev-parse\", \"HEAD\")\n+\twrite(t, root, \"pkg/a.go\", \"package pkg\\n\\nfunc Charge() { refund() }\\n\")\n+\trunGit(t, root, \"commit\", \"-qam\", \"second: call refund\")\n+\thead := runGit(t, root, \"rev-parse\", \"HEAD\")\n+\n+\tmarker := filepath.Join(t.TempDir(), \"marker\")\n+\tscript := filepath.Join(t.TempDir(), \"evil.sh\")\n+\tif err := os.WriteFile(script, []byte(\"#!/bin/sh\\necho ran \u003e\u003e \"+marker+\"\\ncat \\\"$1\\\"\\n\"), 0o755); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\trunGit(t, root, \"config\", \"diff.evil.textconv\", script)\n+\trunGit(t, root, \"config\", \"core.fsmonitor\", script)\n+\treturn fixture{repo: GitRepo{Root: root}, scope: Scope{InstallationID: 1, RepositoryID: 1, HeadSHA: head}, first: first, marker: marker}\n+}\n+\n+func (f fixture) ran() bool {\n+\t_, err := os.Stat(f.marker)\n+\treturn err == nil\n+}\n+\n+func TestGitRepoNeverRunsRepositoryConfiguredCommands(t *testing.T) {\n+\tf := newFixture(t)\n+\tctx := context.Background()\n+\tif _, err := f.repo.ReadLines(ctx, f.scope, \"pkg/a.go\", 1, 3); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif _, err := f.repo.Search(ctx, f.scope, \"Charge\", 10); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif _, err := f.repo.Blame(ctx, f.scope, \"pkg/a.go\", 1, 3); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif _, err := f.repo.Log(ctx, f.scope, \"pkg/a.go\", 5); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif _, err := f.repo.ListFiles(ctx, f.scope, \"\"); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif f.ran() {\n+\t\tt.Fatal(\"git executed a command configured by the repository\")\n+\t}\n+}\n+\n+func TestReadLinesNumbersLinesAndStripsCarriageReturns(t *testing.T) {\n+\tf := newFixture(t)\n+\tgot, err := f.repo.ReadLines(context.Background(), f.scope, \"b.txt\", 1, 50)\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif got != \"b.txt lines 1-2 of 2\\n1\\t-x needle\\n2\\tsecond\\n\" {\n+\t\tt.Fatalf(\"read = %q\", got)\n+\t}\n+\tif _, err := f.repo.ReadLines(context.Background(), f.scope, \"b.txt\", 3, 4); err == nil || !strings.Contains(err.Error(), \"only 2 lines\") {\n+\t\tt.Fatalf(\"past end: %v\", err)\n+\t}\n+}\n+\n+func TestReadLinesRefusesUnsafeOrUnreadableFiles(t *testing.T) {\n+\tf := newFixture(t)\n+\tfor path, want := range map[string]string{\n+\t\t\"bin.dat\":        \"binary\",\n+\t\t\"big.txt\":        \"cannot be read\",\n+\t\t\"link.go\":        \"symbolic link\",\n+\t\t\"pkg\":            \"directory\",\n+\t\t\"missing.go\":     \"not found\",\n+\t\t\"../outside.txt\": \"repository-relative\",\n+\t} {\n+\t\tif _, err := f.repo.ReadLines(context.Background(), f.scope, path, 1, 2); err == nil || !strings.Contains(err.Error(), want) {\n+\t\t\tt.Fatalf(\"%s: %v, want %q\", path, err, want)\n+\t\t}\n+\t}\n+}\n+\n+func TestReadsArePinnedToTheRevision(t *testing.T) {\n+\tf := newFixture(t)\n+\told := f.scope\n+\told.HeadSHA = f.first\n+\tgot, err := f.repo.ReadLines(context.Background(), old, \"pkg/a.go\", 3, 3)\n+\tif err != nil || !strings.Contains(got, \"func Charge() {}\") || strings.Contains(got, \"refund\") {\n+\t\tt.Fatalf(\"old revision = %q %v\", got, err)\n+\t}\n+\tif _, err := f.repo.ReadLines(context.Background(), Scope{HeadSHA: strings.Repeat(\"0\", 40)}, \"pkg/a.go\", 1, 1); err == nil {\n+\t\tt.Fatal(\"unknown revision read\")\n+\t}\n+}\n+\n+func TestSearchIsLiteralBoundedAndDistinguishesNoMatchFromFailure(t *testing.T) {\n+\tf := newFixture(t)\n+\thits, err := f.repo.Search(context.Background(), f.scope, \"-x needle\", 10)\n+\tif err != nil || len(hits) != 1 || hits[0].Path != \"b.txt\" || hits[0].StartLine != 1 || hits[0].Source != \"git-grep\" {\n+\t\tt.Fatalf(\"option-like query: %#v %v\", hits, err)\n+\t}\n+\todd, err := f.repo.Search(context.Background(), f.scope, \"odd path\", 10)\n+\tif err != nil || len(odd) != 1 || odd[0].Path != \"d:ir/we:ird.txt\" {\n+\t\tt.Fatalf(\"colon path: %#v %v\", odd, err)\n+\t}\n+\tif none, err := f.repo.Search(context.Background(), f.scope, \"absent-token\", 10); err != nil || len(none) != 0 {\n+\t\tt.Fatalf(\"no match: %#v %v\", none, err)\n+\t}\n+\tif _, err := f.repo.Search(context.Background(), Scope{HeadSHA: strings.Repeat(\"0\", 40)}, \"x\", 10); err == nil {\n+\t\tt.Fatal(\"a failing grep must not look like an empty result\")\n+\t}\n+\tif _, err := f.repo.Search(context.Background(), f.scope, \"two\\nlines\", 10); err == nil {\n+\t\tt.Fatal(\"multi-line query accepted\")\n+\t}\n+\tif regexp, err := f.repo.Search(context.Background(), f.scope, \".*\", 10); err != nil || len(regexp) != 0 {\n+\t\tt.Fatalf(\"query must be literal, not a pattern: %#v %v\", regexp, err)\n+\t}\n+}\n+\n+func TestSearchCapsHitsPerFileAndTotal(t *testing.T) {\n+\tf := newFixture(t)\n+\twrite(t, f.repo.Root, \"many.txt\", strings.Repeat(\"token\\n\", 50))\n+\tfor i := 0; i \u003c 5; i++ {\n+\t\twrite(t, f.repo.Root, \"f\"+string(rune('a'+i))+\".txt\", \"token\\ntoken\\n\")\n+\t}\n+\trunGit(t, f.repo.Root, \"add\", \"-A\")\n+\trunGit(t, f.repo.Root, \"commit\", \"-qm\", \"many\")\n+\tscope := f.scope\n+\tscope.HeadSHA = runGit(t, f.repo.Root, \"rev-parse\", \"HEAD\")\n+\thits, err := f.repo.Search(context.Background(), scope, \"token\", 7)\n+\tif err != nil || len(hits) != 7 {\n+\t\tt.Fatalf(\"hits=%d err=%v\", len(hits), err)\n+\t}\n+\tperFile := map[string]int{}\n+\tfor _, hit := range hits {\n+\t\tif perFile[hit.Path]++; perFile[hit.Path] \u003e maxHitsPerFile {\n+\t\t\tt.Fatalf(\"%s returned more than %d hits\", hit.Path, maxHitsPerFile)\n+\t\t}\n+\t}\n+}\n+\n+func TestBlameAndLogReportCommitsWithoutEmail(t *testing.T) {\n+\tf := newFixture(t)\n+\tblame, err := f.repo.Blame(context.Background(), f.scope, \"pkg/a.go\", 1, 3)\n+\tif err != nil || len(blame) != 3 {\n+\t\tt.Fatalf(\"blame = %#v %v\", blame, err)\n+\t}\n+\tif blame[0].Summary != \"first commit\" || blame[2].Summary != \"second: call refund\" || blame[2].Author != \"Tess Tester\" || blame[2].Line != 3 {\n+\t\tt.Fatalf(\"blame lines: %#v\", blame)\n+\t}\n+\tcommits, err := f.repo.Log(context.Background(), f.scope, \"pkg/a.go\", 10)\n+\tif err != nil || len(commits) != 2 || commits[0].Summary != \"second: call refund\" || commits[1].SHA != f.first {\n+\t\tt.Fatalf(\"log = %#v %v\", commits, err)\n+\t}\n+\tfor _, line := range blame {\n+\t\tif strings.Contains(line.Author+line.Summary, \"example.com\") {\n+\t\t\tt.Fatal(\"author email leaked\")\n+\t\t}\n+\t}\n+\tif clamped, err := f.repo.Blame(context.Background(), f.scope, \"pkg/a.go\", 1, 99); err != nil || len(clamped) != 3 {\n+\t\tt.Fatalf(\"an end past the file should clamp: %d lines, %v\", len(clamped), err)\n+\t}\n+\tif _, err := f.repo.Blame(context.Background(), f.scope, \"pkg/a.go\", 10, 12); err == nil {\n+\t\tt.Fatal(\"a start past the end of the file was accepted\")\n+\t}\n+}\n+\n+func TestListFilesMarksDirectoriesAndRejectsMissingOnes(t *testing.T) {\n+\tf := newFixture(t)\n+\troot, err := f.repo.ListFiles(context.Background(), f.scope, \"\")\n+\tif err != nil || strings.Join(root, \",\") != \".gitattributes,b.txt,big.txt,bin.dat,d:ir/,link.go,pkg/\" {\n+\t\tt.Fatalf(\"root = %v %v\", root, err)\n+\t}\n+\tpkg, err := f.repo.ListFiles(context.Background(), f.scope, \"pkg\")\n+\tif err != nil || len(pkg) != 1 || pkg[0] != \"a.go\" {\n+\t\tt.Fatalf(\"pkg = %v %v\", pkg, err)\n+\t}\n+\tif _, err := f.repo.ListFiles(context.Background(), f.scope, \"nope\"); err == nil {\n+\t\tt.Fatal(\"missing directory listed\")\n+\t}\n+\tif _, err := f.repo.ListFiles(context.Background(), f.scope, \"../..\"); err == nil {\n+\t\tt.Fatal(\"escaping directory listed\")\n+\t}\n+}\n+\n+func TestGitRepoPlugsIntoTheToolbox(t *testing.T) {\n+\tf := newFixture(t)\n+\tbox := Toolbox{Files: f.repo, Lister: f.repo, Search: f.repo, History: f.repo}\n+\tnames := []string{}\n+\tfor _, spec := range box.Specs() {\n+\t\tnames = append(names, spec.Name)\n+\t}\n+\tif strings.Join(names, \",\") != \"read_file,list_files,search_code,git_blame,git_log\" {\n+\t\tt.Fatalf(\"specs = %v\", names)\n+\t}\n+\tresult, err := box.Dispatch(context.Background(), f.scope, Call{Name: ListFiles, Arguments: []byte(`{\"directory\":\"pkg\"}`)})\n+\tif err != nil || !strings.Contains(result.Content, \"a.go\") {\n+\t\tt.Fatalf(\"list_files: %#v %v\", result, err)\n+\t}\n+\tif _, err := box.Dispatch(context.Background(), f.scope, Call{Name: ListFiles}); err != nil {\n+\t\tt.Fatalf(\"list_files with no arguments: %v\", err)\n+\t}\n+\tif f.ran() {\n+\t\tt.Fatal(\"a tool call ran repository-configured code\")\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-6c1eee263b4cf04b",
+          "header": "@@ -0,0 +1,253 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package agent"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"os/exec\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"path/filepath\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "type fixture struct {"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\trepo   GitRepo"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tscope  Scope"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tfirst  string"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tmarker string"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "func runGit(t *testing.T, root string, args ...string) string {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tt.Helper()"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tcmd := exec.Command(\"git\", append([]string{\"-C\", root, \"-c\", \"user.email=t@example.com\", \"-c\", \"user.name=Tess Tester\", \"-c\", \"commit.gpgsign=false\"}, args...)...)"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tout, err := cmd.CombinedOutput()"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"git %s: %v\\n%s\", strings.Join(args, \" \"), err, out)"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\treturn strings.TrimSpace(string(out))"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "func write(t *testing.T, root, name, content string) {"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tt.Helper()"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tpath := filepath.Join(root, filepath.FromSlash(name))"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tif err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tif err := os.WriteFile(path, []byte(content), 0o644); err != nil {"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "// newFixture builds a two-commit repository whose own configuration is"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "// hostile: it points textconv and fsmonitor at a script that records a run."
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "func newFixture(t *testing.T) fixture {"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tt.Helper()"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\troot := t.TempDir()"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\trunGit(t, root, \"init\", \"-q\")"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\twrite(t, root, \"pkg/a.go\", \"package pkg\\n\\nfunc Charge() {}\\n\")"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\twrite(t, root, \"b.txt\", \"-x needle\\r\\nsecond\\n\")"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\twrite(t, root, \"d:ir/we:ird.txt\", \"needle in a odd path\\n\")"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\twrite(t, root, \"bin.dat\", \"ab\\x00cd\")"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\twrite(t, root, \"big.txt\", strings.Repeat(\"x\", maxBlobBytes+10))"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\twrite(t, root, \".gitattributes\", \"*.go diff=evil\\n*.txt diff=evil\\n\")"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\tif err := os.Symlink(\"pkg/a.go\", filepath.Join(root, \"link.go\")); err != nil {"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t\tt.Skip(\"symlinks unavailable\")"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\trunGit(t, root, \"add\", \"-A\")"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\trunGit(t, root, \"commit\", \"-qm\", \"first commit\")"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\tfirst := runGit(t, root, \"rev-parse\", \"HEAD\")"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\twrite(t, root, \"pkg/a.go\", \"package pkg\\n\\nfunc Charge() { refund() }\\n\")"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\trunGit(t, root, \"commit\", \"-qam\", \"second: call refund\")"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\thead := runGit(t, root, \"rev-parse\", \"HEAD\")"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\tmarker := filepath.Join(t.TempDir(), \"marker\")"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\tscript := filepath.Join(t.TempDir(), \"evil.sh\")"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\tif err := os.WriteFile(script, []byte(\"#!/bin/sh\\necho ran \u003e\u003e \"+marker+\"\\ncat \\\"$1\\\"\\n\"), 0o755); err != nil {"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\trunGit(t, root, \"config\", \"diff.evil.textconv\", script)"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\trunGit(t, root, \"config\", \"core.fsmonitor\", script)"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\treturn fixture{repo: GitRepo{Root: root}, scope: Scope{InstallationID: 1, RepositoryID: 1, HeadSHA: head}, first: first, marker: marker}"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "func (f fixture) ran() bool {"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t_, err := os.Stat(f.marker)"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\treturn err == nil"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "func TestGitRepoNeverRunsRepositoryConfiguredCommands(t *testing.T) {"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\tf := newFixture(t)"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\tctx := context.Background()"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\tif _, err := f.repo.ReadLines(ctx, f.scope, \"pkg/a.go\", 1, 3); err != nil {"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\tif _, err := f.repo.Search(ctx, f.scope, \"Charge\", 10); err != nil {"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\tif _, err := f.repo.Blame(ctx, f.scope, \"pkg/a.go\", 1, 3); err != nil {"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\tif _, err := f.repo.Log(ctx, f.scope, \"pkg/a.go\", 5); err != nil {"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\tif _, err := f.repo.ListFiles(ctx, f.scope, \"\"); err != nil {"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\tif f.ran() {"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"git executed a command configured by the repository\")"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "func TestReadLinesNumbersLinesAndStripsCarriageReturns(t *testing.T) {"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\tf := newFixture(t)"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\tgot, err := f.repo.ReadLines(context.Background(), f.scope, \"b.txt\", 1, 50)"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\tif got != \"b.txt lines 1-2 of 2\\n1\\t-x needle\\n2\\tsecond\\n\" {"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"read = %q\", got)"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\tif _, err := f.repo.ReadLines(context.Background(), f.scope, \"b.txt\", 3, 4); err == nil || !strings.Contains(err.Error(), \"only 2 lines\") {"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"past end: %v\", err)"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "func TestReadLinesRefusesUnsafeOrUnreadableFiles(t *testing.T) {"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "\tf := newFixture(t)"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "\tfor path, want := range map[string]string{"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\t\t\"bin.dat\":        \"binary\","
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\t\t\"big.txt\":        \"cannot be read\","
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\t\t\"link.go\":        \"symbolic link\","
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\t\t\"pkg\":            \"directory\","
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\t\t\"missing.go\":     \"not found\","
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\t\t\"../outside.txt\": \"repository-relative\","
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "\t} {"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\t\tif _, err := f.repo.ReadLines(context.Background(), f.scope, path, 1, 2); err == nil || !strings.Contains(err.Error(), want) {"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"%s: %v, want %q\", path, err, want)"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "func TestReadsArePinnedToTheRevision(t *testing.T) {"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\tf := newFixture(t)"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\told := f.scope"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\told.HeadSHA = f.first"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\tgot, err := f.repo.ReadLines(context.Background(), old, \"pkg/a.go\", 3, 3)"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\tif err != nil || !strings.Contains(got, \"func Charge() {}\") || strings.Contains(got, \"refund\") {"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"old revision = %q %v\", got, err)"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\tif _, err := f.repo.ReadLines(context.Background(), Scope{HeadSHA: strings.Repeat(\"0\", 40)}, \"pkg/a.go\", 1, 1); err == nil {"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"unknown revision read\")"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "func TestSearchIsLiteralBoundedAndDistinguishesNoMatchFromFailure(t *testing.T) {"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\tf := newFixture(t)"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\thits, err := f.repo.Search(context.Background(), f.scope, \"-x needle\", 10)"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\tif err != nil || len(hits) != 1 || hits[0].Path != \"b.txt\" || hits[0].StartLine != 1 || hits[0].Source != \"git-grep\" {"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"option-like query: %#v %v\", hits, err)"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "\todd, err := f.repo.Search(context.Background(), f.scope, \"odd path\", 10)"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "\tif err != nil || len(odd) != 1 || odd[0].Path != \"d:ir/we:ird.txt\" {"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"colon path: %#v %v\", odd, err)"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "\tif none, err := f.repo.Search(context.Background(), f.scope, \"absent-token\", 10); err != nil || len(none) != 0 {"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"no match: %#v %v\", none, err)"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "\tif _, err := f.repo.Search(context.Background(), Scope{HeadSHA: strings.Repeat(\"0\", 40)}, \"x\", 10); err == nil {"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"a failing grep must not look like an empty result\")"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "\tif _, err := f.repo.Search(context.Background(), f.scope, \"two\\nlines\", 10); err == nil {"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"multi-line query accepted\")"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "\tif regexp, err := f.repo.Search(context.Background(), f.scope, \".*\", 10); err != nil || len(regexp) != 0 {"
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"query must be literal, not a pattern: %#v %v\", regexp, err)"
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": "func TestSearchCapsHitsPerFileAndTotal(t *testing.T) {"
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": "\tf := newFixture(t)"
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "\twrite(t, f.repo.Root, \"many.txt\", strings.Repeat(\"token\\n\", 50))"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "\tfor i := 0; i \u003c 5; i++ {"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "\t\twrite(t, f.repo.Root, \"f\"+string(rune('a'+i))+\".txt\", \"token\\ntoken\\n\")"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "\trunGit(t, f.repo.Root, \"add\", \"-A\")"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "\trunGit(t, f.repo.Root, \"commit\", \"-qm\", \"many\")"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "\tscope := f.scope"
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "\tscope.HeadSHA = runGit(t, f.repo.Root, \"rev-parse\", \"HEAD\")"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": "\thits, err := f.repo.Search(context.Background(), scope, \"token\", 7)"
+            },
+            {
+              "newLine": 178,
+              "kind": "added",
+              "text": "\tif err != nil || len(hits) != 7 {"
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"hits=%d err=%v\", len(hits), err)"
+            },
+            {
+              "newLine": 180,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": "\tperFile := map[string]int{}"
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": "\tfor _, hit := range hits {"
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": "\t\tif perFile[hit.Path]++; perFile[hit.Path] \u003e maxHitsPerFile {"
+            },
+            {
+              "newLine": 184,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"%s returned more than %d hits\", hit.Path, maxHitsPerFile)"
+            },
+            {
+              "newLine": 185,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 186,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "func TestBlameAndLogReportCommitsWithoutEmail(t *testing.T) {"
+            },
+            {
+              "newLine": 190,
+              "kind": "added",
+              "text": "\tf := newFixture(t)"
+            },
+            {
+              "newLine": 191,
+              "kind": "added",
+              "text": "\tblame, err := f.repo.Blame(context.Background(), f.scope, \"pkg/a.go\", 1, 3)"
+            },
+            {
+              "newLine": 192,
+              "kind": "added",
+              "text": "\tif err != nil || len(blame) != 3 {"
+            },
+            {
+              "newLine": 193,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"blame = %#v %v\", blame, err)"
+            },
+            {
+              "newLine": 194,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 195,
+              "kind": "added",
+              "text": "\tif blame[0].Summary != \"first commit\" || blame[2].Summary != \"second: call refund\" || blame[2].Author != \"Tess Tester\" || blame[2].Line != 3 {"
+            },
+            {
+              "newLine": 196,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"blame lines: %#v\", blame)"
+            },
+            {
+              "newLine": 197,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 198,
+              "kind": "added",
+              "text": "\tcommits, err := f.repo.Log(context.Background(), f.scope, \"pkg/a.go\", 10)"
+            },
+            {
+              "newLine": 199,
+              "kind": "added",
+              "text": "\tif err != nil || len(commits) != 2 || commits[0].Summary != \"second: call refund\" || commits[1].SHA != f.first {"
+            },
+            {
+              "newLine": 200,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"log = %#v %v\", commits, err)"
+            },
+            {
+              "newLine": 201,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 202,
+              "kind": "added",
+              "text": "\tfor _, line := range blame {"
+            },
+            {
+              "newLine": 203,
+              "kind": "added",
+              "text": "\t\tif strings.Contains(line.Author+line.Summary, \"example.com\") {"
+            },
+            {
+              "newLine": 204,
+              "kind": "added",
+              "text": "\t\t\tt.Fatal(\"author email leaked\")"
+            },
+            {
+              "newLine": 205,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 206,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 207,
+              "kind": "added",
+              "text": "\tif clamped, err := f.repo.Blame(context.Background(), f.scope, \"pkg/a.go\", 1, 99); err != nil || len(clamped) != 3 {"
+            },
+            {
+              "newLine": 208,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"an end past the file should clamp: %d lines, %v\", len(clamped), err)"
+            },
+            {
+              "newLine": 209,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 210,
+              "kind": "added",
+              "text": "\tif _, err := f.repo.Blame(context.Background(), f.scope, \"pkg/a.go\", 10, 12); err == nil {"
+            },
+            {
+              "newLine": 211,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"a start past the end of the file was accepted\")"
+            },
+            {
+              "newLine": 212,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 213,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 214,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 215,
+              "kind": "added",
+              "text": "func TestListFilesMarksDirectoriesAndRejectsMissingOnes(t *testing.T) {"
+            },
+            {
+              "newLine": 216,
+              "kind": "added",
+              "text": "\tf := newFixture(t)"
+            },
+            {
+              "newLine": 217,
+              "kind": "added",
+              "text": "\troot, err := f.repo.ListFiles(context.Background(), f.scope, \"\")"
+            },
+            {
+              "newLine": 218,
+              "kind": "added",
+              "text": "\tif err != nil || strings.Join(root, \",\") != \".gitattributes,b.txt,big.txt,bin.dat,d:ir/,link.go,pkg/\" {"
+            },
+            {
+              "newLine": 219,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"root = %v %v\", root, err)"
+            },
+            {
+              "newLine": 220,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 221,
+              "kind": "added",
+              "text": "\tpkg, err := f.repo.ListFiles(context.Background(), f.scope, \"pkg\")"
+            },
+            {
+              "newLine": 222,
+              "kind": "added",
+              "text": "\tif err != nil || len(pkg) != 1 || pkg[0] != \"a.go\" {"
+            },
+            {
+              "newLine": 223,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"pkg = %v %v\", pkg, err)"
+            },
+            {
+              "newLine": 224,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 225,
+              "kind": "added",
+              "text": "\tif _, err := f.repo.ListFiles(context.Background(), f.scope, \"nope\"); err == nil {"
+            },
+            {
+              "newLine": 226,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"missing directory listed\")"
+            },
+            {
+              "newLine": 227,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 228,
+              "kind": "added",
+              "text": "\tif _, err := f.repo.ListFiles(context.Background(), f.scope, \"../..\"); err == nil {"
+            },
+            {
+              "newLine": 229,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"escaping directory listed\")"
+            },
+            {
+              "newLine": 230,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 231,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 232,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 233,
+              "kind": "added",
+              "text": "func TestGitRepoPlugsIntoTheToolbox(t *testing.T) {"
+            },
+            {
+              "newLine": 234,
+              "kind": "added",
+              "text": "\tf := newFixture(t)"
+            },
+            {
+              "newLine": 235,
+              "kind": "added",
+              "text": "\tbox := Toolbox{Files: f.repo, Lister: f.repo, Search: f.repo, History: f.repo}"
+            },
+            {
+              "newLine": 236,
+              "kind": "added",
+              "text": "\tnames := []string{}"
+            },
+            {
+              "newLine": 237,
+              "kind": "added",
+              "text": "\tfor _, spec := range box.Specs() {"
+            },
+            {
+              "newLine": 238,
+              "kind": "added",
+              "text": "\t\tnames = append(names, spec.Name)"
+            },
+            {
+              "newLine": 239,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 240,
+              "kind": "added",
+              "text": "\tif strings.Join(names, \",\") != \"read_file,list_files,search_code,git_blame,git_log\" {"
+            },
+            {
+              "newLine": 241,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"specs = %v\", names)"
+            },
+            {
+              "newLine": 242,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 243,
+              "kind": "added",
+              "text": "\tresult, err := box.Dispatch(context.Background(), f.scope, Call{Name: ListFiles, Arguments: []byte(`{\"directory\":\"pkg\"}`)})"
+            },
+            {
+              "newLine": 244,
+              "kind": "added",
+              "text": "\tif err != nil || !strings.Contains(result.Content, \"a.go\") {"
+            },
+            {
+              "newLine": 245,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"list_files: %#v %v\", result, err)"
+            },
+            {
+              "newLine": 246,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 247,
+              "kind": "added",
+              "text": "\tif _, err := box.Dispatch(context.Background(), f.scope, Call{Name: ListFiles}); err != nil {"
+            },
+            {
+              "newLine": 248,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"list_files with no arguments: %v\", err)"
+            },
+            {
+              "newLine": 249,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 250,
+              "kind": "added",
+              "text": "\tif f.ran() {"
+            },
+            {
+              "newLine": 251,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"a tool call ran repository-configured code\")"
+            },
+            {
+              "newLine": 252,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 253,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/agent/tools.go",
+      "status": "M",
+      "diff": "diff --git a/internal/hosted/agent/tools.go b/internal/hosted/agent/tools.go\nindex 53de11e..41a4439 100644\n--- a/internal/hosted/agent/tools.go\n+++ b/internal/hosted/agent/tools.go\n@@ -32,6 +32,7 @@ const (\n \tGraphCallees = \"graph_callees\"\n \tGitBlame     = \"git_blame\"\n \tGitLog       = \"git_log\"\n+\tListFiles    = \"list_files\"\n \tReadIssue    = \"read_issue\"\n )\n \n@@ -90,6 +91,9 @@ type (\n \tFileReader interface {\n \t\tReadLines(ctx context.Context, scope Scope, path string, start, end int) (string, error)\n \t}\n+\tFileLister interface {\n+\t\tListFiles(ctx context.Context, scope Scope, directory string) ([]string, error)\n+\t}\n \tCodeSearcher interface {\n \t\tSearch(ctx context.Context, scope Scope, query string, limit int) ([]SearchHit, error)\n \t}\n@@ -104,6 +108,7 @@ type (\n \n type Toolbox struct {\n \tFiles    FileReader\n+\tLister   FileLister\n \tSearch   CodeSearcher\n \tSymbols  SymbolResolver\n \tGraph    graph.Tools\n@@ -123,7 +128,9 @@ func (t Toolbox) Specs() []ToolSpec {\n \t}\n \tadd(t.Files != nil, ReadFile, \"Read a line range of one file at the reviewed head commit.\",\n \t\t`{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"path\",\"start_line\",\"end_line\"],\"properties\":{\"path\":{\"type\":\"string\"},\"start_line\":{\"type\":\"integer\",\"minimum\":1},\"end_line\":{\"type\":\"integer\",\"minimum\":1}}}`)\n-\tadd(t.Search != nil, SearchCode, \"Search the indexed repository by meaning and by exact text.\",\n+\tadd(t.Lister != nil, ListFiles, \"List the files and directories directly inside one directory at the reviewed head commit. Directories end with a slash; an empty directory means the repository root.\",\n+\t\t`{\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"directory\":{\"type\":\"string\"}}}`)\n+\tadd(t.Search != nil, SearchCode, \"Search the repository for exact, case-sensitive text. Returns at most three matches per file.\",\n \t\t`{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"query\"],\"properties\":{\"query\":{\"type\":\"string\",\"maxLength\":200},\"limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":20}}}`)\n \tgraphSchema := `{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"path\",\"symbol\"],\"properties\":{\"path\":{\"type\":\"string\"},\"symbol\":{\"type\":\"string\"},\"depth\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":2}}}`\n \tadd(t.Symbols != nil \u0026\u0026 t.Graph.Reader != nil, GraphCallers, \"List symbols that call the named symbol, up to two hops.\", graphSchema)\n@@ -164,6 +171,8 @@ func (t Toolbox) Dispatch(ctx context.Context, scope Scope, call Call) (Result,\n \tswitch call.Name {\n \tcase ReadFile:\n \t\toutput, err = t.readFile(ctx, scope, call.Arguments)\n+\tcase ListFiles:\n+\t\toutput, err = t.listFiles(ctx, scope, call.Arguments)\n \tcase SearchCode:\n \t\toutput, err = t.search(ctx, scope, call.Arguments)\n \tcase GraphCallers, GraphCallees:\n@@ -206,6 +215,29 @@ func (t Toolbox) readFile(ctx context.Context, scope Scope, raw json.RawMessage)\n \treturn t.Files.ReadLines(ctx, scope, args.Path, args.StartLine, args.EndLine)\n }\n \n+func (t Toolbox) listFiles(ctx context.Context, scope Scope, raw json.RawMessage) (any, error) {\n+\tif t.Lister == nil {\n+\t\treturn nil, errUnavailable\n+\t}\n+\tvar args struct {\n+\t\tDirectory string `json:\"directory\"`\n+\t}\n+\tif len(raw) == 0 {\n+\t\traw = json.RawMessage(`{}`)\n+\t}\n+\tif err := decodeArgs(raw, \u0026args); err != nil {\n+\t\treturn nil, err\n+\t}\n+\tif args.Directory != \"\" \u0026\u0026 args.Directory != \".\" {\n+\t\tclean, err := repositoryPath(args.Directory)\n+\t\tif err != nil {\n+\t\t\treturn nil, err\n+\t\t}\n+\t\targs.Directory = clean\n+\t}\n+\treturn t.Lister.ListFiles(ctx, scope, args.Directory)\n+}\n+\n func (t Toolbox) search(ctx context.Context, scope Scope, raw json.RawMessage) (any, error) {\n \tif t.Search == nil {\n \t\treturn nil, errUnavailable\n",
+      "hunks": [
+        {
+          "id": "diff-c5af058a0ba3e9ec",
+          "header": "@@ -32,6 +32,7 @@ const (",
+          "lines": [
+            {
+              "oldLine": 32,
+              "newLine": 32,
+              "kind": "context",
+              "text": "\tGraphCallees = \"graph_callees\""
+            },
+            {
+              "oldLine": 33,
+              "newLine": 33,
+              "kind": "context",
+              "text": "\tGitBlame     = \"git_blame\""
+            },
+            {
+              "oldLine": 34,
+              "newLine": 34,
+              "kind": "context",
+              "text": "\tGitLog       = \"git_log\""
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tListFiles    = \"list_files\""
+            },
+            {
+              "oldLine": 35,
+              "newLine": 36,
+              "kind": "context",
+              "text": "\tReadIssue    = \"read_issue\""
+            },
+            {
+              "oldLine": 36,
+              "newLine": 37,
+              "kind": "context",
+              "text": ")"
+            },
+            {
+              "oldLine": 37,
+              "newLine": 38,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        },
+        {
+          "id": "diff-2137d5ecb2fc4a05",
+          "header": "@@ -90,6 +91,9 @@ type (",
+          "lines": [
+            {
+              "oldLine": 90,
+              "newLine": 91,
+              "kind": "context",
+              "text": "\tFileReader interface {"
+            },
+            {
+              "oldLine": 91,
+              "newLine": 92,
+              "kind": "context",
+              "text": "\t\tReadLines(ctx context.Context, scope Scope, path string, start, end int) (string, error)"
+            },
+            {
+              "oldLine": 92,
+              "newLine": 93,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\tFileLister interface {"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t\tListFiles(ctx context.Context, scope Scope, directory string) ([]string, error)"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 93,
+              "newLine": 97,
+              "kind": "context",
+              "text": "\tCodeSearcher interface {"
+            },
+            {
+              "oldLine": 94,
+              "newLine": 98,
+              "kind": "context",
+              "text": "\t\tSearch(ctx context.Context, scope Scope, query string, limit int) ([]SearchHit, error)"
+            },
+            {
+              "oldLine": 95,
+              "newLine": 99,
+              "kind": "context",
+              "text": "\t}"
+            }
+          ]
+        },
+        {
+          "id": "diff-ca24cd889431fced",
+          "header": "@@ -104,6 +108,7 @@ type (",
+          "lines": [
+            {
+              "oldLine": 104,
+              "newLine": 108,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 105,
+              "newLine": 109,
+              "kind": "context",
+              "text": "type Toolbox struct {"
+            },
+            {
+              "oldLine": 106,
+              "newLine": 110,
+              "kind": "context",
+              "text": "\tFiles    FileReader"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\tLister   FileLister"
+            },
+            {
+              "oldLine": 107,
+              "newLine": 112,
+              "kind": "context",
+              "text": "\tSearch   CodeSearcher"
+            },
+            {
+              "oldLine": 108,
+              "newLine": 113,
+              "kind": "context",
+              "text": "\tSymbols  SymbolResolver"
+            },
+            {
+              "oldLine": 109,
+              "newLine": 114,
+              "kind": "context",
+              "text": "\tGraph    graph.Tools"
+            }
+          ]
+        },
+        {
+          "id": "diff-a4a305a87d0ab6e6",
+          "header": "@@ -123,7 +128,9 @@ func (t Toolbox) Specs() []ToolSpec {",
+          "lines": [
+            {
+              "oldLine": 123,
+              "newLine": 128,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 124,
+              "newLine": 129,
+              "kind": "context",
+              "text": "\tadd(t.Files != nil, ReadFile, \"Read a line range of one file at the reviewed head commit.\","
+            },
+            {
+              "oldLine": 125,
+              "newLine": 130,
+              "kind": "context",
+              "text": "\t\t`{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"path\",\"start_line\",\"end_line\"],\"properties\":{\"path\":{\"type\":\"string\"},\"start_line\":{\"type\":\"integer\",\"minimum\":1},\"end_line\":{\"type\":\"integer\",\"minimum\":1}}}`)"
+            },
+            {
+              "oldLine": 126,
+              "kind": "removed",
+              "text": "\tadd(t.Search != nil, SearchCode, \"Search the indexed repository by meaning and by exact text.\","
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\tadd(t.Lister != nil, ListFiles, \"List the files and directories directly inside one directory at the reviewed head commit. Directories end with a slash; an empty directory means the repository root.\","
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\t\t`{\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"directory\":{\"type\":\"string\"}}}`)"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\tadd(t.Search != nil, SearchCode, \"Search the repository for exact, case-sensitive text. Returns at most three matches per file.\","
+            },
+            {
+              "oldLine": 127,
+              "newLine": 134,
+              "kind": "context",
+              "text": "\t\t`{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"query\"],\"properties\":{\"query\":{\"type\":\"string\",\"maxLength\":200},\"limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":20}}}`)"
+            },
+            {
+              "oldLine": 128,
+              "newLine": 135,
+              "kind": "context",
+              "text": "\tgraphSchema := `{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"path\",\"symbol\"],\"properties\":{\"path\":{\"type\":\"string\"},\"symbol\":{\"type\":\"string\"},\"depth\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":2}}}`"
+            },
+            {
+              "oldLine": 129,
+              "newLine": 136,
+              "kind": "context",
+              "text": "\tadd(t.Symbols != nil \u0026\u0026 t.Graph.Reader != nil, GraphCallers, \"List symbols that call the named symbol, up to two hops.\", graphSchema)"
+            }
+          ]
+        },
+        {
+          "id": "diff-a93f3a5c6ad0bc9d",
+          "header": "@@ -164,6 +171,8 @@ func (t Toolbox) Dispatch(ctx context.Context, scope Scope, call Call) (Result,",
+          "lines": [
+            {
+              "oldLine": 164,
+              "newLine": 171,
+              "kind": "context",
+              "text": "\tswitch call.Name {"
+            },
+            {
+              "oldLine": 165,
+              "newLine": 172,
+              "kind": "context",
+              "text": "\tcase ReadFile:"
+            },
+            {
+              "oldLine": 166,
+              "newLine": 173,
+              "kind": "context",
+              "text": "\t\toutput, err = t.readFile(ctx, scope, call.Arguments)"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "\tcase ListFiles:"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "\t\toutput, err = t.listFiles(ctx, scope, call.Arguments)"
+            },
+            {
+              "oldLine": 167,
+              "newLine": 176,
+              "kind": "context",
+              "text": "\tcase SearchCode:"
+            },
+            {
+              "oldLine": 168,
+              "newLine": 177,
+              "kind": "context",
+              "text": "\t\toutput, err = t.search(ctx, scope, call.Arguments)"
+            },
+            {
+              "oldLine": 169,
+              "newLine": 178,
+              "kind": "context",
+              "text": "\tcase GraphCallers, GraphCallees:"
+            }
+          ]
+        },
+        {
+          "id": "diff-07cce23e44e16c35",
+          "header": "@@ -206,6 +215,29 @@ func (t Toolbox) readFile(ctx context.Context, scope Scope, raw json.RawMessage)",
+          "lines": [
+            {
+              "oldLine": 206,
+              "newLine": 215,
+              "kind": "context",
+              "text": "\treturn t.Files.ReadLines(ctx, scope, args.Path, args.StartLine, args.EndLine)"
+            },
+            {
+              "oldLine": 207,
+              "newLine": 216,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 208,
+              "newLine": 217,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 218,
+              "kind": "added",
+              "text": "func (t Toolbox) listFiles(ctx context.Context, scope Scope, raw json.RawMessage) (any, error) {"
+            },
+            {
+              "newLine": 219,
+              "kind": "added",
+              "text": "\tif t.Lister == nil {"
+            },
+            {
+              "newLine": 220,
+              "kind": "added",
+              "text": "\t\treturn nil, errUnavailable"
+            },
+            {
+              "newLine": 221,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 222,
+              "kind": "added",
+              "text": "\tvar args struct {"
+            },
+            {
+              "newLine": 223,
+              "kind": "added",
+              "text": "\t\tDirectory string `json:\"directory\"`"
+            },
+            {
+              "newLine": 224,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 225,
+              "kind": "added",
+              "text": "\tif len(raw) == 0 {"
+            },
+            {
+              "newLine": 226,
+              "kind": "added",
+              "text": "\t\traw = json.RawMessage(`{}`)"
+            },
+            {
+              "newLine": 227,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 228,
+              "kind": "added",
+              "text": "\tif err := decodeArgs(raw, \u0026args); err != nil {"
+            },
+            {
+              "newLine": 229,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 230,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 231,
+              "kind": "added",
+              "text": "\tif args.Directory != \"\" \u0026\u0026 args.Directory != \".\" {"
+            },
+            {
+              "newLine": 232,
+              "kind": "added",
+              "text": "\t\tclean, err := repositoryPath(args.Directory)"
+            },
+            {
+              "newLine": 233,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 234,
+              "kind": "added",
+              "text": "\t\t\treturn nil, err"
+            },
+            {
+              "newLine": 235,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 236,
+              "kind": "added",
+              "text": "\t\targs.Directory = clean"
+            },
+            {
+              "newLine": 237,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 238,
+              "kind": "added",
+              "text": "\treturn t.Lister.ListFiles(ctx, scope, args.Directory)"
+            },
+            {
+              "newLine": 239,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 240,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 209,
+              "newLine": 241,
+              "kind": "context",
+              "text": "func (t Toolbox) search(ctx context.Context, scope Scope, raw json.RawMessage) (any, error) {"
+            },
+            {
+              "oldLine": 210,
+              "newLine": 242,
+              "kind": "context",
+              "text": "\tif t.Search == nil {"
+            },
+            {
+              "oldLine": 211,
+              "newLine": 243,
+              "kind": "context",
+              "text": "\t\treturn nil, errUnavailable"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-294d3ecae0c54ab3",
+      "title": "Commit changes",
+      "summary": "5 related files share the \"commit\" change signal.",
+      "paths": [
+        "ROADMAP.md",
+        "docs/AGENT_TOOLS.md",
+        "internal/hosted/agent/gitstore.go",
+        "internal/hosted/agent/gitstore_test.go",
+        "internal/hosted/agent/tools.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-ae1a5dda1dd54c99",
+      "path": "internal/hosted/agent/gitstore.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/agent/gitstore_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-19291e3fc5fe0178",
+      "path": "internal/hosted/agent/gitstore.go",
+      "line": 47,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func (e *gitError) Error() string { return \"git \" + e.command + \" failed\" }.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 5,
+    "filesAnalyzed": 5,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "local-git-backend",
+      "path": "internal/hosted/agent/gitstore.go",
+      "lineStart": 32,
+      "lineEnd": 37,
+      "title": "Agent tools can use a pinned local clone",
+      "summary": "Adds a read-only backend that can serve agent tools from a local clone at the reviewed head SHA, without checking out files."
+    },
+    {
+      "id": "git-command-safety",
+      "path": "internal/hosted/agent/gitstore.go",
+      "lineStart": 57,
+      "lineEnd": 85,
+      "title": "Git access is constrained",
+      "summary": "Each Git invocation disables fsmonitor and hooks, limits runtime and captured output, and avoids exposing Git stderr in command failures. This reduces the risk of executing repository-configured commands or leaking local paths."
+    },
+    {
+      "id": "read-file-limits",
+      "path": "internal/hosted/agent/gitstore.go",
+      "lineStart": 144,
+      "lineEnd": 180,
+      "title": "File reads reject unsafe or oversized content",
+      "summary": "File reads come from the pinned commit and reject paths that are directories, symlinks, binary, or over 2 MiB; requested ranges are bounded by the file's available lines."
+    },
+    {
+      "id": "literal-search",
+      "path": "internal/hosted/agent/gitstore.go",
+      "lineStart": 182,
+      "lineEnd": 214,
+      "title": "Local search is exact and bounded",
+      "summary": "Local search uses literal, case-sensitive text matching rather than patterns, returns no hits for a genuine no-match, and limits results to three hits per file and the caller's total limit."
+    },
+    {
+      "id": "history-metadata",
+      "path": "internal/hosted/agent/gitstore.go",
+      "lineStart": 217,
+      "lineEnd": 287,
+      "title": "History tools omit email addresses",
+      "summary": "Blame and file history return author names and summaries without author email addresses; blame also reports the requested lines at the pinned revision."
+    },
+    {
+      "id": "directory-listing",
+      "path": "internal/hosted/agent/gitstore.go",
+      "lineStart": 289,
+      "lineEnd": 321,
+      "title": "Directories can be browsed",
+      "summary": "Adds non-recursive directory listings at the pinned revision, marks subdirectories with a trailing slash, and caps results at 200 entries."
+    },
+    {
+      "id": "list-files-tool",
+      "path": "internal/hosted/agent/tools.go",
+      "lineStart": 215,
+      "lineEnd": 239,
+      "title": "The toolbox exposes directory listing",
+      "summary": "Adds the optional `list_files` tool to the toolbox when a lister is available; callers can omit `directory` to list the repository root."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "1cb6c3914866c01af87abd70c133188c54fb6357",
+      "revision": "de5b5de90ca5c23ece11f5127804a31254b3568b",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "1cb6c3914866c01af87abd70c133188c54fb6357",
+      "revision": "de5b5de90ca5c23ece11f5127804a31254b3568b",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "de5b5de90ca5c23ece11f5127804a31254b3568b",
+      "detail": "7 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "de5b5de90ca5c23ece11f5127804a31254b3568b",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-89557922033ee6c2",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/agent/gitstore.go",
+      "line": 47,
+      "evidence": "func (e *gitError) Error() string { return \"git \" + e.command + \" failed\" }"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "de5b5de90ca5c23ece11f5127804a31254b3568b",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42409664451",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42409664451/job/128514849788",
+        "startedAt": "2026-11-07T20:09:26Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42409664428/job/128514848218",
+        "startedAt": "2026-11-07T20:09:25Z"
+      }
+    ]
+  }
+}
