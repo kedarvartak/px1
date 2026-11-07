@@ -32,6 +32,7 @@ const (
 	GraphCallees = "graph_callees"
 	GitBlame     = "git_blame"
 	GitLog       = "git_log"
+	ListFiles    = "list_files"
 	ReadIssue    = "read_issue"
 )
 
@@ -90,6 +91,9 @@ type (
 	FileReader interface {
 		ReadLines(ctx context.Context, scope Scope, path string, start, end int) (string, error)
 	}
+	FileLister interface {
+		ListFiles(ctx context.Context, scope Scope, directory string) ([]string, error)
+	}
 	CodeSearcher interface {
 		Search(ctx context.Context, scope Scope, query string, limit int) ([]SearchHit, error)
 	}
@@ -104,6 +108,7 @@ type (
 
 type Toolbox struct {
 	Files    FileReader
+	Lister   FileLister
 	Search   CodeSearcher
 	Symbols  SymbolResolver
 	Graph    graph.Tools
@@ -123,7 +128,9 @@ func (t Toolbox) Specs() []ToolSpec {
 	}
 	add(t.Files != nil, ReadFile, "Read a line range of one file at the reviewed head commit.",
 		`{"type":"object","additionalProperties":false,"required":["path","start_line","end_line"],"properties":{"path":{"type":"string"},"start_line":{"type":"integer","minimum":1},"end_line":{"type":"integer","minimum":1}}}`)
-	add(t.Search != nil, SearchCode, "Search the indexed repository by meaning and by exact text.",
+	add(t.Lister != nil, ListFiles, "List the files and directories directly inside one directory at the reviewed head commit. Directories end with a slash; an empty directory means the repository root.",
+		`{"type":"object","additionalProperties":false,"properties":{"directory":{"type":"string"}}}`)
+	add(t.Search != nil, SearchCode, "Search the repository for exact, case-sensitive text. Returns at most three matches per file.",
 		`{"type":"object","additionalProperties":false,"required":["query"],"properties":{"query":{"type":"string","maxLength":200},"limit":{"type":"integer","minimum":1,"maximum":20}}}`)
 	graphSchema := `{"type":"object","additionalProperties":false,"required":["path","symbol"],"properties":{"path":{"type":"string"},"symbol":{"type":"string"},"depth":{"type":"integer","minimum":1,"maximum":2}}}`
 	add(t.Symbols != nil && t.Graph.Reader != nil, GraphCallers, "List symbols that call the named symbol, up to two hops.", graphSchema)
@@ -164,6 +171,8 @@ func (t Toolbox) Dispatch(ctx context.Context, scope Scope, call Call) (Result, 
 	switch call.Name {
 	case ReadFile:
 		output, err = t.readFile(ctx, scope, call.Arguments)
+	case ListFiles:
+		output, err = t.listFiles(ctx, scope, call.Arguments)
 	case SearchCode:
 		output, err = t.search(ctx, scope, call.Arguments)
 	case GraphCallers, GraphCallees:
@@ -204,6 +213,29 @@ func (t Toolbox) readFile(ctx context.Context, scope Scope, raw json.RawMessage)
 		return nil, err
 	}
 	return t.Files.ReadLines(ctx, scope, args.Path, args.StartLine, args.EndLine)
+}
+
+func (t Toolbox) listFiles(ctx context.Context, scope Scope, raw json.RawMessage) (any, error) {
+	if t.Lister == nil {
+		return nil, errUnavailable
+	}
+	var args struct {
+		Directory string `json:"directory"`
+	}
+	if len(raw) == 0 {
+		raw = json.RawMessage(`{}`)
+	}
+	if err := decodeArgs(raw, &args); err != nil {
+		return nil, err
+	}
+	if args.Directory != "" && args.Directory != "." {
+		clean, err := repositoryPath(args.Directory)
+		if err != nil {
+			return nil, err
+		}
+		args.Directory = clean
+	}
+	return t.Lister.ListFiles(ctx, scope, args.Directory)
 }
 
 func (t Toolbox) search(ctx context.Context, scope Scope, raw json.RawMessage) (any, error) {

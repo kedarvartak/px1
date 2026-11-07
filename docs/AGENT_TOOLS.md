@@ -8,7 +8,8 @@ it is deliberately absent until that sandbox exists.
 | Tool | Reads | Bound |
 | --- | --- | --- |
 | `read_file` | One line range at the reviewed head | 400 lines |
-| `search_code` | Embedding and exact-text index | 20 hits |
+| `list_files` | One directory at the reviewed head | 200 entries |
+| `search_code` | Embedding and exact-text index; local git backing is exact, case-sensitive text | 20 hits, 3 per file |
 | `graph_callers`, `graph_callees` | Symbol graph from a path and symbol name | Two hops, 50 symbols |
 | `git_blame` | Last commit per line in a range | 400 lines |
 | `git_log` | Recent commits to one file | 20 commits |
@@ -36,3 +37,28 @@ providers restrict tool names to letters, digits, `_`, and `-`.
 
 Tool output is repository content. Prompts must present it as untrusted data,
 never as instructions.
+
+## Local git backing
+
+`agent.GitRepo` backs the tools with read-only `git` queries against a local
+clone, pinned to the head SHA, so a review can run without the hosted index.
+It supports `read_file`, `list_files`, `search_code` (`git grep`, literal text
+only), `git_blame`, and `git_log`. It does not provide the symbol graph,
+embeddings, or linked issues, so `graph_*` and `read_issue` stay hidden.
+
+Git can run commands that a repository configures: `textconv` filters and
+`core.fsmonitor` both execute during `git blame`. Cloned repositories are
+untrusted data, so every call passes `-c core.fsmonitor=false`,
+`-c core.hooksPath=/dev/null`, and `--no-textconv`. A test configures a hostile
+repository and fails if any tool call runs its script.
+
+Other behavior to know:
+
+- Files are read from the commit, never the working tree. Symbolic links,
+  directories, binary files, and files over 2 MiB are refused with a reason.
+- A search with no matches returns an empty list. A failing search (for
+  example an unknown revision) is an error, not an empty list.
+- Blame and log report author names but not email addresses.
+- Errors name the failing git command only. Git's stderr can contain local
+  paths and is never shown to a model.
+- Each call has a 20-second timeout and a 512 KiB output cap.
