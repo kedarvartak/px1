@@ -1,0 +1,3105 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "12a9eab7f462967dbdf2dfffb38213e91217564a",
+  "head": "36ca90eb91353d5cc42c6f38a1bc1480d76bd254",
+  "generatedAt": "2026-11-07T09:48:15.763890542Z",
+  "files": [
+    {
+      "path": "ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/ROADMAP.md b/ROADMAP.md\nindex a8c2322..28630e4 100644\n--- a/ROADMAP.md\n+++ b/ROADMAP.md\n@@ -198,6 +198,9 @@ backend-foundation tasks are:\n 82. [x] **Run sub-agents in parallel.** Cap concurrent sub-agents per\n     organization, contain sub-agent failures and panics, skip work once a\n     budget is exhausted, and stream provisional partial results in order.\n+83. [x] **Show how px1 reviewed each change.** Record a bounded,\n+    revision-pinned trace of every model call, tool call, and task outcome,\n+    and render it in the report without copying linked-issue content.\n \n The v1 review pipeline, indexing, report hosting, evaluation, and launch gates\n follow these foundations. AI findings must remain auditable: evidence,\n",
+      "hunks": [
+        {
+          "id": "diff-25c7774639913d76",
+          "header": "@@ -198,6 +198,9 @@ backend-foundation tasks are:",
+          "lines": [
+            {
+              "oldLine": 198,
+              "newLine": 198,
+              "kind": "context",
+              "text": "82. [x] **Run sub-agents in parallel.** Cap concurrent sub-agents per"
+            },
+            {
+              "oldLine": 199,
+              "newLine": 199,
+              "kind": "context",
+              "text": "    organization, contain sub-agent failures and panics, skip work once a"
+            },
+            {
+              "oldLine": 200,
+              "newLine": 200,
+              "kind": "context",
+              "text": "    budget is exhausted, and stream provisional partial results in order."
+            },
+            {
+              "newLine": 201,
+              "kind": "added",
+              "text": "83. [x] **Show how px1 reviewed each change.** Record a bounded,"
+            },
+            {
+              "newLine": 202,
+              "kind": "added",
+              "text": "    revision-pinned trace of every model call, tool call, and task outcome,"
+            },
+            {
+              "newLine": 203,
+              "kind": "added",
+              "text": "    and render it in the report without copying linked-issue content."
+            },
+            {
+              "oldLine": 201,
+              "newLine": 204,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 202,
+              "newLine": 205,
+              "kind": "context",
+              "text": "The v1 review pipeline, indexing, report hosting, evaluation, and launch gates"
+            },
+            {
+              "oldLine": 203,
+              "newLine": 206,
+              "kind": "context",
+              "text": "follow these foundations. AI findings must remain auditable: evidence,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "browser-tests/report.test.mjs",
+      "status": "M",
+      "diff": "diff --git a/browser-tests/report.test.mjs b/browser-tests/report.test.mjs\nindex 5b68888..d00e147 100644\n--- a/browser-tests/report.test.mjs\n+++ b/browser-tests/report.test.mjs\n@@ -254,3 +254,27 @@ test('inspection questions separate evidence from prompts and link back to code'\n   assert.equal(await page.locator('.inspection-card .act').count(),0,'questions must not become acknowledgement findings');\n   await page.close();\n });\n+\n+test('agentic trace renders as inert text and only when attached',async()=\u003e{\n+  const page=await browser.newPage();\n+  await page.setContent(reportHTML,{waitUntil:'load'});\n+  assert.equal(await page.locator('#how-px1-reviewed').count(),0,'reports without a trace must not show the section');\n+  const payload='\u003cimg src=x onerror=\"window.__pwned=1\"\u003e';\n+  const traced=reportVariant((data)=\u003e{data.trace={revision:data.head,tier:'plus',spend:{input_tokens:900,output_tokens:120,cost_microusd:42000,model_calls:3,tool_calls:2,exhausted:'output tokens'},dropped:4,events:[\n+    {seq:1,agent:'planner',kind:'model',name:'planner',input_tokens:300,output_tokens:40,elapsed_ms:800},\n+    {seq:2,agent:'g1',kind:'tool',name:'read_file',detail:'{\"path\":\"src/orders.ts\",\"start_line\":1,\"end_line\":3}',preview:payload,result_bytes:120,elapsed_ms:12},\n+    {seq:3,agent:'g1',kind:'task',name:'failed',detail:'review budget exhausted during this task',failed:true,elapsed_ms:0},\n+  ]}});\n+  await page.setContent(traced,{waitUntil:'load'});\n+  const section=page.locator('#how-px1-reviewed');\n+  assert.match(await section.textContent(),/plus tier · 3 model calls · 2 tool calls · \\$0\\.04 model cost/);\n+  assert.match(await section.textContent(),/output tokens budget ran out/);\n+  assert.match(await section.textContent(),/4 later steps exceeded the trace limit/);\n+  assert.match(await section.textContent(),/does not show that unexamined code is correct/);\n+  await section.locator('summary').click();\n+  assert.equal(await section.locator('.trace-step').count(),3);\n+  assert.equal(await section.locator('.trace-preview').textContent(),payload);\n+  assert.equal(await section.locator('img').count(),0,'trace content must never become markup');\n+  assert.equal(await page.evaluate(()=\u003ewindow.__pwned),undefined);\n+  await page.close();\n+});\n",
+      "hunks": [
+        {
+          "id": "diff-e6acfb11f277e8f9",
+          "header": "@@ -254,3 +254,27 @@ test('inspection questions separate evidence from prompts and link back to code'",
+          "lines": [
+            {
+              "oldLine": 254,
+              "newLine": 254,
+              "kind": "context",
+              "text": "  assert.equal(await page.locator('.inspection-card .act').count(),0,'questions must not become acknowledgement findings');"
+            },
+            {
+              "oldLine": 255,
+              "newLine": 255,
+              "kind": "context",
+              "text": "  await page.close();"
+            },
+            {
+              "oldLine": 256,
+              "newLine": 256,
+              "kind": "context",
+              "text": "});"
+            },
+            {
+              "newLine": 257,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 258,
+              "kind": "added",
+              "text": "test('agentic trace renders as inert text and only when attached',async()=\u003e{"
+            },
+            {
+              "newLine": 259,
+              "kind": "added",
+              "text": "  const page=await browser.newPage();"
+            },
+            {
+              "newLine": 260,
+              "kind": "added",
+              "text": "  await page.setContent(reportHTML,{waitUntil:'load'});"
+            },
+            {
+              "newLine": 261,
+              "kind": "added",
+              "text": "  assert.equal(await page.locator('#how-px1-reviewed').count(),0,'reports without a trace must not show the section');"
+            },
+            {
+              "newLine": 262,
+              "kind": "added",
+              "text": "  const payload='\u003cimg src=x onerror=\"window.__pwned=1\"\u003e';"
+            },
+            {
+              "newLine": 263,
+              "kind": "added",
+              "text": "  const traced=reportVariant((data)=\u003e{data.trace={revision:data.head,tier:'plus',spend:{input_tokens:900,output_tokens:120,cost_microusd:42000,model_calls:3,tool_calls:2,exhausted:'output tokens'},dropped:4,events:["
+            },
+            {
+              "newLine": 264,
+              "kind": "added",
+              "text": "    {seq:1,agent:'planner',kind:'model',name:'planner',input_tokens:300,output_tokens:40,elapsed_ms:800},"
+            },
+            {
+              "newLine": 265,
+              "kind": "added",
+              "text": "    {seq:2,agent:'g1',kind:'tool',name:'read_file',detail:'{\"path\":\"src/orders.ts\",\"start_line\":1,\"end_line\":3}',preview:payload,result_bytes:120,elapsed_ms:12},"
+            },
+            {
+              "newLine": 266,
+              "kind": "added",
+              "text": "    {seq:3,agent:'g1',kind:'task',name:'failed',detail:'review budget exhausted during this task',failed:true,elapsed_ms:0},"
+            },
+            {
+              "newLine": 267,
+              "kind": "added",
+              "text": "  ]}});"
+            },
+            {
+              "newLine": 268,
+              "kind": "added",
+              "text": "  await page.setContent(traced,{waitUntil:'load'});"
+            },
+            {
+              "newLine": 269,
+              "kind": "added",
+              "text": "  const section=page.locator('#how-px1-reviewed');"
+            },
+            {
+              "newLine": 270,
+              "kind": "added",
+              "text": "  assert.match(await section.textContent(),/plus tier · 3 model calls · 2 tool calls · \\$0\\.04 model cost/);"
+            },
+            {
+              "newLine": 271,
+              "kind": "added",
+              "text": "  assert.match(await section.textContent(),/output tokens budget ran out/);"
+            },
+            {
+              "newLine": 272,
+              "kind": "added",
+              "text": "  assert.match(await section.textContent(),/4 later steps exceeded the trace limit/);"
+            },
+            {
+              "newLine": 273,
+              "kind": "added",
+              "text": "  assert.match(await section.textContent(),/does not show that unexamined code is correct/);"
+            },
+            {
+              "newLine": 274,
+              "kind": "added",
+              "text": "  await section.locator('summary').click();"
+            },
+            {
+              "newLine": 275,
+              "kind": "added",
+              "text": "  assert.equal(await section.locator('.trace-step').count(),3);"
+            },
+            {
+              "newLine": 276,
+              "kind": "added",
+              "text": "  assert.equal(await section.locator('.trace-preview').textContent(),payload);"
+            },
+            {
+              "newLine": 277,
+              "kind": "added",
+              "text": "  assert.equal(await section.locator('img').count(),0,'trace content must never become markup');"
+            },
+            {
+              "newLine": 278,
+              "kind": "added",
+              "text": "  assert.equal(await page.evaluate(()=\u003ewindow.__pwned),undefined);"
+            },
+            {
+              "newLine": 279,
+              "kind": "added",
+              "text": "  await page.close();"
+            },
+            {
+              "newLine": 280,
+              "kind": "added",
+              "text": "});"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/AGENTIC_REVIEW.md",
+      "status": "M",
+      "diff": "diff --git a/docs/AGENTIC_REVIEW.md b/docs/AGENTIC_REVIEW.md\nindex c63a79c..85e5381 100644\n--- a/docs/AGENTIC_REVIEW.md\n+++ b/docs/AGENTIC_REVIEW.md\n@@ -91,3 +91,24 @@ locking. Each partial carries `Done`/`Total` and `Provisional: true`. Its\n findings have not been judged or verified yet and must be labelled that way.\n The final candidates follow plan order, not completion order, so the judge's\n input does not depend on timing.\n+\n+## Review trace\n+\n+`agent.Trace` records each model call, tool call, and task outcome of an\n+agentic review, in order. Sub-agents call tools through `Trace.Dispatch`.\n+The runner adds task outcomes when its `Trace` field is set. `Trace.File` writes\n+a `review.TraceFile` pinned to the head SHA. Pass it to the exporter with\n+`px1 export-review --trace-file trace.json`. The report then shows a\n+**How px1 reviewed this** section: the tier, spend, any exhausted budget,\n+task outcomes, and an expandable list of every step.\n+\n+| Recorded | Not recorded |\n+| --- | --- |\n+| Tool name, arguments (512 bytes), result size, truncation, a 512-byte result preview, and elapsed time | Linked-issue content: reports can be shared more widely than the tracker it came from |\n+| Model role and settled token counts | Prompts, model output, and provider error text |\n+| Task outcome and its generic reason | Anything past 2,000 events, which is counted as `dropped` |\n+\n+The exporter rejects a trace for any other revision, a Base tier, unknown\n+fields, out-of-order sequence numbers, or oversized text. The report renders\n+every trace string as text, never markup. The section states that the log shows\n+what px1 looked at, not that unexamined code is correct.\n",
+      "hunks": [
+        {
+          "id": "diff-3fff56ad82d1e5fa",
+          "header": "@@ -91,3 +91,24 @@ locking. Each partial carries `Done`/`Total` and `Provisional: true`. Its",
+          "lines": [
+            {
+              "oldLine": 91,
+              "newLine": 91,
+              "kind": "context",
+              "text": "findings have not been judged or verified yet and must be labelled that way."
+            },
+            {
+              "oldLine": 92,
+              "newLine": 92,
+              "kind": "context",
+              "text": "The final candidates follow plan order, not completion order, so the judge's"
+            },
+            {
+              "oldLine": 93,
+              "newLine": 93,
+              "kind": "context",
+              "text": "input does not depend on timing."
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "## Review trace"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "`agent.Trace` records each model call, tool call, and task outcome of an"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "agentic review, in order. Sub-agents call tools through `Trace.Dispatch`."
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "The runner adds task outcomes when its `Trace` field is set. `Trace.File` writes"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "a `review.TraceFile` pinned to the head SHA. Pass it to the exporter with"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "`px1 export-review --trace-file trace.json`. The report then shows a"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "**How px1 reviewed this** section: the tier, spend, any exhausted budget,"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "task outcomes, and an expandable list of every step."
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "| Recorded | Not recorded |"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "| --- | --- |"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "| Tool name, arguments (512 bytes), result size, truncation, a 512-byte result preview, and elapsed time | Linked-issue content: reports can be shared more widely than the tracker it came from |"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "| Model role and settled token counts | Prompts, model output, and provider error text |"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "| Task outcome and its generic reason | Anything past 2,000 events, which is counted as `dropped` |"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "The exporter rejects a trace for any other revision, a Base tier, unknown"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "fields, out-of-order sequence numbers, or oversized text. The report renders"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "every trace string as text, never markup. The section states that the log shows"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "what px1 looked at, not that unexamined code is correct."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "export.go",
+      "status": "M",
+      "diff": "diff --git a/export.go b/export.go\nindex 56b3752..e5daca5 100644\n--- a/export.go\n+++ b/export.go\n@@ -37,7 +37,10 @@ type staticReviewReport struct {\n \tRuleHits            []staticReviewHit          `json:\"ruleHits\"`\n \tExplanations        []staticExplanation        `json:\"explanations\"`\n \tFindings            []hostedreview.Finding     `json:\"findings\"`\n-\tEvidence            []staticEvidenceSource     `json:\"evidence\"`\n+\t// Trace is the agentic review's step log, or nil when the review did not\n+\t// use the agentic engine.\n+\tTrace    *hostedreview.TraceFile `json:\"trace,omitempty\"`\n+\tEvidence []staticEvidenceSource  `json:\"evidence\"`\n \t// Attention lists the risk signals px1 raises on the diff itself, such as\n \t// workflow permission changes or new public API. Snapshots written before\n \t// the field existed decode to nil, and the page renders that as none.\n@@ -113,8 +116,9 @@ func runExportReview(args []string) error {\n \tverificationFile := fs.String(\"verification-file\", \"\", \"optional verification JSON file to validate for the head commit\")\n \texplanationsFile := fs.String(\"explanations-file\", \"\", \"optional AI explanation JSON file to validate for the head commit\")\n \tfindingsFile := fs.String(\"findings-file\", \"\", \"optional hosted AI findings JSON file to validate for the head commit\")\n+\ttraceFile := fs.String(\"trace-file\", \"\", \"optional agentic review trace JSON file to validate for the head commit\")\n \tfs.Usage = func() {\n-\t\tfmt.Fprintln(fs.Output(), \"usage: px1 export-review --base \u003ccommit\u003e [--head \u003ccommit\u003e] [--root \u003crepo\u003e] [--verification-file \u003cpath\u003e] [--explanations-file \u003cpath\u003e] [--findings-file \u003cpath\u003e] [--snapshot-out \u003cfile\u003e] [--out \u003cdir\u003e]\")\n+\t\tfmt.Fprintln(fs.Output(), \"usage: px1 export-review --base \u003ccommit\u003e [--head \u003ccommit\u003e] [--root \u003crepo\u003e] [--verification-file \u003cpath\u003e] [--explanations-file \u003cpath\u003e] [--findings-file \u003cpath\u003e] [--trace-file \u003cpath\u003e] [--snapshot-out \u003cfile\u003e] [--out \u003cdir\u003e]\")\n \t\tfs.PrintDefaults()\n \t}\n \tif err := fs.Parse(args); err != nil {\n@@ -132,7 +136,7 @@ func runExportReview(args []string) error {\n \tif err != nil {\n \t\treturn fmt.Errorf(\"resolve output: %w\", err)\n \t}\n-\treport, err := generateStaticReviewWithOptions(repoRoot, *base, *head, staticReviewOptions{VerificationFile: *verificationFile, ExplanationsFile: *explanationsFile, FindingsFile: *findingsFile})\n+\treport, err := generateStaticReviewWithOptions(repoRoot, *base, *head, staticReviewOptions{VerificationFile: *verificationFile, ExplanationsFile: *explanationsFile, FindingsFile: *findingsFile, TraceFile: *traceFile})\n \tif err != nil {\n \t\treturn err\n \t}\n@@ -174,6 +178,7 @@ type staticReviewOptions struct {\n \tVerificationFile string\n \tExplanationsFile string\n \tFindingsFile     string\n+\tTraceFile        string\n }\n \n func generateStaticReviewWithOptions(root, base, head string, options staticReviewOptions) (staticReviewReport, error) {\n@@ -220,6 +225,18 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi\n \t\t\treturn staticReviewReport{}, err\n \t\t}\n \t}\n+\tvar trace *hostedreview.TraceFile\n+\tif options.TraceFile != \"\" {\n+\t\tdata, err := os.ReadFile(options.TraceFile)\n+\t\tif err != nil {\n+\t\t\treturn staticReviewReport{}, fmt.Errorf(\"read review trace: %w\", err)\n+\t\t}\n+\t\tdecoded, err := hostedreview.DecodeTraceFile(data, headSHA)\n+\t\tif err != nil {\n+\t\t\treturn staticReviewReport{}, err\n+\t\t}\n+\t\ttrace = \u0026decoded\n+\t}\n \texplanations := []staticExplanation{}\n \tif options.ExplanationsFile != \"\" {\n \t\texplanations, err = explanationsAtFile(options.ExplanationsFile, headSHA, changed)\n@@ -247,6 +264,7 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi\n \t\tRuleHits:            staticHits,\n \t\tExplanations:        explanations,\n \t\tFindings:            findings,\n+\t\tTrace:               trace,\n \t\tEvidence:            evidence,\n \t\tAttention:           flags,\n \t\tVerification:        verification,\n",
+      "hunks": [
+        {
+          "id": "diff-8f440b5c4d3f48d4",
+          "header": "@@ -37,7 +37,10 @@ type staticReviewReport struct {",
+          "lines": [
+            {
+              "oldLine": 37,
+              "newLine": 37,
+              "kind": "context",
+              "text": "\tRuleHits            []staticReviewHit          `json:\"ruleHits\"`"
+            },
+            {
+              "oldLine": 38,
+              "newLine": 38,
+              "kind": "context",
+              "text": "\tExplanations        []staticExplanation        `json:\"explanations\"`"
+            },
+            {
+              "oldLine": 39,
+              "newLine": 39,
+              "kind": "context",
+              "text": "\tFindings            []hostedreview.Finding     `json:\"findings\"`"
+            },
+            {
+              "oldLine": 40,
+              "kind": "removed",
+              "text": "\tEvidence            []staticEvidenceSource     `json:\"evidence\"`"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t// Trace is the agentic review's step log, or nil when the review did not"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t// use the agentic engine."
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tTrace    *hostedreview.TraceFile `json:\"trace,omitempty\"`"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tEvidence []staticEvidenceSource  `json:\"evidence\"`"
+            },
+            {
+              "oldLine": 41,
+              "newLine": 44,
+              "kind": "context",
+              "text": "\t// Attention lists the risk signals px1 raises on the diff itself, such as"
+            },
+            {
+              "oldLine": 42,
+              "newLine": 45,
+              "kind": "context",
+              "text": "\t// workflow permission changes or new public API. Snapshots written before"
+            },
+            {
+              "oldLine": 43,
+              "newLine": 46,
+              "kind": "context",
+              "text": "\t// the field existed decode to nil, and the page renders that as none."
+            }
+          ]
+        },
+        {
+          "id": "diff-575fece89e52fa4b",
+          "header": "@@ -113,8 +116,9 @@ func runExportReview(args []string) error {",
+          "lines": [
+            {
+              "oldLine": 113,
+              "newLine": 116,
+              "kind": "context",
+              "text": "\tverificationFile := fs.String(\"verification-file\", \"\", \"optional verification JSON file to validate for the head commit\")"
+            },
+            {
+              "oldLine": 114,
+              "newLine": 117,
+              "kind": "context",
+              "text": "\texplanationsFile := fs.String(\"explanations-file\", \"\", \"optional AI explanation JSON file to validate for the head commit\")"
+            },
+            {
+              "oldLine": 115,
+              "newLine": 118,
+              "kind": "context",
+              "text": "\tfindingsFile := fs.String(\"findings-file\", \"\", \"optional hosted AI findings JSON file to validate for the head commit\")"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\ttraceFile := fs.String(\"trace-file\", \"\", \"optional agentic review trace JSON file to validate for the head commit\")"
+            },
+            {
+              "oldLine": 116,
+              "newLine": 120,
+              "kind": "context",
+              "text": "\tfs.Usage = func() {"
+            },
+            {
+              "oldLine": 117,
+              "kind": "removed",
+              "text": "\t\tfmt.Fprintln(fs.Output(), \"usage: px1 export-review --base \u003ccommit\u003e [--head \u003ccommit\u003e] [--root \u003crepo\u003e] [--verification-file \u003cpath\u003e] [--explanations-file \u003cpath\u003e] [--findings-file \u003cpath\u003e] [--snapshot-out \u003cfile\u003e] [--out \u003cdir\u003e]\")"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\t\tfmt.Fprintln(fs.Output(), \"usage: px1 export-review --base \u003ccommit\u003e [--head \u003ccommit\u003e] [--root \u003crepo\u003e] [--verification-file \u003cpath\u003e] [--explanations-file \u003cpath\u003e] [--findings-file \u003cpath\u003e] [--trace-file \u003cpath\u003e] [--snapshot-out \u003cfile\u003e] [--out \u003cdir\u003e]\")"
+            },
+            {
+              "oldLine": 118,
+              "newLine": 122,
+              "kind": "context",
+              "text": "\t\tfs.PrintDefaults()"
+            },
+            {
+              "oldLine": 119,
+              "newLine": 123,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 120,
+              "newLine": 124,
+              "kind": "context",
+              "text": "\tif err := fs.Parse(args); err != nil {"
+            }
+          ]
+        },
+        {
+          "id": "diff-fcaffbd9a2c59e41",
+          "header": "@@ -132,7 +136,7 @@ func runExportReview(args []string) error {",
+          "lines": [
+            {
+              "oldLine": 132,
+              "newLine": 136,
+              "kind": "context",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 133,
+              "newLine": 137,
+              "kind": "context",
+              "text": "\t\treturn fmt.Errorf(\"resolve output: %w\", err)"
+            },
+            {
+              "oldLine": 134,
+              "newLine": 138,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 135,
+              "kind": "removed",
+              "text": "\treport, err := generateStaticReviewWithOptions(repoRoot, *base, *head, staticReviewOptions{VerificationFile: *verificationFile, ExplanationsFile: *explanationsFile, FindingsFile: *findingsFile})"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\treport, err := generateStaticReviewWithOptions(repoRoot, *base, *head, staticReviewOptions{VerificationFile: *verificationFile, ExplanationsFile: *explanationsFile, FindingsFile: *findingsFile, TraceFile: *traceFile})"
+            },
+            {
+              "oldLine": 136,
+              "newLine": 140,
+              "kind": "context",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 137,
+              "newLine": 141,
+              "kind": "context",
+              "text": "\t\treturn err"
+            },
+            {
+              "oldLine": 138,
+              "newLine": 142,
+              "kind": "context",
+              "text": "\t}"
+            }
+          ]
+        },
+        {
+          "id": "diff-ee027b1b861b55be",
+          "header": "@@ -174,6 +178,7 @@ type staticReviewOptions struct {",
+          "lines": [
+            {
+              "oldLine": 174,
+              "newLine": 178,
+              "kind": "context",
+              "text": "\tVerificationFile string"
+            },
+            {
+              "oldLine": 175,
+              "newLine": 179,
+              "kind": "context",
+              "text": "\tExplanationsFile string"
+            },
+            {
+              "oldLine": 176,
+              "newLine": 180,
+              "kind": "context",
+              "text": "\tFindingsFile     string"
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": "\tTraceFile        string"
+            },
+            {
+              "oldLine": 177,
+              "newLine": 182,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 178,
+              "newLine": 183,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 179,
+              "newLine": 184,
+              "kind": "context",
+              "text": "func generateStaticReviewWithOptions(root, base, head string, options staticReviewOptions) (staticReviewReport, error) {"
+            }
+          ]
+        },
+        {
+          "id": "diff-549a15a410fb7c65",
+          "header": "@@ -220,6 +225,18 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi",
+          "lines": [
+            {
+              "oldLine": 220,
+              "newLine": 225,
+              "kind": "context",
+              "text": "\t\t\treturn staticReviewReport{}, err"
+            },
+            {
+              "oldLine": 221,
+              "newLine": 226,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 222,
+              "newLine": 227,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "newLine": 228,
+              "kind": "added",
+              "text": "\tvar trace *hostedreview.TraceFile"
+            },
+            {
+              "newLine": 229,
+              "kind": "added",
+              "text": "\tif options.TraceFile != \"\" {"
+            },
+            {
+              "newLine": 230,
+              "kind": "added",
+              "text": "\t\tdata, err := os.ReadFile(options.TraceFile)"
+            },
+            {
+              "newLine": 231,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 232,
+              "kind": "added",
+              "text": "\t\t\treturn staticReviewReport{}, fmt.Errorf(\"read review trace: %w\", err)"
+            },
+            {
+              "newLine": 233,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 234,
+              "kind": "added",
+              "text": "\t\tdecoded, err := hostedreview.DecodeTraceFile(data, headSHA)"
+            },
+            {
+              "newLine": 235,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 236,
+              "kind": "added",
+              "text": "\t\t\treturn staticReviewReport{}, err"
+            },
+            {
+              "newLine": 237,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 238,
+              "kind": "added",
+              "text": "\t\ttrace = \u0026decoded"
+            },
+            {
+              "newLine": 239,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 223,
+              "newLine": 240,
+              "kind": "context",
+              "text": "\texplanations := []staticExplanation{}"
+            },
+            {
+              "oldLine": 224,
+              "newLine": 241,
+              "kind": "context",
+              "text": "\tif options.ExplanationsFile != \"\" {"
+            },
+            {
+              "oldLine": 225,
+              "newLine": 242,
+              "kind": "context",
+              "text": "\t\texplanations, err = explanationsAtFile(options.ExplanationsFile, headSHA, changed)"
+            }
+          ]
+        },
+        {
+          "id": "diff-f5189ff386bb03ab",
+          "header": "@@ -247,6 +264,7 @@ func generateStaticReviewWithOptions(root, base, head string, options staticRevi",
+          "lines": [
+            {
+              "oldLine": 247,
+              "newLine": 264,
+              "kind": "context",
+              "text": "\t\tRuleHits:            staticHits,"
+            },
+            {
+              "oldLine": 248,
+              "newLine": 265,
+              "kind": "context",
+              "text": "\t\tExplanations:        explanations,"
+            },
+            {
+              "oldLine": 249,
+              "newLine": 266,
+              "kind": "context",
+              "text": "\t\tFindings:            findings,"
+            },
+            {
+              "newLine": 267,
+              "kind": "added",
+              "text": "\t\tTrace:               trace,"
+            },
+            {
+              "oldLine": 250,
+              "newLine": 268,
+              "kind": "context",
+              "text": "\t\tEvidence:            evidence,"
+            },
+            {
+              "oldLine": 251,
+              "newLine": 269,
+              "kind": "context",
+              "text": "\t\tAttention:           flags,"
+            },
+            {
+              "oldLine": 252,
+              "newLine": 270,
+              "kind": "context",
+              "text": "\t\tVerification:        verification,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "hosted_findings_test.go",
+      "status": "M",
+      "diff": "diff --git a/hosted_findings_test.go b/hosted_findings_test.go\nindex 8181f81..8d12657 100644\n--- a/hosted_findings_test.go\n+++ b/hosted_findings_test.go\n@@ -38,3 +38,36 @@ func TestHostedFindingsRenderAsSeparateAIItems(t *testing.T) {\n \t\t}\n \t}\n }\n+\n+func TestExportAttachesOnlyATraceForTheHeadRevision(t *testing.T) {\n+\troot := t.TempDir()\n+\trunGitTest(t, root, \"init\")\n+\trunGitTest(t, root, \"config\", \"user.email\", \"test@example.com\")\n+\trunGitTest(t, root, \"config\", \"user.name\", \"px1 test\")\n+\twriteExportTestFile(t, root, \"api.go\", \"package api\\n\")\n+\trunGitTest(t, root, \"add\", \".\")\n+\trunGitTest(t, root, \"commit\", \"-m\", \"base\")\n+\tbase := strings.TrimSpace(runGitTest(t, root, \"rev-parse\", \"HEAD\"))\n+\twriteExportTestFile(t, root, \"api.go\", \"package api\\n\\nvar Ready = true\\n\")\n+\trunGitTest(t, root, \"commit\", \"-am\", \"head\")\n+\thead := strings.TrimSpace(runGitTest(t, root, \"rev-parse\", \"HEAD\"))\n+\twrite := func(revision string) string {\n+\t\tpath := filepath.Join(t.TempDir(), \"trace.json\")\n+\t\tbody := `{\"revision\":\"` + revision + `\",\"tier\":\"plus\",\"spend\":{\"input_tokens\":0,\"output_tokens\":0,\"cost_microusd\":0,\"model_calls\":1,\"tool_calls\":0},\"events\":[{\"seq\":1,\"agent\":\"planner\",\"kind\":\"model\",\"name\":\"planner\",\"elapsed_ms\":1}]}`\n+\t\tif err := os.WriteFile(path, []byte(body), 0600); err != nil {\n+\t\t\tt.Fatal(err)\n+\t\t}\n+\t\treturn path\n+\t}\n+\treport, err := generateStaticReviewWithOptions(root, base, head, staticReviewOptions{TraceFile: write(head)})\n+\tif err != nil || report.Trace == nil || len(report.Trace.Events) != 1 {\n+\t\tt.Fatalf(\"trace not attached: %#v %v\", report.Trace, err)\n+\t}\n+\tif _, err := generateStaticReviewWithOptions(root, base, head, staticReviewOptions{TraceFile: write(base)}); err == nil || !strings.Contains(err.Error(), \"does not match report head\") {\n+\t\tt.Fatalf(\"stale trace accepted: %v\", err)\n+\t}\n+\tplain, err := generateStaticReview(root, base, head)\n+\tif err != nil || plain.Trace != nil {\n+\t\tt.Fatalf(\"reports without a trace must omit it: %#v %v\", plain.Trace, err)\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-6a76ce56c0eb1439",
+          "header": "@@ -38,3 +38,36 @@ func TestHostedFindingsRenderAsSeparateAIItems(t *testing.T) {",
+          "lines": [
+            {
+              "oldLine": 38,
+              "newLine": 38,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 39,
+              "newLine": 39,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 40,
+              "newLine": 40,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "func TestExportAttachesOnlyATraceForTheHeadRevision(t *testing.T) {"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\troot := t.TempDir()"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"init\")"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"config\", \"user.email\", \"test@example.com\")"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"config\", \"user.name\", \"px1 test\")"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\twriteExportTestFile(t, root, \"api.go\", \"package api\\n\")"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"add\", \".\")"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"commit\", \"-m\", \"base\")"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\tbase := strings.TrimSpace(runGitTest(t, root, \"rev-parse\", \"HEAD\"))"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\twriteExportTestFile(t, root, \"api.go\", \"package api\\n\\nvar Ready = true\\n\")"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"commit\", \"-am\", \"head\")"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\thead := strings.TrimSpace(runGitTest(t, root, \"rev-parse\", \"HEAD\"))"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\twrite := func(revision string) string {"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t\tpath := filepath.Join(t.TempDir(), \"trace.json\")"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t\tbody := `{\"revision\":\"` + revision + `\",\"tier\":\"plus\",\"spend\":{\"input_tokens\":0,\"output_tokens\":0,\"cost_microusd\":0,\"model_calls\":1,\"tool_calls\":0},\"events\":[{\"seq\":1,\"agent\":\"planner\",\"kind\":\"model\",\"name\":\"planner\",\"elapsed_ms\":1}]}`"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\tif err := os.WriteFile(path, []byte(body), 0600); err != nil {"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t\treturn path"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\treport, err := generateStaticReviewWithOptions(root, base, head, staticReviewOptions{TraceFile: write(head)})"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\tif err != nil || report.Trace == nil || len(report.Trace.Events) != 1 {"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"trace not attached: %#v %v\", report.Trace, err)"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\tif _, err := generateStaticReviewWithOptions(root, base, head, staticReviewOptions{TraceFile: write(base)}); err == nil || !strings.Contains(err.Error(), \"does not match report head\") {"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"stale trace accepted: %v\", err)"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\tplain, err := generateStaticReview(root, base, head)"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\tif err != nil || plain.Trace != nil {"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"reports without a trace must omit it: %#v %v\", plain.Trace, err)"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/agent/run.go",
+      "status": "M",
+      "diff": "diff --git a/internal/hosted/agent/run.go b/internal/hosted/agent/run.go\nindex 8e78130..6bb52d6 100644\n--- a/internal/hosted/agent/run.go\n+++ b/internal/hosted/agent/run.go\n@@ -92,6 +92,9 @@ type Runner struct {\n \tLimiter   *OrgLimiter\n \tSubAgent  SubAgent\n \tOnPartial func(Partial)\n+\t// Trace, when set, records each task outcome alongside the model and\n+\t// tool calls the sub-agents recorded through it.\n+\tTrace *Trace\n }\n \n // Run starts every task in parallel, subject to the organization limit and\n@@ -126,6 +129,9 @@ func (r Runner) Run(ctx context.Context, installationID int64, tasks []PlanTask,\n \t\tpartial := \u003c-results\n \t\tpartial.Done, partial.Total = done, len(tasks)\n \t\tbyBlock[partial.BlockID] = partial\n+\t\tif r.Trace != nil {\n+\t\t\tr.Trace.task(partial)\n+\t\t}\n \t\tif r.OnPartial != nil {\n \t\t\tr.OnPartial(partial)\n \t\t}\n",
+      "hunks": [
+        {
+          "id": "diff-3a1d2693d080569b",
+          "header": "@@ -92,6 +92,9 @@ type Runner struct {",
+          "lines": [
+            {
+              "oldLine": 92,
+              "newLine": 92,
+              "kind": "context",
+              "text": "\tLimiter   *OrgLimiter"
+            },
+            {
+              "oldLine": 93,
+              "newLine": 93,
+              "kind": "context",
+              "text": "\tSubAgent  SubAgent"
+            },
+            {
+              "oldLine": 94,
+              "newLine": 94,
+              "kind": "context",
+              "text": "\tOnPartial func(Partial)"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t// Trace, when set, records each task outcome alongside the model and"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\t// tool calls the sub-agents recorded through it."
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\tTrace *Trace"
+            },
+            {
+              "oldLine": 95,
+              "newLine": 98,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 96,
+              "newLine": 99,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 97,
+              "newLine": 100,
+              "kind": "context",
+              "text": "// Run starts every task in parallel, subject to the organization limit and"
+            }
+          ]
+        },
+        {
+          "id": "diff-0a4a37083febcaa8",
+          "header": "@@ -126,6 +129,9 @@ func (r Runner) Run(ctx context.Context, installationID int64, tasks []PlanTask,",
+          "lines": [
+            {
+              "oldLine": 126,
+              "newLine": 129,
+              "kind": "context",
+              "text": "\t\tpartial := \u003c-results"
+            },
+            {
+              "oldLine": 127,
+              "newLine": 130,
+              "kind": "context",
+              "text": "\t\tpartial.Done, partial.Total = done, len(tasks)"
+            },
+            {
+              "oldLine": 128,
+              "newLine": 131,
+              "kind": "context",
+              "text": "\t\tbyBlock[partial.BlockID] = partial"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\t\tif r.Trace != nil {"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\t\t\tr.Trace.task(partial)"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 129,
+              "newLine": 135,
+              "kind": "context",
+              "text": "\t\tif r.OnPartial != nil {"
+            },
+            {
+              "oldLine": 130,
+              "newLine": 136,
+              "kind": "context",
+              "text": "\t\t\tr.OnPartial(partial)"
+            },
+            {
+              "oldLine": 131,
+              "newLine": 137,
+              "kind": "context",
+              "text": "\t\t}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/agent/trace.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/agent/trace.go b/internal/hosted/agent/trace.go\nnew file mode 100644\nindex 0000000..54bb987\n--- /dev/null\n+++ b/internal/hosted/agent/trace.go\n@@ -0,0 +1,98 @@\n+package agent\n+\n+import (\n+\t\"context\"\n+\t\"sync\"\n+\t\"time\"\n+\t\"unicode/utf8\"\n+\n+\t\"px1/internal/hosted/review\"\n+)\n+\n+// Trace records every model call, tool call, and task outcome of one agentic\n+// review, in order, for the report's \"How px1 reviewed this\" section. It is\n+// safe for concurrent sub-agents and bounded: events past MaxTraceEvents are\n+// counted, not stored.\n+type Trace struct {\n+\trevision string\n+\ttier     Tier\n+\tnow      func() time.Time\n+\n+\tmu      sync.Mutex\n+\tevents  []review.TraceEvent\n+\tdropped int\n+}\n+\n+func NewTrace(revision string, tier Tier, now func() time.Time) *Trace {\n+\tif now == nil {\n+\t\tnow = time.Now\n+\t}\n+\treturn \u0026Trace{revision: revision, tier: tier, now: now}\n+}\n+\n+// Dispatch runs a tool call through box and records it. Linked-issue content\n+// is never copied into the trace: reports can be published more widely than\n+// the tracker it came from.\n+func (t *Trace) Dispatch(ctx context.Context, box Toolbox, scope Scope, agent string, call Call) (Result, error) {\n+\tstarted := t.now()\n+\tresult, err := box.Dispatch(ctx, scope, call)\n+\tevent := review.TraceEvent{Agent: agent, Kind: \"tool\", Name: call.Name, Detail: clipTrace(string(call.Arguments), review.MaxTraceDetailBytes), ElapsedMS: t.now().Sub(started).Milliseconds()}\n+\tif err != nil {\n+\t\tevent.Failed = true\n+\t} else {\n+\t\tevent.ResultBytes, event.Truncated = len(result.Content), result.Truncated\n+\t\tif call.Name != ReadIssue {\n+\t\t\tevent.Preview = clipTrace(result.Content, review.MaxTracePreview)\n+\t\t}\n+\t}\n+\tt.add(event)\n+\treturn result, err\n+}\n+\n+// Model records one model call for a role (\"planner\", \"judge\", or a\n+// sub-agent's change-group ID) with its settled token usage.\n+func (t *Trace) Model(agent, role string, inputTokens, outputTokens int64, failed bool, elapsed time.Duration) {\n+\tt.add(review.TraceEvent{Agent: agent, Kind: \"model\", Name: role, InputTokens: inputTokens, OutputTokens: outputTokens, Failed: failed, ElapsedMS: elapsed.Milliseconds()})\n+}\n+\n+func (t *Trace) task(p Partial) {\n+\tt.add(review.TraceEvent{Agent: p.BlockID, Kind: \"task\", Name: string(p.Outcome), Detail: p.Reason, Failed: p.Outcome != TaskCompleted})\n+}\n+\n+func (t *Trace) add(event review.TraceEvent) {\n+\tt.mu.Lock()\n+\tdefer t.mu.Unlock()\n+\tif len(t.events) \u003e= review.MaxTraceEvents {\n+\t\tt.dropped++\n+\t\treturn\n+\t}\n+\tevent.Seq = len(t.events) + 1\n+\tt.events = append(t.events, event)\n+}\n+\n+// File snapshots the trace with the meter's final spend.\n+func (t *Trace) File(spend Spend) review.TraceFile {\n+\tt.mu.Lock()\n+\tdefer t.mu.Unlock()\n+\treturn review.TraceFile{\n+\t\tRevision: t.revision,\n+\t\tTier:     string(t.tier),\n+\t\tSpend: review.TraceSpend{\n+\t\t\tInputTokens: spend.InputTokens, OutputTokens: spend.OutputTokens, CostMicrousd: spend.CostMicrousd,\n+\t\t\tModelCalls: spend.ModelCalls, ToolCalls: spend.ToolCalls, Exhausted: spend.Exhausted,\n+\t\t},\n+\t\tEvents:  append([]review.TraceEvent{}, t.events...),\n+\t\tDropped: t.dropped,\n+\t}\n+}\n+\n+func clipTrace(value string, limit int) string {\n+\tif len(value) \u003c= limit {\n+\t\treturn value\n+\t}\n+\tcut := limit - len(\"…\")\n+\tfor cut \u003e 0 \u0026\u0026 !utf8.RuneStart(value[cut]) {\n+\t\tcut--\n+\t}\n+\treturn value[:cut] + \"…\"\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-d43938192e84b891",
+          "header": "@@ -0,0 +1,98 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package agent"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"sync\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"unicode/utf8\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"px1/internal/hosted/review\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "// Trace records every model call, tool call, and task outcome of one agentic"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "// review, in order, for the report's \"How px1 reviewed this\" section. It is"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "// safe for concurrent sub-agents and bounded: events past MaxTraceEvents are"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "// counted, not stored."
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "type Trace struct {"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\trevision string"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\ttier     Tier"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tnow      func() time.Time"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tmu      sync.Mutex"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tevents  []review.TraceEvent"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tdropped int"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "func NewTrace(revision string, tier Tier, now func() time.Time) *Trace {"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tif now == nil {"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t\tnow = time.Now"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\treturn \u0026Trace{revision: revision, tier: tier, now: now}"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "// Dispatch runs a tool call through box and records it. Linked-issue content"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "// is never copied into the trace: reports can be published more widely than"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "// the tracker it came from."
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "func (t *Trace) Dispatch(ctx context.Context, box Toolbox, scope Scope, agent string, call Call) (Result, error) {"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\tstarted := t.now()"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tresult, err := box.Dispatch(ctx, scope, call)"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tevent := review.TraceEvent{Agent: agent, Kind: \"tool\", Name: call.Name, Detail: clipTrace(string(call.Arguments), review.MaxTraceDetailBytes), ElapsedMS: t.now().Sub(started).Milliseconds()}"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t\tevent.Failed = true"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t} else {"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t\tevent.ResultBytes, event.Truncated = len(result.Content), result.Truncated"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t\tif call.Name != ReadIssue {"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t\t\tevent.Preview = clipTrace(result.Content, review.MaxTracePreview)"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\tt.add(event)"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\treturn result, err"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "// Model records one model call for a role (\"planner\", \"judge\", or a"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "// sub-agent's change-group ID) with its settled token usage."
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "func (t *Trace) Model(agent, role string, inputTokens, outputTokens int64, failed bool, elapsed time.Duration) {"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\tt.add(review.TraceEvent{Agent: agent, Kind: \"model\", Name: role, InputTokens: inputTokens, OutputTokens: outputTokens, Failed: failed, ElapsedMS: elapsed.Milliseconds()})"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "func (t *Trace) task(p Partial) {"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\tt.add(review.TraceEvent{Agent: p.BlockID, Kind: \"task\", Name: string(p.Outcome), Detail: p.Reason, Failed: p.Outcome != TaskCompleted})"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "func (t *Trace) add(event review.TraceEvent) {"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\tt.mu.Lock()"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\tdefer t.mu.Unlock()"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\tif len(t.events) \u003e= review.MaxTraceEvents {"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\tt.dropped++"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\treturn"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\tevent.Seq = len(t.events) + 1"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\tt.events = append(t.events, event)"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "// File snapshots the trace with the meter's final spend."
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "func (t *Trace) File(spend Spend) review.TraceFile {"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\tt.mu.Lock()"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\tdefer t.mu.Unlock()"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\treturn review.TraceFile{"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t\tRevision: t.revision,"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\t\tTier:     string(t.tier),"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t\tSpend: review.TraceSpend{"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\t\t\tInputTokens: spend.InputTokens, OutputTokens: spend.OutputTokens, CostMicrousd: spend.CostMicrousd,"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\t\t\tModelCalls: spend.ModelCalls, ToolCalls: spend.ToolCalls, Exhausted: spend.Exhausted,"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t\t},"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\t\tEvents:  append([]review.TraceEvent{}, t.events...),"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\t\tDropped: t.dropped,"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "func clipTrace(value string, limit int) string {"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\tif len(value) \u003c= limit {"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t\treturn value"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\tcut := limit - len(\"…\")"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\tfor cut \u003e 0 \u0026\u0026 !utf8.RuneStart(value[cut]) {"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t\tcut--"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\treturn value[:cut] + \"…\""
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/agent/trace_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/agent/trace_test.go b/internal/hosted/agent/trace_test.go\nnew file mode 100644\nindex 0000000..21cc867\n--- /dev/null\n+++ b/internal/hosted/agent/trace_test.go\n@@ -0,0 +1,85 @@\n+package agent\n+\n+import (\n+\t\"context\"\n+\t\"encoding/json\"\n+\t\"strings\"\n+\t\"sync\"\n+\t\"testing\"\n+\t\"time\"\n+\n+\t\"px1/internal/hosted/review\"\n+)\n+\n+func TestTraceRecordsToolCallsWithoutIssueContent(t *testing.T) {\n+\ttrace := NewTrace(scope.HeadSHA, Plus, nil)\n+\tbox := Toolbox{Files: \u0026fakeFiles{}, Issues: \u0026fakeIssues{}}\n+\tif _, err := trace.Dispatch(context.Background(), box, scope, \"g1\", call(ReadFile, `{\"path\":\"a.go\",\"start_line\":1,\"end_line\":2}`)); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif _, err := trace.Dispatch(context.Background(), box, scope, \"g1\", call(ReadIssue, `{\"key\":\"ENG-12\"}`)); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif _, err := trace.Dispatch(context.Background(), box, scope, \"g1\", call(ReadFile, `{\"path\":\"../x\",\"start_line\":1,\"end_line\":2}`)); err == nil {\n+\t\tt.Fatal(\"escape accepted\")\n+\t}\n+\ttrace.Model(\"g1\", \"sub-agent\", 120, 30, false, time.Second)\n+\tfile := trace.File(Spend{ModelCalls: 1, ToolCalls: 3})\n+\tif len(file.Events) != 4 || file.Events[0].Seq != 1 || file.Events[3].Seq != 4 {\n+\t\tt.Fatalf(\"events: %#v\", file.Events)\n+\t}\n+\tread, issue, rejected := file.Events[0], file.Events[1], file.Events[2]\n+\tif !read.Truncated || read.ResultBytes == 0 || len(read.Preview) \u003e review.MaxTracePreview || read.Preview == \"\" {\n+\t\tt.Fatalf(\"read event: %#v\", read)\n+\t}\n+\tif issue.Preview != \"\" || issue.ResultBytes == 0 {\n+\t\tt.Fatalf(\"issue content leaked into the trace: %#v\", issue)\n+\t}\n+\tif !rejected.Failed || rejected.Preview != \"\" {\n+\t\tt.Fatalf(\"rejected call: %#v\", rejected)\n+\t}\n+\tdata, _ := json.Marshal(file)\n+\tif _, err := review.DecodeTraceFile(data, scope.HeadSHA); err != nil {\n+\t\tt.Fatalf(\"recorder output must pass the report decoder: %v\", err)\n+\t}\n+}\n+\n+func TestTraceIsBoundedAndConcurrencySafe(t *testing.T) {\n+\ttrace := NewTrace(scope.HeadSHA, Apex, nil)\n+\tvar wg sync.WaitGroup\n+\tfor i := 0; i \u003c review.MaxTraceEvents+50; i++ {\n+\t\twg.Add(1)\n+\t\tgo func() { defer wg.Done(); trace.Model(\"judge\", \"judge\", 1, 1, false, 0) }()\n+\t}\n+\twg.Wait()\n+\tfile := trace.File(Spend{})\n+\tif len(file.Events) != review.MaxTraceEvents || file.Dropped != 50 {\n+\t\tt.Fatalf(\"events=%d dropped=%d\", len(file.Events), file.Dropped)\n+\t}\n+\tfor i, event := range file.Events {\n+\t\tif event.Seq != i+1 {\n+\t\t\tt.Fatalf(\"event %d has seq %d\", i, event.Seq)\n+\t\t}\n+\t}\n+}\n+\n+func TestRunnerRecordsTaskOutcomes(t *testing.T) {\n+\tlimiter, _ := NewOrgLimiter(2)\n+\ttrace := NewTrace(scope.HeadSHA, Plus, nil)\n+\trunner := Runner{Limiter: limiter, Trace: trace, SubAgent: func(_ context.Context, task PlanTask, _ *Meter) ([]review.Finding, error) {\n+\t\tif task.BlockID == \"bad\" {\n+\t\t\treturn nil, ErrToolCallLimit\n+\t\t}\n+\t\treturn nil, nil\n+\t}}\n+\tif _, err := runner.Run(context.Background(), 7, tasksFor(\"ok\", \"bad\"), NewMeter(runBudget(2, time.Minute), time.Now(), nil)); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\toutcomes := map[string]review.TraceEvent{}\n+\tfor _, event := range trace.File(Spend{}).Events {\n+\t\toutcomes[event.Agent] = event\n+\t}\n+\tif outcomes[\"ok\"].Name != \"completed\" || outcomes[\"bad\"].Name != \"failed\" || !strings.Contains(outcomes[\"bad\"].Detail, \"tool-call limit\") {\n+\t\tt.Fatalf(\"task events: %#v\", outcomes)\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-6935254787fd5d6e",
+          "header": "@@ -0,0 +1,85 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package agent"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"sync\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"px1/internal/hosted/review\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "func TestTraceRecordsToolCallsWithoutIssueContent(t *testing.T) {"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\ttrace := NewTrace(scope.HeadSHA, Plus, nil)"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tbox := Toolbox{Files: \u0026fakeFiles{}, Issues: \u0026fakeIssues{}}"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tif _, err := trace.Dispatch(context.Background(), box, scope, \"g1\", call(ReadFile, `{\"path\":\"a.go\",\"start_line\":1,\"end_line\":2}`)); err != nil {"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tif _, err := trace.Dispatch(context.Background(), box, scope, \"g1\", call(ReadIssue, `{\"key\":\"ENG-12\"}`)); err != nil {"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tif _, err := trace.Dispatch(context.Background(), box, scope, \"g1\", call(ReadFile, `{\"path\":\"../x\",\"start_line\":1,\"end_line\":2}`)); err == nil {"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"escape accepted\")"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\ttrace.Model(\"g1\", \"sub-agent\", 120, 30, false, time.Second)"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tfile := trace.File(Spend{ModelCalls: 1, ToolCalls: 3})"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tif len(file.Events) != 4 || file.Events[0].Seq != 1 || file.Events[3].Seq != 4 {"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"events: %#v\", file.Events)"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tread, issue, rejected := file.Events[0], file.Events[1], file.Events[2]"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tif !read.Truncated || read.ResultBytes == 0 || len(read.Preview) \u003e review.MaxTracePreview || read.Preview == \"\" {"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"read event: %#v\", read)"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tif issue.Preview != \"\" || issue.ResultBytes == 0 {"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"issue content leaked into the trace: %#v\", issue)"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tif !rejected.Failed || rejected.Preview != \"\" {"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"rejected call: %#v\", rejected)"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\tdata, _ := json.Marshal(file)"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tif _, err := review.DecodeTraceFile(data, scope.HeadSHA); err != nil {"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"recorder output must pass the report decoder: %v\", err)"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "func TestTraceIsBoundedAndConcurrencySafe(t *testing.T) {"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\ttrace := NewTrace(scope.HeadSHA, Apex, nil)"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\tvar wg sync.WaitGroup"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\tfor i := 0; i \u003c review.MaxTraceEvents+50; i++ {"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t\twg.Add(1)"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\tgo func() { defer wg.Done(); trace.Model(\"judge\", \"judge\", 1, 1, false, 0) }()"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\twg.Wait()"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\tfile := trace.File(Spend{})"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\tif len(file.Events) != review.MaxTraceEvents || file.Dropped != 50 {"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"events=%d dropped=%d\", len(file.Events), file.Dropped)"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\tfor i, event := range file.Events {"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t\tif event.Seq != i+1 {"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"event %d has seq %d\", i, event.Seq)"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "func TestRunnerRecordsTaskOutcomes(t *testing.T) {"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\tlimiter, _ := NewOrgLimiter(2)"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\ttrace := NewTrace(scope.HeadSHA, Plus, nil)"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\trunner := Runner{Limiter: limiter, Trace: trace, SubAgent: func(_ context.Context, task PlanTask, _ *Meter) ([]review.Finding, error) {"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\tif task.BlockID == \"bad\" {"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\t\treturn nil, ErrToolCallLimit"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\treturn nil, nil"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t}}"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\tif _, err := runner.Run(context.Background(), 7, tasksFor(\"ok\", \"bad\"), NewMeter(runBudget(2, time.Minute), time.Now(), nil)); err != nil {"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\toutcomes := map[string]review.TraceEvent{}"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\tfor _, event := range trace.File(Spend{}).Events {"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t\toutcomes[event.Agent] = event"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\tif outcomes[\"ok\"].Name != \"completed\" || outcomes[\"bad\"].Name != \"failed\" || !strings.Contains(outcomes[\"bad\"].Detail, \"tool-call limit\") {"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"task events: %#v\", outcomes)"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/review/trace.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/review/trace.go b/internal/hosted/review/trace.go\nnew file mode 100644\nindex 0000000..f1ff406\n--- /dev/null\n+++ b/internal/hosted/review/trace.go\n@@ -0,0 +1,88 @@\n+package review\n+\n+import (\n+\t\"bytes\"\n+\t\"encoding/json\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"io\"\n+\t\"strings\"\n+)\n+\n+const (\n+\tMaxTraceEvents      = 2_000\n+\tMaxTraceDetailBytes = 512\n+\tMaxTracePreview     = 512\n+)\n+\n+// TraceEvent is one step of an agentic review: a model call, a tool call, or\n+// a finished sub-agent task. It records what was asked and how much came back,\n+// never provider error text, and never linked-issue content.\n+type TraceEvent struct {\n+\tSeq          int    `json:\"seq\"`\n+\tAgent        string `json:\"agent\"`\n+\tKind         string `json:\"kind\"`\n+\tName         string `json:\"name\"`\n+\tDetail       string `json:\"detail,omitempty\"`\n+\tPreview      string `json:\"preview,omitempty\"`\n+\tResultBytes  int    `json:\"result_bytes,omitempty\"`\n+\tTruncated    bool   `json:\"truncated,omitempty\"`\n+\tFailed       bool   `json:\"failed,omitempty\"`\n+\tInputTokens  int64  `json:\"input_tokens,omitempty\"`\n+\tOutputTokens int64  `json:\"output_tokens,omitempty\"`\n+\tElapsedMS    int64  `json:\"elapsed_ms\"`\n+}\n+\n+type TraceSpend struct {\n+\tInputTokens  int64  `json:\"input_tokens\"`\n+\tOutputTokens int64  `json:\"output_tokens\"`\n+\tCostMicrousd int64  `json:\"cost_microusd\"`\n+\tModelCalls   int    `json:\"model_calls\"`\n+\tToolCalls    int    `json:\"tool_calls\"`\n+\tExhausted    string `json:\"exhausted,omitempty\"`\n+}\n+\n+// TraceFile is the revision-pinned record rendered as \"How px1 reviewed this\".\n+type TraceFile struct {\n+\tRevision string       `json:\"revision\"`\n+\tTier     string       `json:\"tier\"`\n+\tSpend    TraceSpend   `json:\"spend\"`\n+\tEvents   []TraceEvent `json:\"events\"`\n+\tDropped  int          `json:\"dropped,omitempty\"`\n+}\n+\n+var traceKinds = map[string]bool{\"model\": true, \"tool\": true, \"task\": true}\n+\n+// DecodeTraceFile accepts a trace only for the exact report head and within\n+// the event and text bounds a recorder can produce.\n+func DecodeTraceFile(data []byte, head string) (TraceFile, error) {\n+\tdecoder := json.NewDecoder(bytes.NewReader(data))\n+\tdecoder.DisallowUnknownFields()\n+\tvar trace TraceFile\n+\tif err := decoder.Decode(\u0026trace); err != nil {\n+\t\treturn TraceFile{}, fmt.Errorf(\"decode review trace: %w\", err)\n+\t}\n+\tif _, err := decoder.Token(); err != io.EOF {\n+\t\treturn TraceFile{}, errors.New(\"review trace contains trailing data\")\n+\t}\n+\tif trace.Revision != head {\n+\t\treturn TraceFile{}, errors.New(\"review trace revision does not match report head\")\n+\t}\n+\tif trace.Tier != \"plus\" \u0026\u0026 trace.Tier != \"apex\" {\n+\t\treturn TraceFile{}, errors.New(\"review trace tier must be plus or apex\")\n+\t}\n+\tif len(trace.Events) \u003e MaxTraceEvents || trace.Dropped \u003c 0 {\n+\t\treturn TraceFile{}, fmt.Errorf(\"review trace exceeds %d events\", MaxTraceEvents)\n+\t}\n+\tfor i, event := range trace.Events {\n+\t\tif event.Seq != i+1 || !traceKinds[event.Kind] || strings.TrimSpace(event.Agent) == \"\" || strings.TrimSpace(event.Name) == \"\" ||\n+\t\t\tlen(event.Agent) \u003e 200 || len(event.Name) \u003e 100 || len(event.Detail) \u003e MaxTraceDetailBytes || len(event.Preview) \u003e MaxTracePreview ||\n+\t\t\tevent.ResultBytes \u003c 0 || event.InputTokens \u003c 0 || event.OutputTokens \u003c 0 || event.ElapsedMS \u003c 0 {\n+\t\t\treturn TraceFile{}, fmt.Errorf(\"review trace event %d is invalid\", i+1)\n+\t\t}\n+\t}\n+\tif trace.Events == nil {\n+\t\ttrace.Events = []TraceEvent{}\n+\t}\n+\treturn trace, nil\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-47b4db5de38a59ee",
+          "header": "@@ -0,0 +1,88 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package review"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"bytes\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"io\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "const ("
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\tMaxTraceEvents      = 2_000"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tMaxTraceDetailBytes = 512"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tMaxTracePreview     = 512"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "// TraceEvent is one step of an agentic review: a model call, a tool call, or"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "// a finished sub-agent task. It records what was asked and how much came back,"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "// never provider error text, and never linked-issue content."
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "type TraceEvent struct {"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tSeq          int    `json:\"seq\"`"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tAgent        string `json:\"agent\"`"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tKind         string `json:\"kind\"`"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tName         string `json:\"name\"`"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tDetail       string `json:\"detail,omitempty\"`"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tPreview      string `json:\"preview,omitempty\"`"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tResultBytes  int    `json:\"result_bytes,omitempty\"`"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tTruncated    bool   `json:\"truncated,omitempty\"`"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tFailed       bool   `json:\"failed,omitempty\"`"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tInputTokens  int64  `json:\"input_tokens,omitempty\"`"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tOutputTokens int64  `json:\"output_tokens,omitempty\"`"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tElapsedMS    int64  `json:\"elapsed_ms\"`"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "type TraceSpend struct {"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\tInputTokens  int64  `json:\"input_tokens\"`"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tOutputTokens int64  `json:\"output_tokens\"`"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tCostMicrousd int64  `json:\"cost_microusd\"`"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tModelCalls   int    `json:\"model_calls\"`"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\tToolCalls    int    `json:\"tool_calls\"`"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tExhausted    string `json:\"exhausted,omitempty\"`"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "// TraceFile is the revision-pinned record rendered as \"How px1 reviewed this\"."
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "type TraceFile struct {"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\tRevision string       `json:\"revision\"`"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\tTier     string       `json:\"tier\"`"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\tSpend    TraceSpend   `json:\"spend\"`"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\tEvents   []TraceEvent `json:\"events\"`"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\tDropped  int          `json:\"dropped,omitempty\"`"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "var traceKinds = map[string]bool{\"model\": true, \"tool\": true, \"task\": true}"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "// DecodeTraceFile accepts a trace only for the exact report head and within"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "// the event and text bounds a recorder can produce."
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "func DecodeTraceFile(data []byte, head string) (TraceFile, error) {"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\tdecoder := json.NewDecoder(bytes.NewReader(data))"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\tdecoder.DisallowUnknownFields()"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\tvar trace TraceFile"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\tif err := decoder.Decode(\u0026trace); err != nil {"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t\treturn TraceFile{}, fmt.Errorf(\"decode review trace: %w\", err)"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\tif _, err := decoder.Token(); err != io.EOF {"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\treturn TraceFile{}, errors.New(\"review trace contains trailing data\")"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\tif trace.Revision != head {"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\treturn TraceFile{}, errors.New(\"review trace revision does not match report head\")"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\tif trace.Tier != \"plus\" \u0026\u0026 trace.Tier != \"apex\" {"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t\treturn TraceFile{}, errors.New(\"review trace tier must be plus or apex\")"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\tif len(trace.Events) \u003e MaxTraceEvents || trace.Dropped \u003c 0 {"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\t\treturn TraceFile{}, fmt.Errorf(\"review trace exceeds %d events\", MaxTraceEvents)"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\tfor i, event := range trace.Events {"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t\tif event.Seq != i+1 || !traceKinds[event.Kind] || strings.TrimSpace(event.Agent) == \"\" || strings.TrimSpace(event.Name) == \"\" ||"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\t\t\tlen(event.Agent) \u003e 200 || len(event.Name) \u003e 100 || len(event.Detail) \u003e MaxTraceDetailBytes || len(event.Preview) \u003e MaxTracePreview ||"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t\t\tevent.ResultBytes \u003c 0 || event.InputTokens \u003c 0 || event.OutputTokens \u003c 0 || event.ElapsedMS \u003c 0 {"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\t\t\treturn TraceFile{}, fmt.Errorf(\"review trace event %d is invalid\", i+1)"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\tif trace.Events == nil {"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\t\ttrace.Events = []TraceEvent{}"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\treturn trace, nil"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/review/trace_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/review/trace_test.go b/internal/hosted/review/trace_test.go\nnew file mode 100644\nindex 0000000..1eae390\n--- /dev/null\n+++ b/internal/hosted/review/trace_test.go\n@@ -0,0 +1,28 @@\n+package review\n+\n+import (\n+\t\"strings\"\n+\t\"testing\"\n+)\n+\n+func TestDecodeTraceFileIsPinnedAndBounded(t *testing.T) {\n+\thead := strings.Repeat(\"c\", 40)\n+\tvalid := `{\"revision\":\"` + head + `\",\"tier\":\"plus\",\"spend\":{\"input_tokens\":1,\"output_tokens\":1,\"cost_microusd\":1,\"model_calls\":1,\"tool_calls\":0},\"events\":[{\"seq\":1,\"agent\":\"planner\",\"kind\":\"model\",\"name\":\"planner\",\"elapsed_ms\":3}]}`\n+\tif trace, err := DecodeTraceFile([]byte(valid), head); err != nil || len(trace.Events) != 1 {\n+\t\tt.Fatalf(\"trace=%#v err=%v\", trace, err)\n+\t}\n+\tcases := map[string]string{\n+\t\t\"stale\":     strings.Replace(valid, head, strings.Repeat(\"d\", 40), 1),\n+\t\t\"base tier\": strings.Replace(valid, `\"plus\"`, `\"base\"`, 1),\n+\t\t\"bad kind\":  strings.Replace(valid, `\"kind\":\"model\"`, `\"kind\":\"shell\"`, 1),\n+\t\t\"bad seq\":   strings.Replace(valid, `\"seq\":1`, `\"seq\":2`, 1),\n+\t\t\"unknown\":   strings.Replace(valid, `\"elapsed_ms\":3`, `\"elapsed_ms\":3,\"raw_error\":\"x\"`, 1),\n+\t\t\"long\":      strings.Replace(valid, `\"name\":\"planner\"`, `\"name\":\"planner\",\"detail\":\"`+strings.Repeat(\"x\", MaxTraceDetailBytes+1)+`\"`, 1),\n+\t\t\"trailing\":  valid + \"{}\",\n+\t}\n+\tfor name, body := range cases {\n+\t\tif _, err := DecodeTraceFile([]byte(body), head); err == nil {\n+\t\t\tt.Fatalf(\"%s: accepted\", name)\n+\t\t}\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-75c193bf728289a8",
+          "header": "@@ -0,0 +1,28 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package review"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "func TestDecodeTraceFileIsPinnedAndBounded(t *testing.T) {"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\thead := strings.Repeat(\"c\", 40)"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\tvalid := `{\"revision\":\"` + head + `\",\"tier\":\"plus\",\"spend\":{\"input_tokens\":1,\"output_tokens\":1,\"cost_microusd\":1,\"model_calls\":1,\"tool_calls\":0},\"events\":[{\"seq\":1,\"agent\":\"planner\",\"kind\":\"model\",\"name\":\"planner\",\"elapsed_ms\":3}]}`"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\tif trace, err := DecodeTraceFile([]byte(valid), head); err != nil || len(trace.Events) != 1 {"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"trace=%#v err=%v\", trace, err)"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tcases := map[string]string{"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\t\t\"stale\":     strings.Replace(valid, head, strings.Repeat(\"d\", 40), 1),"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t\t\"base tier\": strings.Replace(valid, `\"plus\"`, `\"base\"`, 1),"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t\t\"bad kind\":  strings.Replace(valid, `\"kind\":\"model\"`, `\"kind\":\"shell\"`, 1),"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t\t\"bad seq\":   strings.Replace(valid, `\"seq\":1`, `\"seq\":2`, 1),"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t\t\"unknown\":   strings.Replace(valid, `\"elapsed_ms\":3`, `\"elapsed_ms\":3,\"raw_error\":\"x\"`, 1),"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t\t\"long\":      strings.Replace(valid, `\"name\":\"planner\"`, `\"name\":\"planner\",\"detail\":\"`+strings.Repeat(\"x\", MaxTraceDetailBytes+1)+`\"`, 1),"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t\t\"trailing\":  valid + \"{}\","
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tfor name, body := range cases {"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\tif _, err := DecodeTraceFile([]byte(body), head); err == nil {"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"%s: accepted\", name)"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "static_report/report.css",
+      "status": "M",
+      "diff": "diff --git a/static_report/report.css b/static_report/report.css\nindex 3d81149..13ef58a 100644\n--- a/static_report/report.css\n+++ b/static_report/report.css\n@@ -212,3 +212,8 @@ body.resizing{cursor:col-resize;user-select:none}\n   .ln{grid-template-columns:36px 36px 18px 1fr}\n }\n @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}\n+.trace-steps summary{cursor:pointer;color:var(--dim);font-size:var(--fs-fine);padding:6px 0}\n+.trace-list{margin:0;padding:0 0 0 18px;display:grid;gap:6px}\n+.trace-step{display:grid;gap:2px;min-width:0}\n+.trace-step.failed .evidence-label{color:var(--attention)}\n+.trace-args,.trace-preview{display:block;margin:0;max-height:120px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--faint);font-size:10.5px;background:var(--well);border-radius:4px;padding:3px 5px}\n",
+      "hunks": [
+        {
+          "id": "diff-68ad8990bfbf33ed",
+          "header": "@@ -212,3 +212,8 @@ body.resizing{cursor:col-resize;user-select:none}",
+          "lines": [
+            {
+              "oldLine": 212,
+              "newLine": 212,
+              "kind": "context",
+              "text": "  .ln{grid-template-columns:36px 36px 18px 1fr}"
+            },
+            {
+              "oldLine": 213,
+              "newLine": 213,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 214,
+              "newLine": 214,
+              "kind": "context",
+              "text": "@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}"
+            },
+            {
+              "newLine": 215,
+              "kind": "added",
+              "text": ".trace-steps summary{cursor:pointer;color:var(--dim);font-size:var(--fs-fine);padding:6px 0}"
+            },
+            {
+              "newLine": 216,
+              "kind": "added",
+              "text": ".trace-list{margin:0;padding:0 0 0 18px;display:grid;gap:6px}"
+            },
+            {
+              "newLine": 217,
+              "kind": "added",
+              "text": ".trace-step{display:grid;gap:2px;min-width:0}"
+            },
+            {
+              "newLine": 218,
+              "kind": "added",
+              "text": ".trace-step.failed .evidence-label{color:var(--attention)}"
+            },
+            {
+              "newLine": 219,
+              "kind": "added",
+              "text": ".trace-args,.trace-preview{display:block;margin:0;max-height:120px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--faint);font-size:10.5px;background:var(--well);border-radius:4px;padding:3px 5px}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "static_report/report.js",
+      "status": "M",
+      "diff": "diff --git a/static_report/report.js b/static_report/report.js\nindex e9ad68e..07f7fa8 100644\n--- a/static_report/report.js\n+++ b/static_report/report.js\n@@ -162,6 +162,42 @@ for(const source of evidence){\n }\n if(!evidence.length)evidenceList.append(h('li','evidence-source evidence-missing','Evidence metadata is unavailable in this older snapshot. Treat every source as limited.'));\n evidenceSec.append(evidenceHead,evidenceIntro,evidenceList);rail.append(evidenceSec);\n+/* The agentic trace shows how findings were produced, step by step. Every\n+   string is set with textContent: tool arguments and previews are repository\n+   data. The trace explains the process; it is not evidence the code is safe. */\n+const trace=report.trace\u0026\u0026Array.isArray(report.trace.events)?report.trace:null;\n+if(trace){\n+  const traceSec=h('section','evidence trace');traceSec.id='how-px1-reviewed';\n+  traceSec.append(h('h2','eyebrow','How px1 reviewed this'));\n+  const spend=trace.spend||{};\n+  traceSec.append(h('p','evidence-intro',trace.tier+' tier · '+plural(spend.model_calls||0,'model call')+' · '+plural(spend.tool_calls||0,'tool call')+' · $'+((spend.cost_microusd||0)/1e6).toFixed(2)+' model cost'));\n+  if(spend.exhausted)traceSec.append(h('p','evidence-limit','Exploration stopped early: the '+spend.exhausted+' budget ran out.'));\n+  if(trace.dropped)traceSec.append(h('p','evidence-limit',plural(trace.dropped,'later step')+' exceeded the trace limit and are not shown.'));\n+  const tasks=trace.events.filter((e)=\u003ee.kind==='task');\n+  const taskList=h('ul','evidence-list');\n+  for(const task of tasks){\n+    const li=h('li','evidence-source');const head=h('div','evidence-head');\n+    head.append(h('span','evidence-label',task.agent),h('span','evidence-state'+(task.failed?' state-limited':''),task.name));\n+    li.append(head);if(task.detail)li.append(h('p','evidence-limit',task.detail));taskList.append(li);\n+  }\n+  if(tasks.length)traceSec.append(taskList);\n+  const steps=h('details','trace-steps');steps.append(h('summary',null,'All '+plural(trace.events.length,'step')));\n+  const stepList=h('ol','trace-list');\n+  for(const e of trace.events){\n+    const li=h('li',e.failed?'trace-step failed':'trace-step');\n+    li.append(h('span','evidence-label',e.agent+' · '+e.kind+' · '+e.name+(e.failed?' (failed)':'')));\n+    const facts=[];\n+    if(e.kind==='model')facts.push((e.input_tokens||0)+' in / '+(e.output_tokens||0)+' out tokens');\n+    if(e.result_bytes)facts.push(e.result_bytes+' bytes'+(e.truncated?', truncated':''));\n+    facts.push((e.elapsed_ms||0)+' ms');\n+    li.append(h('p','evidence-detail',facts.join(' · ')));\n+    if(e.detail\u0026\u0026e.kind==='tool')li.append(h('code','trace-args',e.detail));\n+    if(e.preview)li.append(h('pre','trace-preview',e.preview));\n+    stepList.append(li);\n+  }\n+  steps.append(stepList);traceSec.append(steps,h('p','evidence-limit','This log shows what px1 looked at. It does not show that unexamined code is correct.'));\n+  rail.append(traceSec);\n+}\n const progressSec=h('section','review-progress');\n progressSec.append(h('h2','eyebrow','Your code review'));\n const progressSummary=h('p','review-summary');progressSummary.setAttribute('role','status');\n",
+      "hunks": [
+        {
+          "id": "diff-16545e294429a2c7",
+          "header": "@@ -162,6 +162,42 @@ for(const source of evidence){",
+          "lines": [
+            {
+              "oldLine": 162,
+              "newLine": 162,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 163,
+              "newLine": 163,
+              "kind": "context",
+              "text": "if(!evidence.length)evidenceList.append(h('li','evidence-source evidence-missing','Evidence metadata is unavailable in this older snapshot. Treat every source as limited.'));"
+            },
+            {
+              "oldLine": 164,
+              "newLine": 164,
+              "kind": "context",
+              "text": "evidenceSec.append(evidenceHead,evidenceIntro,evidenceList);rail.append(evidenceSec);"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": "/* The agentic trace shows how findings were produced, step by step. Every"
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "   string is set with textContent: tool arguments and previews are repository"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": "   data. The trace explains the process; it is not evidence the code is safe. */"
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": "const trace=report.trace\u0026\u0026Array.isArray(report.trace.events)?report.trace:null;"
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "if(trace){"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "  const traceSec=h('section','evidence trace');traceSec.id='how-px1-reviewed';"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "  traceSec.append(h('h2','eyebrow','How px1 reviewed this'));"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "  const spend=trace.spend||{};"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "  traceSec.append(h('p','evidence-intro',trace.tier+' tier · '+plural(spend.model_calls||0,'model call')+' · '+plural(spend.tool_calls||0,'tool call')+' · $'+((spend.cost_microusd||0)/1e6).toFixed(2)+' model cost'));"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "  if(spend.exhausted)traceSec.append(h('p','evidence-limit','Exploration stopped early: the '+spend.exhausted+' budget ran out.'));"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "  if(trace.dropped)traceSec.append(h('p','evidence-limit',plural(trace.dropped,'later step')+' exceeded the trace limit and are not shown.'));"
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "  const tasks=trace.events.filter((e)=\u003ee.kind==='task');"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": "  const taskList=h('ul','evidence-list');"
+            },
+            {
+              "newLine": 178,
+              "kind": "added",
+              "text": "  for(const task of tasks){"
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": "    const li=h('li','evidence-source');const head=h('div','evidence-head');"
+            },
+            {
+              "newLine": 180,
+              "kind": "added",
+              "text": "    head.append(h('span','evidence-label',task.agent),h('span','evidence-state'+(task.failed?' state-limited':''),task.name));"
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": "    li.append(head);if(task.detail)li.append(h('p','evidence-limit',task.detail));taskList.append(li);"
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": "  }"
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": "  if(tasks.length)traceSec.append(taskList);"
+            },
+            {
+              "newLine": 184,
+              "kind": "added",
+              "text": "  const steps=h('details','trace-steps');steps.append(h('summary',null,'All '+plural(trace.events.length,'step')));"
+            },
+            {
+              "newLine": 185,
+              "kind": "added",
+              "text": "  const stepList=h('ol','trace-list');"
+            },
+            {
+              "newLine": 186,
+              "kind": "added",
+              "text": "  for(const e of trace.events){"
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "    const li=h('li',e.failed?'trace-step failed':'trace-step');"
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": "    li.append(h('span','evidence-label',e.agent+' · '+e.kind+' · '+e.name+(e.failed?' (failed)':'')));"
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "    const facts=[];"
+            },
+            {
+              "newLine": 190,
+              "kind": "added",
+              "text": "    if(e.kind==='model')facts.push((e.input_tokens||0)+' in / '+(e.output_tokens||0)+' out tokens');"
+            },
+            {
+              "newLine": 191,
+              "kind": "added",
+              "text": "    if(e.result_bytes)facts.push(e.result_bytes+' bytes'+(e.truncated?', truncated':''));"
+            },
+            {
+              "newLine": 192,
+              "kind": "added",
+              "text": "    facts.push((e.elapsed_ms||0)+' ms');"
+            },
+            {
+              "newLine": 193,
+              "kind": "added",
+              "text": "    li.append(h('p','evidence-detail',facts.join(' · ')));"
+            },
+            {
+              "newLine": 194,
+              "kind": "added",
+              "text": "    if(e.detail\u0026\u0026e.kind==='tool')li.append(h('code','trace-args',e.detail));"
+            },
+            {
+              "newLine": 195,
+              "kind": "added",
+              "text": "    if(e.preview)li.append(h('pre','trace-preview',e.preview));"
+            },
+            {
+              "newLine": 196,
+              "kind": "added",
+              "text": "    stepList.append(li);"
+            },
+            {
+              "newLine": 197,
+              "kind": "added",
+              "text": "  }"
+            },
+            {
+              "newLine": 198,
+              "kind": "added",
+              "text": "  steps.append(stepList);traceSec.append(steps,h('p','evidence-limit','This log shows what px1 looked at. It does not show that unexamined code is correct.'));"
+            },
+            {
+              "newLine": 199,
+              "kind": "added",
+              "text": "  rail.append(traceSec);"
+            },
+            {
+              "newLine": 200,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "oldLine": 165,
+              "newLine": 201,
+              "kind": "context",
+              "text": "const progressSec=h('section','review-progress');"
+            },
+            {
+              "oldLine": 166,
+              "newLine": 202,
+              "kind": "context",
+              "text": "progressSec.append(h('h2','eyebrow','Your code review'));"
+            },
+            {
+              "oldLine": 167,
+              "newLine": 203,
+              "kind": "context",
+              "text": "const progressSummary=h('p','review-summary');progressSummary.setAttribute('role','status');"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-c85628b1a982ab20",
+      "title": "Trace changes",
+      "summary": "12 related files share the \"trace\" change signal.",
+      "paths": [
+        "ROADMAP.md",
+        "browser-tests/report.test.mjs",
+        "docs/AGENTIC_REVIEW.md",
+        "export.go",
+        "hosted_findings_test.go",
+        "internal/hosted/agent/run.go",
+        "internal/hosted/agent/trace.go",
+        "internal/hosted/agent/trace_test.go",
+        "internal/hosted/review/trace.go",
+        "internal/hosted/review/trace_test.go",
+        "static_report/report.css",
+        "static_report/report.js"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-d25d432c37481773",
+      "path": "internal/hosted/agent/trace.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/agent/trace_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-d4df2e79edb86018",
+      "path": "internal/hosted/agent/trace.go",
+      "line": 26,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func NewTrace(revision string, tier Tier, now func() time.Time) *Trace {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    },
+    {
+      "id": "inspect-b4d4829573403d61",
+      "path": "internal/hosted/review/trace.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/review/trace_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-54c25779c6ad6104",
+      "path": "internal/hosted/review/trace.go",
+      "line": 58,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func DecodeTraceFile(data []byte, head string) (TraceFile, error) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 12,
+    "filesAnalyzed": 12,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "trace-export",
+      "path": "export.go",
+      "lineStart": 225,
+      "lineEnd": 238,
+      "title": "Trace exports are revision-pinned",
+      "summary": "The optional `--trace-file` is decoded against the report’s head revision before being attached. A stale or invalid trace therefore prevents export, while reports without the option remain unchanged."
+    },
+    {
+      "id": "runner-outcomes",
+      "path": "internal/hosted/agent/run.go",
+      "lineStart": 129,
+      "lineEnd": 138,
+      "title": "Task outcomes join the trace",
+      "summary": "When a runner has a trace configured, it adds each completed task’s outcome to the trace, including failed tasks, before delivering the partial result."
+    },
+    {
+      "id": "trace-recording",
+      "path": "internal/hosted/agent/trace.go",
+      "lineStart": 32,
+      "lineEnd": 78,
+      "title": "Trace records bounded review steps",
+      "summary": "The recorder captures tool-call details and bounded result previews, but omits previews for issue lookups. It also records model-call usage and caps stored events, counting further events as dropped."
+    },
+    {
+      "id": "trace-validation",
+      "path": "internal/hosted/review/trace.go",
+      "lineStart": 58,
+      "lineEnd": 86,
+      "title": "Imported traces are strictly validated",
+      "summary": "Trace files are limited to supported tiers, event counts, and text sizes; event sequences must be ordered, and unknown fields or trailing data are rejected. This keeps imported trace data within the format the report can safely handle."
+    },
+    {
+      "id": "trace-report",
+      "path": "static_report/report.js",
+      "lineStart": 165,
+      "lineEnd": 203,
+      "title": "Reports display traces as inert text",
+      "summary": "Reports show the trace section only when a trace is attached. It summarizes spend, exhausted budgets, dropped steps, and task outcomes, with the full event list expandable; trace strings are inserted as text rather than interpreted as markup."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "12a9eab7f462967dbdf2dfffb38213e91217564a",
+      "revision": "36ca90eb91353d5cc42c6f38a1bc1480d76bd254",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "12a9eab7f462967dbdf2dfffb38213e91217564a",
+      "revision": "36ca90eb91353d5cc42c6f38a1bc1480d76bd254",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "36ca90eb91353d5cc42c6f38a1bc1480d76bd254",
+      "detail": "5 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "36ca90eb91353d5cc42c6f38a1bc1480d76bd254",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-1d76dda01ad40dc5",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/agent/trace.go",
+      "line": 26,
+      "evidence": "func NewTrace(revision string, tier Tier, now func() time.Time) *Trace {"
+    },
+    {
+      "id": "attention-7d9671a63833ef16",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/review/trace.go",
+      "line": 58,
+      "evidence": "func DecodeTraceFile(data []byte, head string) (TraceFile, error) {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "36ca90eb91353d5cc42c6f38a1bc1480d76bd254",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42361185459",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42361185459/job/128369732387",
+        "startedAt": "2026-11-07T09:47:13Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42361185401/job/128369730981",
+        "startedAt": "2026-11-07T09:47:12Z"
+      }
+    ]
+  }
+}
