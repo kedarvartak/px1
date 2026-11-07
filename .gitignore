@@ -13,6 +13,16 @@
 .DS_Store
 Thumbs.db
 
+# Secrets: real environment files must never be committed
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+
+# Local agentic review output (contains repository code)
+px1-agentic/
+
 # Local report/build artifacts
 px1
 site/

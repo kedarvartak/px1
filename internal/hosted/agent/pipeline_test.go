@@ -329,3 +329,33 @@ func TestLenientDecodersToleratePlannerAndJudgeNoise(t *testing.T) {
 		t.Fatal("an object without findings accepted")
 	}
 }
+
+func TestProviderErrorTextNeverReachesNotesOrTheTrace(t *testing.T) {
+	leaky := llm.ProviderError{ProviderName: "openai", StatusCode: 400, Detail: "Incorrect API key provided: sk-proj-****abcd"}
+	if got := describeError(leaky); got != "the provider returned status 400" || strings.Contains(got, "sk-proj") {
+		t.Fatalf("describeError = %q", got)
+	}
+	if !strings.Contains(leaky.Error(), "sk-proj-****abcd") {
+		t.Fatal("the operator's terminal error should keep the provider message")
+	}
+	model := happyModel()
+	model.handlers["verifier"] = func(int, llm.Request) (string, error) { return "", leaky }
+	pipeline, trace := newPipeline(t, model, pipelineBudget())
+	result, err := pipeline.Run(context.Background(), pipelineFixture())
+	if err != nil {
+		t.Fatal(err)
+	}
+	everything := ""
+	for _, n := range result.Notes {
+		everything += n.Message + ";"
+	}
+	for _, event := range trace.File(result.Spend).Events {
+		everything += event.Name + event.Detail + event.Agent + ";"
+	}
+	if strings.Contains(everything, "sk-proj") || strings.Contains(everything, "Incorrect API key") {
+		t.Fatalf("provider error text leaked into notes or the trace: %s", everything)
+	}
+	if !strings.Contains(everything, "the provider returned status 400") || len(result.Findings) != 0 {
+		t.Fatalf("a failed verifier should be explained without detail and report nothing: %s", everything)
+	}
+}

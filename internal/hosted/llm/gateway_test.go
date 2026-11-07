@@ -3,6 +3,9 @@ package llm
 import (
 	"context"
 	"errors"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -122,4 +125,36 @@ type permanentProvider struct{}
 func (permanentProvider) Name() string { return "permanent" }
 func (permanentProvider) Complete(context.Context, Request) (Response, error) {
 	return Response{}, errors.New("invalid request")
+}
+
+func TestProviderErrorsExplainThemselvesWithABoundedProviderMessage(t *testing.T) {
+	long := strings.Repeat("x", 500)
+	for name, tc := range map[string]struct {
+		status     int
+		body, want string
+	}{
+		"unknown model": {404, `{"error":{"message":"The model ` + "`nope`" + ` does not exist","type":"invalid_request_error"}}`, "does not exist"},
+		"long message":  {400, `{"error":{"message":"` + long + `"}}`, strings.Repeat("x", 300) + "…"},
+		"not json":      {502, "<html>bad gateway</html>", "status 502"},
+		"wrong shape":   {400, `{"message":"hi"}`, "status 400"},
+	} {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(tc.status)
+			_, _ = w.Write([]byte(tc.body))
+		}))
+		_, err := OpenAIProvider{APIKey: "k", Endpoint: server.URL}.Complete(context.Background(), Request{Model: "m", Prompt: "p", MaxOutputTokens: 5})
+		server.Close()
+		if err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Fatalf("%s: err = %v, want it to contain %q", name, err, tc.want)
+		}
+		var provider ProviderError
+		if !errors.As(err, &provider) || provider.StatusCode != tc.status {
+			t.Fatalf("%s: not a ProviderError with its status: %v", name, err)
+		}
+		if name == "not json" || name == "wrong shape" {
+			if provider.Detail != "" {
+				t.Fatalf("%s: unexpected detail %q", name, provider.Detail)
+			}
+		}
+	}
 }

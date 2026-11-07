@@ -14,10 +14,18 @@ type ProviderError struct {
 	ProviderName string
 	StatusCode   int
 	Retry        bool
+	// Detail is the provider's own error message, bounded. It explains
+	// failures such as an unknown model, and is meant for the operator's
+	// terminal: callers must not copy it into reports or traces.
+	Detail string
 }
 
 func (e ProviderError) Error() string {
-	return fmt.Sprintf("%s LLM request failed with status %d", e.ProviderName, e.StatusCode)
+	message := fmt.Sprintf("%s LLM request failed with status %d", e.ProviderName, e.StatusCode)
+	if e.Detail != "" {
+		message += ": " + e.Detail
+	}
+	return message
 }
 
 func (e ProviderError) Temporary() bool { return e.Retry }
@@ -151,11 +159,30 @@ func postJSON(ctx context.Context, client *http.Client, endpoint string, headers
 	}
 	defer response.Body.Close()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		_, _ = io.Copy(io.Discard, response.Body)
-		return ProviderError{ProviderName: provider, StatusCode: response.StatusCode, Retry: response.StatusCode == http.StatusTooManyRequests || response.StatusCode >= 500}
+		return ProviderError{ProviderName: provider, StatusCode: response.StatusCode, Retry: response.StatusCode == http.StatusTooManyRequests || response.StatusCode >= 500, Detail: errorDetail(response.Body)}
 	}
 	if err := json.NewDecoder(io.LimitReader(response.Body, 8<<20)).Decode(output); err != nil {
 		return fmt.Errorf("decode %s LLM response: %w", provider, err)
 	}
 	return nil
+}
+
+// errorDetail extracts the message from a provider's JSON error body. It reads
+// at most 4 KiB and returns at most 300 characters; anything that is not the
+// usual {"error":{"message":...}} shape yields no detail.
+func errorDetail(body io.Reader) string {
+	data, _ := io.ReadAll(io.LimitReader(body, 4<<10))
+	var decoded struct {
+		Error struct {
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	if json.Unmarshal(data, &decoded) != nil {
+		return ""
+	}
+	message := strings.Join(strings.Fields(strings.ToValidUTF8(decoded.Error.Message, "")), " ")
+	if len(message) > 300 {
+		message = strings.ToValidUTF8(message[:300], "") + "…"
+	}
+	return message
 }
