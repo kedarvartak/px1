@@ -216,6 +216,9 @@ backend-foundation tasks are:
 88. [x] **Run the sub-agent loop.** Drive tools through a JSON protocol over the
     single-prompt gateway, with metered model calls, tolerant parsing of model
     output, and every dropped finding recorded in the trace.
+89. [x] **Chain the agentic pipeline.** Plan, investigate in parallel, judge,
+    and verify, with a narrowing fallback at every model-dependent stage, a
+    privacy guard on every tool, and only verified findings reported.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,

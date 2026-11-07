@@ -146,3 +146,32 @@ Because the transcript is replayed every turn, input tokens grow with each tool
 call. A sub-agent that makes twelve calls can read a large multiple of its
 final transcript, which is why input tokens are the budget most likely to run
 out first.
+
+## The pipeline
+
+`agent.Pipeline.Run` chains the roles for one review. Every stage that depends
+on imperfect model output has a fallback that narrows the result and says so
+in the trace; none of them widens it.
+
+| Stage | If it fails or returns nothing usable |
+| --- | --- |
+| Planner | Review the largest change groups with a generic focus. Tasks naming unknown or repeated groups are dropped; unknown fields are ignored |
+| Sub-agents | The failing group is reported as unfinished; the others continue |
+| Candidate filter | Findings about files the change did not touch are dropped and noted |
+| Judge | Keep all candidates. An explicit empty list is honoured, but a reply whose every entry was invalid (invented, escalated) is treated as a broken judge and does not erase candidates |
+| Verifier | Retry once. If it still fails, nothing is reported as verified: the candidates are returned as `Unverified` for local inspection only |
+
+A finding is reported only after the verifier supports it. The verifier asks the
+model for a bare JSON array and rejects unknown fields; models often wrap the
+array in a code fence, so the pipeline extracts the array first and applies the
+verifier's strict rules to what it contains.
+
+`Result.Unanchored` lists verified findings whose lines are not all inside a
+changed range. They stay in the report, because a real cross-file problem can
+point at unchanged lines of a changed file, but they are flagged.
+
+When nothing is found, the judge and verifier are skipped and the result says
+that this is not a statement that the change is correct.
+
+Per-role output limits: planner 2,000 tokens, judge up to 12,000, verifier up
+to 6,000, and the configured limit for sub-agent turns.

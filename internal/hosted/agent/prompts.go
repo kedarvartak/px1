@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 
 	"px1/internal/hosted/llm"
@@ -172,20 +173,145 @@ func DecodeJudgment(data []byte, candidates []review.Finding) ([]review.Finding,
 		return nil, fmt.Errorf("decode judgment: %w", err)
 	}
 	for i, finding := range findings {
-		ceiling := -1
-		for _, candidate := range candidates {
-			if candidate.Path == finding.Path && finding.StartLine <= candidate.EndLine && finding.EndLine >= candidate.StartLine {
-				ceiling = max(ceiling, severityRank(candidate.Severity))
-			}
-		}
-		if ceiling < 0 {
-			return nil, fmt.Errorf("judged finding %d does not overlap any candidate", i)
-		}
-		if severityRank(finding.Severity) > ceiling {
-			return nil, fmt.Errorf("judged finding %d raises severity to %s", i, finding.Severity)
+		if violation := judgeViolation(finding, candidates); violation != "" {
+			return nil, fmt.Errorf("judged finding %d %s", i, violation)
 		}
 	}
 	return findings, nil
+}
+
+// judgeViolation says why a judged finding widens the review, or "" if it
+// does not: it must overlap a candidate in the same file and may not be more
+// severe than the most severe candidate it overlaps.
+func judgeViolation(finding review.Finding, candidates []review.Finding) string {
+	ceiling := -1
+	for _, candidate := range candidates {
+		if candidate.Path == finding.Path && finding.StartLine <= candidate.EndLine && finding.EndLine >= candidate.StartLine {
+			ceiling = max(ceiling, severityRank(candidate.Severity))
+		}
+	}
+	switch {
+	case ceiling < 0:
+		return "does not overlap any candidate"
+	case severityRank(finding.Severity) > ceiling:
+		return "raises severity to " + finding.Severity
+	}
+	return ""
+}
+
+// DecodeJudgmentLenient applies the same rules to a model reply that may be
+// wrapped in prose or a code fence and may contain imperfect entries. Entries
+// that are malformed or that widen the review are dropped with a reason; the
+// rest are kept.
+func DecodeJudgmentLenient(reply string, candidates []review.Finding) ([]review.Finding, []review.DroppedFinding, error) {
+	raw, err := firstJSON(reply)
+	if err != nil {
+		return nil, nil, err
+	}
+	if trimmed := bytes.TrimSpace(raw); len(trimmed) > 0 && trimmed[0] == '{' {
+		var wrapped struct {
+			Findings json.RawMessage `json:"findings"`
+		}
+		if err := json.Unmarshal(raw, &wrapped); err != nil || wrapped.Findings == nil {
+			return nil, nil, errors.New("judge reply is an object without findings")
+		}
+		raw = wrapped.Findings
+	}
+	findings, dropped, err := review.DecodeFindingsLenient(raw, MaxJudgedFindings)
+	if err != nil {
+		return nil, nil, err
+	}
+	kept := findings[:0]
+	for i, finding := range findings {
+		if violation := judgeViolation(finding, candidates); violation != "" {
+			dropped = append(dropped, review.DroppedFinding{Index: i, Title: finding.Title, Reason: violation})
+			continue
+		}
+		kept = append(kept, finding)
+	}
+	return kept, dropped, nil
+}
+
+// firstJSON returns the first JSON array or object in a reply, ignoring any
+// prose or code fence around it.
+func firstJSON(reply string) (json.RawMessage, error) {
+	start := strings.IndexAny(reply, "[{")
+	if start < 0 {
+		return nil, errors.New("no JSON found in reply")
+	}
+	var raw json.RawMessage
+	if err := json.NewDecoder(strings.NewReader(reply[start:])).Decode(&raw); err != nil {
+		return nil, errors.New("the JSON in the reply could not be parsed")
+	}
+	return raw, nil
+}
+
+// DecodePlanLenient turns a planner reply into tasks for a local run. It is
+// more forgiving than DecodePlan, which guards the hosted worker: unknown
+// fields are ignored, and tasks that name an unknown or repeated change group
+// are dropped instead of failing the plan. An empty result tells the caller
+// to fall back to a deterministic plan.
+func DecodePlanLenient(reply string, blocks []review.Block, budget Budget) ([]PlanTask, []string) {
+	raw, err := firstJSON(reply)
+	if err != nil {
+		return nil, []string{err.Error()}
+	}
+	var plan struct {
+		Tasks []PlanTask `json:"tasks"`
+	}
+	if err := json.Unmarshal(raw, &plan); err != nil {
+		return nil, []string{"the plan is not an object with a tasks array"}
+	}
+	known := map[string]bool{}
+	for _, block := range blocks {
+		known[block.ID] = true
+	}
+	seen := map[string]bool{}
+	var tasks []PlanTask
+	var problems []string
+	for _, task := range plan.Tasks {
+		switch {
+		case !known[task.BlockID] || seen[task.BlockID]:
+			problems = append(problems, fmt.Sprintf("dropped a task for unknown or repeated change group %q", task.BlockID))
+			continue
+		case len(tasks) >= budget.MaxSubAgents:
+			problems = append(problems, fmt.Sprintf("dropped a task beyond the %d-sub-agent limit", budget.MaxSubAgents))
+			continue
+		}
+		seen[task.BlockID] = true
+		task.Focus = clip(strings.TrimSpace(task.Focus), MaxFocusBytes)
+		if task.Focus == "" {
+			task.Focus = "correctness problems introduced by this change"
+		}
+		var files []string
+		for _, file := range task.Files {
+			if clean, err := repositoryPath(file); err == nil && len(files) < MaxPlanFiles {
+				files = append(files, clean)
+			}
+		}
+		task.Files = files
+		tasks = append(tasks, task)
+	}
+	return tasks, problems
+}
+
+// FallbackPlan covers the largest change groups with a generic focus. It is
+// used when the planner fails or returns nothing usable.
+func FallbackPlan(blocks []review.Block, size func(review.Block) int, budget Budget) []PlanTask {
+	ordered := append([]review.Block{}, blocks...)
+	sort.SliceStable(ordered, func(i, j int) bool { return size(ordered[i]) > size(ordered[j]) })
+	var tasks []PlanTask
+	for _, block := range ordered {
+		if len(tasks) >= budget.MaxSubAgents {
+			break
+		}
+		files := block.Paths
+		if len(files) > MaxPlanFiles {
+			files = files[:MaxPlanFiles]
+		}
+		tasks = append(tasks, PlanTask{BlockID: block.ID, Focus: "correctness problems introduced by this change", Files: append([]string{}, files...)})
+	}
+	return tasks
 }
 
 func severityRank(severity string) int {
