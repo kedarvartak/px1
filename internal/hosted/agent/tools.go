@@ -4,12 +4,10 @@
 package agent
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"path"
 	"strings"
 	"unicode/utf8"
@@ -336,13 +334,8 @@ func (t Toolbox) readIssue(ctx context.Context, scope Scope, raw json.RawMessage
 var errUnavailable = errors.New("tool is not configured for this review")
 
 func decodeArgs(raw json.RawMessage, target any) error {
-	decoder := json.NewDecoder(bytes.NewReader(raw))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(target); err != nil {
+	if err := strictDecode(raw, target); err != nil {
 		return fmt.Errorf("invalid arguments: %w", err)
-	}
-	if _, err := decoder.Token(); err != io.EOF {
-		return errors.New("invalid arguments: trailing data")
 	}
 	return nil
 }

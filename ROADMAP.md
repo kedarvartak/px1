@@ -191,6 +191,10 @@ backend-foundation tasks are:
 80. [x] **Define agentic review tools.** Give sub-agents strict, read-only,
     tenant- and SHA-pinned file, search, graph, history, and linked-issue
     tools with bounded output.
+81. [x] **Write planner, sub-agent, and judge prompts with hard budgets.**
+    Fence untrusted content, validate every role's output, stop the judge from
+    inventing or escalating findings, and reserve worst-case token, cost,
+    call, and wall-time spend per tier before each model call.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,
