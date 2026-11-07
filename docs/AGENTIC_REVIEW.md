@@ -52,5 +52,10 @@ prompt tokens, the request's output cap, and `WorstCaseCost` at the model's
 price, rounded up. A call that could cross any ceiling is refused before it is
 sent. `Settle` replaces the hold with actual usage; usage above a reservation
 is still recorded and returned as an error so provider adapters can be fixed.
-When a budget runs out, `Spend().Exhausted` names the first limit reached so
-the summary can say why exploration stopped.
+A refused reservation is one of three errors:
+
+| Error | Meaning | Sticky |
+| --- | --- | --- |
+| `ErrBudgetExhausted` | Settled usage alone leaves no room for the request, or wall time or the model-call count ran out | Yes. `Spend().Exhausted` names the first such limit, so the summary can say why exploration stopped |
+| `ErrBudgetContended` | The request fits once other in-flight holds settle | No. Concurrent worst-case holds never end a review on their own |
+| `ErrToolCallLimit` | One sub-agent used its tool calls | No. Other sub-agents continue |
