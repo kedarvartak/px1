@@ -1,0 +1,229 @@
+package apikeys
+
+import (
+	"context"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+)
+
+type memoryStore struct {
+	mu   sync.Mutex
+	keys map[int64]map[string]Key
+}
+
+func (s *memoryStore) tenant(id int64) map[string]Key {
+	if s.keys == nil {
+		s.keys = map[int64]map[string]Key{}
+	}
+	if s.keys[id] == nil {
+		s.keys[id] = map[string]Key{}
+	}
+	return s.keys[id]
+}
+
+func (s *memoryStore) Insert(_ context.Context, key Key) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.tenant(key.InstallationID)[key.ID] = key
+	return nil
+}
+
+func (s *memoryStore) Get(_ context.Context, installationID int64, id string) (Key, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	key, ok := s.tenant(installationID)[id]
+	return key, ok, nil
+}
+
+func (s *memoryStore) Supersede(_ context.Context, installationID int64, oldID string, oldExpiresAt time.Time, next Key) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	old, ok := s.tenant(installationID)[oldID]
+	if !ok || !old.RevokedAt.IsZero() || old.ReplacedBy != "" {
+		return errors.New("not active")
+	}
+	old.ReplacedBy, old.ExpiresAt = next.ID, oldExpiresAt
+	s.tenant(installationID)[oldID] = old
+	s.tenant(installationID)[next.ID] = next
+	return nil
+}
+
+func (s *memoryStore) Revoke(_ context.Context, installationID int64, id string, at time.Time) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	key := s.tenant(installationID)[id]
+	key.RevokedAt = at
+	s.tenant(installationID)[id] = key
+	return nil
+}
+
+type clock struct{ now time.Time }
+
+func (c *clock) Now() time.Time { return c.now }
+
+func newManager() (Manager, *memoryStore, *clock) {
+	store, c := &memoryStore{}, &clock{now: time.Date(2026, 11, 7, 0, 0, 0, 0, time.UTC)}
+	return Manager{Store: store, Now: c.Now}, store, c
+}
+
+func TestIssuedKeysStoreOnlyADigestAndAuthenticateWithScopes(t *testing.T) {
+	manager, store, _ := newManager()
+	token, key, err := manager.Issue(context.Background(), 42, "ci bot", []Scope{FindingsRead, ReviewsRead, FindingsRead}, 30*24*time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(token, "px1k_42_"+key.ID+"_") || len(key.Scopes) != 2 {
+		t.Fatalf("token=%q scopes=%v", token, key.Scopes)
+	}
+	secret := token[strings.LastIndex(token, "_")+1:]
+	stored, _, _ := store.Get(context.Background(), 42, key.ID)
+	if strings.Contains(stored.Name+string(stored.SecretHash[:]), secret) {
+		t.Fatal("plaintext secret stored")
+	}
+	principal, err := manager.Authenticate(context.Background(), token, FindingsRead)
+	if err != nil || principal.InstallationID != 42 || principal.KeyID != key.ID {
+		t.Fatalf("principal=%#v err=%v", principal, err)
+	}
+	if _, err := manager.Authenticate(context.Background(), token, ReviewsTrigger); !errors.Is(err, ErrForbidden) {
+		t.Fatalf("missing scope: %v", err)
+	}
+}
+
+func TestAuthenticationFailuresAreIndistinguishable(t *testing.T) {
+	manager, _, c := newManager()
+	token, key, _ := manager.Issue(context.Background(), 42, "k", []Scope{ReviewsRead}, time.Hour)
+	wrongSecret := token[:len(token)-1] + map[bool]string{true: "A", false: "B"}[token[len(token)-1] != 'A']
+	otherTenant := strings.Replace(token, "px1k_42_", "px1k_43_", 1)
+	for name, presented := range map[string]string{
+		"empty": "", "garbage": "Bearer nope", "wrong secret": wrongSecret, "other tenant": otherTenant,
+		"unknown id": strings.Replace(token, key.ID, "0123456789abcdef", 1), "leading zero tenant": strings.Replace(token, "px1k_42", "px1k_042", 1),
+	} {
+		if _, err := manager.Authenticate(context.Background(), presented, ""); !errors.Is(err, ErrUnauthorized) {
+			t.Fatalf("%s: %v", name, err)
+		}
+	}
+	c.now = c.now.Add(time.Hour)
+	if _, err := manager.Authenticate(context.Background(), token, ""); !errors.Is(err, ErrUnauthorized) {
+		t.Fatal("expired key accepted")
+	}
+}
+
+func TestRotationOverlapsThenRetiresTheOldKey(t *testing.T) {
+	manager, _, c := newManager()
+	oldToken, old, _ := manager.Issue(context.Background(), 42, "deploy", []Scope{ReviewsRead}, 90*24*time.Hour)
+	newToken, next, err := manager.Rotate(context.Background(), 42, old.ID, time.Hour)
+	if err != nil || next.Name != "deploy" || next.Scopes[0] != ReviewsRead || next.ID == old.ID {
+		t.Fatalf("next=%#v err=%v", next, err)
+	}
+	for _, token := range []string{oldToken, newToken} {
+		if _, err := manager.Authenticate(context.Background(), token, ""); err != nil {
+			t.Fatalf("key unusable during overlap: %v", err)
+		}
+	}
+	if _, _, err := manager.Rotate(context.Background(), 42, old.ID, time.Hour); err == nil {
+		t.Fatal("a superseded key was rotated twice")
+	}
+	c.now = c.now.Add(time.Hour)
+	if _, err := manager.Authenticate(context.Background(), oldToken, ""); !errors.Is(err, ErrUnauthorized) {
+		t.Fatal("old key outlived its overlap")
+	}
+	if _, err := manager.Authenticate(context.Background(), newToken, ""); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := manager.Rotate(context.Background(), 42, next.ID, 8*24*time.Hour); err == nil {
+		t.Fatal("overlap above seven days accepted")
+	}
+	if err := manager.Revoke(context.Background(), 42, next.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := manager.Authenticate(context.Background(), newToken, ""); !errors.Is(err, ErrUnauthorized) {
+		t.Fatal("revoked key accepted")
+	}
+}
+
+func TestIssueValidatesInput(t *testing.T) {
+	manager, _, _ := newManager()
+	for name, issue := range map[string]func() error{
+		"no scopes": func() error { _, _, err := manager.Issue(context.Background(), 1, "k", nil, time.Hour); return err },
+		"unknown scope": func() error {
+			_, _, err := manager.Issue(context.Background(), 1, "k", []Scope{"admin"}, time.Hour)
+			return err
+		},
+		"forever": func() error {
+			_, _, err := manager.Issue(context.Background(), 1, "k", []Scope{ReviewsRead}, 400*24*time.Hour)
+			return err
+		},
+		"no tenant": func() error {
+			_, _, err := manager.Issue(context.Background(), 0, "k", []Scope{ReviewsRead}, time.Hour)
+			return err
+		},
+		"no name": func() error {
+			_, _, err := manager.Issue(context.Background(), 1, " ", []Scope{ReviewsRead}, time.Hour)
+			return err
+		},
+	} {
+		if issue() == nil {
+			t.Fatalf("%s accepted", name)
+		}
+	}
+}
+
+func TestRateLimiterRefillsPerKey(t *testing.T) {
+	now := time.Date(2026, 11, 7, 0, 0, 0, 0, time.UTC)
+	limiter := &RateLimiter{PerMinute: 60, Burst: 2, Now: func() time.Time { return now }}
+	if ok, _ := limiter.Allow("a"); !ok {
+		t.Fatal("first request refused")
+	}
+	limiter.Allow("a")
+	ok, wait := limiter.Allow("a")
+	if ok || wait != time.Second {
+		t.Fatalf("burst exceeded: ok=%v wait=%s", ok, wait)
+	}
+	if ok, _ := limiter.Allow("b"); !ok {
+		t.Fatal("keys share a bucket")
+	}
+	now = now.Add(time.Second)
+	if ok, _ := limiter.Allow("a"); !ok {
+		t.Fatal("bucket did not refill")
+	}
+}
+
+func TestMiddlewareMapsFailuresToHTTPStatus(t *testing.T) {
+	manager, _, _ := newManager()
+	token, _, _ := manager.Issue(context.Background(), 42, "k", []Scope{FindingsRead}, time.Hour)
+	limiter := &RateLimiter{PerMinute: 1, Burst: 1}
+	handler := Middleware(manager, limiter, FindingsRead, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		principal, _ := PrincipalFrom(r.Context())
+		w.Write([]byte(principal.KeyID))
+	}))
+	forbidden := Middleware(manager, nil, ReviewsTrigger, handler)
+	request := func(h http.Handler, auth string) *httptest.ResponseRecorder {
+		r := httptest.NewRequest(http.MethodGet, "/", nil)
+		if auth != "" {
+			r.Header.Set("Authorization", auth)
+		}
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		return w
+	}
+	if w := request(handler, ""); w.Code != http.StatusUnauthorized || w.Header().Get("WWW-Authenticate") == "" {
+		t.Fatalf("missing key: %d", w.Code)
+	}
+	if w := request(handler, "Bearer px1k_1_0000000000000000_"+strings.Repeat("a", 43)); w.Code != http.StatusUnauthorized {
+		t.Fatalf("unknown key: %d", w.Code)
+	}
+	if w := request(forbidden, "Bearer "+token); w.Code != http.StatusForbidden {
+		t.Fatalf("missing scope: %d", w.Code)
+	}
+	if w := request(handler, "Bearer "+token); w.Code != http.StatusOK || w.Body.Len() != 16 {
+		t.Fatalf("valid key: %d %q", w.Code, w.Body.String())
+	}
+	if w := request(handler, "Bearer "+token); w.Code != http.StatusTooManyRequests || w.Header().Get("Retry-After") == "" {
+		t.Fatalf("rate limit: %d", w.Code)
+	}
+}
