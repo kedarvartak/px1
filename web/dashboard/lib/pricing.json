@@ -1,0 +1,56 @@
+[
+  {
+    "slug": "starter",
+    "name": "Starter",
+    "audience": "One developer",
+    "monthlyIncludedCredits": 50,
+    "microusdPerCredit": 0,
+    "seatFees": false,
+    "contactSales": false,
+    "includes": [
+      "50 review credits each month",
+      "Commit-pinned review reports",
+      "Repository rules and memory controls"
+    ]
+  },
+  {
+    "slug": "pro",
+    "name": "Pro",
+    "audience": "Teams",
+    "monthlyIncludedCredits": 0,
+    "microusdPerCredit": 800000,
+    "seatFees": false,
+    "contactSales": false,
+    "includes": [
+      "Pay as you go; credits are shared across the organization",
+      "No seat fees",
+      "Dashboard, analytics, Slack, Linear, and Jira"
+    ]
+  },
+  {
+    "slug": "oss",
+    "name": "Open source",
+    "audience": "Qualified public repositories",
+    "monthlyIncludedCredits": 0,
+    "microusdPerCredit": 0,
+    "seatFees": false,
+    "contactSales": false,
+    "includes": [
+      "Free credits after an approved application",
+      "The same review pipeline as Pro"
+    ]
+  },
+  {
+    "slug": "enterprise",
+    "name": "Enterprise",
+    "audience": "Regulated organizations",
+    "monthlyIncludedCredits": 0,
+    "microusdPerCredit": 0,
+    "seatFees": false,
+    "contactSales": true,
+    "includes": [
+      "Annual contract",
+      "Self-hosting, SSO, audit logs, and an SLA as they ship"
+    ]
+  }
+]

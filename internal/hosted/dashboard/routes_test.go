@@ -19,3 +19,19 @@ func TestDashboardRoutesAreOrganizationScopedAndUnique(t *testing.T) {
 		}
 	}
 }
+
+func TestPublicRoutesCannotShadowAnOrganization(t *testing.T) {
+	seen := map[string]bool{}
+	for _, route := range PublicRoutes {
+		rest, ok := strings.CutPrefix(route.Pattern, PublicPrefix)
+		if !ok || rest == "" || strings.ContainsAny(rest, ":/") || route.Navigation || seen[route.Pattern] {
+			t.Fatalf("invalid public route: %#v", route)
+		}
+		seen[route.Pattern] = true
+	}
+	for _, required := range []string{"/-/pricing", "/-/docs", "/-/changelog", "/-/status"} {
+		if !seen[required] {
+			t.Fatalf("missing public route %q", required)
+		}
+	}
+}

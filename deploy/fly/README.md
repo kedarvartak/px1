@@ -15,3 +15,10 @@ flyctl deploy --config deploy/fly/staging.toml
 Promote the same tested image digest to production with the production config.
 Each process exposes `/healthz` and `/readyz`; structured startup logs, OTLP
 traces, and Sentry errors identify the environment, role, and release.
+
+The `web` role also serves an unauthenticated `/status.json`. Set
+`PX1_STATUS_COMPONENTS` to comma-separated `name=readiness-URL` pairs, for
+example `webhook=https://hook.px1.dev/readyz,reviewer=https://review.px1.dev/readyz`.
+URLs must use HTTPS (plain HTTP is accepted only for loopback). With no
+components configured, the status reports `unavailable` instead of claiming
+health. See [public pages](../../docs/PUBLIC_PAGES.md).

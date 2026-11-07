@@ -20,3 +20,15 @@ var Routes = []Route{
 	{Name: "members", Pattern: "/:organization/members", Navigation: true},
 	{Name: "settings", Pattern: "/:organization/settings", Navigation: true},
 }
+
+// PublicPrefix holds pages served without a session. Organization routes use
+// the GitHub or GitLab login as their first segment, and neither provider
+// allows a login that starts with "-", so "/-/" can never shadow a tenant.
+const PublicPrefix = "/-/"
+
+var PublicRoutes = []Route{
+	{Name: "pricing", Pattern: "/-/pricing"},
+	{Name: "docs", Pattern: "/-/docs"},
+	{Name: "changelog", Pattern: "/-/changelog"},
+	{Name: "status", Pattern: "/-/status"},
+}
