@@ -54,3 +54,35 @@ sent. `Settle` replaces the hold with actual usage; usage above a reservation
 is still recorded and returned as an error so provider adapters can be fixed.
 When a budget runs out, `Spend().Exhausted` names the first limit reached so
 the summary can say why exploration stopped.
+
+## Parallel execution
+
+`Runner.Run` starts one goroutine per planned task. Each one waits for a slot
+from a shared `OrgLimiter` before calling its sub-agent. The limiter caps
+concurrent sub-agents per installation across every review in the process, so
+one large organization cannot starve the others. Idle installations are dropped
+from the limiter. The cap is per process: with N reviewer workers an
+installation can run up to N × limit sub-agents, so a cluster-wide cap still
+needs a shared store.
+
+The whole run shares the meter's wall-time deadline. A task ends one of three
+ways:
+
+| Outcome | When | Reason shown |
+| --- | --- | --- |
+| `completed` | The sub-agent returned findings | — |
+| `failed` | It returned an error or panicked | The failure class only, never provider or tool error text |
+| `skipped` | The deadline passed while it waited for a slot, or a budget was exhausted before it started | Names the exhausted limit |
+
+One failing or panicking sub-agent never fails the review or crashes the
+worker. `RunResult.Complete` is true only when every task completed, so a
+summary can say the review covered only part of the change.
+
+### Streaming
+
+`OnPartial` is called as each task finishes, in completion order, one at a time
+on the caller's goroutine. That lets the summary post early without its own
+locking. Each partial carries `Done`/`Total` and `Provisional: true`. Its
+findings have not been judged or verified yet and must be labelled that way.
+The final candidates follow plan order, not completion order, so the judge's
+input does not depend on timing.

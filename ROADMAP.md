@@ -195,6 +195,9 @@ backend-foundation tasks are:
     Fence untrusted content, validate every role's output, stop the judge from
     inventing or escalating findings, and reserve worst-case token, cost,
     call, and wall-time spend per tier before each model call.
+82. [x] **Run sub-agents in parallel.** Cap concurrent sub-agents per
+    organization, contain sub-agent failures and panics, skip work once a
+    budget is exhausted, and stream provisional partial results in order.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,
