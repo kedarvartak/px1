@@ -62,3 +62,18 @@ Other behavior to know:
 - Errors name the failing git command only. Git's stderr can contain local
   paths and is never shown to a model.
 - Each call has a 20-second timeout and a 512 KiB output cap.
+
+## Privacy guard
+
+A model can ask to read any file at the commit, not only those in the diff, so
+excluding a path from the diff is not enough. `agent.Guarded` wraps `GitRepo`
+and applies one policy to every tool:
+
+- **Excluded paths** cannot be read, blamed, or logged, do not appear in
+  directory listings, and their text is filtered out of search results.
+- **Redaction** rewrites secret-like values in anything returned from an
+  allowed file (file text, search snippets, commit summaries).
+
+Redaction recognizes known secret shapes only. It is a safety net, not access
+control, and the policy that decides which paths are excluded belongs to the
+caller.
