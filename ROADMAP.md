@@ -201,6 +201,9 @@ backend-foundation tasks are:
 83. [x] **Show how px1 reviewed each change.** Record a bounded,
     revision-pinned trace of every model call, tool call, and task outcome,
     and render it in the report without copying linked-issue content.
+84. [x] **Gate agentic tiers against Base.** Launch a tier only when the
+    full seeded benchmark shows at least a 20% relative recall lift at no
+    more than 3× cost, with precision within three points.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,
