@@ -1,0 +1,1177 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "36ca90eb91353d5cc42c6f38a1bc1480d76bd254",
+  "head": "f04ee7d0f0c4f214b298b7bed0e17529d81fad20",
+  "generatedAt": "2026-11-07T09:50:12.151760013Z",
+  "files": [
+    {
+      "path": "ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/ROADMAP.md b/ROADMAP.md\nindex 28630e4..7614b74 100644\n--- a/ROADMAP.md\n+++ b/ROADMAP.md\n@@ -201,6 +201,9 @@ backend-foundation tasks are:\n 83. [x] **Show how px1 reviewed each change.** Record a bounded,\n     revision-pinned trace of every model call, tool call, and task outcome,\n     and render it in the report without copying linked-issue content.\n+84. [x] **Gate agentic tiers against Base.** Launch a tier only when the\n+    full seeded benchmark shows at least a 20% relative recall lift at no\n+    more than 3× cost, with precision within three points.\n \n The v1 review pipeline, indexing, report hosting, evaluation, and launch gates\n follow these foundations. AI findings must remain auditable: evidence,\n",
+      "hunks": [
+        {
+          "id": "diff-2897284155dd4170",
+          "header": "@@ -201,6 +201,9 @@ backend-foundation tasks are:",
+          "lines": [
+            {
+              "oldLine": 201,
+              "newLine": 201,
+              "kind": "context",
+              "text": "83. [x] **Show how px1 reviewed each change.** Record a bounded,"
+            },
+            {
+              "oldLine": 202,
+              "newLine": 202,
+              "kind": "context",
+              "text": "    revision-pinned trace of every model call, tool call, and task outcome,"
+            },
+            {
+              "oldLine": 203,
+              "newLine": 203,
+              "kind": "context",
+              "text": "    and render it in the report without copying linked-issue content."
+            },
+            {
+              "newLine": 204,
+              "kind": "added",
+              "text": "84. [x] **Gate agentic tiers against Base.** Launch a tier only when the"
+            },
+            {
+              "newLine": 205,
+              "kind": "added",
+              "text": "    full seeded benchmark shows at least a 20% relative recall lift at no"
+            },
+            {
+              "newLine": 206,
+              "kind": "added",
+              "text": "    more than 3× cost, with precision within three points."
+            },
+            {
+              "oldLine": 204,
+              "newLine": 207,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 205,
+              "newLine": 208,
+              "kind": "context",
+              "text": "The v1 review pipeline, indexing, report hosting, evaluation, and launch gates"
+            },
+            {
+              "oldLine": 206,
+              "newLine": 209,
+              "kind": "context",
+              "text": "follow these foundations. AI findings must remain auditable: evidence,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/EVALUATION_SET.md",
+      "status": "M",
+      "diff": "diff --git a/docs/EVALUATION_SET.md b/docs/EVALUATION_SET.md\nindex 2bbc073..ca1982a 100644\n--- a/docs/EVALUATION_SET.md\n+++ b/docs/EVALUATION_SET.md\n@@ -16,3 +16,21 @@ silently treating unlabelled historical changes as correct.\n Do not add private source, access tokens, model output, or mutable branch names\n to a dataset manifest. Commit identities and human grading decisions should be\n reviewed through normal pull requests.\n+\n+## Agentic tier launch gate\n+\n+`eval.GateTierLaunch` runs Base and a candidate agentic tier on the same full\n+v2 seeded-bug benchmark (at least 100 seeded cases, 40 of them cross-file).\n+The candidate may launch only if it passes all three checks:\n+\n+| Check | Threshold |\n+| --- | --- |\n+| Recall lift | At least 20% relative to Base (Plus recall ≥ 1.2 × Base recall) |\n+| Cost | At most 3× Base on the same cases |\n+| Precision | No more than 3 points below Base |\n+\n+The precision check is not in the original launch criterion. Without it, a tier\n+could pass on recall by adding findings until some match. The gate fails\n+closed: it never passes on a partial benchmark, different case sets, zero Base\n+recall, or zero Base cost. Each failed check adds a human-readable reason to\n+the result.\n",
+      "hunks": [
+        {
+          "id": "diff-8d46f2b3b1e53e51",
+          "header": "@@ -16,3 +16,21 @@ silently treating unlabelled historical changes as correct.",
+          "lines": [
+            {
+              "oldLine": 16,
+              "newLine": 16,
+              "kind": "context",
+              "text": "Do not add private source, access tokens, model output, or mutable branch names"
+            },
+            {
+              "oldLine": 17,
+              "newLine": 17,
+              "kind": "context",
+              "text": "to a dataset manifest. Commit identities and human grading decisions should be"
+            },
+            {
+              "oldLine": 18,
+              "newLine": 18,
+              "kind": "context",
+              "text": "reviewed through normal pull requests."
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "## Agentic tier launch gate"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "`eval.GateTierLaunch` runs Base and a candidate agentic tier on the same full"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "v2 seeded-bug benchmark (at least 100 seeded cases, 40 of them cross-file)."
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "The candidate may launch only if it passes all three checks:"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "| Check | Threshold |"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "| --- | --- |"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "| Recall lift | At least 20% relative to Base (Plus recall ≥ 1.2 × Base recall) |"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "| Cost | At most 3× Base on the same cases |"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "| Precision | No more than 3 points below Base |"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "The precision check is not in the original launch criterion. Without it, a tier"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "could pass on recall by adding findings until some match. The gate fails"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "closed: it never passes on a partial benchmark, different case sets, zero Base"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "recall, or zero Base cost. Each failed check adds a human-readable reason to"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "the result."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/eval/tiers.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/eval/tiers.go b/internal/hosted/eval/tiers.go\nnew file mode 100644\nindex 0000000..138a8b5\n--- /dev/null\n+++ b/internal/hosted/eval/tiers.go\n@@ -0,0 +1,76 @@\n+package eval\n+\n+import (\n+\t\"context\"\n+\t\"fmt\"\n+)\n+\n+// Launch thresholds for an agentic tier against the Base pipeline.\n+const (\n+\tMinTierRecallLift    = 0.20 // relative: Plus recall must be at least 1.2 × Base recall\n+\tMaxTierCostMultiple  = 3.0\n+\tMaxTierPrecisionDrop = 0.03\n+)\n+\n+type TierComparison struct {\n+\tBase, Candidate Metrics\n+\tRecallLift      float64\n+\tCostMultiple    float64\n+\tPassed          bool\n+\tReasons         []string\n+}\n+\n+// GateTierLaunch runs Base and a candidate tier on the same v2 seeded-bug\n+// benchmark and passes only if the candidate improves recall by at least 20%\n+// relative to Base, costs at most 3× Base, and does not give up more than\n+// three points of precision. Recall gains bought with noise do not count.\n+// A comparison that cannot be computed fails rather than passing by default.\n+func GateTierLaunch(ctx context.Context, dataset Dataset, base, candidate Reviewer) (TierComparison, error) {\n+\tif base == nil || candidate == nil {\n+\t\treturn TierComparison{}, fmt.Errorf(\"base and candidate reviewers are required\")\n+\t}\n+\tif err := dataset.ValidateV2Coverage(); err != nil {\n+\t\treturn TierComparison{}, fmt.Errorf(\"tier gate needs the full seeded benchmark: %w\", err)\n+\t}\n+\tbaseMetrics, err := Run(ctx, dataset, base)\n+\tif err != nil {\n+\t\treturn TierComparison{}, fmt.Errorf(\"run base tier: %w\", err)\n+\t}\n+\tcandidateMetrics, err := Run(ctx, dataset, candidate)\n+\tif err != nil {\n+\t\treturn TierComparison{}, fmt.Errorf(\"run candidate tier: %w\", err)\n+\t}\n+\treturn CompareTiers(baseMetrics, candidateMetrics), nil\n+}\n+\n+func CompareTiers(base, candidate Metrics) TierComparison {\n+\tresult := TierComparison{Base: base, Candidate: candidate, Passed: true}\n+\tfail := func(format string, args ...any) {\n+\t\tresult.Passed = false\n+\t\tresult.Reasons = append(result.Reasons, fmt.Sprintf(format, args...))\n+\t}\n+\tif base.Cases == 0 || base.Cases != candidate.Cases {\n+\t\tfail(\"tiers must be measured on the same non-empty case set (base %d, candidate %d)\", base.Cases, candidate.Cases)\n+\t\treturn result\n+\t}\n+\tif base.Recall \u003c= 0 {\n+\t\tfail(\"base recall is zero, so a relative recall lift cannot be measured\")\n+\t} else {\n+\t\tresult.RecallLift = candidate.Recall/base.Recall - 1\n+\t\tif result.RecallLift \u003c MinTierRecallLift-1e-9 {\n+\t\t\tfail(\"recall lift %.1f%% is below the required %.0f%% (base %.3f, candidate %.3f)\", result.RecallLift*100, MinTierRecallLift*100, base.Recall, candidate.Recall)\n+\t\t}\n+\t}\n+\tif base.CostMicrousd \u003c= 0 {\n+\t\tfail(\"base cost is zero, so a cost multiple cannot be measured\")\n+\t} else {\n+\t\tresult.CostMultiple = float64(candidate.CostMicrousd) / float64(base.CostMicrousd)\n+\t\tif result.CostMultiple \u003e MaxTierCostMultiple+1e-9 {\n+\t\t\tfail(\"cost is %.2f× base; the limit is %.0f×\", result.CostMultiple, MaxTierCostMultiple)\n+\t\t}\n+\t}\n+\tif drop := base.Precision - candidate.Precision; drop \u003e MaxTierPrecisionDrop+1e-9 {\n+\t\tfail(\"precision dropped %.1f points (base %.3f, candidate %.3f); the limit is %.0f\", drop*100, base.Precision, candidate.Precision, MaxTierPrecisionDrop*100)\n+\t}\n+\treturn result\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-4a0f92efbe63ca23",
+          "header": "@@ -0,0 +1,76 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package eval"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "// Launch thresholds for an agentic tier against the Base pipeline."
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "const ("
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\tMinTierRecallLift    = 0.20 // relative: Plus recall must be at least 1.2 × Base recall"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\tMaxTierCostMultiple  = 3.0"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\tMaxTierPrecisionDrop = 0.03"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "type TierComparison struct {"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tBase, Candidate Metrics"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tRecallLift      float64"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tCostMultiple    float64"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tPassed          bool"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tReasons         []string"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "// GateTierLaunch runs Base and a candidate tier on the same v2 seeded-bug"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "// benchmark and passes only if the candidate improves recall by at least 20%"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "// relative to Base, costs at most 3× Base, and does not give up more than"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "// three points of precision. Recall gains bought with noise do not count."
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "// A comparison that cannot be computed fails rather than passing by default."
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "func GateTierLaunch(ctx context.Context, dataset Dataset, base, candidate Reviewer) (TierComparison, error) {"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tif base == nil || candidate == nil {"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t\treturn TierComparison{}, fmt.Errorf(\"base and candidate reviewers are required\")"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tif err := dataset.ValidateV2Coverage(); err != nil {"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t\treturn TierComparison{}, fmt.Errorf(\"tier gate needs the full seeded benchmark: %w\", err)"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tbaseMetrics, err := Run(ctx, dataset, base)"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t\treturn TierComparison{}, fmt.Errorf(\"run base tier: %w\", err)"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tcandidateMetrics, err := Run(ctx, dataset, candidate)"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t\treturn TierComparison{}, fmt.Errorf(\"run candidate tier: %w\", err)"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\treturn CompareTiers(baseMetrics, candidateMetrics), nil"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "func CompareTiers(base, candidate Metrics) TierComparison {"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\tresult := TierComparison{Base: base, Candidate: candidate, Passed: true}"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\tfail := func(format string, args ...any) {"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\tresult.Passed = false"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t\tresult.Reasons = append(result.Reasons, fmt.Sprintf(format, args...))"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\tif base.Cases == 0 || base.Cases != candidate.Cases {"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t\tfail(\"tiers must be measured on the same non-empty case set (base %d, candidate %d)\", base.Cases, candidate.Cases)"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\treturn result"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\tif base.Recall \u003c= 0 {"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\tfail(\"base recall is zero, so a relative recall lift cannot be measured\")"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t} else {"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t\tresult.RecallLift = candidate.Recall/base.Recall - 1"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t\tif result.RecallLift \u003c MinTierRecallLift-1e-9 {"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t\t\tfail(\"recall lift %.1f%% is below the required %.0f%% (base %.3f, candidate %.3f)\", result.RecallLift*100, MinTierRecallLift*100, base.Recall, candidate.Recall)"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\tif base.CostMicrousd \u003c= 0 {"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t\tfail(\"base cost is zero, so a cost multiple cannot be measured\")"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t} else {"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\tresult.CostMultiple = float64(candidate.CostMicrousd) / float64(base.CostMicrousd)"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\tif result.CostMultiple \u003e MaxTierCostMultiple+1e-9 {"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\t\tfail(\"cost is %.2f× base; the limit is %.0f×\", result.CostMultiple, MaxTierCostMultiple)"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\tif drop := base.Precision - candidate.Precision; drop \u003e MaxTierPrecisionDrop+1e-9 {"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\tfail(\"precision dropped %.1f points (base %.3f, candidate %.3f); the limit is %.0f\", drop*100, base.Precision, candidate.Precision, MaxTierPrecisionDrop*100)"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\treturn result"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/eval/tiers_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/eval/tiers_test.go b/internal/hosted/eval/tiers_test.go\nnew file mode 100644\nindex 0000000..2e81d71\n--- /dev/null\n+++ b/internal/hosted/eval/tiers_test.go\n@@ -0,0 +1,86 @@\n+package eval\n+\n+import (\n+\t\"context\"\n+\t\"fmt\"\n+\t\"strings\"\n+\t\"testing\"\n+)\n+\n+func seededBenchmark() Dataset {\n+\tcases := make([]Case, 100)\n+\tfor i := range cases {\n+\t\tlabels := []Label{{Path: \"a.go\", BugClass: \"logic\", StartLine: 5, EndLine: 5}}\n+\t\tcrossFile := i \u003c 40\n+\t\tif crossFile {\n+\t\t\tlabels = append(labels, Label{Path: \"b.go\", BugClass: \"logic\", StartLine: 9, EndLine: 9})\n+\t\t}\n+\t\tcases[i] = Case{ID: fmt.Sprintf(\"seed-%03d\", i), Kind: \"seeded\", Repository: \"https://github.com/acme/repo\", PullRequestURL: \"https://github.com/acme/repo/pull/1\",\n+\t\t\tBaseSHA: strings.Repeat(\"a\", 40), HeadSHA: strings.Repeat(\"b\", 40), MutationID: \"m\", CrossFile: crossFile, Labels: labels}\n+\t}\n+\treturn Dataset{Version: 1, Cases: cases}\n+}\n+\n+// reviewer finds the a.go label on the first `hits` cases, adds `noise`\n+// unmatched findings per case, and charges `cost` per case.\n+func reviewer(hits, noise int, cost int64) Reviewer {\n+\treturn reviewerFunc(func(_ context.Context, c Case) (ReviewResult, error) {\n+\t\tvar n int\n+\t\tfmt.Sscanf(c.ID, \"seed-%d\", \u0026n)\n+\t\tvar findings []Finding\n+\t\tif n \u003c hits {\n+\t\t\tfindings = append(findings, Finding{Path: \"a.go\", BugClass: \"logic\", StartLine: 5, EndLine: 5})\n+\t\t}\n+\t\tfor i := 0; i \u003c noise; i++ {\n+\t\t\tfindings = append(findings, Finding{Path: \"z.go\", BugClass: \"style\", StartLine: i + 1, EndLine: i + 1})\n+\t\t}\n+\t\treturn ReviewResult{Findings: findings, CostMicrousd: cost}, nil\n+\t})\n+}\n+\n+func TestTierGatePassesAtExactlyTheThresholds(t *testing.T) {\n+\tresult, err := GateTierLaunch(context.Background(), seededBenchmark(), reviewer(50, 0, 100), reviewer(60, 0, 300))\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif !result.Passed || result.CostMultiple != 3 || result.RecallLift \u003c 0.199 {\n+\t\tt.Fatalf(\"result = %#v\", result)\n+\t}\n+}\n+\n+func TestTierGateRejectsEachShortfall(t *testing.T) {\n+\tcases := map[string]struct {\n+\t\tcandidate Reviewer\n+\t\treason    string\n+\t}{\n+\t\t\"small lift\":    {reviewer(59, 0, 200), \"recall lift\"},\n+\t\t\"too expensive\": {reviewer(80, 0, 301), \"cost is 3.01×\"},\n+\t\t\"noisy recall\":  {reviewer(80, 2, 200), \"precision dropped\"},\n+\t}\n+\tfor name, tc := range cases {\n+\t\tresult, err := GateTierLaunch(context.Background(), seededBenchmark(), reviewer(50, 0, 100), tc.candidate)\n+\t\tif err != nil {\n+\t\t\tt.Fatal(err)\n+\t\t}\n+\t\tif result.Passed || !strings.Contains(strings.Join(result.Reasons, \"; \"), tc.reason) {\n+\t\t\tt.Fatalf(\"%s: %#v\", name, result)\n+\t\t}\n+\t}\n+}\n+\n+func TestTierGateFailsClosedWhenItCannotMeasure(t *testing.T) {\n+\tif result, _ := GateTierLaunch(context.Background(), seededBenchmark(), reviewer(0, 0, 100), reviewer(90, 0, 100)); result.Passed {\n+\t\tt.Fatal(\"zero base recall passed\")\n+\t}\n+\tif result, _ := GateTierLaunch(context.Background(), seededBenchmark(), reviewer(50, 0, 0), reviewer(90, 0, 100)); result.Passed {\n+\t\tt.Fatal(\"zero base cost passed\")\n+\t}\n+\tif result := CompareTiers(Metrics{Cases: 100, Recall: .5, CostMicrousd: 1}, Metrics{Cases: 99, Recall: .9, CostMicrousd: 1}); result.Passed {\n+\t\tt.Fatal(\"different case sets passed\")\n+\t}\n+\tsmall := seededBenchmark()\n+\tsmall.Cases = small.Cases[:20]\n+\tif _, err := GateTierLaunch(context.Background(), small, reviewer(10, 0, 1), reviewer(20, 0, 1)); err == nil {\n+\t\tt.Fatal(\"gate ran on a partial benchmark\")\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-e870f86372b608e1",
+          "header": "@@ -0,0 +1,86 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package eval"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "func seededBenchmark() Dataset {"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\tcases := make([]Case, 100)"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\tfor i := range cases {"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t\tlabels := []Label{{Path: \"a.go\", BugClass: \"logic\", StartLine: 5, EndLine: 5}}"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\t\tcrossFile := i \u003c 40"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\t\tif crossFile {"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t\t\tlabels = append(labels, Label{Path: \"b.go\", BugClass: \"logic\", StartLine: 9, EndLine: 9})"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t\tcases[i] = Case{ID: fmt.Sprintf(\"seed-%03d\", i), Kind: \"seeded\", Repository: \"https://github.com/acme/repo\", PullRequestURL: \"https://github.com/acme/repo/pull/1\","
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t\t\tBaseSHA: strings.Repeat(\"a\", 40), HeadSHA: strings.Repeat(\"b\", 40), MutationID: \"m\", CrossFile: crossFile, Labels: labels}"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\treturn Dataset{Version: 1, Cases: cases}"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "// reviewer finds the a.go label on the first `hits` cases, adds `noise`"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "// unmatched findings per case, and charges `cost` per case."
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "func reviewer(hits, noise int, cost int64) Reviewer {"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\treturn reviewerFunc(func(_ context.Context, c Case) (ReviewResult, error) {"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t\tvar n int"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t\tfmt.Sscanf(c.ID, \"seed-%d\", \u0026n)"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t\tvar findings []Finding"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t\tif n \u003c hits {"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t\t\tfindings = append(findings, Finding{Path: \"a.go\", BugClass: \"logic\", StartLine: 5, EndLine: 5})"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t\tfor i := 0; i \u003c noise; i++ {"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t\t\tfindings = append(findings, Finding{Path: \"z.go\", BugClass: \"style\", StartLine: i + 1, EndLine: i + 1})"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t\treturn ReviewResult{Findings: findings, CostMicrousd: cost}, nil"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\t})"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "func TestTierGatePassesAtExactlyTheThresholds(t *testing.T) {"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tresult, err := GateTierLaunch(context.Background(), seededBenchmark(), reviewer(50, 0, 100), reviewer(60, 0, 300))"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\tif !result.Passed || result.CostMultiple != 3 || result.RecallLift \u003c 0.199 {"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"result = %#v\", result)"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "func TestTierGateRejectsEachShortfall(t *testing.T) {"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\tcases := map[string]struct {"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t\tcandidate Reviewer"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\treason    string"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t}{"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t\t\"small lift\":    {reviewer(59, 0, 200), \"recall lift\"},"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\t\"too expensive\": {reviewer(80, 0, 301), \"cost is 3.01×\"},"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t\t\"noisy recall\":  {reviewer(80, 2, 200), \"precision dropped\"},"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\tfor name, tc := range cases {"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t\tresult, err := GateTierLaunch(context.Background(), seededBenchmark(), reviewer(50, 0, 100), tc.candidate)"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t\tif result.Passed || !strings.Contains(strings.Join(result.Reasons, \"; \"), tc.reason) {"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"%s: %#v\", name, result)"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "func TestTierGateFailsClosedWhenItCannotMeasure(t *testing.T) {"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\tif result, _ := GateTierLaunch(context.Background(), seededBenchmark(), reviewer(0, 0, 100), reviewer(90, 0, 100)); result.Passed {"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"zero base recall passed\")"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\tif result, _ := GateTierLaunch(context.Background(), seededBenchmark(), reviewer(50, 0, 0), reviewer(90, 0, 100)); result.Passed {"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"zero base cost passed\")"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\tif result := CompareTiers(Metrics{Cases: 100, Recall: .5, CostMicrousd: 1}, Metrics{Cases: 99, Recall: .9, CostMicrousd: 1}); result.Passed {"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"different case sets passed\")"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\tsmall := seededBenchmark()"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\tsmall.Cases = small.Cases[:20]"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\tif _, err := GateTierLaunch(context.Background(), small, reviewer(10, 0, 1), reviewer(20, 0, 1)); err == nil {"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"gate ran on a partial benchmark\")"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-4b2161eb0d9a3172",
+      "title": "Base changes",
+      "summary": "4 related files share the \"base\" change signal.",
+      "paths": [
+        "ROADMAP.md",
+        "docs/EVALUATION_SET.md",
+        "internal/hosted/eval/tiers.go",
+        "internal/hosted/eval/tiers_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-9a155a3dd0706b38",
+      "path": "internal/hosted/eval/tiers.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/eval/tiers_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-6c4cb772533e8f65",
+      "path": "internal/hosted/eval/tiers.go",
+      "line": 28,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func GateTierLaunch(ctx context.Context, dataset Dataset, base, candidate Reviewer) (TierComparison, error) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 4,
+    "filesAnalyzed": 4,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "tier-gate-benchmark",
+      "path": "internal/hosted/eval/tiers.go",
+      "lineStart": 29,
+      "lineEnd": 44,
+      "title": "Require a full benchmark comparison",
+      "summary": "The gate now runs both reviewers on the full v2 seeded benchmark and returns an error if either reviewer is missing, benchmark coverage is insufficient, or a run fails."
+    },
+    {
+      "id": "tier-gate-thresholds",
+      "path": "internal/hosted/eval/tiers.go",
+      "lineStart": 47,
+      "lineEnd": 76,
+      "title": "Enforce launch thresholds and fail closed",
+      "summary": "A candidate passes only with at least 20% relative recall lift, no more than 3× Base cost, and no more than a three-point precision drop. Comparisons also fail closed when case counts differ or Base recall or cost is zero, and report the reasons for failing."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "36ca90eb91353d5cc42c6f38a1bc1480d76bd254",
+      "revision": "f04ee7d0f0c4f214b298b7bed0e17529d81fad20",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "36ca90eb91353d5cc42c6f38a1bc1480d76bd254",
+      "revision": "f04ee7d0f0c4f214b298b7bed0e17529d81fad20",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "f04ee7d0f0c4f214b298b7bed0e17529d81fad20",
+      "detail": "2 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "f04ee7d0f0c4f214b298b7bed0e17529d81fad20",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-a99162d3b2222751",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/eval/tiers.go",
+      "line": 28,
+      "evidence": "func GateTierLaunch(ctx context.Context, dataset Dataset, base, candidate Reviewer) (TierComparison, error) {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "f04ee7d0f0c4f214b298b7bed0e17529d81fad20",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42361332799",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42361332799/job/128370178197",
+        "startedAt": "2026-11-07T09:49:24Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42361332718/job/128370176913",
+        "startedAt": "2026-11-07T09:49:22Z"
+      }
+    ]
+  }
+}
