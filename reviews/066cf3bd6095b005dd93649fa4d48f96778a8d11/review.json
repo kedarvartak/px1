@@ -1,0 +1,3498 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "88809fc86626e5a754d07d321c55f366eed55da9",
+  "head": "066cf3bd6095b005dd93649fa4d48f96778a8d11",
+  "generatedAt": "2026-11-07T09:22:42.054961595Z",
+  "files": [
+    {
+      "path": "ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/ROADMAP.md b/ROADMAP.md\nindex 7598d54..c595b9c 100644\n--- a/ROADMAP.md\n+++ b/ROADMAP.md\n@@ -188,6 +188,9 @@ backend-foundation tasks are:\n     pages under `/-/`, generate pricing from one validated table, gate the\n     changelog on merged-PR links, and report status without claiming health\n     that was not probed.\n+80. [x] **Define agentic review tools.** Give sub-agents strict, read-only,\n+    tenant- and SHA-pinned file, search, graph, history, and linked-issue\n+    tools with bounded output.\n \n The v1 review pipeline, indexing, report hosting, evaluation, and launch gates\n follow these foundations. AI findings must remain auditable: evidence,\n",
+      "hunks": [
+        {
+          "id": "diff-8c590ee5571d7c12",
+          "header": "@@ -188,6 +188,9 @@ backend-foundation tasks are:",
+          "lines": [
+            {
+              "oldLine": 188,
+              "newLine": 188,
+              "kind": "context",
+              "text": "    pages under `/-/`, generate pricing from one validated table, gate the"
+            },
+            {
+              "oldLine": 189,
+              "newLine": 189,
+              "kind": "context",
+              "text": "    changelog on merged-PR links, and report status without claiming health"
+            },
+            {
+              "oldLine": 190,
+              "newLine": 190,
+              "kind": "context",
+              "text": "    that was not probed."
+            },
+            {
+              "newLine": 191,
+              "kind": "added",
+              "text": "80. [x] **Define agentic review tools.** Give sub-agents strict, read-only,"
+            },
+            {
+              "newLine": 192,
+              "kind": "added",
+              "text": "    tenant- and SHA-pinned file, search, graph, history, and linked-issue"
+            },
+            {
+              "newLine": 193,
+              "kind": "added",
+              "text": "    tools with bounded output."
+            },
+            {
+              "oldLine": 191,
+              "newLine": 194,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 192,
+              "newLine": 195,
+              "kind": "context",
+              "text": "The v1 review pipeline, indexing, report hosting, evaluation, and launch gates"
+            },
+            {
+              "oldLine": 193,
+              "newLine": 196,
+              "kind": "context",
+              "text": "follow these foundations. AI findings must remain auditable: evidence,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/AGENT_TOOLS.md",
+      "status": "A",
+      "diff": "diff --git a/docs/AGENT_TOOLS.md b/docs/AGENT_TOOLS.md\nnew file mode 100644\nindex 0000000..c57058a\n--- /dev/null\n+++ b/docs/AGENT_TOOLS.md\n@@ -0,0 +1,38 @@\n+# Agentic review tools\n+\n+The agentic engine (Plus and Apex tiers) lets sub-agents explore a repository\n+through a fixed set of tools in `internal/hosted/agent`. Every tool is\n+read-only. `run_tests` will join this set only with the sandboxed test agent;\n+it is deliberately absent until that sandbox exists.\n+\n+| Tool | Reads | Bound |\n+| --- | --- | --- |\n+| `read_file` | One line range at the reviewed head | 400 lines |\n+| `search_code` | Embedding and exact-text index | 20 hits |\n+| `graph_callers`, `graph_callees` | Symbol graph from a path and symbol name | Two hops, 50 symbols |\n+| `git_blame` | Last commit per line in a range | 400 lines |\n+| `git_log` | Recent commits to one file | 20 commits |\n+| `read_issue` | A Linear or Jira issue linked from the pull request | Linked keys only |\n+\n+Tool names use underscores rather than `graph.callers` because model\n+providers restrict tool names to letters, digits, `_`, and `-`.\n+\n+## Guarantees\n+\n+- **Pinned scope.** Every call carries the installation, repository, and full\n+  head SHA. A call without them is rejected before any store is read.\n+- **Strict arguments.** Arguments are decoded with unknown fields and trailing\n+  data rejected, and limited to 4 KiB. Out-of-range values are clamped or\n+  rejected, never passed through.\n+- **No path escapes.** Paths are normalized and must stay repository-relative.\n+- **Linked issues only.** `read_issue` fetches only keys detected on the pull\n+  request. Text injected into the diff cannot make a sub-agent read, and\n+  then quote, an unrelated ticket from the same tenant.\n+- **Bounded output.** Each result is capped at 16 KiB, cut on a UTF-8\n+  boundary and marked `[output truncated by px1]`.\n+- **Fail closed.** A model is offered only tools whose backing store is\n+  configured, and a call to an unconfigured or unknown tool returns an error\n+  that can be reported back to the model.\n+\n+Tool output is repository content. Prompts must present it as untrusted data,\n+never as instructions.\n",
+      "hunks": [
+        {
+          "id": "diff-84d5c03a0112aa47",
+          "header": "@@ -0,0 +1,38 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "# Agentic review tools"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "The agentic engine (Plus and Apex tiers) lets sub-agents explore a repository"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "through a fixed set of tools in `internal/hosted/agent`. Every tool is"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "read-only. `run_tests` will join this set only with the sandboxed test agent;"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "it is deliberately absent until that sandbox exists."
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "| Tool | Reads | Bound |"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "| --- | --- | --- |"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "| `read_file` | One line range at the reviewed head | 400 lines |"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "| `search_code` | Embedding and exact-text index | 20 hits |"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "| `graph_callers`, `graph_callees` | Symbol graph from a path and symbol name | Two hops, 50 symbols |"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "| `git_blame` | Last commit per line in a range | 400 lines |"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "| `git_log` | Recent commits to one file | 20 commits |"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "| `read_issue` | A Linear or Jira issue linked from the pull request | Linked keys only |"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "Tool names use underscores rather than `graph.callers` because model"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "providers restrict tool names to letters, digits, `_`, and `-`."
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "## Guarantees"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "- **Pinned scope.** Every call carries the installation, repository, and full"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "  head SHA. A call without them is rejected before any store is read."
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "- **Strict arguments.** Arguments are decoded with unknown fields and trailing"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "  data rejected, and limited to 4 KiB. Out-of-range values are clamped or"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "  rejected, never passed through."
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "- **No path escapes.** Paths are normalized and must stay repository-relative."
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "- **Linked issues only.** `read_issue` fetches only keys detected on the pull"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "  request. Text injected into the diff cannot make a sub-agent read, and"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "  then quote, an unrelated ticket from the same tenant."
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "- **Bounded output.** Each result is capped at 16 KiB, cut on a UTF-8"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "  boundary and marked `[output truncated by px1]`."
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "- **Fail closed.** A model is offered only tools whose backing store is"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "  configured, and a call to an unconfigured or unknown tool returns an error"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "  that can be reported back to the model."
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "Tool output is repository content. Prompts must present it as untrusted data,"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "never as instructions."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/agent/tools.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/agent/tools.go b/internal/hosted/agent/tools.go\nnew file mode 100644\nindex 0000000..ad34018\n--- /dev/null\n+++ b/internal/hosted/agent/tools.go\n@@ -0,0 +1,408 @@\n+// Package agent contains the agentic review engine: the tools sub-agents may\n+// call, and the bounds that keep those calls tenant-scoped, revision-pinned,\n+// and read-only. Tool output is repository data, never instructions.\n+package agent\n+\n+import (\n+\t\"bytes\"\n+\t\"context\"\n+\t\"encoding/json\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"io\"\n+\t\"path\"\n+\t\"strings\"\n+\t\"unicode/utf8\"\n+\n+\t\"px1/internal/hosted/graph\"\n+\t\"px1/internal/hosted/integrations/issues\"\n+)\n+\n+const (\n+\tMaxArgumentBytes  = 4 \u003c\u003c 10\n+\tMaxToolOutput     = 16 \u003c\u003c 10\n+\tMaxReadFileLines  = 400\n+\tMaxSearchResults  = 20\n+\tMaxHistoryCommits = 20\n+\ttruncationNotice  = \"\\n[output truncated by px1]\"\n+)\n+\n+const (\n+\tReadFile     = \"read_file\"\n+\tSearchCode   = \"search_code\"\n+\tGraphCallers = \"graph_callers\"\n+\tGraphCallees = \"graph_callees\"\n+\tGitBlame     = \"git_blame\"\n+\tGitLog       = \"git_log\"\n+\tReadIssue    = \"read_issue\"\n+)\n+\n+// Scope pins every call to one tenant, repository, and full head SHA. Linked\n+// issues are the only issue keys read_issue may fetch, so injected text cannot\n+// steer a sub-agent into reading unrelated tenant tickets.\n+type Scope struct {\n+\tInstallationID int64\n+\tRepositoryID   int64\n+\tHeadSHA        string\n+\tLinkedIssues   []string\n+}\n+\n+type ToolSpec struct {\n+\tName        string          `json:\"name\"`\n+\tDescription string          `json:\"description\"`\n+\tInputSchema json.RawMessage `json:\"input_schema\"`\n+}\n+\n+type Call struct {\n+\tName      string          `json:\"name\"`\n+\tArguments json.RawMessage `json:\"arguments\"`\n+}\n+\n+type Result struct {\n+\tName      string `json:\"name\"`\n+\tContent   string `json:\"content\"`\n+\tTruncated bool   `json:\"truncated,omitempty\"`\n+}\n+\n+type SearchHit struct {\n+\tPath      string `json:\"path\"`\n+\tStartLine int    `json:\"start_line\"`\n+\tEndLine   int    `json:\"end_line\"`\n+\tSnippet   string `json:\"snippet\"`\n+\tSource    string `json:\"source\"`\n+}\n+\n+type BlameLine struct {\n+\tLine    int    `json:\"line\"`\n+\tCommit  string `json:\"commit\"`\n+\tAuthor  string `json:\"author\"`\n+\tSummary string `json:\"summary\"`\n+}\n+\n+type Commit struct {\n+\tSHA     string `json:\"sha\"`\n+\tAuthor  string `json:\"author\"`\n+\tDate    string `json:\"date\"`\n+\tSummary string `json:\"summary\"`\n+}\n+\n+// Backing stores. Implementations read the index, graph, and object store for\n+// Scope.HeadSHA; none of them may check out or execute repository code.\n+type (\n+\tFileReader interface {\n+\t\tReadLines(ctx context.Context, scope Scope, path string, start, end int) (string, error)\n+\t}\n+\tCodeSearcher interface {\n+\t\tSearch(ctx context.Context, scope Scope, query string, limit int) ([]SearchHit, error)\n+\t}\n+\tSymbolResolver interface {\n+\t\tResolveSymbol(ctx context.Context, scope Scope, path, name string) (int64, bool, error)\n+\t}\n+\tHistory interface {\n+\t\tBlame(ctx context.Context, scope Scope, path string, start, end int) ([]BlameLine, error)\n+\t\tLog(ctx context.Context, scope Scope, path string, limit int) ([]Commit, error)\n+\t}\n+)\n+\n+type Toolbox struct {\n+\tFiles    FileReader\n+\tSearch   CodeSearcher\n+\tSymbols  SymbolResolver\n+\tGraph    graph.Tools\n+\tHistory  History\n+\tIssues   issues.Tracker\n+\tMaxBytes int\n+}\n+\n+// Specs lists only the tools whose backing store is configured, so a model is\n+// never offered a tool that will fail on every call.\n+func (t Toolbox) Specs() []ToolSpec {\n+\tvar specs []ToolSpec\n+\tadd := func(enabled bool, name, description, schema string) {\n+\t\tif enabled {\n+\t\t\tspecs = append(specs, ToolSpec{Name: name, Description: description, InputSchema: json.RawMessage(schema)})\n+\t\t}\n+\t}\n+\tadd(t.Files != nil, ReadFile, \"Read a line range of one file at the reviewed head commit.\",\n+\t\t`{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"path\",\"start_line\",\"end_line\"],\"properties\":{\"path\":{\"type\":\"string\"},\"start_line\":{\"type\":\"integer\",\"minimum\":1},\"end_line\":{\"type\":\"integer\",\"minimum\":1}}}`)\n+\tadd(t.Search != nil, SearchCode, \"Search the indexed repository by meaning and by exact text.\",\n+\t\t`{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"query\"],\"properties\":{\"query\":{\"type\":\"string\",\"maxLength\":200},\"limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":20}}}`)\n+\tgraphSchema := `{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"path\",\"symbol\"],\"properties\":{\"path\":{\"type\":\"string\"},\"symbol\":{\"type\":\"string\"},\"depth\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":2}}}`\n+\tadd(t.Symbols != nil \u0026\u0026 t.Graph.Reader != nil, GraphCallers, \"List symbols that call the named symbol, up to two hops.\", graphSchema)\n+\tadd(t.Symbols != nil \u0026\u0026 t.Graph.Reader != nil, GraphCallees, \"List symbols the named symbol calls, up to two hops.\", graphSchema)\n+\tadd(t.History != nil, GitBlame, \"Show the last commit to touch each line in a range.\",\n+\t\t`{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"path\",\"start_line\",\"end_line\"],\"properties\":{\"path\":{\"type\":\"string\"},\"start_line\":{\"type\":\"integer\",\"minimum\":1},\"end_line\":{\"type\":\"integer\",\"minimum\":1}}}`)\n+\tadd(t.History != nil, GitLog, \"List recent commits that changed one file.\",\n+\t\t`{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"path\"],\"properties\":{\"path\":{\"type\":\"string\"},\"limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":20}}}`)\n+\tadd(t.Issues != nil, ReadIssue, \"Read an issue linked from this pull request.\",\n+\t\t`{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"key\"],\"properties\":{\"key\":{\"type\":\"string\"}}}`)\n+\treturn specs\n+}\n+\n+type lineRange struct {\n+\tPath      string `json:\"path\"`\n+\tStartLine int    `json:\"start_line\"`\n+\tEndLine   int    `json:\"end_line\"`\n+}\n+\n+type symbolArgs struct {\n+\tPath   string `json:\"path\"`\n+\tSymbol string `json:\"symbol\"`\n+\tDepth  int    `json:\"depth\"`\n+}\n+\n+// Dispatch validates one model-proposed call and runs it. Arguments are\n+// decoded strictly; a call outside the scope or bounds returns an error the\n+// caller can report back to the model instead of executing it.\n+func (t Toolbox) Dispatch(ctx context.Context, scope Scope, call Call) (Result, error) {\n+\tif scope.InstallationID \u003c= 0 || scope.RepositoryID \u003c= 0 || !fullSHA(scope.HeadSHA) {\n+\t\treturn Result{}, errors.New(\"tool calls require a tenant, repository, and full head SHA\")\n+\t}\n+\tif len(call.Arguments) \u003e MaxArgumentBytes {\n+\t\treturn Result{}, fmt.Errorf(\"%s arguments exceed %d bytes\", call.Name, MaxArgumentBytes)\n+\t}\n+\tvar output any\n+\tvar err error\n+\tswitch call.Name {\n+\tcase ReadFile:\n+\t\toutput, err = t.readFile(ctx, scope, call.Arguments)\n+\tcase SearchCode:\n+\t\toutput, err = t.search(ctx, scope, call.Arguments)\n+\tcase GraphCallers, GraphCallees:\n+\t\toutput, err = t.graphNeighbors(ctx, scope, call)\n+\tcase GitBlame:\n+\t\toutput, err = t.blame(ctx, scope, call.Arguments)\n+\tcase GitLog:\n+\t\toutput, err = t.log(ctx, scope, call.Arguments)\n+\tcase ReadIssue:\n+\t\toutput, err = t.readIssue(ctx, scope, call.Arguments)\n+\tdefault:\n+\t\treturn Result{}, fmt.Errorf(\"unknown tool %q\", call.Name)\n+\t}\n+\tif err != nil {\n+\t\treturn Result{}, fmt.Errorf(\"%s: %w\", call.Name, err)\n+\t}\n+\tcontent, ok := output.(string)\n+\tif !ok {\n+\t\tencoded, err := json.Marshal(output)\n+\t\tif err != nil {\n+\t\t\treturn Result{}, err\n+\t\t}\n+\t\tcontent = string(encoded)\n+\t}\n+\tcontent, truncated := truncate(content, t.maxBytes())\n+\treturn Result{Name: call.Name, Content: content, Truncated: truncated}, nil\n+}\n+\n+func (t Toolbox) readFile(ctx context.Context, scope Scope, raw json.RawMessage) (any, error) {\n+\tif t.Files == nil {\n+\t\treturn nil, errUnavailable\n+\t}\n+\tvar args lineRange\n+\tif err := decodeArgs(raw, \u0026args); err != nil {\n+\t\treturn nil, err\n+\t}\n+\tif err := validRange(\u0026args); err != nil {\n+\t\treturn nil, err\n+\t}\n+\treturn t.Files.ReadLines(ctx, scope, args.Path, args.StartLine, args.EndLine)\n+}\n+\n+func (t Toolbox) search(ctx context.Context, scope Scope, raw json.RawMessage) (any, error) {\n+\tif t.Search == nil {\n+\t\treturn nil, errUnavailable\n+\t}\n+\tvar args struct {\n+\t\tQuery string `json:\"query\"`\n+\t\tLimit int    `json:\"limit\"`\n+\t}\n+\tif err := decodeArgs(raw, \u0026args); err != nil {\n+\t\treturn nil, err\n+\t}\n+\targs.Query = strings.TrimSpace(args.Query)\n+\tif args.Query == \"\" || len(args.Query) \u003e 200 {\n+\t\treturn nil, errors.New(\"query must be 1 to 200 bytes\")\n+\t}\n+\targs.Limit = clamp(args.Limit, 10, MaxSearchResults)\n+\thits, err := t.Search.Search(ctx, scope, args.Query, args.Limit)\n+\tif err != nil {\n+\t\treturn nil, err\n+\t}\n+\tif len(hits) \u003e args.Limit {\n+\t\thits = hits[:args.Limit]\n+\t}\n+\treturn hits, nil\n+}\n+\n+func (t Toolbox) graphNeighbors(ctx context.Context, scope Scope, call Call) (any, error) {\n+\tif t.Symbols == nil || t.Graph.Reader == nil {\n+\t\treturn nil, errUnavailable\n+\t}\n+\tvar args symbolArgs\n+\tif err := decodeArgs(call.Arguments, \u0026args); err != nil {\n+\t\treturn nil, err\n+\t}\n+\tclean, err := repositoryPath(args.Path)\n+\tif err != nil {\n+\t\treturn nil, err\n+\t}\n+\tif strings.TrimSpace(args.Symbol) == \"\" || len(args.Symbol) \u003e 200 {\n+\t\treturn nil, errors.New(\"symbol must be 1 to 200 bytes\")\n+\t}\n+\tid, found, err := t.Symbols.ResolveSymbol(ctx, scope, clean, args.Symbol)\n+\tif err != nil {\n+\t\treturn nil, err\n+\t}\n+\tif !found {\n+\t\treturn fmt.Sprintf(\"No indexed symbol %q in %s at this revision.\", args.Symbol, clean), nil\n+\t}\n+\tquery := graph.ToolQuery{InstallationID: scope.InstallationID, RepositoryID: scope.RepositoryID, SymbolID: id, Depth: args.Depth, Limit: 50}\n+\tif call.Name == GraphCallers {\n+\t\treturn t.Graph.Callers(ctx, query)\n+\t}\n+\treturn t.Graph.Callees(ctx, query)\n+}\n+\n+func (t Toolbox) blame(ctx context.Context, scope Scope, raw json.RawMessage) (any, error) {\n+\tif t.History == nil {\n+\t\treturn nil, errUnavailable\n+\t}\n+\tvar args lineRange\n+\tif err := decodeArgs(raw, \u0026args); err != nil {\n+\t\treturn nil, err\n+\t}\n+\tif err := validRange(\u0026args); err != nil {\n+\t\treturn nil, err\n+\t}\n+\treturn t.History.Blame(ctx, scope, args.Path, args.StartLine, args.EndLine)\n+}\n+\n+func (t Toolbox) log(ctx context.Context, scope Scope, raw json.RawMessage) (any, error) {\n+\tif t.History == nil {\n+\t\treturn nil, errUnavailable\n+\t}\n+\tvar args struct {\n+\t\tPath  string `json:\"path\"`\n+\t\tLimit int    `json:\"limit\"`\n+\t}\n+\tif err := decodeArgs(raw, \u0026args); err != nil {\n+\t\treturn nil, err\n+\t}\n+\tclean, err := repositoryPath(args.Path)\n+\tif err != nil {\n+\t\treturn nil, err\n+\t}\n+\tlimit := clamp(args.Limit, 10, MaxHistoryCommits)\n+\tcommits, err := t.History.Log(ctx, scope, clean, limit)\n+\tif err != nil {\n+\t\treturn nil, err\n+\t}\n+\tif len(commits) \u003e limit {\n+\t\tcommits = commits[:limit]\n+\t}\n+\treturn commits, nil\n+}\n+\n+func (t Toolbox) readIssue(ctx context.Context, scope Scope, raw json.RawMessage) (any, error) {\n+\tif t.Issues == nil {\n+\t\treturn nil, errUnavailable\n+\t}\n+\tvar args struct {\n+\t\tKey string `json:\"key\"`\n+\t}\n+\tif err := decodeArgs(raw, \u0026args); err != nil {\n+\t\treturn nil, err\n+\t}\n+\tlinked := false\n+\tfor _, key := range scope.LinkedIssues {\n+\t\tlinked = linked || key == args.Key\n+\t}\n+\tif !linked {\n+\t\treturn nil, fmt.Errorf(\"issue %q is not linked from this pull request\", args.Key)\n+\t}\n+\tissue, err := t.Issues.FetchIssue(ctx, scope.InstallationID, args.Key)\n+\tif err != nil {\n+\t\treturn nil, err\n+\t}\n+\treturn struct {\n+\t\tKey                string   `json:\"key\"`\n+\t\tTitle              string   `json:\"title\"`\n+\t\tDescription        string   `json:\"description\"`\n+\t\tAcceptanceCriteria []string `json:\"acceptance_criteria,omitempty\"`\n+\t\tURL                string   `json:\"url\"`\n+\t}{issue.Key, issue.Title, issue.Description, issue.AcceptanceCriteria, issue.URL}, nil\n+}\n+\n+var errUnavailable = errors.New(\"tool is not configured for this review\")\n+\n+func decodeArgs(raw json.RawMessage, target any) error {\n+\tdecoder := json.NewDecoder(bytes.NewReader(raw))\n+\tdecoder.DisallowUnknownFields()\n+\tif err := decoder.Decode(target); err != nil {\n+\t\treturn fmt.Errorf(\"invalid arguments: %w\", err)\n+\t}\n+\tif _, err := decoder.Token(); err != io.EOF {\n+\t\treturn errors.New(\"invalid arguments: trailing data\")\n+\t}\n+\treturn nil\n+}\n+\n+func validRange(args *lineRange) error {\n+\tclean, err := repositoryPath(args.Path)\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\targs.Path = clean\n+\tif args.StartLine \u003c 1 || args.EndLine \u003c args.StartLine {\n+\t\treturn errors.New(\"line range is invalid\")\n+\t}\n+\tif args.EndLine-args.StartLine+1 \u003e MaxReadFileLines {\n+\t\treturn fmt.Errorf(\"line range exceeds %d lines\", MaxReadFileLines)\n+\t}\n+\treturn nil\n+}\n+\n+func repositoryPath(value string) (string, error) {\n+\tclean := path.Clean(strings.ReplaceAll(value, \"\\\\\", \"/\"))\n+\tif value == \"\" || strings.HasPrefix(clean, \"/\") || clean == \".\" || clean == \"..\" || strings.HasPrefix(clean, \"../\") || strings.ContainsRune(value, 0) {\n+\t\treturn \"\", errors.New(\"path must be repository-relative\")\n+\t}\n+\treturn clean, nil\n+}\n+\n+func truncate(content string, limit int) (string, bool) {\n+\tif len(content) \u003c= limit {\n+\t\treturn content, false\n+\t}\n+\tcut := limit - len(truncationNotice)\n+\tfor cut \u003e 0 \u0026\u0026 !utf8.RuneStart(content[cut]) {\n+\t\tcut--\n+\t}\n+\treturn content[:cut] + truncationNotice, true\n+}\n+\n+func (t Toolbox) maxBytes() int {\n+\tif t.MaxBytes \u003c= 0 || t.MaxBytes \u003e MaxToolOutput {\n+\t\treturn MaxToolOutput\n+\t}\n+\treturn t.MaxBytes\n+}\n+\n+func clamp(value, fallback, maximum int) int {\n+\tif value \u003c= 0 {\n+\t\treturn fallback\n+\t}\n+\treturn min(value, maximum)\n+}\n+\n+func fullSHA(value string) bool {\n+\tif len(value) != 40 {\n+\t\treturn false\n+\t}\n+\tfor _, r := range value {\n+\t\tif !((r \u003e= '0' \u0026\u0026 r \u003c= '9') || (r \u003e= 'a' \u0026\u0026 r \u003c= 'f')) {\n+\t\t\treturn false\n+\t\t}\n+\t}\n+\treturn true\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-f14d31a911ad3bdf",
+          "header": "@@ -0,0 +1,408 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "// Package agent contains the agentic review engine: the tools sub-agents may"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "// call, and the bounds that keep those calls tenant-scoped, revision-pinned,"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "// and read-only. Tool output is repository data, never instructions."
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "package agent"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"bytes\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\"io\""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t\"path\""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\t\"unicode/utf8\""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t\"px1/internal/hosted/graph\""
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t\"px1/internal/hosted/integrations/issues\""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "const ("
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tMaxArgumentBytes  = 4 \u003c\u003c 10"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tMaxToolOutput     = 16 \u003c\u003c 10"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tMaxReadFileLines  = 400"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tMaxSearchResults  = 20"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tMaxHistoryCommits = 20"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\ttruncationNotice  = \"\\n[output truncated by px1]\""
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "const ("
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tReadFile     = \"read_file\""
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tSearchCode   = \"search_code\""
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tGraphCallers = \"graph_callers\""
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tGraphCallees = \"graph_callees\""
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tGitBlame     = \"git_blame\""
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tGitLog       = \"git_log\""
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\tReadIssue    = \"read_issue\""
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "// Scope pins every call to one tenant, repository, and full head SHA. Linked"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "// issues are the only issue keys read_issue may fetch, so injected text cannot"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "// steer a sub-agent into reading unrelated tenant tickets."
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "type Scope struct {"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tInstallationID int64"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\tRepositoryID   int64"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\tHeadSHA        string"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\tLinkedIssues   []string"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "type ToolSpec struct {"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\tName        string          `json:\"name\"`"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\tDescription string          `json:\"description\"`"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\tInputSchema json.RawMessage `json:\"input_schema\"`"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "type Call struct {"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\tName      string          `json:\"name\"`"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\tArguments json.RawMessage `json:\"arguments\"`"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "type Result struct {"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\tName      string `json:\"name\"`"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\tContent   string `json:\"content\"`"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\tTruncated bool   `json:\"truncated,omitempty\"`"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "type SearchHit struct {"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\tPath      string `json:\"path\"`"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\tStartLine int    `json:\"start_line\"`"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\tEndLine   int    `json:\"end_line\"`"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\tSnippet   string `json:\"snippet\"`"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\tSource    string `json:\"source\"`"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "type BlameLine struct {"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\tLine    int    `json:\"line\"`"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\tCommit  string `json:\"commit\"`"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\tAuthor  string `json:\"author\"`"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\tSummary string `json:\"summary\"`"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "type Commit struct {"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\tSHA     string `json:\"sha\"`"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\tAuthor  string `json:\"author\"`"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\tDate    string `json:\"date\"`"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\tSummary string `json:\"summary\"`"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "// Backing stores. Implementations read the index, graph, and object store for"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "// Scope.HeadSHA; none of them may check out or execute repository code."
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "type ("
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\tFileReader interface {"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\t\tReadLines(ctx context.Context, scope Scope, path string, start, end int) (string, error)"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\tCodeSearcher interface {"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\t\tSearch(ctx context.Context, scope Scope, query string, limit int) ([]SearchHit, error)"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\tSymbolResolver interface {"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\t\tResolveSymbol(ctx context.Context, scope Scope, path, name string) (int64, bool, error)"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\tHistory interface {"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\t\tBlame(ctx context.Context, scope Scope, path string, start, end int) ([]BlameLine, error)"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t\tLog(ctx context.Context, scope Scope, path string, limit int) ([]Commit, error)"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "type Toolbox struct {"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\tFiles    FileReader"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\tSearch   CodeSearcher"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\tSymbols  SymbolResolver"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\tGraph    graph.Tools"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\tHistory  History"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\tIssues   issues.Tracker"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "\tMaxBytes int"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "// Specs lists only the tools whose backing store is configured, so a model is"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "// never offered a tool that will fail on every call."
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "func (t Toolbox) Specs() []ToolSpec {"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\tvar specs []ToolSpec"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\tadd := func(enabled bool, name, description, schema string) {"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\t\tif enabled {"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "\t\t\tspecs = append(specs, ToolSpec{Name: name, Description: description, InputSchema: json.RawMessage(schema)})"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\tadd(t.Files != nil, ReadFile, \"Read a line range of one file at the reviewed head commit.\","
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\t\t`{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"path\",\"start_line\",\"end_line\"],\"properties\":{\"path\":{\"type\":\"string\"},\"start_line\":{\"type\":\"integer\",\"minimum\":1},\"end_line\":{\"type\":\"integer\",\"minimum\":1}}}`)"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\tadd(t.Search != nil, SearchCode, \"Search the indexed repository by meaning and by exact text.\","
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\t\t`{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"query\"],\"properties\":{\"query\":{\"type\":\"string\",\"maxLength\":200},\"limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":20}}}`)"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\tgraphSchema := `{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"path\",\"symbol\"],\"properties\":{\"path\":{\"type\":\"string\"},\"symbol\":{\"type\":\"string\"},\"depth\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":2}}}`"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\tadd(t.Symbols != nil \u0026\u0026 t.Graph.Reader != nil, GraphCallers, \"List symbols that call the named symbol, up to two hops.\", graphSchema)"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\tadd(t.Symbols != nil \u0026\u0026 t.Graph.Reader != nil, GraphCallees, \"List symbols the named symbol calls, up to two hops.\", graphSchema)"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\tadd(t.History != nil, GitBlame, \"Show the last commit to touch each line in a range.\","
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\t\t`{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"path\",\"start_line\",\"end_line\"],\"properties\":{\"path\":{\"type\":\"string\"},\"start_line\":{\"type\":\"integer\",\"minimum\":1},\"end_line\":{\"type\":\"integer\",\"minimum\":1}}}`)"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\tadd(t.History != nil, GitLog, \"List recent commits that changed one file.\","
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\t\t`{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"path\"],\"properties\":{\"path\":{\"type\":\"string\"},\"limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":20}}}`)"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\tadd(t.Issues != nil, ReadIssue, \"Read an issue linked from this pull request.\","
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\t\t`{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"key\"],\"properties\":{\"key\":{\"type\":\"string\"}}}`)"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\treturn specs"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "type lineRange struct {"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "\tPath      string `json:\"path\"`"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\tStartLine int    `json:\"start_line\"`"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\tEndLine   int    `json:\"end_line\"`"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "type symbolArgs struct {"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "\tPath   string `json:\"path\"`"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "\tSymbol string `json:\"symbol\"`"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "\tDepth  int    `json:\"depth\"`"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "// Dispatch validates one model-proposed call and runs it. Arguments are"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "// decoded strictly; a call outside the scope or bounds returns an error the"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "// caller can report back to the model instead of executing it."
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "func (t Toolbox) Dispatch(ctx context.Context, scope Scope, call Call) (Result, error) {"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "\tif scope.InstallationID \u003c= 0 || scope.RepositoryID \u003c= 0 || !fullSHA(scope.HeadSHA) {"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "\t\treturn Result{}, errors.New(\"tool calls require a tenant, repository, and full head SHA\")"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "\tif len(call.Arguments) \u003e MaxArgumentBytes {"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "\t\treturn Result{}, fmt.Errorf(\"%s arguments exceed %d bytes\", call.Name, MaxArgumentBytes)"
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "\tvar output any"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": "\tvar err error"
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "\tswitch call.Name {"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": "\tcase ReadFile:"
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": "\t\toutput, err = t.readFile(ctx, scope, call.Arguments)"
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "\tcase SearchCode:"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "\t\toutput, err = t.search(ctx, scope, call.Arguments)"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "\tcase GraphCallers, GraphCallees:"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "\t\toutput, err = t.graphNeighbors(ctx, scope, call)"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "\tcase GitBlame:"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "\t\toutput, err = t.blame(ctx, scope, call.Arguments)"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "\tcase GitLog:"
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "\t\toutput, err = t.log(ctx, scope, call.Arguments)"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": "\tcase ReadIssue:"
+            },
+            {
+              "newLine": 178,
+              "kind": "added",
+              "text": "\t\toutput, err = t.readIssue(ctx, scope, call.Arguments)"
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": "\tdefault:"
+            },
+            {
+              "newLine": 180,
+              "kind": "added",
+              "text": "\t\treturn Result{}, fmt.Errorf(\"unknown tool %q\", call.Name)"
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": "\t\treturn Result{}, fmt.Errorf(\"%s: %w\", call.Name, err)"
+            },
+            {
+              "newLine": 184,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 185,
+              "kind": "added",
+              "text": "\tcontent, ok := output.(string)"
+            },
+            {
+              "newLine": 186,
+              "kind": "added",
+              "text": "\tif !ok {"
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "\t\tencoded, err := json.Marshal(output)"
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "\t\t\treturn Result{}, err"
+            },
+            {
+              "newLine": 190,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 191,
+              "kind": "added",
+              "text": "\t\tcontent = string(encoded)"
+            },
+            {
+              "newLine": 192,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 193,
+              "kind": "added",
+              "text": "\tcontent, truncated := truncate(content, t.maxBytes())"
+            },
+            {
+              "newLine": 194,
+              "kind": "added",
+              "text": "\treturn Result{Name: call.Name, Content: content, Truncated: truncated}, nil"
+            },
+            {
+              "newLine": 195,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 196,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 197,
+              "kind": "added",
+              "text": "func (t Toolbox) readFile(ctx context.Context, scope Scope, raw json.RawMessage) (any, error) {"
+            },
+            {
+              "newLine": 198,
+              "kind": "added",
+              "text": "\tif t.Files == nil {"
+            },
+            {
+              "newLine": 199,
+              "kind": "added",
+              "text": "\t\treturn nil, errUnavailable"
+            },
+            {
+              "newLine": 200,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 201,
+              "kind": "added",
+              "text": "\tvar args lineRange"
+            },
+            {
+              "newLine": 202,
+              "kind": "added",
+              "text": "\tif err := decodeArgs(raw, \u0026args); err != nil {"
+            },
+            {
+              "newLine": 203,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 204,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 205,
+              "kind": "added",
+              "text": "\tif err := validRange(\u0026args); err != nil {"
+            },
+            {
+              "newLine": 206,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 207,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 208,
+              "kind": "added",
+              "text": "\treturn t.Files.ReadLines(ctx, scope, args.Path, args.StartLine, args.EndLine)"
+            },
+            {
+              "newLine": 209,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 210,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 211,
+              "kind": "added",
+              "text": "func (t Toolbox) search(ctx context.Context, scope Scope, raw json.RawMessage) (any, error) {"
+            },
+            {
+              "newLine": 212,
+              "kind": "added",
+              "text": "\tif t.Search == nil {"
+            },
+            {
+              "newLine": 213,
+              "kind": "added",
+              "text": "\t\treturn nil, errUnavailable"
+            },
+            {
+              "newLine": 214,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 215,
+              "kind": "added",
+              "text": "\tvar args struct {"
+            },
+            {
+              "newLine": 216,
+              "kind": "added",
+              "text": "\t\tQuery string `json:\"query\"`"
+            },
+            {
+              "newLine": 217,
+              "kind": "added",
+              "text": "\t\tLimit int    `json:\"limit\"`"
+            },
+            {
+              "newLine": 218,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 219,
+              "kind": "added",
+              "text": "\tif err := decodeArgs(raw, \u0026args); err != nil {"
+            },
+            {
+              "newLine": 220,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 221,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 222,
+              "kind": "added",
+              "text": "\targs.Query = strings.TrimSpace(args.Query)"
+            },
+            {
+              "newLine": 223,
+              "kind": "added",
+              "text": "\tif args.Query == \"\" || len(args.Query) \u003e 200 {"
+            },
+            {
+              "newLine": 224,
+              "kind": "added",
+              "text": "\t\treturn nil, errors.New(\"query must be 1 to 200 bytes\")"
+            },
+            {
+              "newLine": 225,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 226,
+              "kind": "added",
+              "text": "\targs.Limit = clamp(args.Limit, 10, MaxSearchResults)"
+            },
+            {
+              "newLine": 227,
+              "kind": "added",
+              "text": "\thits, err := t.Search.Search(ctx, scope, args.Query, args.Limit)"
+            },
+            {
+              "newLine": 228,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 229,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 230,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 231,
+              "kind": "added",
+              "text": "\tif len(hits) \u003e args.Limit {"
+            },
+            {
+              "newLine": 232,
+              "kind": "added",
+              "text": "\t\thits = hits[:args.Limit]"
+            },
+            {
+              "newLine": 233,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 234,
+              "kind": "added",
+              "text": "\treturn hits, nil"
+            },
+            {
+              "newLine": 235,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 236,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 237,
+              "kind": "added",
+              "text": "func (t Toolbox) graphNeighbors(ctx context.Context, scope Scope, call Call) (any, error) {"
+            },
+            {
+              "newLine": 238,
+              "kind": "added",
+              "text": "\tif t.Symbols == nil || t.Graph.Reader == nil {"
+            },
+            {
+              "newLine": 239,
+              "kind": "added",
+              "text": "\t\treturn nil, errUnavailable"
+            },
+            {
+              "newLine": 240,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 241,
+              "kind": "added",
+              "text": "\tvar args symbolArgs"
+            },
+            {
+              "newLine": 242,
+              "kind": "added",
+              "text": "\tif err := decodeArgs(call.Arguments, \u0026args); err != nil {"
+            },
+            {
+              "newLine": 243,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 244,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 245,
+              "kind": "added",
+              "text": "\tclean, err := repositoryPath(args.Path)"
+            },
+            {
+              "newLine": 246,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 247,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 248,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 249,
+              "kind": "added",
+              "text": "\tif strings.TrimSpace(args.Symbol) == \"\" || len(args.Symbol) \u003e 200 {"
+            },
+            {
+              "newLine": 250,
+              "kind": "added",
+              "text": "\t\treturn nil, errors.New(\"symbol must be 1 to 200 bytes\")"
+            },
+            {
+              "newLine": 251,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 252,
+              "kind": "added",
+              "text": "\tid, found, err := t.Symbols.ResolveSymbol(ctx, scope, clean, args.Symbol)"
+            },
+            {
+              "newLine": 253,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 254,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 255,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 256,
+              "kind": "added",
+              "text": "\tif !found {"
+            },
+            {
+              "newLine": 257,
+              "kind": "added",
+              "text": "\t\treturn fmt.Sprintf(\"No indexed symbol %q in %s at this revision.\", args.Symbol, clean), nil"
+            },
+            {
+              "newLine": 258,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 259,
+              "kind": "added",
+              "text": "\tquery := graph.ToolQuery{InstallationID: scope.InstallationID, RepositoryID: scope.RepositoryID, SymbolID: id, Depth: args.Depth, Limit: 50}"
+            },
+            {
+              "newLine": 260,
+              "kind": "added",
+              "text": "\tif call.Name == GraphCallers {"
+            },
+            {
+              "newLine": 261,
+              "kind": "added",
+              "text": "\t\treturn t.Graph.Callers(ctx, query)"
+            },
+            {
+              "newLine": 262,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 263,
+              "kind": "added",
+              "text": "\treturn t.Graph.Callees(ctx, query)"
+            },
+            {
+              "newLine": 264,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 265,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 266,
+              "kind": "added",
+              "text": "func (t Toolbox) blame(ctx context.Context, scope Scope, raw json.RawMessage) (any, error) {"
+            },
+            {
+              "newLine": 267,
+              "kind": "added",
+              "text": "\tif t.History == nil {"
+            },
+            {
+              "newLine": 268,
+              "kind": "added",
+              "text": "\t\treturn nil, errUnavailable"
+            },
+            {
+              "newLine": 269,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 270,
+              "kind": "added",
+              "text": "\tvar args lineRange"
+            },
+            {
+              "newLine": 271,
+              "kind": "added",
+              "text": "\tif err := decodeArgs(raw, \u0026args); err != nil {"
+            },
+            {
+              "newLine": 272,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 273,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 274,
+              "kind": "added",
+              "text": "\tif err := validRange(\u0026args); err != nil {"
+            },
+            {
+              "newLine": 275,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 276,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 277,
+              "kind": "added",
+              "text": "\treturn t.History.Blame(ctx, scope, args.Path, args.StartLine, args.EndLine)"
+            },
+            {
+              "newLine": 278,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 279,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 280,
+              "kind": "added",
+              "text": "func (t Toolbox) log(ctx context.Context, scope Scope, raw json.RawMessage) (any, error) {"
+            },
+            {
+              "newLine": 281,
+              "kind": "added",
+              "text": "\tif t.History == nil {"
+            },
+            {
+              "newLine": 282,
+              "kind": "added",
+              "text": "\t\treturn nil, errUnavailable"
+            },
+            {
+              "newLine": 283,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 284,
+              "kind": "added",
+              "text": "\tvar args struct {"
+            },
+            {
+              "newLine": 285,
+              "kind": "added",
+              "text": "\t\tPath  string `json:\"path\"`"
+            },
+            {
+              "newLine": 286,
+              "kind": "added",
+              "text": "\t\tLimit int    `json:\"limit\"`"
+            },
+            {
+              "newLine": 287,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 288,
+              "kind": "added",
+              "text": "\tif err := decodeArgs(raw, \u0026args); err != nil {"
+            },
+            {
+              "newLine": 289,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 290,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 291,
+              "kind": "added",
+              "text": "\tclean, err := repositoryPath(args.Path)"
+            },
+            {
+              "newLine": 292,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 293,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 294,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 295,
+              "kind": "added",
+              "text": "\tlimit := clamp(args.Limit, 10, MaxHistoryCommits)"
+            },
+            {
+              "newLine": 296,
+              "kind": "added",
+              "text": "\tcommits, err := t.History.Log(ctx, scope, clean, limit)"
+            },
+            {
+              "newLine": 297,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 298,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 299,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 300,
+              "kind": "added",
+              "text": "\tif len(commits) \u003e limit {"
+            },
+            {
+              "newLine": 301,
+              "kind": "added",
+              "text": "\t\tcommits = commits[:limit]"
+            },
+            {
+              "newLine": 302,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 303,
+              "kind": "added",
+              "text": "\treturn commits, nil"
+            },
+            {
+              "newLine": 304,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 305,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 306,
+              "kind": "added",
+              "text": "func (t Toolbox) readIssue(ctx context.Context, scope Scope, raw json.RawMessage) (any, error) {"
+            },
+            {
+              "newLine": 307,
+              "kind": "added",
+              "text": "\tif t.Issues == nil {"
+            },
+            {
+              "newLine": 308,
+              "kind": "added",
+              "text": "\t\treturn nil, errUnavailable"
+            },
+            {
+              "newLine": 309,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 310,
+              "kind": "added",
+              "text": "\tvar args struct {"
+            },
+            {
+              "newLine": 311,
+              "kind": "added",
+              "text": "\t\tKey string `json:\"key\"`"
+            },
+            {
+              "newLine": 312,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 313,
+              "kind": "added",
+              "text": "\tif err := decodeArgs(raw, \u0026args); err != nil {"
+            },
+            {
+              "newLine": 314,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 315,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 316,
+              "kind": "added",
+              "text": "\tlinked := false"
+            },
+            {
+              "newLine": 317,
+              "kind": "added",
+              "text": "\tfor _, key := range scope.LinkedIssues {"
+            },
+            {
+              "newLine": 318,
+              "kind": "added",
+              "text": "\t\tlinked = linked || key == args.Key"
+            },
+            {
+              "newLine": 319,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 320,
+              "kind": "added",
+              "text": "\tif !linked {"
+            },
+            {
+              "newLine": 321,
+              "kind": "added",
+              "text": "\t\treturn nil, fmt.Errorf(\"issue %q is not linked from this pull request\", args.Key)"
+            },
+            {
+              "newLine": 322,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 323,
+              "kind": "added",
+              "text": "\tissue, err := t.Issues.FetchIssue(ctx, scope.InstallationID, args.Key)"
+            },
+            {
+              "newLine": 324,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 325,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 326,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 327,
+              "kind": "added",
+              "text": "\treturn struct {"
+            },
+            {
+              "newLine": 328,
+              "kind": "added",
+              "text": "\t\tKey                string   `json:\"key\"`"
+            },
+            {
+              "newLine": 329,
+              "kind": "added",
+              "text": "\t\tTitle              string   `json:\"title\"`"
+            },
+            {
+              "newLine": 330,
+              "kind": "added",
+              "text": "\t\tDescription        string   `json:\"description\"`"
+            },
+            {
+              "newLine": 331,
+              "kind": "added",
+              "text": "\t\tAcceptanceCriteria []string `json:\"acceptance_criteria,omitempty\"`"
+            },
+            {
+              "newLine": 332,
+              "kind": "added",
+              "text": "\t\tURL                string   `json:\"url\"`"
+            },
+            {
+              "newLine": 333,
+              "kind": "added",
+              "text": "\t}{issue.Key, issue.Title, issue.Description, issue.AcceptanceCriteria, issue.URL}, nil"
+            },
+            {
+              "newLine": 334,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 335,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 336,
+              "kind": "added",
+              "text": "var errUnavailable = errors.New(\"tool is not configured for this review\")"
+            },
+            {
+              "newLine": 337,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 338,
+              "kind": "added",
+              "text": "func decodeArgs(raw json.RawMessage, target any) error {"
+            },
+            {
+              "newLine": 339,
+              "kind": "added",
+              "text": "\tdecoder := json.NewDecoder(bytes.NewReader(raw))"
+            },
+            {
+              "newLine": 340,
+              "kind": "added",
+              "text": "\tdecoder.DisallowUnknownFields()"
+            },
+            {
+              "newLine": 341,
+              "kind": "added",
+              "text": "\tif err := decoder.Decode(target); err != nil {"
+            },
+            {
+              "newLine": 342,
+              "kind": "added",
+              "text": "\t\treturn fmt.Errorf(\"invalid arguments: %w\", err)"
+            },
+            {
+              "newLine": 343,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 344,
+              "kind": "added",
+              "text": "\tif _, err := decoder.Token(); err != io.EOF {"
+            },
+            {
+              "newLine": 345,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"invalid arguments: trailing data\")"
+            },
+            {
+              "newLine": 346,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 347,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 348,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 349,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 350,
+              "kind": "added",
+              "text": "func validRange(args *lineRange) error {"
+            },
+            {
+              "newLine": 351,
+              "kind": "added",
+              "text": "\tclean, err := repositoryPath(args.Path)"
+            },
+            {
+              "newLine": 352,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 353,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 354,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 355,
+              "kind": "added",
+              "text": "\targs.Path = clean"
+            },
+            {
+              "newLine": 356,
+              "kind": "added",
+              "text": "\tif args.StartLine \u003c 1 || args.EndLine \u003c args.StartLine {"
+            },
+            {
+              "newLine": 357,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"line range is invalid\")"
+            },
+            {
+              "newLine": 358,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 359,
+              "kind": "added",
+              "text": "\tif args.EndLine-args.StartLine+1 \u003e MaxReadFileLines {"
+            },
+            {
+              "newLine": 360,
+              "kind": "added",
+              "text": "\t\treturn fmt.Errorf(\"line range exceeds %d lines\", MaxReadFileLines)"
+            },
+            {
+              "newLine": 361,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 362,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 363,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 364,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 365,
+              "kind": "added",
+              "text": "func repositoryPath(value string) (string, error) {"
+            },
+            {
+              "newLine": 366,
+              "kind": "added",
+              "text": "\tclean := path.Clean(strings.ReplaceAll(value, \"\\\\\", \"/\"))"
+            },
+            {
+              "newLine": 367,
+              "kind": "added",
+              "text": "\tif value == \"\" || strings.HasPrefix(clean, \"/\") || clean == \".\" || clean == \"..\" || strings.HasPrefix(clean, \"../\") || strings.ContainsRune(value, 0) {"
+            },
+            {
+              "newLine": 368,
+              "kind": "added",
+              "text": "\t\treturn \"\", errors.New(\"path must be repository-relative\")"
+            },
+            {
+              "newLine": 369,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 370,
+              "kind": "added",
+              "text": "\treturn clean, nil"
+            },
+            {
+              "newLine": 371,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 372,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 373,
+              "kind": "added",
+              "text": "func truncate(content string, limit int) (string, bool) {"
+            },
+            {
+              "newLine": 374,
+              "kind": "added",
+              "text": "\tif len(content) \u003c= limit {"
+            },
+            {
+              "newLine": 375,
+              "kind": "added",
+              "text": "\t\treturn content, false"
+            },
+            {
+              "newLine": 376,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 377,
+              "kind": "added",
+              "text": "\tcut := limit - len(truncationNotice)"
+            },
+            {
+              "newLine": 378,
+              "kind": "added",
+              "text": "\tfor cut \u003e 0 \u0026\u0026 !utf8.RuneStart(content[cut]) {"
+            },
+            {
+              "newLine": 379,
+              "kind": "added",
+              "text": "\t\tcut--"
+            },
+            {
+              "newLine": 380,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 381,
+              "kind": "added",
+              "text": "\treturn content[:cut] + truncationNotice, true"
+            },
+            {
+              "newLine": 382,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 383,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 384,
+              "kind": "added",
+              "text": "func (t Toolbox) maxBytes() int {"
+            },
+            {
+              "newLine": 385,
+              "kind": "added",
+              "text": "\tif t.MaxBytes \u003c= 0 || t.MaxBytes \u003e MaxToolOutput {"
+            },
+            {
+              "newLine": 386,
+              "kind": "added",
+              "text": "\t\treturn MaxToolOutput"
+            },
+            {
+              "newLine": 387,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 388,
+              "kind": "added",
+              "text": "\treturn t.MaxBytes"
+            },
+            {
+              "newLine": 389,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 390,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 391,
+              "kind": "added",
+              "text": "func clamp(value, fallback, maximum int) int {"
+            },
+            {
+              "newLine": 392,
+              "kind": "added",
+              "text": "\tif value \u003c= 0 {"
+            },
+            {
+              "newLine": 393,
+              "kind": "added",
+              "text": "\t\treturn fallback"
+            },
+            {
+              "newLine": 394,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 395,
+              "kind": "added",
+              "text": "\treturn min(value, maximum)"
+            },
+            {
+              "newLine": 396,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 397,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 398,
+              "kind": "added",
+              "text": "func fullSHA(value string) bool {"
+            },
+            {
+              "newLine": 399,
+              "kind": "added",
+              "text": "\tif len(value) != 40 {"
+            },
+            {
+              "newLine": 400,
+              "kind": "added",
+              "text": "\t\treturn false"
+            },
+            {
+              "newLine": 401,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 402,
+              "kind": "added",
+              "text": "\tfor _, r := range value {"
+            },
+            {
+              "newLine": 403,
+              "kind": "added",
+              "text": "\t\tif !((r \u003e= '0' \u0026\u0026 r \u003c= '9') || (r \u003e= 'a' \u0026\u0026 r \u003c= 'f')) {"
+            },
+            {
+              "newLine": 404,
+              "kind": "added",
+              "text": "\t\t\treturn false"
+            },
+            {
+              "newLine": 405,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 406,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 407,
+              "kind": "added",
+              "text": "\treturn true"
+            },
+            {
+              "newLine": 408,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/agent/tools_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/agent/tools_test.go b/internal/hosted/agent/tools_test.go\nnew file mode 100644\nindex 0000000..b757408\n--- /dev/null\n+++ b/internal/hosted/agent/tools_test.go\n@@ -0,0 +1,189 @@\n+package agent\n+\n+import (\n+\t\"context\"\n+\t\"encoding/json\"\n+\t\"strings\"\n+\t\"testing\"\n+\t\"unicode/utf8\"\n+\n+\t\"px1/internal/hosted/graph\"\n+\t\"px1/internal/hosted/integrations/issues\"\n+)\n+\n+var scope = Scope{InstallationID: 7, RepositoryID: 9, HeadSHA: strings.Repeat(\"a\", 40), LinkedIssues: []string{\"ENG-12\"}}\n+\n+type fakeFiles struct{ gotPath string }\n+\n+func (f *fakeFiles) ReadLines(_ context.Context, s Scope, path string, start, end int) (string, error) {\n+\tf.gotPath = path\n+\treturn strings.Repeat(\"é\", 20_000), nil\n+}\n+\n+type fakeSearch struct{}\n+\n+func (fakeSearch) Search(_ context.Context, _ Scope, query string, limit int) ([]SearchHit, error) {\n+\thits := make([]SearchHit, 50)\n+\tfor i := range hits {\n+\t\thits[i] = SearchHit{Path: \"a.go\", StartLine: i + 1, EndLine: i + 1, Snippet: query, Source: \"ripgrep\"}\n+\t}\n+\treturn hits, nil\n+}\n+\n+type fakeSymbols struct{}\n+\n+func (fakeSymbols) ResolveSymbol(_ context.Context, _ Scope, path, name string) (int64, bool, error) {\n+\treturn 42, name == \"Charge\", nil\n+}\n+\n+type fakeGraph struct{ gotTenant, gotRepo int64 }\n+\n+func (g *fakeGraph) Neighbors(_ context.Context, tenant, repo int64, ids []int64, direction graph.Direction, _ []string) ([]graph.ToolEdge, error) {\n+\tg.gotTenant, g.gotRepo = tenant, repo\n+\tcaller := graph.ToolSymbol{ID: 5, Path: \"api/handler.go\", Kind: \"function\", Name: \"Handle\"}\n+\treturn []graph.ToolEdge{{Source: caller, Target: graph.ToolSymbol{ID: ids[0]}, Kind: \"calls\"}}, nil\n+}\n+\n+type fakeIssues struct{ fetched []string }\n+\n+func (f *fakeIssues) FetchIssue(_ context.Context, _ int64, key string) (issues.Issue, error) {\n+\tf.fetched = append(f.fetched, key)\n+\treturn issues.Issue{Key: key, Title: \"Refunds\", URL: \"https://linear.app/x/issue/\" + key}, nil\n+}\n+\n+func call(name, arguments string) Call {\n+\treturn Call{Name: name, Arguments: json.RawMessage(arguments)}\n+}\n+\n+func TestSpecsOfferOnlyConfiguredTools(t *testing.T) {\n+\tif specs := (Toolbox{}).Specs(); len(specs) != 0 {\n+\t\tt.Fatalf(\"empty toolbox offered %d tools\", len(specs))\n+\t}\n+\tspecs := Toolbox{Files: \u0026fakeFiles{}, Search: fakeSearch{}}.Specs()\n+\tif len(specs) != 2 || specs[0].Name != ReadFile || specs[1].Name != SearchCode {\n+\t\tt.Fatalf(\"unexpected specs: %#v\", specs)\n+\t}\n+\tfor _, spec := range specs {\n+\t\tvar schema map[string]any\n+\t\tif err := json.Unmarshal(spec.InputSchema, \u0026schema); err != nil || schema[\"additionalProperties\"] != false {\n+\t\t\tt.Fatalf(\"%s schema must be strict JSON: %v\", spec.Name, err)\n+\t\t}\n+\t}\n+}\n+\n+func TestDispatchRequiresAPinnedTenantScope(t *testing.T) {\n+\tbox := Toolbox{Files: \u0026fakeFiles{}}\n+\tfor _, bad := range []Scope{{RepositoryID: 9, HeadSHA: scope.HeadSHA}, {InstallationID: 7, RepositoryID: 9, HeadSHA: \"main\"}} {\n+\t\tif _, err := box.Dispatch(context.Background(), bad, call(ReadFile, `{\"path\":\"a.go\",\"start_line\":1,\"end_line\":2}`)); err == nil {\n+\t\t\tt.Fatalf(\"scope %#v accepted\", bad)\n+\t\t}\n+\t}\n+}\n+\n+func TestReadFileRejectsEscapesUnknownFieldsAndHugeRanges(t *testing.T) {\n+\tbox := Toolbox{Files: \u0026fakeFiles{}}\n+\tfor _, arguments := range []string{\n+\t\t`{\"path\":\"../secrets\",\"start_line\":1,\"end_line\":2}`,\n+\t\t`{\"path\":\"/etc/passwd\",\"start_line\":1,\"end_line\":2}`,\n+\t\t`{\"path\":\"a.go\",\"start_line\":1,\"end_line\":2,\"shell\":\"rm\"}`,\n+\t\t`{\"path\":\"a.go\",\"start_line\":5,\"end_line\":4}`,\n+\t\t`{\"path\":\"a.go\",\"start_line\":1,\"end_line\":401}`,\n+\t\t`{\"path\":\"a.go\",\"start_line\":1,\"end_line\":2} {}`,\n+\t} {\n+\t\tif _, err := box.Dispatch(context.Background(), scope, call(ReadFile, arguments)); err == nil {\n+\t\t\tt.Fatalf(\"%s accepted\", arguments)\n+\t\t}\n+\t}\n+\tif _, err := box.Dispatch(context.Background(), scope, call(\"run_shell\", `{}`)); err == nil {\n+\t\tt.Fatal(\"unknown tool accepted\")\n+\t}\n+}\n+\n+func TestOutputIsTruncatedOnARuneBoundary(t *testing.T) {\n+\tfiles := \u0026fakeFiles{}\n+\tresult, err := Toolbox{Files: files}.Dispatch(context.Background(), scope, call(ReadFile, `{\"path\":\"./pkg//a.go\",\"start_line\":1,\"end_line\":2}`))\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif files.gotPath != \"pkg/a.go\" || !result.Truncated || len(result.Content) \u003e MaxToolOutput || !utf8.ValidString(result.Content) || !strings.HasSuffix(result.Content, truncationNotice) {\n+\t\tt.Fatalf(\"path=%q truncated=%v len=%d\", files.gotPath, result.Truncated, len(result.Content))\n+\t}\n+}\n+\n+func TestSearchCapsResults(t *testing.T) {\n+\tresult, err := Toolbox{Search: fakeSearch{}}.Dispatch(context.Background(), scope, call(SearchCode, `{\"query\":\"refund\",\"limit\":500}`))\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tvar hits []SearchHit\n+\tif err := json.Unmarshal([]byte(result.Content), \u0026hits); err != nil || len(hits) != MaxSearchResults {\n+\t\tt.Fatalf(\"hits=%d err=%v\", len(hits), err)\n+\t}\n+}\n+\n+func TestGraphToolsResolveSymbolsWithinTheTenant(t *testing.T) {\n+\treader := \u0026fakeGraph{}\n+\tbox := Toolbox{Symbols: fakeSymbols{}, Graph: graph.Tools{Reader: reader}}\n+\tresult, err := box.Dispatch(context.Background(), scope, call(GraphCallers, `{\"path\":\"billing/charge.go\",\"symbol\":\"Charge\",\"depth\":2}`))\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif reader.gotTenant != 7 || reader.gotRepo != 9 || !strings.Contains(result.Content, \"Handle\") {\n+\t\tt.Fatalf(\"tenant=%d repo=%d content=%s\", reader.gotTenant, reader.gotRepo, result.Content)\n+\t}\n+\tmissing, err := box.Dispatch(context.Background(), scope, call(GraphCallees, `{\"path\":\"a.go\",\"symbol\":\"Nope\"}`))\n+\tif err != nil || !strings.Contains(missing.Content, \"No indexed symbol\") {\n+\t\tt.Fatalf(\"missing symbol: %#v %v\", missing, err)\n+\t}\n+\tif _, err := box.Dispatch(context.Background(), scope, call(GraphCallers, `{\"path\":\"a.go\",\"symbol\":\"Charge\",\"depth\":3}`)); err == nil {\n+\t\tt.Fatal(\"three-hop traversal accepted\")\n+\t}\n+}\n+\n+func TestReadIssueOnlyFetchesLinkedIssues(t *testing.T) {\n+\ttracker := \u0026fakeIssues{}\n+\tbox := Toolbox{Issues: tracker}\n+\tif _, err := box.Dispatch(context.Background(), scope, call(ReadIssue, `{\"key\":\"SEC-1\"}`)); err == nil {\n+\t\tt.Fatal(\"unlinked issue fetched\")\n+\t}\n+\tresult, err := box.Dispatch(context.Background(), scope, call(ReadIssue, `{\"key\":\"ENG-12\"}`))\n+\tif err != nil || !strings.Contains(result.Content, \"Refunds\") || len(tracker.fetched) != 1 {\n+\t\tt.Fatalf(\"result=%#v err=%v fetched=%v\", result, err, tracker.fetched)\n+\t}\n+}\n+\n+func TestUnconfiguredToolsFailClosed(t *testing.T) {\n+\tfor _, name := range []string{ReadFile, SearchCode, GraphCallers, GitBlame, GitLog, ReadIssue} {\n+\t\tif _, err := (Toolbox{}).Dispatch(context.Background(), scope, call(name, `{}`)); err == nil {\n+\t\t\tt.Fatalf(\"%s ran without a backing store\", name)\n+\t\t}\n+\t}\n+}\n+\n+type fakeHistory struct{ gotLimit int }\n+\n+func (h *fakeHistory) Blame(_ context.Context, _ Scope, path string, start, end int) ([]BlameLine, error) {\n+\treturn []BlameLine{{Line: start, Commit: strings.Repeat(\"b\", 40), Author: \"dev\", Summary: \"add \" + path}}, nil\n+}\n+\n+func (h *fakeHistory) Log(_ context.Context, _ Scope, _ string, limit int) ([]Commit, error) {\n+\th.gotLimit = limit\n+\treturn make([]Commit, 100), nil\n+}\n+\n+func TestHistoryToolsAreBounded(t *testing.T) {\n+\thistory := \u0026fakeHistory{}\n+\tbox := Toolbox{History: history}\n+\tblame, err := box.Dispatch(context.Background(), scope, call(GitBlame, `{\"path\":\"a.go\",\"start_line\":3,\"end_line\":3}`))\n+\tif err != nil || !strings.Contains(blame.Content, \"add a.go\") {\n+\t\tt.Fatalf(\"blame=%#v err=%v\", blame, err)\n+\t}\n+\tlog, err := box.Dispatch(context.Background(), scope, call(GitLog, `{\"path\":\"a.go\",\"limit\":1000}`))\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tvar commits []Commit\n+\tif err := json.Unmarshal([]byte(log.Content), \u0026commits); err != nil || history.gotLimit != MaxHistoryCommits || len(commits) != MaxHistoryCommits {\n+\t\tt.Fatalf(\"limit=%d commits=%d err=%v\", history.gotLimit, len(commits), err)\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-5c4aa77222b03cb6",
+          "header": "@@ -0,0 +1,189 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package agent"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"unicode/utf8\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"px1/internal/hosted/graph\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"px1/internal/hosted/integrations/issues\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "var scope = Scope{InstallationID: 7, RepositoryID: 9, HeadSHA: strings.Repeat(\"a\", 40), LinkedIssues: []string{\"ENG-12\"}}"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "type fakeFiles struct{ gotPath string }"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "func (f *fakeFiles) ReadLines(_ context.Context, s Scope, path string, start, end int) (string, error) {"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tf.gotPath = path"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\treturn strings.Repeat(\"é\", 20_000), nil"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "type fakeSearch struct{}"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "func (fakeSearch) Search(_ context.Context, _ Scope, query string, limit int) ([]SearchHit, error) {"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\thits := make([]SearchHit, 50)"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tfor i := range hits {"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t\thits[i] = SearchHit{Path: \"a.go\", StartLine: i + 1, EndLine: i + 1, Snippet: query, Source: \"ripgrep\"}"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\treturn hits, nil"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "type fakeSymbols struct{}"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "func (fakeSymbols) ResolveSymbol(_ context.Context, _ Scope, path, name string) (int64, bool, error) {"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\treturn 42, name == \"Charge\", nil"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "type fakeGraph struct{ gotTenant, gotRepo int64 }"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "func (g *fakeGraph) Neighbors(_ context.Context, tenant, repo int64, ids []int64, direction graph.Direction, _ []string) ([]graph.ToolEdge, error) {"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tg.gotTenant, g.gotRepo = tenant, repo"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tcaller := graph.ToolSymbol{ID: 5, Path: \"api/handler.go\", Kind: \"function\", Name: \"Handle\"}"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\treturn []graph.ToolEdge{{Source: caller, Target: graph.ToolSymbol{ID: ids[0]}, Kind: \"calls\"}}, nil"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "type fakeIssues struct{ fetched []string }"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "func (f *fakeIssues) FetchIssue(_ context.Context, _ int64, key string) (issues.Issue, error) {"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\tf.fetched = append(f.fetched, key)"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\treturn issues.Issue{Key: key, Title: \"Refunds\", URL: \"https://linear.app/x/issue/\" + key}, nil"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "func call(name, arguments string) Call {"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\treturn Call{Name: name, Arguments: json.RawMessage(arguments)}"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "func TestSpecsOfferOnlyConfiguredTools(t *testing.T) {"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\tif specs := (Toolbox{}).Specs(); len(specs) != 0 {"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"empty toolbox offered %d tools\", len(specs))"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\tspecs := Toolbox{Files: \u0026fakeFiles{}, Search: fakeSearch{}}.Specs()"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\tif len(specs) != 2 || specs[0].Name != ReadFile || specs[1].Name != SearchCode {"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"unexpected specs: %#v\", specs)"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\tfor _, spec := range specs {"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\tvar schema map[string]any"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\tif err := json.Unmarshal(spec.InputSchema, \u0026schema); err != nil || schema[\"additionalProperties\"] != false {"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"%s schema must be strict JSON: %v\", spec.Name, err)"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "func TestDispatchRequiresAPinnedTenantScope(t *testing.T) {"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\tbox := Toolbox{Files: \u0026fakeFiles{}}"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\tfor _, bad := range []Scope{{RepositoryID: 9, HeadSHA: scope.HeadSHA}, {InstallationID: 7, RepositoryID: 9, HeadSHA: \"main\"}} {"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t\tif _, err := box.Dispatch(context.Background(), bad, call(ReadFile, `{\"path\":\"a.go\",\"start_line\":1,\"end_line\":2}`)); err == nil {"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"scope %#v accepted\", bad)"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "func TestReadFileRejectsEscapesUnknownFieldsAndHugeRanges(t *testing.T) {"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\tbox := Toolbox{Files: \u0026fakeFiles{}}"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\tfor _, arguments := range []string{"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\t\t`{\"path\":\"../secrets\",\"start_line\":1,\"end_line\":2}`,"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\t\t`{\"path\":\"/etc/passwd\",\"start_line\":1,\"end_line\":2}`,"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\t\t`{\"path\":\"a.go\",\"start_line\":1,\"end_line\":2,\"shell\":\"rm\"}`,"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\t\t`{\"path\":\"a.go\",\"start_line\":5,\"end_line\":4}`,"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t\t`{\"path\":\"a.go\",\"start_line\":1,\"end_line\":401}`,"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t\t`{\"path\":\"a.go\",\"start_line\":1,\"end_line\":2} {}`,"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\t} {"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\t\tif _, err := box.Dispatch(context.Background(), scope, call(ReadFile, arguments)); err == nil {"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"%s accepted\", arguments)"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\tif _, err := box.Dispatch(context.Background(), scope, call(\"run_shell\", `{}`)); err == nil {"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"unknown tool accepted\")"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "func TestOutputIsTruncatedOnARuneBoundary(t *testing.T) {"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\tfiles := \u0026fakeFiles{}"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\tresult, err := Toolbox{Files: files}.Dispatch(context.Background(), scope, call(ReadFile, `{\"path\":\"./pkg//a.go\",\"start_line\":1,\"end_line\":2}`))"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\tif files.gotPath != \"pkg/a.go\" || !result.Truncated || len(result.Content) \u003e MaxToolOutput || !utf8.ValidString(result.Content) || !strings.HasSuffix(result.Content, truncationNotice) {"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"path=%q truncated=%v len=%d\", files.gotPath, result.Truncated, len(result.Content))"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "func TestSearchCapsResults(t *testing.T) {"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "\tresult, err := Toolbox{Search: fakeSearch{}}.Dispatch(context.Background(), scope, call(SearchCode, `{\"query\":\"refund\",\"limit\":500}`))"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\tvar hits []SearchHit"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\tif err := json.Unmarshal([]byte(result.Content), \u0026hits); err != nil || len(hits) != MaxSearchResults {"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"hits=%d err=%v\", len(hits), err)"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "func TestGraphToolsResolveSymbolsWithinTheTenant(t *testing.T) {"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\treader := \u0026fakeGraph{}"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\tbox := Toolbox{Symbols: fakeSymbols{}, Graph: graph.Tools{Reader: reader}}"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\tresult, err := box.Dispatch(context.Background(), scope, call(GraphCallers, `{\"path\":\"billing/charge.go\",\"symbol\":\"Charge\",\"depth\":2}`))"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\tif reader.gotTenant != 7 || reader.gotRepo != 9 || !strings.Contains(result.Content, \"Handle\") {"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"tenant=%d repo=%d content=%s\", reader.gotTenant, reader.gotRepo, result.Content)"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\tmissing, err := box.Dispatch(context.Background(), scope, call(GraphCallees, `{\"path\":\"a.go\",\"symbol\":\"Nope\"}`))"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\tif err != nil || !strings.Contains(missing.Content, \"No indexed symbol\") {"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"missing symbol: %#v %v\", missing, err)"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\tif _, err := box.Dispatch(context.Background(), scope, call(GraphCallers, `{\"path\":\"a.go\",\"symbol\":\"Charge\",\"depth\":3}`)); err == nil {"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"three-hop traversal accepted\")"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "func TestReadIssueOnlyFetchesLinkedIssues(t *testing.T) {"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\ttracker := \u0026fakeIssues{}"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\tbox := Toolbox{Issues: tracker}"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\tif _, err := box.Dispatch(context.Background(), scope, call(ReadIssue, `{\"key\":\"SEC-1\"}`)); err == nil {"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"unlinked issue fetched\")"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "\tresult, err := box.Dispatch(context.Background(), scope, call(ReadIssue, `{\"key\":\"ENG-12\"}`))"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "\tif err != nil || !strings.Contains(result.Content, \"Refunds\") || len(tracker.fetched) != 1 {"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"result=%#v err=%v fetched=%v\", result, err, tracker.fetched)"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "func TestUnconfiguredToolsFailClosed(t *testing.T) {"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "\tfor _, name := range []string{ReadFile, SearchCode, GraphCallers, GitBlame, GitLog, ReadIssue} {"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "\t\tif _, err := (Toolbox{}).Dispatch(context.Background(), scope, call(name, `{}`)); err == nil {"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"%s ran without a backing store\", name)"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "type fakeHistory struct{ gotLimit int }"
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": "func (h *fakeHistory) Blame(_ context.Context, _ Scope, path string, start, end int) ([]BlameLine, error) {"
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "\treturn []BlameLine{{Line: start, Commit: strings.Repeat(\"b\", 40), Author: \"dev\", Summary: \"add \" + path}}, nil"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "func (h *fakeHistory) Log(_ context.Context, _ Scope, _ string, limit int) ([]Commit, error) {"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "\th.gotLimit = limit"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "\treturn make([]Commit, 100), nil"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "func TestHistoryToolsAreBounded(t *testing.T) {"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "\thistory := \u0026fakeHistory{}"
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "\tbox := Toolbox{History: history}"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": "\tblame, err := box.Dispatch(context.Background(), scope, call(GitBlame, `{\"path\":\"a.go\",\"start_line\":3,\"end_line\":3}`))"
+            },
+            {
+              "newLine": 178,
+              "kind": "added",
+              "text": "\tif err != nil || !strings.Contains(blame.Content, \"add a.go\") {"
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"blame=%#v err=%v\", blame, err)"
+            },
+            {
+              "newLine": 180,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": "\tlog, err := box.Dispatch(context.Background(), scope, call(GitLog, `{\"path\":\"a.go\",\"limit\":1000}`))"
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 184,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 185,
+              "kind": "added",
+              "text": "\tvar commits []Commit"
+            },
+            {
+              "newLine": 186,
+              "kind": "added",
+              "text": "\tif err := json.Unmarshal([]byte(log.Content), \u0026commits); err != nil || history.gotLimit != MaxHistoryCommits || len(commits) != MaxHistoryCommits {"
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"limit=%d commits=%d err=%v\", history.gotLimit, len(commits), err)"
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-56723b831588ce94",
+      "title": "Tools changes",
+      "summary": "4 related files share the \"tools\" change signal.",
+      "paths": [
+        "ROADMAP.md",
+        "docs/AGENT_TOOLS.md",
+        "internal/hosted/agent/tools.go",
+        "internal/hosted/agent/tools_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-8ec691667ef63b15",
+      "path": "internal/hosted/agent/tools.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/agent/tools_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-e3d341579ec88b4a",
+      "path": "internal/hosted/agent/tools.go",
+      "line": 119,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func (t Toolbox) Specs() []ToolSpec {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 4,
+    "filesAnalyzed": 4,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "1",
+      "path": "internal/hosted/agent/tools.go",
+      "lineStart": 109,
+      "lineEnd": 130,
+      "title": "Hide unavailable tools",
+      "summary": "The model is offered only tools with configured backing stores, so it cannot select tools that are unavailable for a review."
+    },
+    {
+      "id": "2",
+      "path": "internal/hosted/agent/tools.go",
+      "lineStart": 150,
+      "lineEnd": 155,
+      "title": "Require a pinned review scope",
+      "summary": "Dispatch rejects calls unless they include a positive installation and repository ID and a full lowercase 40-character commit SHA. This prevents tool reads without a pinned tenant and revision."
+    },
+    {
+      "id": "3",
+      "path": "internal/hosted/agent/tools.go",
+      "lineStart": 154,
+      "lineEnd": 172,
+      "title": "Reject invalid calls",
+      "summary": "Calls with oversized arguments, unknown tool names, or tool-specific validation errors fail before returning tool output."
+    },
+    {
+      "id": "5",
+      "path": "internal/hosted/agent/tools.go",
+      "lineStart": 210,
+      "lineEnd": 238,
+      "title": "Bound code search",
+      "summary": "Search queries must be 1–200 bytes, and results are capped at 20 even if the backing search returns more."
+    },
+    {
+      "id": "6",
+      "path": "internal/hosted/agent/tools.go",
+      "lineStart": 240,
+      "lineEnd": 269,
+      "title": "Scope graph lookups",
+      "summary": "Graph lookups resolve the requested symbol in the scoped repository and revision, then query callers or callees with a two-hop, 50-symbol bound. Missing symbols return an explanatory result rather than failing the call."
+    },
+    {
+      "id": "7",
+      "path": "internal/hosted/agent/tools.go",
+      "lineStart": 271,
+      "lineEnd": 310,
+      "title": "Bound history reads",
+      "summary": "Blame uses the bounded line-range validation, while file history is limited to 20 commits."
+    },
+    {
+      "id": "8",
+      "path": "internal/hosted/agent/tools.go",
+      "lineStart": 312,
+      "lineEnd": 341,
+      "title": "Restrict issue reads to linked keys",
+      "summary": "Issue reads are allowed only for keys already linked from the pull request, preventing a call from fetching an unrelated issue in the same tenant."
+    },
+    {
+      "id": "4",
+      "path": "internal/hosted/agent/tools.go",
+      "lineStart": 345,
+      "lineEnd": 380,
+      "title": "Constrain arguments and paths",
+      "summary": "Argument decoding rejects unknown fields and trailing data. File and history ranges are limited to 400 lines, and paths are normalized and rejected if they escape the repository."
+    },
+    {
+      "id": "9",
+      "path": "internal/hosted/agent/tools.go",
+      "lineStart": 381,
+      "lineEnd": 397,
+      "title": "Cap tool output",
+      "summary": "Tool results are capped at 16 KiB by default, cut at a valid UTF-8 boundary, and marked when truncated."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "88809fc86626e5a754d07d321c55f366eed55da9",
+      "revision": "066cf3bd6095b005dd93649fa4d48f96778a8d11",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "88809fc86626e5a754d07d321c55f366eed55da9",
+      "revision": "066cf3bd6095b005dd93649fa4d48f96778a8d11",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "066cf3bd6095b005dd93649fa4d48f96778a8d11",
+      "detail": "9 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "066cf3bd6095b005dd93649fa4d48f96778a8d11",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-ef0017167b9abad2",
+      "rule": "large-diff",
+      "title": "Large diff",
+      "reason": "A large textual change deserves an explicit review pass.",
+      "path": "internal/hosted/agent/tools.go",
+      "evidence": "408 added, 0 removed lines"
+    },
+    {
+      "id": "attention-a1eb3fddc954593d",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/agent/tools.go",
+      "line": 119,
+      "evidence": "func (t Toolbox) Specs() []ToolSpec {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "066cf3bd6095b005dd93649fa4d48f96778a8d11",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42359379406",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42359379406/job/128364285581",
+        "startedAt": "2026-11-07T09:21:21Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42359379387/job/128364284117",
+        "startedAt": "2026-11-07T09:21:19Z"
+      }
+    ]
+  }
+}
