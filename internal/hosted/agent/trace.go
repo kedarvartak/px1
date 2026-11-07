@@ -55,6 +55,12 @@ func (t *Trace) Model(agent, role string, inputTokens, outputTokens int64, faile
 	t.add(review.TraceEvent{Agent: agent, Kind: "model", Name: role, InputTokens: inputTokens, OutputTokens: outputTokens, Failed: failed, ElapsedMS: elapsed.Milliseconds()})
 }
 
+// Note records something that happened outside a model or tool call, such as
+// a finding the pipeline discarded and why.
+func (t *Trace) Note(agent, name, detail string) {
+	t.add(review.TraceEvent{Agent: agent, Kind: "note", Name: name, Detail: clipTrace(detail, review.MaxTraceDetailBytes)})
+}
+
 func (t *Trace) task(p Partial) {
 	t.add(review.TraceEvent{Agent: p.BlockID, Kind: "task", Name: string(p.Outcome), Detail: p.Reason, Failed: p.Outcome != TaskCompleted})
 }

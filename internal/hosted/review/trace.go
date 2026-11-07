@@ -15,8 +15,8 @@ const (
 	MaxTracePreview     = 512
 )
 
-// TraceEvent is one step of an agentic review: a model call, a tool call, or
-// a finished sub-agent task. It records what was asked and how much came back,
+// TraceEvent is one step of an agentic review: a model call, a tool call, a
+// finished sub-agent task, or a note such as a discarded finding. It records what was asked and how much came back,
 // never provider error text, and never linked-issue content.
 type TraceEvent struct {
 	Seq          int    `json:"seq"`
@@ -51,7 +51,7 @@ type TraceFile struct {
 	Dropped  int          `json:"dropped,omitempty"`
 }
 
-var traceKinds = map[string]bool{"model": true, "tool": true, "task": true}
+var traceKinds = map[string]bool{"model": true, "tool": true, "task": true, "note": true}
 
 // DecodeTraceFile accepts a trace only for the exact report head and within
 // the event and text bounds a recorder can produce.

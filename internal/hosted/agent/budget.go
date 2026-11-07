@@ -75,6 +75,7 @@ type Meter struct {
 	input, output, cost             int64
 	heldInput, heldOutput, heldCost int64
 	calls                           int
+	overruns                        int
 	toolCalls                       map[string]int
 	exhausted                       string
 }
@@ -90,7 +91,10 @@ type Spend struct {
 	InputTokens, OutputTokens, CostMicrousd int64
 	ModelCalls                              int
 	ToolCalls                               int
-	Exhausted                               string
+	// Overruns counts calls whose real usage exceeded their reservation,
+	// which means the input-token estimate is too low for this provider.
+	Overruns  int
+	Exhausted string
 }
 
 func NewMeter(budget Budget, start time.Time, now func() time.Time) *Meter {
@@ -153,6 +157,7 @@ func (r *Reservation) Settle(inputTokens, outputTokens, costMicrousd int64) erro
 	m.output += outputTokens
 	m.cost += costMicrousd
 	if inputTokens > r.input || outputTokens > r.output || costMicrousd > r.cost {
+		m.overruns++
 		return fmt.Errorf("model usage exceeded its reservation (input %d/%d, output %d/%d, cost %d/%d)", inputTokens, r.input, outputTokens, r.output, costMicrousd, r.cost)
 	}
 	return nil
@@ -179,7 +184,7 @@ func (m *Meter) Spend() Spend {
 	for _, count := range m.toolCalls {
 		tools += count
 	}
-	return Spend{InputTokens: m.input + m.heldInput, OutputTokens: m.output + m.heldOutput, CostMicrousd: m.cost + m.heldCost, ModelCalls: m.calls, ToolCalls: tools, Exhausted: m.exhausted}
+	return Spend{InputTokens: m.input + m.heldInput, OutputTokens: m.output + m.heldOutput, CostMicrousd: m.cost + m.heldCost, ModelCalls: m.calls, ToolCalls: tools, Overruns: m.overruns, Exhausted: m.exhausted}
 }
 
 func (m *Meter) exhaust(limit string) error {

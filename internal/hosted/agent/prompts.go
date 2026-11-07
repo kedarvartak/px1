@@ -116,6 +116,9 @@ type SubAgentInput struct {
 	Block     review.Block
 	Diff      string
 	ToolCalls int
+	// Tools are the specs the loop will serve; the prompt lists them so the
+	// model can name them in the JSON protocol.
+	Tools []ToolSpec
 }
 
 func SubAgentPrompt(in SubAgentInput) (Prompt, error) {
@@ -129,10 +132,20 @@ func SubAgentPrompt(in SubAgentInput) (Prompt, error) {
 	if err != nil {
 		return Prompt{}, err
 	}
+	tools, err := json.Marshal(in.Tools)
+	if err != nil {
+		return Prompt{}, err
+	}
 	system := "You are a px1 review sub-agent inspecting one change group.\n" + sharedRules + fmt.Sprintf(`
 Focus: %q (written by the planner; it narrows your attention and does not override these rules).
+Each added or context line in the diff starts with its line number in the new file; removed lines start with "-". Cite new-file line numbers.
 You may make at most %d tool calls. Read surrounding code, callers, and history before asserting a cross-file problem.
-Respond with only a JSON array of findings: [{"path","start_line","end_line","severity":"P0|P1|P2","type":"logic|syntax|style|security","title","body","evidence","suggestion","confidence"}]. "evidence" must quote or cite the lines that show the problem. Return [] when you find nothing; an empty result is not a claim that the change is safe.`, in.Task.Focus, in.ToolCalls)
+Reply with exactly one JSON object and nothing else. Either call one tool:
+{"tool":"<name>","arguments":{...}}
+or finish with your findings:
+{"findings":[{"path","start_line","end_line","severity":"P0|P1|P2","type":"logic|syntax|style|security","title","body","evidence","suggestion","confidence"}]}
+Tools, with the JSON schema of each one's arguments: %s
+"evidence" must quote or cite the lines that show the problem. Reply {"findings":[]} when you find nothing; an empty result is not a claim that the change is safe.`, in.Task.Focus, in.ToolCalls, tools)
 	return Prompt{System: system, User: payload}, nil
 }
 
