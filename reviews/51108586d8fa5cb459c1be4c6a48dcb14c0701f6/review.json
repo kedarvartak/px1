@@ -1,0 +1,3655 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "f04ee7d0f0c4f214b298b7bed0e17529d81fad20",
+  "head": "51108586d8fa5cb459c1be4c6a48dcb14c0701f6",
+  "generatedAt": "2026-11-07T09:52:44.122625882Z",
+  "files": [
+    {
+      "path": "ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/ROADMAP.md b/ROADMAP.md\nindex 7614b74..6128b42 100644\n--- a/ROADMAP.md\n+++ b/ROADMAP.md\n@@ -204,6 +204,9 @@ backend-foundation tasks are:\n 84. [x] **Gate agentic tiers against Base.** Launch a tier only when the\n     full seeded benchmark shows at least a 20% relative recall lift at no\n     more than 3× cost, with precision within three points.\n+85. [x] **Add organization API keys.** Issue scoped, digest-only,\n+    tenant-isolated keys with overlapping rotation, revocation, and per-key\n+    rate limits for the API and MCP server.\n \n The v1 review pipeline, indexing, report hosting, evaluation, and launch gates\n follow these foundations. AI findings must remain auditable: evidence,\n",
+      "hunks": [
+        {
+          "id": "diff-b0f3f6a3c482d157",
+          "header": "@@ -204,6 +204,9 @@ backend-foundation tasks are:",
+          "lines": [
+            {
+              "oldLine": 204,
+              "newLine": 204,
+              "kind": "context",
+              "text": "84. [x] **Gate agentic tiers against Base.** Launch a tier only when the"
+            },
+            {
+              "oldLine": 205,
+              "newLine": 205,
+              "kind": "context",
+              "text": "    full seeded benchmark shows at least a 20% relative recall lift at no"
+            },
+            {
+              "oldLine": 206,
+              "newLine": 206,
+              "kind": "context",
+              "text": "    more than 3× cost, with precision within three points."
+            },
+            {
+              "newLine": 207,
+              "kind": "added",
+              "text": "85. [x] **Add organization API keys.** Issue scoped, digest-only,"
+            },
+            {
+              "newLine": 208,
+              "kind": "added",
+              "text": "    tenant-isolated keys with overlapping rotation, revocation, and per-key"
+            },
+            {
+              "newLine": 209,
+              "kind": "added",
+              "text": "    rate limits for the API and MCP server."
+            },
+            {
+              "oldLine": 207,
+              "newLine": 210,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 208,
+              "newLine": 211,
+              "kind": "context",
+              "text": "The v1 review pipeline, indexing, report hosting, evaluation, and launch gates"
+            },
+            {
+              "oldLine": 209,
+              "newLine": 212,
+              "kind": "context",
+              "text": "follow these foundations. AI findings must remain auditable: evidence,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "api_keys_schema_test.go",
+      "status": "A",
+      "diff": "diff --git a/api_keys_schema_test.go b/api_keys_schema_test.go\nnew file mode 100644\nindex 0000000..cad08e3\n--- /dev/null\n+++ b/api_keys_schema_test.go\n@@ -0,0 +1,23 @@\n+package main\n+\n+import (\n+\t\"os\"\n+\t\"strings\"\n+\t\"testing\"\n+)\n+\n+func TestAPIKeysSchemaStoresOnlyDigestsBehindTheTenantBoundary(t *testing.T) {\n+\tbody, err := os.ReadFile(\"migrations/0018_api_keys.up.sql\")\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tschema := string(body)\n+\tfor _, want := range []string{\"PRIMARY KEY (installation_id, id)\", \"secret_sha256 bytea NOT NULL CHECK (length(secret_sha256) = 32)\", \"FORCE ROW LEVEL SECURITY\", \"current_setting('px1.installation_id', true)\", \"REFERENCES api_keys(installation_id, id)\"} {\n+\t\tif !strings.Contains(schema, want) {\n+\t\t\tt.Fatalf(\"migration missing %q\", want)\n+\t\t}\n+\t}\n+\tif strings.Contains(schema, \"secret text\") || strings.Contains(schema, \"token text\") {\n+\t\tt.Fatal(\"API key schema must not store plaintext secrets\")\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-a11be9a24534c953",
+          "header": "@@ -0,0 +1,23 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package main"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "func TestAPIKeysSchemaStoresOnlyDigestsBehindTheTenantBoundary(t *testing.T) {"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\tbody, err := os.ReadFile(\"migrations/0018_api_keys.up.sql\")"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tschema := string(body)"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tfor _, want := range []string{\"PRIMARY KEY (installation_id, id)\", \"secret_sha256 bytea NOT NULL CHECK (length(secret_sha256) = 32)\", \"FORCE ROW LEVEL SECURITY\", \"current_setting('px1.installation_id', true)\", \"REFERENCES api_keys(installation_id, id)\"} {"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t\tif !strings.Contains(schema, want) {"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"migration missing %q\", want)"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tif strings.Contains(schema, \"secret text\") || strings.Contains(schema, \"token text\") {"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"API key schema must not store plaintext secrets\")"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/API_KEYS.md",
+      "status": "A",
+      "diff": "diff --git a/docs/API_KEYS.md b/docs/API_KEYS.md\nnew file mode 100644\nindex 0000000..4924183\n--- /dev/null\n+++ b/docs/API_KEYS.md\n@@ -0,0 +1,49 @@\n+# API keys\n+\n+Organization API keys authenticate the public API and the MCP server.\n+\n+```text\n+px1k_\u003cinstallation id\u003e_\u003ckey id\u003e_\u003csecret\u003e\n+```\n+\n+- **The prefix** `px1k_` makes leaked keys easy to match in secret scanners.\n+- **The installation and key IDs are not secret.** The server sets\n+  `px1.installation_id` from the token before reading anything, so the\n+  `api_keys` table stays under the same forced row-level security as every\n+  other tenant table. Leaking an installation ID grants nothing.\n+- **The secret** is 256 random bits. Only its SHA-256 digest is stored and\n+  compared in constant time. A slow password hash would add nothing for a\n+  random secret of that length.\n+\n+## Scopes\n+\n+| Scope | Allows |\n+| --- | --- |\n+| `reviews:read` | Listing and reading reviews |\n+| `reviews:trigger` | Requesting a review |\n+| `findings:read` | Reading findings and their context |\n+| `findings:write` | Resolving findings with a note |\n+| `codebase:read` | Searching the indexed codebase |\n+| `rules:read` | Reading effective rules for a path |\n+| `memories:read` | Reading review memories for a path |\n+\n+Every key has at least one scope. Unknown scopes are rejected.\n+\n+## Lifecycle\n+\n+- **Issue:** the plaintext token is returned once. Lifetime is at most one year.\n+- **Rotate:** the new key keeps the name, scopes, and lifetime. The old key keeps\n+  working for an overlap of up to seven days, then expires. A key can be rotated\n+  only once.\n+- **Revoke:** takes effect on the next request.\n+\n+Malformed, unknown, wrong, expired, revoked, and other-tenant keys all return\n+the same `401 invalid API key`. A valid key without the required scope gets\n+`403`.\n+\n+## Rate limits\n+\n+`RateLimiter` is a token bucket per key, with a configurable rate per minute and\n+burst. A refused request gets `429` with `Retry-After`. The limiter is\n+per-process, so with N API processes a key can make up to N × the rate. A\n+cluster-wide limit needs a shared store.\n",
+      "hunks": [
+        {
+          "id": "diff-638554df4a480931",
+          "header": "@@ -0,0 +1,49 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "# API keys"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "Organization API keys authenticate the public API and the MCP server."
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "```text"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "px1k_\u003cinstallation id\u003e_\u003ckey id\u003e_\u003csecret\u003e"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "```"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "- **The prefix** `px1k_` makes leaked keys easy to match in secret scanners."
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "- **The installation and key IDs are not secret.** The server sets"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "  `px1.installation_id` from the token before reading anything, so the"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "  `api_keys` table stays under the same forced row-level security as every"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "  other tenant table. Leaking an installation ID grants nothing."
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "- **The secret** is 256 random bits. Only its SHA-256 digest is stored and"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "  compared in constant time. A slow password hash would add nothing for a"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "  random secret of that length."
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "## Scopes"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "| Scope | Allows |"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "| --- | --- |"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "| `reviews:read` | Listing and reading reviews |"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "| `reviews:trigger` | Requesting a review |"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "| `findings:read` | Reading findings and their context |"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "| `findings:write` | Resolving findings with a note |"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "| `codebase:read` | Searching the indexed codebase |"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "| `rules:read` | Reading effective rules for a path |"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "| `memories:read` | Reading review memories for a path |"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "Every key has at least one scope. Unknown scopes are rejected."
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "## Lifecycle"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "- **Issue:** the plaintext token is returned once. Lifetime is at most one year."
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "- **Rotate:** the new key keeps the name, scopes, and lifetime. The old key keeps"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "  working for an overlap of up to seven days, then expires. A key can be rotated"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "  only once."
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "- **Revoke:** takes effect on the next request."
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "Malformed, unknown, wrong, expired, revoked, and other-tenant keys all return"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "the same `401 invalid API key`. A valid key without the required scope gets"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "`403`."
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "## Rate limits"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "`RateLimiter` is a token bucket per key, with a configurable rate per minute and"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "burst. A refused request gets `429` with `Retry-After`. The limiter is"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "per-process, so with N API processes a key can make up to N × the rate. A"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "cluster-wide limit needs a shared store."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/apikeys/http.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/apikeys/http.go b/internal/hosted/apikeys/http.go\nnew file mode 100644\nindex 0000000..65c1422\n--- /dev/null\n+++ b/internal/hosted/apikeys/http.go\n@@ -0,0 +1,111 @@\n+package apikeys\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"math\"\n+\t\"net/http\"\n+\t\"strconv\"\n+\t\"strings\"\n+\t\"sync\"\n+\t\"time\"\n+)\n+\n+// RateLimiter is a per-key token bucket. It is process-local: with N API\n+// processes a key can make up to N × the configured rate.\n+type RateLimiter struct {\n+\tPerMinute int\n+\tBurst     int\n+\tNow       func() time.Time\n+\n+\tmu      sync.Mutex\n+\tbuckets map[string]*bucket\n+}\n+\n+type bucket struct {\n+\ttokens float64\n+\tlast   time.Time\n+}\n+\n+const maxTrackedKeys = 100_000\n+\n+// Allow spends one token for key and, when refused, says how long to wait.\n+func (l *RateLimiter) Allow(key string) (bool, time.Duration) {\n+\tnow := time.Now()\n+\tif l.Now != nil {\n+\t\tnow = l.Now()\n+\t}\n+\tperMinute, burst := max(l.PerMinute, 1), max(l.Burst, 1)\n+\trate := float64(perMinute) / 60\n+\tl.mu.Lock()\n+\tdefer l.mu.Unlock()\n+\tif l.buckets == nil {\n+\t\tl.buckets = map[string]*bucket{}\n+\t}\n+\tb := l.buckets[key]\n+\tif b == nil {\n+\t\tif len(l.buckets) \u003e= maxTrackedKeys {\n+\t\t\tl.evictFull(now, rate, float64(burst))\n+\t\t}\n+\t\tb = \u0026bucket{tokens: float64(burst), last: now}\n+\t\tl.buckets[key] = b\n+\t}\n+\tb.tokens = math.Min(float64(burst), b.tokens+now.Sub(b.last).Seconds()*rate)\n+\tb.last = now\n+\tif b.tokens \u003e= 1 {\n+\t\tb.tokens--\n+\t\treturn true, 0\n+\t}\n+\treturn false, time.Duration(math.Ceil((1-b.tokens)/rate*1000)) * time.Millisecond\n+}\n+\n+// evictFull drops buckets that have refilled completely; forgetting them\n+// changes nothing because a new bucket also starts full.\n+func (l *RateLimiter) evictFull(now time.Time, rate, burst float64) {\n+\tfor key, b := range l.buckets {\n+\t\tif b.tokens+now.Sub(b.last).Seconds()*rate \u003e= burst {\n+\t\t\tdelete(l.buckets, key)\n+\t\t}\n+\t}\n+}\n+\n+type principalKey struct{}\n+\n+func PrincipalFrom(ctx context.Context) (Principal, bool) {\n+\tprincipal, ok := ctx.Value(principalKey{}).(Principal)\n+\treturn principal, ok\n+}\n+\n+// Middleware authenticates \"Authorization: Bearer px1k_...\" with the required\n+// scope and rate-limits by key. Responses never say whether a key exists.\n+func Middleware(manager Manager, limiter *RateLimiter, required Scope, next http.Handler) http.Handler {\n+\treturn http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {\n+\t\ttoken, ok := strings.CutPrefix(r.Header.Get(\"Authorization\"), \"Bearer \")\n+\t\tif !ok {\n+\t\t\tw.Header().Set(\"WWW-Authenticate\", `Bearer realm=\"px1\"`)\n+\t\t\thttp.Error(w, \"API key required\", http.StatusUnauthorized)\n+\t\t\treturn\n+\t\t}\n+\t\tprincipal, err := manager.Authenticate(r.Context(), strings.TrimSpace(token), required)\n+\t\tswitch {\n+\t\tcase errors.Is(err, ErrUnauthorized):\n+\t\t\tw.Header().Set(\"WWW-Authenticate\", `Bearer realm=\"px1\", error=\"invalid_token\"`)\n+\t\t\thttp.Error(w, \"invalid API key\", http.StatusUnauthorized)\n+\t\t\treturn\n+\t\tcase errors.Is(err, ErrForbidden):\n+\t\t\thttp.Error(w, \"API key lacks the \"+string(required)+\" scope\", http.StatusForbidden)\n+\t\t\treturn\n+\t\tcase err != nil:\n+\t\t\thttp.Error(w, \"API key verification unavailable\", http.StatusServiceUnavailable)\n+\t\t\treturn\n+\t\t}\n+\t\tif limiter != nil {\n+\t\t\tif allowed, wait := limiter.Allow(principal.KeyID); !allowed {\n+\t\t\t\tw.Header().Set(\"Retry-After\", strconv.Itoa(int(math.Ceil(wait.Seconds()))))\n+\t\t\t\thttp.Error(w, \"rate limit exceeded\", http.StatusTooManyRequests)\n+\t\t\t\treturn\n+\t\t\t}\n+\t\t}\n+\t\tnext.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), principalKey{}, principal)))\n+\t})\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-5e9a0c87c197899f",
+          "header": "@@ -0,0 +1,111 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package apikeys"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"math\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"net/http\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"strconv\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"sync\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "// RateLimiter is a per-key token bucket. It is process-local: with N API"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "// processes a key can make up to N × the configured rate."
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "type RateLimiter struct {"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tPerMinute int"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tBurst     int"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tNow       func() time.Time"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tmu      sync.Mutex"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tbuckets map[string]*bucket"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "type bucket struct {"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\ttokens float64"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tlast   time.Time"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "const maxTrackedKeys = 100_000"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "// Allow spends one token for key and, when refused, says how long to wait."
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "func (l *RateLimiter) Allow(key string) (bool, time.Duration) {"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tnow := time.Now()"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tif l.Now != nil {"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t\tnow = l.Now()"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tperMinute, burst := max(l.PerMinute, 1), max(l.Burst, 1)"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\trate := float64(perMinute) / 60"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tl.mu.Lock()"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\tdefer l.mu.Unlock()"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tif l.buckets == nil {"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t\tl.buckets = map[string]*bucket{}"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\tb := l.buckets[key]"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\tif b == nil {"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\tif len(l.buckets) \u003e= maxTrackedKeys {"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\t\tl.evictFull(now, rate, float64(burst))"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t\tb = \u0026bucket{tokens: float64(burst), last: now}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t\tl.buckets[key] = b"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\tb.tokens = math.Min(float64(burst), b.tokens+now.Sub(b.last).Seconds()*rate)"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\tb.last = now"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\tif b.tokens \u003e= 1 {"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t\tb.tokens--"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\treturn true, 0"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\treturn false, time.Duration(math.Ceil((1-b.tokens)/rate*1000)) * time.Millisecond"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "// evictFull drops buckets that have refilled completely; forgetting them"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "// changes nothing because a new bucket also starts full."
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "func (l *RateLimiter) evictFull(now time.Time, rate, burst float64) {"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\tfor key, b := range l.buckets {"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\tif b.tokens+now.Sub(b.last).Seconds()*rate \u003e= burst {"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\t\tdelete(l.buckets, key)"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "type principalKey struct{}"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "func PrincipalFrom(ctx context.Context) (Principal, bool) {"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\tprincipal, ok := ctx.Value(principalKey{}).(Principal)"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\treturn principal, ok"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "// Middleware authenticates \"Authorization: Bearer px1k_...\" with the required"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "// scope and rate-limits by key. Responses never say whether a key exists."
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "func Middleware(manager Manager, limiter *RateLimiter, required Scope, next http.Handler) http.Handler {"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\treturn http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t\ttoken, ok := strings.CutPrefix(r.Header.Get(\"Authorization\"), \"Bearer \")"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\t\tif !ok {"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\t\t\tw.Header().Set(\"WWW-Authenticate\", `Bearer realm=\"px1\"`)"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\t\t\thttp.Error(w, \"API key required\", http.StatusUnauthorized)"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\t\t\treturn"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\t\tprincipal, err := manager.Authenticate(r.Context(), strings.TrimSpace(token), required)"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t\tswitch {"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t\tcase errors.Is(err, ErrUnauthorized):"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\t\t\tw.Header().Set(\"WWW-Authenticate\", `Bearer realm=\"px1\", error=\"invalid_token\"`)"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\t\t\thttp.Error(w, \"invalid API key\", http.StatusUnauthorized)"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t\t\treturn"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t\tcase errors.Is(err, ErrForbidden):"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\t\t\thttp.Error(w, \"API key lacks the \"+string(required)+\" scope\", http.StatusForbidden)"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t\t\treturn"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t\tcase err != nil:"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\t\t\thttp.Error(w, \"API key verification unavailable\", http.StatusServiceUnavailable)"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\t\t\treturn"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\t\tif limiter != nil {"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t\t\tif allowed, wait := limiter.Allow(principal.KeyID); !allowed {"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t\t\t\tw.Header().Set(\"Retry-After\", strconv.Itoa(int(math.Ceil(wait.Seconds()))))"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\t\t\t\thttp.Error(w, \"rate limit exceeded\", http.StatusTooManyRequests)"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\t\t\t\treturn"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\t\tnext.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), principalKey{}, principal)))"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\t})"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/apikeys/keys.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/apikeys/keys.go b/internal/hosted/apikeys/keys.go\nnew file mode 100644\nindex 0000000..52232a5\n--- /dev/null\n+++ b/internal/hosted/apikeys/keys.go\n@@ -0,0 +1,216 @@\n+// Package apikeys issues and verifies per-organization API keys for the\n+// public API and the MCP server.\n+//\n+// A key looks like px1k_\u003cinstallation\u003e_\u003ckey id\u003e_\u003csecret\u003e. The installation and\n+// key ID are not secret: they let the server set the tenant before any lookup,\n+// so key rows stay behind the same row-level security as every other hosted\n+// table. Only a SHA-256 digest of the 256-bit random secret is stored. A fast\n+// hash is appropriate here because the secret is random, not a password.\n+package apikeys\n+\n+import (\n+\t\"context\"\n+\t\"crypto/rand\"\n+\t\"crypto/sha256\"\n+\t\"crypto/subtle\"\n+\t\"encoding/base64\"\n+\t\"encoding/hex\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"regexp\"\n+\t\"slices\"\n+\t\"strconv\"\n+\t\"strings\"\n+\t\"time\"\n+)\n+\n+const (\n+\tPrefix         = \"px1k_\"\n+\tMaxKeyLifetime = 365 * 24 * time.Hour\n+\tMaxRotation    = 7 * 24 * time.Hour\n+\tMaxNameBytes   = 100\n+)\n+\n+type Scope string\n+\n+const (\n+\tReviewsRead    Scope = \"reviews:read\"\n+\tReviewsTrigger Scope = \"reviews:trigger\"\n+\tFindingsRead   Scope = \"findings:read\"\n+\tFindingsWrite  Scope = \"findings:write\"\n+\tCodebaseRead   Scope = \"codebase:read\"\n+\tRulesRead      Scope = \"rules:read\"\n+\tMemoriesRead   Scope = \"memories:read\"\n+)\n+\n+var knownScopes = map[Scope]bool{ReviewsRead: true, ReviewsTrigger: true, FindingsRead: true, FindingsWrite: true, CodebaseRead: true, RulesRead: true, MemoriesRead: true}\n+\n+type Key struct {\n+\tID             string\n+\tInstallationID int64\n+\tName           string\n+\tScopes         []Scope\n+\tSecretHash     [32]byte\n+\tCreatedAt      time.Time\n+\tExpiresAt      time.Time\n+\tRevokedAt      time.Time\n+\tReplacedBy     string\n+}\n+\n+// Store reads and writes key rows for one tenant. Implementations set\n+// px1.installation_id from the installationID argument before querying.\n+type Store interface {\n+\tInsert(ctx context.Context, key Key) error\n+\tGet(ctx context.Context, installationID int64, id string) (Key, bool, error)\n+\t// Supersede atomically marks old as replaced by next and moves its expiry\n+\t// earlier, then inserts next. It fails if old is revoked or already replaced.\n+\tSupersede(ctx context.Context, installationID int64, oldID string, oldExpiresAt time.Time, next Key) error\n+\tRevoke(ctx context.Context, installationID int64, id string, at time.Time) error\n+}\n+\n+type Principal struct {\n+\tInstallationID int64\n+\tKeyID          string\n+\tScopes         []Scope\n+}\n+\n+func (p Principal) Has(scope Scope) bool { return slices.Contains(p.Scopes, scope) }\n+\n+var (\n+\t// ErrUnauthorized covers malformed, unknown, wrong, expired, and revoked\n+\t// keys alike, so callers cannot probe which keys exist.\n+\tErrUnauthorized = errors.New(\"invalid API key\")\n+\tErrForbidden    = errors.New(\"API key lacks the required scope\")\n+)\n+\n+var tokenPattern = regexp.MustCompile(`^px1k_([1-9][0-9]{0,18})_([0-9a-f]{16})_([A-Za-z0-9_-]{43})$`)\n+\n+type Manager struct {\n+\tStore Store\n+\tNow   func() time.Time\n+}\n+\n+// Issue creates a key and returns its plaintext token exactly once.\n+func (m Manager) Issue(ctx context.Context, installationID int64, name string, scopes []Scope, lifetime time.Duration) (string, Key, error) {\n+\tname = strings.TrimSpace(name)\n+\tif m.Store == nil || installationID \u003c= 0 || name == \"\" || len(name) \u003e MaxNameBytes {\n+\t\treturn \"\", Key{}, errors.New(\"store, tenant, and a 1-100 byte name are required\")\n+\t}\n+\tif lifetime \u003c= 0 || lifetime \u003e MaxKeyLifetime {\n+\t\treturn \"\", Key{}, fmt.Errorf(\"key lifetime must be positive and at most %s\", MaxKeyLifetime)\n+\t}\n+\tnormalized, err := normalizeScopes(scopes)\n+\tif err != nil {\n+\t\treturn \"\", Key{}, err\n+\t}\n+\ttoken, key, err := m.newKey(installationID, name, normalized, lifetime)\n+\tif err != nil {\n+\t\treturn \"\", Key{}, err\n+\t}\n+\tif err := m.Store.Insert(ctx, key); err != nil {\n+\t\treturn \"\", Key{}, fmt.Errorf(\"store API key: %w\", err)\n+\t}\n+\treturn token, key, nil\n+}\n+\n+// Rotate issues a replacement with the same name, scopes, and lifetime, and\n+// lets the old key keep working for at most overlap so clients can switch.\n+func (m Manager) Rotate(ctx context.Context, installationID int64, id string, overlap time.Duration) (string, Key, error) {\n+\tif m.Store == nil || overlap \u003c 0 || overlap \u003e MaxRotation {\n+\t\treturn \"\", Key{}, fmt.Errorf(\"store and an overlap of at most %s are required\", MaxRotation)\n+\t}\n+\told, found, err := m.Store.Get(ctx, installationID, id)\n+\tif err != nil {\n+\t\treturn \"\", Key{}, err\n+\t}\n+\tnow := m.now()\n+\tif !found || !old.RevokedAt.IsZero() || old.ReplacedBy != \"\" || !now.Before(old.ExpiresAt) {\n+\t\treturn \"\", Key{}, errors.New(\"only an active key can be rotated\")\n+\t}\n+\ttoken, next, err := m.newKey(installationID, old.Name, old.Scopes, old.ExpiresAt.Sub(old.CreatedAt))\n+\tif err != nil {\n+\t\treturn \"\", Key{}, err\n+\t}\n+\toldExpiry := now.Add(overlap)\n+\tif old.ExpiresAt.Before(oldExpiry) {\n+\t\toldExpiry = old.ExpiresAt\n+\t}\n+\tif err := m.Store.Supersede(ctx, installationID, old.ID, oldExpiry, next); err != nil {\n+\t\treturn \"\", Key{}, fmt.Errorf(\"rotate API key: %w\", err)\n+\t}\n+\treturn token, next, nil\n+}\n+\n+func (m Manager) Revoke(ctx context.Context, installationID int64, id string) error {\n+\tif m.Store == nil || installationID \u003c= 0 {\n+\t\treturn errors.New(\"store and tenant are required\")\n+\t}\n+\treturn m.Store.Revoke(ctx, installationID, id, m.now())\n+}\n+\n+// Authenticate verifies a presented token and, when required is non-empty,\n+// that the key holds that scope.\n+func (m Manager) Authenticate(ctx context.Context, token string, required Scope) (Principal, error) {\n+\tmatch := tokenPattern.FindStringSubmatch(token)\n+\tif m.Store == nil || match == nil {\n+\t\treturn Principal{}, ErrUnauthorized\n+\t}\n+\tinstallationID, err := strconv.ParseInt(match[1], 10, 64)\n+\tif err != nil {\n+\t\treturn Principal{}, ErrUnauthorized\n+\t}\n+\tkey, found, err := m.Store.Get(ctx, installationID, match[2])\n+\tif err != nil {\n+\t\treturn Principal{}, fmt.Errorf(\"read API key: %w\", err)\n+\t}\n+\tdigest := sha256.Sum256([]byte(match[3]))\n+\tif !found || key.InstallationID != installationID || subtle.ConstantTimeCompare(digest[:], key.SecretHash[:]) != 1 {\n+\t\treturn Principal{}, ErrUnauthorized\n+\t}\n+\tif !key.RevokedAt.IsZero() || !m.now().Before(key.ExpiresAt) {\n+\t\treturn Principal{}, ErrUnauthorized\n+\t}\n+\tprincipal := Principal{InstallationID: key.InstallationID, KeyID: key.ID, Scopes: append([]Scope{}, key.Scopes...)}\n+\tif required != \"\" \u0026\u0026 !principal.Has(required) {\n+\t\treturn principal, ErrForbidden\n+\t}\n+\treturn principal, nil\n+}\n+\n+func (m Manager) newKey(installationID int64, name string, scopes []Scope, lifetime time.Duration) (string, Key, error) {\n+\tidBytes, secretBytes := make([]byte, 8), make([]byte, 32)\n+\tif _, err := rand.Read(idBytes); err != nil {\n+\t\treturn \"\", Key{}, err\n+\t}\n+\tif _, err := rand.Read(secretBytes); err != nil {\n+\t\treturn \"\", Key{}, err\n+\t}\n+\tid, secret := hex.EncodeToString(idBytes), base64.RawURLEncoding.EncodeToString(secretBytes)\n+\tnow := m.now()\n+\tkey := Key{ID: id, InstallationID: installationID, Name: name, Scopes: scopes, SecretHash: sha256.Sum256([]byte(secret)), CreatedAt: now, ExpiresAt: now.Add(lifetime)}\n+\treturn fmt.Sprintf(\"%s%d_%s_%s\", Prefix, installationID, id, secret), key, nil\n+}\n+\n+func (m Manager) now() time.Time {\n+\tif m.Now != nil {\n+\t\treturn m.Now().UTC()\n+\t}\n+\treturn time.Now().UTC()\n+}\n+\n+func normalizeScopes(scopes []Scope) ([]Scope, error) {\n+\tif len(scopes) == 0 {\n+\t\treturn nil, errors.New(\"at least one scope is required\")\n+\t}\n+\tnormalized := []Scope{}\n+\tfor _, scope := range scopes {\n+\t\tif !knownScopes[scope] {\n+\t\t\treturn nil, fmt.Errorf(\"unknown scope %q\", scope)\n+\t\t}\n+\t\tif !slices.Contains(normalized, scope) {\n+\t\t\tnormalized = append(normalized, scope)\n+\t\t}\n+\t}\n+\tslices.Sort(normalized)\n+\treturn normalized, nil\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-adb11b5d0ff3240e",
+          "header": "@@ -0,0 +1,216 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "// Package apikeys issues and verifies per-organization API keys for the"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "// public API and the MCP server."
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "//"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "// A key looks like px1k_\u003cinstallation\u003e_\u003ckey id\u003e_\u003csecret\u003e. The installation and"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "// key ID are not secret: they let the server set the tenant before any lookup,"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "// so key rows stay behind the same row-level security as every other hosted"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "// table. Only a SHA-256 digest of the 256-bit random secret is stored. A fast"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "// hash is appropriate here because the secret is random, not a password."
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "package apikeys"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t\"crypto/rand\""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\t\"crypto/sha256\""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\t\"crypto/subtle\""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t\"encoding/base64\""
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t\"encoding/hex\""
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t\"regexp\""
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t\"slices\""
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\t\"strconv\""
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "const ("
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tPrefix         = \"px1k_\""
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tMaxKeyLifetime = 365 * 24 * time.Hour"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tMaxRotation    = 7 * 24 * time.Hour"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tMaxNameBytes   = 100"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "type Scope string"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "const ("
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\tReviewsRead    Scope = \"reviews:read\""
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tReviewsTrigger Scope = \"reviews:trigger\""
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tFindingsRead   Scope = \"findings:read\""
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tFindingsWrite  Scope = \"findings:write\""
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\tCodebaseRead   Scope = \"codebase:read\""
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tRulesRead      Scope = \"rules:read\""
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tMemoriesRead   Scope = \"memories:read\""
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "var knownScopes = map[Scope]bool{ReviewsRead: true, ReviewsTrigger: true, FindingsRead: true, FindingsWrite: true, CodebaseRead: true, RulesRead: true, MemoriesRead: true}"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "type Key struct {"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\tID             string"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\tInstallationID int64"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\tName           string"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\tScopes         []Scope"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\tSecretHash     [32]byte"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\tCreatedAt      time.Time"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\tExpiresAt      time.Time"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\tRevokedAt      time.Time"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\tReplacedBy     string"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "// Store reads and writes key rows for one tenant. Implementations set"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "// px1.installation_id from the installationID argument before querying."
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "type Store interface {"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\tInsert(ctx context.Context, key Key) error"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\tGet(ctx context.Context, installationID int64, id string) (Key, bool, error)"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t// Supersede atomically marks old as replaced by next and moves its expiry"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t// earlier, then inserts next. It fails if old is revoked or already replaced."
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\tSupersede(ctx context.Context, installationID int64, oldID string, oldExpiresAt time.Time, next Key) error"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\tRevoke(ctx context.Context, installationID int64, id string, at time.Time) error"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "type Principal struct {"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\tInstallationID int64"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\tKeyID          string"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\tScopes         []Scope"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "func (p Principal) Has(scope Scope) bool { return slices.Contains(p.Scopes, scope) }"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "var ("
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t// ErrUnauthorized covers malformed, unknown, wrong, expired, and revoked"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\t// keys alike, so callers cannot probe which keys exist."
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\tErrUnauthorized = errors.New(\"invalid API key\")"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\tErrForbidden    = errors.New(\"API key lacks the required scope\")"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "var tokenPattern = regexp.MustCompile(`^px1k_([1-9][0-9]{0,18})_([0-9a-f]{16})_([A-Za-z0-9_-]{43})$`)"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "type Manager struct {"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\tStore Store"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\tNow   func() time.Time"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "// Issue creates a key and returns its plaintext token exactly once."
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "func (m Manager) Issue(ctx context.Context, installationID int64, name string, scopes []Scope, lifetime time.Duration) (string, Key, error) {"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\tname = strings.TrimSpace(name)"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\tif m.Store == nil || installationID \u003c= 0 || name == \"\" || len(name) \u003e MaxNameBytes {"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t\treturn \"\", Key{}, errors.New(\"store, tenant, and a 1-100 byte name are required\")"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\tif lifetime \u003c= 0 || lifetime \u003e MaxKeyLifetime {"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\t\treturn \"\", Key{}, fmt.Errorf(\"key lifetime must be positive and at most %s\", MaxKeyLifetime)"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\tnormalized, err := normalizeScopes(scopes)"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t\treturn \"\", Key{}, err"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\ttoken, key, err := m.newKey(installationID, name, normalized, lifetime)"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\t\treturn \"\", Key{}, err"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\tif err := m.Store.Insert(ctx, key); err != nil {"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\t\treturn \"\", Key{}, fmt.Errorf(\"store API key: %w\", err)"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\treturn token, key, nil"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "// Rotate issues a replacement with the same name, scopes, and lifetime, and"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "// lets the old key keep working for at most overlap so clients can switch."
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "func (m Manager) Rotate(ctx context.Context, installationID int64, id string, overlap time.Duration) (string, Key, error) {"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\tif m.Store == nil || overlap \u003c 0 || overlap \u003e MaxRotation {"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\t\treturn \"\", Key{}, fmt.Errorf(\"store and an overlap of at most %s are required\", MaxRotation)"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\told, found, err := m.Store.Get(ctx, installationID, id)"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\t\treturn \"\", Key{}, err"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\tnow := m.now()"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\tif !found || !old.RevokedAt.IsZero() || old.ReplacedBy != \"\" || !now.Before(old.ExpiresAt) {"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\t\treturn \"\", Key{}, errors.New(\"only an active key can be rotated\")"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\ttoken, next, err := m.newKey(installationID, old.Name, old.Scopes, old.ExpiresAt.Sub(old.CreatedAt))"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\t\treturn \"\", Key{}, err"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\toldExpiry := now.Add(overlap)"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\tif old.ExpiresAt.Before(oldExpiry) {"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\t\toldExpiry = old.ExpiresAt"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\tif err := m.Store.Supersede(ctx, installationID, old.ID, oldExpiry, next); err != nil {"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\t\treturn \"\", Key{}, fmt.Errorf(\"rotate API key: %w\", err)"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "\treturn token, next, nil"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "func (m Manager) Revoke(ctx context.Context, installationID int64, id string) error {"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\tif m.Store == nil || installationID \u003c= 0 {"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"store and tenant are required\")"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "\treturn m.Store.Revoke(ctx, installationID, id, m.now())"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "// Authenticate verifies a presented token and, when required is non-empty,"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "// that the key holds that scope."
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "func (m Manager) Authenticate(ctx context.Context, token string, required Scope) (Principal, error) {"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "\tmatch := tokenPattern.FindStringSubmatch(token)"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "\tif m.Store == nil || match == nil {"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "\t\treturn Principal{}, ErrUnauthorized"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "\tinstallationID, err := strconv.ParseInt(match[1], 10, 64)"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "\t\treturn Principal{}, ErrUnauthorized"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "\tkey, found, err := m.Store.Get(ctx, installationID, match[2])"
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "\t\treturn Principal{}, fmt.Errorf(\"read API key: %w\", err)"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "\tdigest := sha256.Sum256([]byte(match[3]))"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": "\tif !found || key.InstallationID != installationID || subtle.ConstantTimeCompare(digest[:], key.SecretHash[:]) != 1 {"
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": "\t\treturn Principal{}, ErrUnauthorized"
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "\tif !key.RevokedAt.IsZero() || !m.now().Before(key.ExpiresAt) {"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "\t\treturn Principal{}, ErrUnauthorized"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "\tprincipal := Principal{InstallationID: key.InstallationID, KeyID: key.ID, Scopes: append([]Scope{}, key.Scopes...)}"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "\tif required != \"\" \u0026\u0026 !principal.Has(required) {"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "\t\treturn principal, ErrForbidden"
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": "\treturn principal, nil"
+            },
+            {
+              "newLine": 178,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 180,
+              "kind": "added",
+              "text": "func (m Manager) newKey(installationID int64, name string, scopes []Scope, lifetime time.Duration) (string, Key, error) {"
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": "\tidBytes, secretBytes := make([]byte, 8), make([]byte, 32)"
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": "\tif _, err := rand.Read(idBytes); err != nil {"
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": "\t\treturn \"\", Key{}, err"
+            },
+            {
+              "newLine": 184,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 185,
+              "kind": "added",
+              "text": "\tif _, err := rand.Read(secretBytes); err != nil {"
+            },
+            {
+              "newLine": 186,
+              "kind": "added",
+              "text": "\t\treturn \"\", Key{}, err"
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": "\tid, secret := hex.EncodeToString(idBytes), base64.RawURLEncoding.EncodeToString(secretBytes)"
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "\tnow := m.now()"
+            },
+            {
+              "newLine": 190,
+              "kind": "added",
+              "text": "\tkey := Key{ID: id, InstallationID: installationID, Name: name, Scopes: scopes, SecretHash: sha256.Sum256([]byte(secret)), CreatedAt: now, ExpiresAt: now.Add(lifetime)}"
+            },
+            {
+              "newLine": 191,
+              "kind": "added",
+              "text": "\treturn fmt.Sprintf(\"%s%d_%s_%s\", Prefix, installationID, id, secret), key, nil"
+            },
+            {
+              "newLine": 192,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 193,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 194,
+              "kind": "added",
+              "text": "func (m Manager) now() time.Time {"
+            },
+            {
+              "newLine": 195,
+              "kind": "added",
+              "text": "\tif m.Now != nil {"
+            },
+            {
+              "newLine": 196,
+              "kind": "added",
+              "text": "\t\treturn m.Now().UTC()"
+            },
+            {
+              "newLine": 197,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 198,
+              "kind": "added",
+              "text": "\treturn time.Now().UTC()"
+            },
+            {
+              "newLine": 199,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 200,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 201,
+              "kind": "added",
+              "text": "func normalizeScopes(scopes []Scope) ([]Scope, error) {"
+            },
+            {
+              "newLine": 202,
+              "kind": "added",
+              "text": "\tif len(scopes) == 0 {"
+            },
+            {
+              "newLine": 203,
+              "kind": "added",
+              "text": "\t\treturn nil, errors.New(\"at least one scope is required\")"
+            },
+            {
+              "newLine": 204,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 205,
+              "kind": "added",
+              "text": "\tnormalized := []Scope{}"
+            },
+            {
+              "newLine": 206,
+              "kind": "added",
+              "text": "\tfor _, scope := range scopes {"
+            },
+            {
+              "newLine": 207,
+              "kind": "added",
+              "text": "\t\tif !knownScopes[scope] {"
+            },
+            {
+              "newLine": 208,
+              "kind": "added",
+              "text": "\t\t\treturn nil, fmt.Errorf(\"unknown scope %q\", scope)"
+            },
+            {
+              "newLine": 209,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 210,
+              "kind": "added",
+              "text": "\t\tif !slices.Contains(normalized, scope) {"
+            },
+            {
+              "newLine": 211,
+              "kind": "added",
+              "text": "\t\t\tnormalized = append(normalized, scope)"
+            },
+            {
+              "newLine": 212,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 213,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 214,
+              "kind": "added",
+              "text": "\tslices.Sort(normalized)"
+            },
+            {
+              "newLine": 215,
+              "kind": "added",
+              "text": "\treturn normalized, nil"
+            },
+            {
+              "newLine": 216,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/apikeys/keys_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/apikeys/keys_test.go b/internal/hosted/apikeys/keys_test.go\nnew file mode 100644\nindex 0000000..3c4034d\n--- /dev/null\n+++ b/internal/hosted/apikeys/keys_test.go\n@@ -0,0 +1,229 @@\n+package apikeys\n+\n+import (\n+\t\"context\"\n+\t\"errors\"\n+\t\"net/http\"\n+\t\"net/http/httptest\"\n+\t\"strings\"\n+\t\"sync\"\n+\t\"testing\"\n+\t\"time\"\n+)\n+\n+type memoryStore struct {\n+\tmu   sync.Mutex\n+\tkeys map[int64]map[string]Key\n+}\n+\n+func (s *memoryStore) tenant(id int64) map[string]Key {\n+\tif s.keys == nil {\n+\t\ts.keys = map[int64]map[string]Key{}\n+\t}\n+\tif s.keys[id] == nil {\n+\t\ts.keys[id] = map[string]Key{}\n+\t}\n+\treturn s.keys[id]\n+}\n+\n+func (s *memoryStore) Insert(_ context.Context, key Key) error {\n+\ts.mu.Lock()\n+\tdefer s.mu.Unlock()\n+\ts.tenant(key.InstallationID)[key.ID] = key\n+\treturn nil\n+}\n+\n+func (s *memoryStore) Get(_ context.Context, installationID int64, id string) (Key, bool, error) {\n+\ts.mu.Lock()\n+\tdefer s.mu.Unlock()\n+\tkey, ok := s.tenant(installationID)[id]\n+\treturn key, ok, nil\n+}\n+\n+func (s *memoryStore) Supersede(_ context.Context, installationID int64, oldID string, oldExpiresAt time.Time, next Key) error {\n+\ts.mu.Lock()\n+\tdefer s.mu.Unlock()\n+\told, ok := s.tenant(installationID)[oldID]\n+\tif !ok || !old.RevokedAt.IsZero() || old.ReplacedBy != \"\" {\n+\t\treturn errors.New(\"not active\")\n+\t}\n+\told.ReplacedBy, old.ExpiresAt = next.ID, oldExpiresAt\n+\ts.tenant(installationID)[oldID] = old\n+\ts.tenant(installationID)[next.ID] = next\n+\treturn nil\n+}\n+\n+func (s *memoryStore) Revoke(_ context.Context, installationID int64, id string, at time.Time) error {\n+\ts.mu.Lock()\n+\tdefer s.mu.Unlock()\n+\tkey := s.tenant(installationID)[id]\n+\tkey.RevokedAt = at\n+\ts.tenant(installationID)[id] = key\n+\treturn nil\n+}\n+\n+type clock struct{ now time.Time }\n+\n+func (c *clock) Now() time.Time { return c.now }\n+\n+func newManager() (Manager, *memoryStore, *clock) {\n+\tstore, c := \u0026memoryStore{}, \u0026clock{now: time.Date(2026, 11, 7, 0, 0, 0, 0, time.UTC)}\n+\treturn Manager{Store: store, Now: c.Now}, store, c\n+}\n+\n+func TestIssuedKeysStoreOnlyADigestAndAuthenticateWithScopes(t *testing.T) {\n+\tmanager, store, _ := newManager()\n+\ttoken, key, err := manager.Issue(context.Background(), 42, \"ci bot\", []Scope{FindingsRead, ReviewsRead, FindingsRead}, 30*24*time.Hour)\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif !strings.HasPrefix(token, \"px1k_42_\"+key.ID+\"_\") || len(key.Scopes) != 2 {\n+\t\tt.Fatalf(\"token=%q scopes=%v\", token, key.Scopes)\n+\t}\n+\tsecret := token[strings.LastIndex(token, \"_\")+1:]\n+\tstored, _, _ := store.Get(context.Background(), 42, key.ID)\n+\tif strings.Contains(stored.Name+string(stored.SecretHash[:]), secret) {\n+\t\tt.Fatal(\"plaintext secret stored\")\n+\t}\n+\tprincipal, err := manager.Authenticate(context.Background(), token, FindingsRead)\n+\tif err != nil || principal.InstallationID != 42 || principal.KeyID != key.ID {\n+\t\tt.Fatalf(\"principal=%#v err=%v\", principal, err)\n+\t}\n+\tif _, err := manager.Authenticate(context.Background(), token, ReviewsTrigger); !errors.Is(err, ErrForbidden) {\n+\t\tt.Fatalf(\"missing scope: %v\", err)\n+\t}\n+}\n+\n+func TestAuthenticationFailuresAreIndistinguishable(t *testing.T) {\n+\tmanager, _, c := newManager()\n+\ttoken, key, _ := manager.Issue(context.Background(), 42, \"k\", []Scope{ReviewsRead}, time.Hour)\n+\twrongSecret := token[:len(token)-1] + map[bool]string{true: \"A\", false: \"B\"}[token[len(token)-1] != 'A']\n+\totherTenant := strings.Replace(token, \"px1k_42_\", \"px1k_43_\", 1)\n+\tfor name, presented := range map[string]string{\n+\t\t\"empty\": \"\", \"garbage\": \"Bearer nope\", \"wrong secret\": wrongSecret, \"other tenant\": otherTenant,\n+\t\t\"unknown id\": strings.Replace(token, key.ID, \"0123456789abcdef\", 1), \"leading zero tenant\": strings.Replace(token, \"px1k_42\", \"px1k_042\", 1),\n+\t} {\n+\t\tif _, err := manager.Authenticate(context.Background(), presented, \"\"); !errors.Is(err, ErrUnauthorized) {\n+\t\t\tt.Fatalf(\"%s: %v\", name, err)\n+\t\t}\n+\t}\n+\tc.now = c.now.Add(time.Hour)\n+\tif _, err := manager.Authenticate(context.Background(), token, \"\"); !errors.Is(err, ErrUnauthorized) {\n+\t\tt.Fatal(\"expired key accepted\")\n+\t}\n+}\n+\n+func TestRotationOverlapsThenRetiresTheOldKey(t *testing.T) {\n+\tmanager, _, c := newManager()\n+\toldToken, old, _ := manager.Issue(context.Background(), 42, \"deploy\", []Scope{ReviewsRead}, 90*24*time.Hour)\n+\tnewToken, next, err := manager.Rotate(context.Background(), 42, old.ID, time.Hour)\n+\tif err != nil || next.Name != \"deploy\" || next.Scopes[0] != ReviewsRead || next.ID == old.ID {\n+\t\tt.Fatalf(\"next=%#v err=%v\", next, err)\n+\t}\n+\tfor _, token := range []string{oldToken, newToken} {\n+\t\tif _, err := manager.Authenticate(context.Background(), token, \"\"); err != nil {\n+\t\t\tt.Fatalf(\"key unusable during overlap: %v\", err)\n+\t\t}\n+\t}\n+\tif _, _, err := manager.Rotate(context.Background(), 42, old.ID, time.Hour); err == nil {\n+\t\tt.Fatal(\"a superseded key was rotated twice\")\n+\t}\n+\tc.now = c.now.Add(time.Hour)\n+\tif _, err := manager.Authenticate(context.Background(), oldToken, \"\"); !errors.Is(err, ErrUnauthorized) {\n+\t\tt.Fatal(\"old key outlived its overlap\")\n+\t}\n+\tif _, err := manager.Authenticate(context.Background(), newToken, \"\"); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif _, _, err := manager.Rotate(context.Background(), 42, next.ID, 8*24*time.Hour); err == nil {\n+\t\tt.Fatal(\"overlap above seven days accepted\")\n+\t}\n+\tif err := manager.Revoke(context.Background(), 42, next.ID); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif _, err := manager.Authenticate(context.Background(), newToken, \"\"); !errors.Is(err, ErrUnauthorized) {\n+\t\tt.Fatal(\"revoked key accepted\")\n+\t}\n+}\n+\n+func TestIssueValidatesInput(t *testing.T) {\n+\tmanager, _, _ := newManager()\n+\tfor name, issue := range map[string]func() error{\n+\t\t\"no scopes\": func() error { _, _, err := manager.Issue(context.Background(), 1, \"k\", nil, time.Hour); return err },\n+\t\t\"unknown scope\": func() error {\n+\t\t\t_, _, err := manager.Issue(context.Background(), 1, \"k\", []Scope{\"admin\"}, time.Hour)\n+\t\t\treturn err\n+\t\t},\n+\t\t\"forever\": func() error {\n+\t\t\t_, _, err := manager.Issue(context.Background(), 1, \"k\", []Scope{ReviewsRead}, 400*24*time.Hour)\n+\t\t\treturn err\n+\t\t},\n+\t\t\"no tenant\": func() error {\n+\t\t\t_, _, err := manager.Issue(context.Background(), 0, \"k\", []Scope{ReviewsRead}, time.Hour)\n+\t\t\treturn err\n+\t\t},\n+\t\t\"no name\": func() error {\n+\t\t\t_, _, err := manager.Issue(context.Background(), 1, \" \", []Scope{ReviewsRead}, time.Hour)\n+\t\t\treturn err\n+\t\t},\n+\t} {\n+\t\tif issue() == nil {\n+\t\t\tt.Fatalf(\"%s accepted\", name)\n+\t\t}\n+\t}\n+}\n+\n+func TestRateLimiterRefillsPerKey(t *testing.T) {\n+\tnow := time.Date(2026, 11, 7, 0, 0, 0, 0, time.UTC)\n+\tlimiter := \u0026RateLimiter{PerMinute: 60, Burst: 2, Now: func() time.Time { return now }}\n+\tif ok, _ := limiter.Allow(\"a\"); !ok {\n+\t\tt.Fatal(\"first request refused\")\n+\t}\n+\tlimiter.Allow(\"a\")\n+\tok, wait := limiter.Allow(\"a\")\n+\tif ok || wait != time.Second {\n+\t\tt.Fatalf(\"burst exceeded: ok=%v wait=%s\", ok, wait)\n+\t}\n+\tif ok, _ := limiter.Allow(\"b\"); !ok {\n+\t\tt.Fatal(\"keys share a bucket\")\n+\t}\n+\tnow = now.Add(time.Second)\n+\tif ok, _ := limiter.Allow(\"a\"); !ok {\n+\t\tt.Fatal(\"bucket did not refill\")\n+\t}\n+}\n+\n+func TestMiddlewareMapsFailuresToHTTPStatus(t *testing.T) {\n+\tmanager, _, _ := newManager()\n+\ttoken, _, _ := manager.Issue(context.Background(), 42, \"k\", []Scope{FindingsRead}, time.Hour)\n+\tlimiter := \u0026RateLimiter{PerMinute: 1, Burst: 1}\n+\thandler := Middleware(manager, limiter, FindingsRead, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {\n+\t\tprincipal, _ := PrincipalFrom(r.Context())\n+\t\tw.Write([]byte(principal.KeyID))\n+\t}))\n+\tforbidden := Middleware(manager, nil, ReviewsTrigger, handler)\n+\trequest := func(h http.Handler, auth string) *httptest.ResponseRecorder {\n+\t\tr := httptest.NewRequest(http.MethodGet, \"/\", nil)\n+\t\tif auth != \"\" {\n+\t\t\tr.Header.Set(\"Authorization\", auth)\n+\t\t}\n+\t\tw := httptest.NewRecorder()\n+\t\th.ServeHTTP(w, r)\n+\t\treturn w\n+\t}\n+\tif w := request(handler, \"\"); w.Code != http.StatusUnauthorized || w.Header().Get(\"WWW-Authenticate\") == \"\" {\n+\t\tt.Fatalf(\"missing key: %d\", w.Code)\n+\t}\n+\tif w := request(handler, \"Bearer px1k_1_0000000000000000_\"+strings.Repeat(\"a\", 43)); w.Code != http.StatusUnauthorized {\n+\t\tt.Fatalf(\"unknown key: %d\", w.Code)\n+\t}\n+\tif w := request(forbidden, \"Bearer \"+token); w.Code != http.StatusForbidden {\n+\t\tt.Fatalf(\"missing scope: %d\", w.Code)\n+\t}\n+\tif w := request(handler, \"Bearer \"+token); w.Code != http.StatusOK || w.Body.Len() != 16 {\n+\t\tt.Fatalf(\"valid key: %d %q\", w.Code, w.Body.String())\n+\t}\n+\tif w := request(handler, \"Bearer \"+token); w.Code != http.StatusTooManyRequests || w.Header().Get(\"Retry-After\") == \"\" {\n+\t\tt.Fatalf(\"rate limit: %d\", w.Code)\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-cc23fd4d1cc25b55",
+          "header": "@@ -0,0 +1,229 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package apikeys"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"net/http\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"net/http/httptest\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"sync\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "type memoryStore struct {"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tmu   sync.Mutex"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tkeys map[int64]map[string]Key"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "func (s *memoryStore) tenant(id int64) map[string]Key {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tif s.keys == nil {"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t\ts.keys = map[int64]map[string]Key{}"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tif s.keys[id] == nil {"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\ts.keys[id] = map[string]Key{}"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\treturn s.keys[id]"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "func (s *memoryStore) Insert(_ context.Context, key Key) error {"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\ts.mu.Lock()"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tdefer s.mu.Unlock()"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\ts.tenant(key.InstallationID)[key.ID] = key"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "func (s *memoryStore) Get(_ context.Context, installationID int64, id string) (Key, bool, error) {"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\ts.mu.Lock()"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tdefer s.mu.Unlock()"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tkey, ok := s.tenant(installationID)[id]"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\treturn key, ok, nil"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "func (s *memoryStore) Supersede(_ context.Context, installationID int64, oldID string, oldExpiresAt time.Time, next Key) error {"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\ts.mu.Lock()"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\tdefer s.mu.Unlock()"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\told, ok := s.tenant(installationID)[oldID]"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\tif !ok || !old.RevokedAt.IsZero() || old.ReplacedBy != \"\" {"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"not active\")"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\told.ReplacedBy, old.ExpiresAt = next.ID, oldExpiresAt"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\ts.tenant(installationID)[oldID] = old"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\ts.tenant(installationID)[next.ID] = next"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "func (s *memoryStore) Revoke(_ context.Context, installationID int64, id string, at time.Time) error {"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\ts.mu.Lock()"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\tdefer s.mu.Unlock()"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\tkey := s.tenant(installationID)[id]"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\tkey.RevokedAt = at"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\ts.tenant(installationID)[id] = key"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "type clock struct{ now time.Time }"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "func (c *clock) Now() time.Time { return c.now }"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "func newManager() (Manager, *memoryStore, *clock) {"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\tstore, c := \u0026memoryStore{}, \u0026clock{now: time.Date(2026, 11, 7, 0, 0, 0, 0, time.UTC)}"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\treturn Manager{Store: store, Now: c.Now}, store, c"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "func TestIssuedKeysStoreOnlyADigestAndAuthenticateWithScopes(t *testing.T) {"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\tmanager, store, _ := newManager()"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\ttoken, key, err := manager.Issue(context.Background(), 42, \"ci bot\", []Scope{FindingsRead, ReviewsRead, FindingsRead}, 30*24*time.Hour)"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\tif !strings.HasPrefix(token, \"px1k_42_\"+key.ID+\"_\") || len(key.Scopes) != 2 {"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"token=%q scopes=%v\", token, key.Scopes)"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\tsecret := token[strings.LastIndex(token, \"_\")+1:]"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\tstored, _, _ := store.Get(context.Background(), 42, key.ID)"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\tif strings.Contains(stored.Name+string(stored.SecretHash[:]), secret) {"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"plaintext secret stored\")"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\tprincipal, err := manager.Authenticate(context.Background(), token, FindingsRead)"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\tif err != nil || principal.InstallationID != 42 || principal.KeyID != key.ID {"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"principal=%#v err=%v\", principal, err)"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\tif _, err := manager.Authenticate(context.Background(), token, ReviewsTrigger); !errors.Is(err, ErrForbidden) {"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"missing scope: %v\", err)"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "func TestAuthenticationFailuresAreIndistinguishable(t *testing.T) {"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\tmanager, _, c := newManager()"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\ttoken, key, _ := manager.Issue(context.Background(), 42, \"k\", []Scope{ReviewsRead}, time.Hour)"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\twrongSecret := token[:len(token)-1] + map[bool]string{true: \"A\", false: \"B\"}[token[len(token)-1] != 'A']"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\totherTenant := strings.Replace(token, \"px1k_42_\", \"px1k_43_\", 1)"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\tfor name, presented := range map[string]string{"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t\t\"empty\": \"\", \"garbage\": \"Bearer nope\", \"wrong secret\": wrongSecret, \"other tenant\": otherTenant,"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t\t\"unknown id\": strings.Replace(token, key.ID, \"0123456789abcdef\", 1), \"leading zero tenant\": strings.Replace(token, \"px1k_42\", \"px1k_042\", 1),"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\t} {"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\t\tif _, err := manager.Authenticate(context.Background(), presented, \"\"); !errors.Is(err, ErrUnauthorized) {"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"%s: %v\", name, err)"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\tc.now = c.now.Add(time.Hour)"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\tif _, err := manager.Authenticate(context.Background(), token, \"\"); !errors.Is(err, ErrUnauthorized) {"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"expired key accepted\")"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "func TestRotationOverlapsThenRetiresTheOldKey(t *testing.T) {"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\tmanager, _, c := newManager()"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\toldToken, old, _ := manager.Issue(context.Background(), 42, \"deploy\", []Scope{ReviewsRead}, 90*24*time.Hour)"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\tnewToken, next, err := manager.Rotate(context.Background(), 42, old.ID, time.Hour)"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\tif err != nil || next.Name != \"deploy\" || next.Scopes[0] != ReviewsRead || next.ID == old.ID {"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"next=%#v err=%v\", next, err)"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "\tfor _, token := range []string{oldToken, newToken} {"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\t\tif _, err := manager.Authenticate(context.Background(), token, \"\"); err != nil {"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"key unusable during overlap: %v\", err)"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\tif _, _, err := manager.Rotate(context.Background(), 42, old.ID, time.Hour); err == nil {"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"a superseded key was rotated twice\")"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\tc.now = c.now.Add(time.Hour)"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\tif _, err := manager.Authenticate(context.Background(), oldToken, \"\"); !errors.Is(err, ErrUnauthorized) {"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"old key outlived its overlap\")"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\tif _, err := manager.Authenticate(context.Background(), newToken, \"\"); err != nil {"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\tif _, _, err := manager.Rotate(context.Background(), 42, next.ID, 8*24*time.Hour); err == nil {"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"overlap above seven days accepted\")"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "\tif err := manager.Revoke(context.Background(), 42, next.ID); err != nil {"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\tif _, err := manager.Authenticate(context.Background(), newToken, \"\"); !errors.Is(err, ErrUnauthorized) {"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"revoked key accepted\")"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "func TestIssueValidatesInput(t *testing.T) {"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "\tmanager, _, _ := newManager()"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "\tfor name, issue := range map[string]func() error{"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "\t\t\"no scopes\": func() error { _, _, err := manager.Issue(context.Background(), 1, \"k\", nil, time.Hour); return err },"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "\t\t\"unknown scope\": func() error {"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "\t\t\t_, _, err := manager.Issue(context.Background(), 1, \"k\", []Scope{\"admin\"}, time.Hour)"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "\t\t\treturn err"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "\t\t},"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "\t\t\"forever\": func() error {"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "\t\t\t_, _, err := manager.Issue(context.Background(), 1, \"k\", []Scope{ReviewsRead}, 400*24*time.Hour)"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "\t\t\treturn err"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "\t\t},"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "\t\t\"no tenant\": func() error {"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "\t\t\t_, _, err := manager.Issue(context.Background(), 0, \"k\", []Scope{ReviewsRead}, time.Hour)"
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "\t\t\treturn err"
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "\t\t},"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": "\t\t\"no name\": func() error {"
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "\t\t\t_, _, err := manager.Issue(context.Background(), 1, \" \", []Scope{ReviewsRead}, time.Hour)"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": "\t\t\treturn err"
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": "\t\t},"
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "\t} {"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "\t\tif issue() == nil {"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"%s accepted\", name)"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "func TestRateLimiterRefillsPerKey(t *testing.T) {"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": "\tnow := time.Date(2026, 11, 7, 0, 0, 0, 0, time.UTC)"
+            },
+            {
+              "newLine": 178,
+              "kind": "added",
+              "text": "\tlimiter := \u0026RateLimiter{PerMinute: 60, Burst: 2, Now: func() time.Time { return now }}"
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": "\tif ok, _ := limiter.Allow(\"a\"); !ok {"
+            },
+            {
+              "newLine": 180,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"first request refused\")"
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": "\tlimiter.Allow(\"a\")"
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": "\tok, wait := limiter.Allow(\"a\")"
+            },
+            {
+              "newLine": 184,
+              "kind": "added",
+              "text": "\tif ok || wait != time.Second {"
+            },
+            {
+              "newLine": 185,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"burst exceeded: ok=%v wait=%s\", ok, wait)"
+            },
+            {
+              "newLine": 186,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "\tif ok, _ := limiter.Allow(\"b\"); !ok {"
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"keys share a bucket\")"
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 190,
+              "kind": "added",
+              "text": "\tnow = now.Add(time.Second)"
+            },
+            {
+              "newLine": 191,
+              "kind": "added",
+              "text": "\tif ok, _ := limiter.Allow(\"a\"); !ok {"
+            },
+            {
+              "newLine": 192,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"bucket did not refill\")"
+            },
+            {
+              "newLine": 193,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 194,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 195,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 196,
+              "kind": "added",
+              "text": "func TestMiddlewareMapsFailuresToHTTPStatus(t *testing.T) {"
+            },
+            {
+              "newLine": 197,
+              "kind": "added",
+              "text": "\tmanager, _, _ := newManager()"
+            },
+            {
+              "newLine": 198,
+              "kind": "added",
+              "text": "\ttoken, _, _ := manager.Issue(context.Background(), 42, \"k\", []Scope{FindingsRead}, time.Hour)"
+            },
+            {
+              "newLine": 199,
+              "kind": "added",
+              "text": "\tlimiter := \u0026RateLimiter{PerMinute: 1, Burst: 1}"
+            },
+            {
+              "newLine": 200,
+              "kind": "added",
+              "text": "\thandler := Middleware(manager, limiter, FindingsRead, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {"
+            },
+            {
+              "newLine": 201,
+              "kind": "added",
+              "text": "\t\tprincipal, _ := PrincipalFrom(r.Context())"
+            },
+            {
+              "newLine": 202,
+              "kind": "added",
+              "text": "\t\tw.Write([]byte(principal.KeyID))"
+            },
+            {
+              "newLine": 203,
+              "kind": "added",
+              "text": "\t}))"
+            },
+            {
+              "newLine": 204,
+              "kind": "added",
+              "text": "\tforbidden := Middleware(manager, nil, ReviewsTrigger, handler)"
+            },
+            {
+              "newLine": 205,
+              "kind": "added",
+              "text": "\trequest := func(h http.Handler, auth string) *httptest.ResponseRecorder {"
+            },
+            {
+              "newLine": 206,
+              "kind": "added",
+              "text": "\t\tr := httptest.NewRequest(http.MethodGet, \"/\", nil)"
+            },
+            {
+              "newLine": 207,
+              "kind": "added",
+              "text": "\t\tif auth != \"\" {"
+            },
+            {
+              "newLine": 208,
+              "kind": "added",
+              "text": "\t\t\tr.Header.Set(\"Authorization\", auth)"
+            },
+            {
+              "newLine": 209,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 210,
+              "kind": "added",
+              "text": "\t\tw := httptest.NewRecorder()"
+            },
+            {
+              "newLine": 211,
+              "kind": "added",
+              "text": "\t\th.ServeHTTP(w, r)"
+            },
+            {
+              "newLine": 212,
+              "kind": "added",
+              "text": "\t\treturn w"
+            },
+            {
+              "newLine": 213,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 214,
+              "kind": "added",
+              "text": "\tif w := request(handler, \"\"); w.Code != http.StatusUnauthorized || w.Header().Get(\"WWW-Authenticate\") == \"\" {"
+            },
+            {
+              "newLine": 215,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"missing key: %d\", w.Code)"
+            },
+            {
+              "newLine": 216,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 217,
+              "kind": "added",
+              "text": "\tif w := request(handler, \"Bearer px1k_1_0000000000000000_\"+strings.Repeat(\"a\", 43)); w.Code != http.StatusUnauthorized {"
+            },
+            {
+              "newLine": 218,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"unknown key: %d\", w.Code)"
+            },
+            {
+              "newLine": 219,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 220,
+              "kind": "added",
+              "text": "\tif w := request(forbidden, \"Bearer \"+token); w.Code != http.StatusForbidden {"
+            },
+            {
+              "newLine": 221,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"missing scope: %d\", w.Code)"
+            },
+            {
+              "newLine": 222,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 223,
+              "kind": "added",
+              "text": "\tif w := request(handler, \"Bearer \"+token); w.Code != http.StatusOK || w.Body.Len() != 16 {"
+            },
+            {
+              "newLine": 224,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"valid key: %d %q\", w.Code, w.Body.String())"
+            },
+            {
+              "newLine": 225,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 226,
+              "kind": "added",
+              "text": "\tif w := request(handler, \"Bearer \"+token); w.Code != http.StatusTooManyRequests || w.Header().Get(\"Retry-After\") == \"\" {"
+            },
+            {
+              "newLine": 227,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"rate limit: %d\", w.Code)"
+            },
+            {
+              "newLine": 228,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 229,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "migrations/0018_api_keys.down.sql",
+      "status": "A",
+      "diff": "diff --git a/migrations/0018_api_keys.down.sql b/migrations/0018_api_keys.down.sql\nnew file mode 100644\nindex 0000000..303d649\n--- /dev/null\n+++ b/migrations/0018_api_keys.down.sql\n@@ -0,0 +1,3 @@\n+BEGIN;\n+DROP TABLE IF EXISTS api_keys;\n+COMMIT;\n",
+      "hunks": [
+        {
+          "id": "diff-2f92bdfa044a52ff",
+          "header": "@@ -0,0 +1,3 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "BEGIN;"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "DROP TABLE IF EXISTS api_keys;"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "COMMIT;"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "migrations/0018_api_keys.up.sql",
+      "status": "A",
+      "diff": "diff --git a/migrations/0018_api_keys.up.sql b/migrations/0018_api_keys.up.sql\nnew file mode 100644\nindex 0000000..adfb256\n--- /dev/null\n+++ b/migrations/0018_api_keys.up.sql\n@@ -0,0 +1,19 @@\n+BEGIN;\n+CREATE TABLE api_keys (\n+    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,\n+    id text NOT NULL CHECK (id ~ '^[0-9a-f]{16}$'),\n+    name text NOT NULL CHECK (length(name) BETWEEN 1 AND 100),\n+    scopes text[] NOT NULL CHECK (cardinality(scopes) \u003e 0 AND scopes \u003c@ ARRAY['reviews:read', 'reviews:trigger', 'findings:read', 'findings:write', 'codebase:read', 'rules:read', 'memories:read']::text[]),\n+    secret_sha256 bytea NOT NULL CHECK (length(secret_sha256) = 32),\n+    created_at timestamptz NOT NULL DEFAULT now(),\n+    expires_at timestamptz NOT NULL,\n+    revoked_at timestamptz,\n+    replaced_by text,\n+    PRIMARY KEY (installation_id, id),\n+    FOREIGN KEY (installation_id, replaced_by) REFERENCES api_keys(installation_id, id),\n+    CHECK (expires_at \u003e created_at AND expires_at \u003c= created_at + interval '366 days')\n+);\n+ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY;\n+ALTER TABLE api_keys FORCE ROW LEVEL SECURITY;\n+CREATE POLICY tenant_isolation ON api_keys USING (installation_id = current_setting('px1.installation_id', true)::bigint) WITH CHECK (installation_id = current_setting('px1.installation_id', true)::bigint);\n+COMMIT;\n",
+      "hunks": [
+        {
+          "id": "diff-6cc1ef8ad8f16cee",
+          "header": "@@ -0,0 +1,19 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "BEGIN;"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "CREATE TABLE api_keys ("
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "    installation_id bigint NOT NULL REFERENCES installations(id) ON DELETE CASCADE,"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "    id text NOT NULL CHECK (id ~ '^[0-9a-f]{16}$'),"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "    name text NOT NULL CHECK (length(name) BETWEEN 1 AND 100),"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "    scopes text[] NOT NULL CHECK (cardinality(scopes) \u003e 0 AND scopes \u003c@ ARRAY['reviews:read', 'reviews:trigger', 'findings:read', 'findings:write', 'codebase:read', 'rules:read', 'memories:read']::text[]),"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "    secret_sha256 bytea NOT NULL CHECK (length(secret_sha256) = 32),"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "    created_at timestamptz NOT NULL DEFAULT now(),"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "    expires_at timestamptz NOT NULL,"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "    revoked_at timestamptz,"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "    replaced_by text,"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "    PRIMARY KEY (installation_id, id),"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "    FOREIGN KEY (installation_id, replaced_by) REFERENCES api_keys(installation_id, id),"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "    CHECK (expires_at \u003e created_at AND expires_at \u003c= created_at + interval '366 days')"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": ");"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY;"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "ALTER TABLE api_keys FORCE ROW LEVEL SECURITY;"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "CREATE POLICY tenant_isolation ON api_keys USING (installation_id = current_setting('px1.installation_id', true)::bigint) WITH CHECK (installation_id = current_setting('px1.installation_id', true)::bigint);"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "COMMIT;"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-facaaaff6fbf9327",
+      "title": "Api_keys changes",
+      "summary": "8 related files share the \"api_keys\" change signal.",
+      "paths": [
+        "ROADMAP.md",
+        "api_keys_schema_test.go",
+        "docs/API_KEYS.md",
+        "internal/hosted/apikeys/http.go",
+        "internal/hosted/apikeys/keys.go",
+        "internal/hosted/apikeys/keys_test.go",
+        "migrations/0018_api_keys.down.sql",
+        "migrations/0018_api_keys.up.sql"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-2f3b8b513df09d8f",
+      "path": "internal/hosted/apikeys/http.go",
+      "line": 33,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func (l *RateLimiter) Allow(key string) (bool, time.Duration) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    },
+    {
+      "id": "inspect-77c768ce86675a3c",
+      "path": "internal/hosted/apikeys/keys.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/apikeys/keys_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-0d70af08364b1be4",
+      "path": "internal/hosted/apikeys/keys.go",
+      "line": 77,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func (p Principal) Has(scope Scope) bool { return slices.Contains(p.Scopes, scope) }.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    },
+    {
+      "id": "inspect-46d24149a6ca917e",
+      "path": "migrations/0018_api_keys.down.sql",
+      "kind": "schema",
+      "observation": "The changed path is migration, schema, or SQL-related: migrations/0018_api_keys.down.sql.",
+      "question": "What happens to existing data during deploy, rollback, and mixed-version operation?",
+      "related": []
+    },
+    {
+      "id": "inspect-e25673d35c6dec85",
+      "path": "migrations/0018_api_keys.up.sql",
+      "kind": "schema",
+      "observation": "The changed path is migration, schema, or SQL-related: migrations/0018_api_keys.up.sql.",
+      "question": "What happens to existing data during deploy, rollback, and mixed-version operation?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 8,
+    "filesAnalyzed": 8,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "5",
+      "path": "internal/hosted/apikeys/http.go",
+      "lineStart": 14,
+      "lineEnd": 63,
+      "title": "Adds per-key rate limiting",
+      "summary": "Requests are limited by key using a process-local token bucket with configurable refill rate and burst. When the bucket is empty, the middleware can return a wait duration for the Retry-After header."
+    },
+    {
+      "id": "4",
+      "path": "internal/hosted/apikeys/http.go",
+      "lineStart": 66,
+      "lineEnd": 111,
+      "title": "Adds HTTP authentication and scope enforcement",
+      "summary": "The HTTP middleware authenticates bearer tokens, enforces the required scope, and attaches the authenticated principal to the request context. It maps invalid keys to 401, missing scopes to 403, verification errors to 503, and rate-limit refusals to 429."
+    },
+    {
+      "id": "1",
+      "path": "internal/hosted/apikeys/keys.go",
+      "lineStart": 23,
+      "lineEnd": 70,
+      "title": "Adds digest-based key authentication",
+      "summary": "Keys use a tenant ID and random key ID in the token, with a random secret whose SHA-256 digest is stored. Authentication checks the digest in constant time and rejects malformed, unknown, expired, or revoked keys with the same unauthorized error."
+    },
+    {
+      "id": "2",
+      "path": "internal/hosted/apikeys/keys.go",
+      "lineStart": 94,
+      "lineEnd": 123,
+      "title": "Validates issued keys and scopes",
+      "summary": "Issuing a key now requires a valid tenant, non-empty name, at least one known scope, and a lifetime of no more than one year. Duplicate scopes are normalized before storage."
+    },
+    {
+      "id": "3",
+      "path": "internal/hosted/apikeys/keys.go",
+      "lineStart": 125,
+      "lineEnd": 169,
+      "title": "Adds key rotation and revocation",
+      "summary": "Active keys can be rotated once, preserving their name and scopes while allowing the old key to work for a bounded overlap of up to seven days. Revoking a key makes subsequent authentication fail."
+    },
+    {
+      "id": "6",
+      "path": "migrations/0018_api_keys.up.sql",
+      "lineStart": 2,
+      "lineEnd": 19,
+      "title": "Adds tenant-isolated API key storage",
+      "summary": "The new table stores key metadata and a fixed-length secret digest, constrains scopes and key IDs, and applies forced row-level security scoped to the current installation. The composite key and foreign key keep replacement relationships within a tenant."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "f04ee7d0f0c4f214b298b7bed0e17529d81fad20",
+      "revision": "51108586d8fa5cb459c1be4c6a48dcb14c0701f6",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "f04ee7d0f0c4f214b298b7bed0e17529d81fad20",
+      "revision": "51108586d8fa5cb459c1be4c6a48dcb14c0701f6",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "51108586d8fa5cb459c1be4c6a48dcb14c0701f6",
+      "detail": "6 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "51108586d8fa5cb459c1be4c6a48dcb14c0701f6",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-ae76cd03a2c44294",
+      "rule": "schema",
+      "title": "Schema or migration",
+      "reason": "Schema and migration changes can affect stored data and deployment order.",
+      "path": "api_keys_schema_test.go",
+      "evidence": "api_keys_schema_test.go"
+    },
+    {
+      "id": "attention-00feba653392cac5",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/apikeys/http.go",
+      "line": 33,
+      "evidence": "func (l *RateLimiter) Allow(key string) (bool, time.Duration) {"
+    },
+    {
+      "id": "attention-52029a5a02279459",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/apikeys/keys.go",
+      "line": 77,
+      "evidence": "func (p Principal) Has(scope Scope) bool { return slices.Contains(p.Scopes, scope) }"
+    },
+    {
+      "id": "attention-b9a4b706b1a6172f",
+      "rule": "schema",
+      "title": "Schema or migration",
+      "reason": "Schema and migration changes can affect stored data and deployment order.",
+      "path": "migrations/0018_api_keys.down.sql",
+      "evidence": "migrations/0018_api_keys.down.sql"
+    },
+    {
+      "id": "attention-49a623450b9b5aad",
+      "rule": "schema",
+      "title": "Schema or migration",
+      "reason": "Schema and migration changes can affect stored data and deployment order.",
+      "path": "migrations/0018_api_keys.up.sql",
+      "evidence": "migrations/0018_api_keys.up.sql"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "51108586d8fa5cb459c1be4c6a48dcb14c0701f6",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42361490940",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42361490940/job/128370647442",
+        "startedAt": "2026-11-07T09:51:41Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42361490902/job/128370646235",
+        "startedAt": "2026-11-07T09:51:39Z"
+      }
+    ]
+  }
+}
