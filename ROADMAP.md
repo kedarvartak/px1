@@ -210,6 +210,9 @@ backend-foundation tasks are:
 86. [x] **Serve px1 over MCP.** Expose nine scoped review tools on the
     official SDK over streamable HTTP, pin sessions to their API key, and
     proxy the same tools over stdio with `px1 mcp`.
+87. [x] **Back agent tools with local git.** Read files, list directories,
+    search text, blame, and log at a pinned commit without running anything the
+    repository configures, so reviews can run before the hosted index exists.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,
