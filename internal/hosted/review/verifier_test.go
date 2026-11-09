@@ -3,6 +3,7 @@ package review
 import (
 	"context"
 	"px1/internal/hosted/llm"
+	"strings"
 	"testing"
 )
 
@@ -25,5 +26,26 @@ func TestVerifierRejectsOmittedDecision(t *testing.T) {
 	v := FindingVerifier{Client: verifierStub{`[]`}, Provider: "openai", Model: "v", PromptVersion: "v1"}
 	if _, err := v.Verify(context.Background(), []VerificationCandidate{{ID: "a", StartLine: 1, EndLine: 1, Evidence: "x"}}); err == nil {
 		t.Fatal("expected omitted decision error")
+	}
+}
+
+type capturingVerifier struct{ system string }
+
+func (c *capturingVerifier) Complete(_ context.Context, request llm.Request) (llm.Response, error) {
+	c.system = request.System
+	return llm.Response{Text: `[{"id":"a","supported":true,"confidence":0.9,"reason":"ok"}]`}, nil
+}
+
+// A model is only as strict as its instructions: the reply schema must be in the prompt.
+func TestVerifierPromptStatesTheReplySchema(t *testing.T) {
+	client := &capturingVerifier{}
+	v := FindingVerifier{Client: client, Provider: "openai", Model: "m", PromptVersion: "v1"}
+	if _, err := v.Verify(context.Background(), []VerificationCandidate{{ID: "a", Path: "a.go", StartLine: 1, EndLine: 1, Evidence: "x"}}); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"JSON array", `\"id\"`, `\"supported\"`, `\"confidence\"`, `\"reason\"`} {
+		if !strings.Contains(client.system, strings.ReplaceAll(key, `\"`, `"`)) {
+			t.Fatalf("system prompt does not mention %s: %q", key, client.system)
+		}
 	}
 }

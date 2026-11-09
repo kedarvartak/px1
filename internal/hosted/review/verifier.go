@@ -70,7 +70,7 @@ func (v FindingVerifier) Verify(ctx context.Context, candidates []VerificationCa
 	if maxOutput <= 0 {
 		maxOutput = 2000
 	}
-	response, err := v.Client.Complete(ctx, llm.Request{Provider: v.Provider, Model: v.Model, System: "Verify each proposed code-review finding only against its supplied line evidence and context. Return strict JSON decisions and do not add findings.", Prompt: "Prompt version: " + v.PromptVersion + "\nCandidates:\n" + string(payload), MaxOutputTokens: maxOutput, Temperature: 0})
+	response, err := v.Client.Complete(ctx, llm.Request{Provider: v.Provider, Model: v.Model, System: "Verify each proposed code-review finding only against its supplied line evidence and context. Reply with only a JSON array, one object per candidate, shaped exactly {\"id\": string, \"supported\": boolean, \"confidence\": number between 0 and 1, \"reason\": string}. Use the candidate id unchanged. Set supported to true only when the evidence establishes the claim. Do not add findings or other keys.", Prompt: "Prompt version: " + v.PromptVersion + "\nCandidates:\n" + string(payload), MaxOutputTokens: maxOutput, Temperature: 0})
 	if err != nil {
 		return result, fmt.Errorf("verify findings: %w", err)
 	}
