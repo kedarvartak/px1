@@ -1,0 +1,369 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "fce08e1de13a4542bf1df9fe9f525c192e02e32c",
+  "head": "8fb3a26fcb43d7a5e9e8d105fe1de825f502b744",
+  "generatedAt": "2026-11-09T11:10:08.845879525Z",
+  "files": [
+    {
+      "path": "internal/hosted/review/verifier.go",
+      "status": "M",
+      "diff": "diff --git a/internal/hosted/review/verifier.go b/internal/hosted/review/verifier.go\nindex eb1129d..cfaecdb 100644\n--- a/internal/hosted/review/verifier.go\n+++ b/internal/hosted/review/verifier.go\n@@ -70,7 +70,7 @@ func (v FindingVerifier) Verify(ctx context.Context, candidates []VerificationCa\n \tif maxOutput \u003c= 0 {\n \t\tmaxOutput = 2000\n \t}\n-\tresponse, err := v.Client.Complete(ctx, llm.Request{Provider: v.Provider, Model: v.Model, System: \"Verify each proposed code-review finding only against its supplied line evidence and context. Return strict JSON decisions and do not add findings.\", Prompt: \"Prompt version: \" + v.PromptVersion + \"\\nCandidates:\\n\" + string(payload), MaxOutputTokens: maxOutput, Temperature: 0})\n+\tresponse, err := v.Client.Complete(ctx, llm.Request{Provider: v.Provider, Model: v.Model, System: \"Verify each proposed code-review finding only against its supplied line evidence and context. Reply with only a JSON array, one object per candidate, shaped exactly {\\\"id\\\": string, \\\"supported\\\": boolean, \\\"confidence\\\": number between 0 and 1, \\\"reason\\\": string}. Use the candidate id unchanged. Set supported to true only when the evidence establishes the claim. Do not add findings or other keys.\", Prompt: \"Prompt version: \" + v.PromptVersion + \"\\nCandidates:\\n\" + string(payload), MaxOutputTokens: maxOutput, Temperature: 0})\n \tif err != nil {\n \t\treturn result, fmt.Errorf(\"verify findings: %w\", err)\n \t}\n",
+      "hunks": [
+        {
+          "id": "diff-3886201ee1fec44b",
+          "header": "@@ -70,7 +70,7 @@ func (v FindingVerifier) Verify(ctx context.Context, candidates []VerificationCa",
+          "lines": [
+            {
+              "oldLine": 70,
+              "newLine": 70,
+              "kind": "context",
+              "text": "\tif maxOutput \u003c= 0 {"
+            },
+            {
+              "oldLine": 71,
+              "newLine": 71,
+              "kind": "context",
+              "text": "\t\tmaxOutput = 2000"
+            },
+            {
+              "oldLine": 72,
+              "newLine": 72,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 73,
+              "kind": "removed",
+              "text": "\tresponse, err := v.Client.Complete(ctx, llm.Request{Provider: v.Provider, Model: v.Model, System: \"Verify each proposed code-review finding only against its supplied line evidence and context. Return strict JSON decisions and do not add findings.\", Prompt: \"Prompt version: \" + v.PromptVersion + \"\\nCandidates:\\n\" + string(payload), MaxOutputTokens: maxOutput, Temperature: 0})"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\tresponse, err := v.Client.Complete(ctx, llm.Request{Provider: v.Provider, Model: v.Model, System: \"Verify each proposed code-review finding only against its supplied line evidence and context. Reply with only a JSON array, one object per candidate, shaped exactly {\\\"id\\\": string, \\\"supported\\\": boolean, \\\"confidence\\\": number between 0 and 1, \\\"reason\\\": string}. Use the candidate id unchanged. Set supported to true only when the evidence establishes the claim. Do not add findings or other keys.\", Prompt: \"Prompt version: \" + v.PromptVersion + \"\\nCandidates:\\n\" + string(payload), MaxOutputTokens: maxOutput, Temperature: 0})"
+            },
+            {
+              "oldLine": 74,
+              "newLine": 74,
+              "kind": "context",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 75,
+              "newLine": 75,
+              "kind": "context",
+              "text": "\t\treturn result, fmt.Errorf(\"verify findings: %w\", err)"
+            },
+            {
+              "oldLine": 76,
+              "newLine": 76,
+              "kind": "context",
+              "text": "\t}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/review/verifier_test.go",
+      "status": "M",
+      "diff": "diff --git a/internal/hosted/review/verifier_test.go b/internal/hosted/review/verifier_test.go\nindex 31d95b3..517de36 100644\n--- a/internal/hosted/review/verifier_test.go\n+++ b/internal/hosted/review/verifier_test.go\n@@ -3,6 +3,7 @@ package review\n import (\n \t\"context\"\n \t\"px1/internal/hosted/llm\"\n+\t\"strings\"\n \t\"testing\"\n )\n \n@@ -27,3 +28,24 @@ func TestVerifierRejectsOmittedDecision(t *testing.T) {\n \t\tt.Fatal(\"expected omitted decision error\")\n \t}\n }\n+\n+type capturingVerifier struct{ system string }\n+\n+func (c *capturingVerifier) Complete(_ context.Context, request llm.Request) (llm.Response, error) {\n+\tc.system = request.System\n+\treturn llm.Response{Text: `[{\"id\":\"a\",\"supported\":true,\"confidence\":0.9,\"reason\":\"ok\"}]`}, nil\n+}\n+\n+// A model is only as strict as its instructions: the reply schema must be in the prompt.\n+func TestVerifierPromptStatesTheReplySchema(t *testing.T) {\n+\tclient := \u0026capturingVerifier{}\n+\tv := FindingVerifier{Client: client, Provider: \"openai\", Model: \"m\", PromptVersion: \"v1\"}\n+\tif _, err := v.Verify(context.Background(), []VerificationCandidate{{ID: \"a\", Path: \"a.go\", StartLine: 1, EndLine: 1, Evidence: \"x\"}}); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tfor _, key := range []string{\"JSON array\", `\\\"id\\\"`, `\\\"supported\\\"`, `\\\"confidence\\\"`, `\\\"reason\\\"`} {\n+\t\tif !strings.Contains(client.system, strings.ReplaceAll(key, `\\\"`, `\"`)) {\n+\t\t\tt.Fatalf(\"system prompt does not mention %s: %q\", key, client.system)\n+\t\t}\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-53225380ec77b847",
+          "header": "@@ -3,6 +3,7 @@ package review",
+          "lines": [
+            {
+              "oldLine": 3,
+              "newLine": 3,
+              "kind": "context",
+              "text": "import ("
+            },
+            {
+              "oldLine": 4,
+              "newLine": 4,
+              "kind": "context",
+              "text": "\t\"context\""
+            },
+            {
+              "oldLine": 5,
+              "newLine": 5,
+              "kind": "context",
+              "text": "\t\"px1/internal/hosted/llm\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "oldLine": 6,
+              "newLine": 7,
+              "kind": "context",
+              "text": "\t\"testing\""
+            },
+            {
+              "oldLine": 7,
+              "newLine": 8,
+              "kind": "context",
+              "text": ")"
+            },
+            {
+              "oldLine": 8,
+              "newLine": 9,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        },
+        {
+          "id": "diff-7f1cc45b41bf2190",
+          "header": "@@ -27,3 +28,24 @@ func TestVerifierRejectsOmittedDecision(t *testing.T) {",
+          "lines": [
+            {
+              "oldLine": 27,
+              "newLine": 28,
+              "kind": "context",
+              "text": "\t\tt.Fatal(\"expected omitted decision error\")"
+            },
+            {
+              "oldLine": 28,
+              "newLine": 29,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 29,
+              "newLine": 30,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "type capturingVerifier struct{ system string }"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "func (c *capturingVerifier) Complete(_ context.Context, request llm.Request) (llm.Response, error) {"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tc.system = request.System"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\treturn llm.Response{Text: `[{\"id\":\"a\",\"supported\":true,\"confidence\":0.9,\"reason\":\"ok\"}]`}, nil"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "// A model is only as strict as its instructions: the reply schema must be in the prompt."
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "func TestVerifierPromptStatesTheReplySchema(t *testing.T) {"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\tclient := \u0026capturingVerifier{}"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tv := FindingVerifier{Client: client, Provider: \"openai\", Model: \"m\", PromptVersion: \"v1\"}"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tif _, err := v.Verify(context.Background(), []VerificationCandidate{{ID: \"a\", Path: \"a.go\", StartLine: 1, EndLine: 1, Evidence: \"x\"}}); err != nil {"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\tfor _, key := range []string{\"JSON array\", `\\\"id\\\"`, `\\\"supported\\\"`, `\\\"confidence\\\"`, `\\\"reason\\\"`} {"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\tif !strings.Contains(client.system, strings.ReplaceAll(key, `\\\"`, `\"`)) {"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"system prompt does not mention %s: %q\", key, client.system)"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-6a07b6d5c86bc170",
+      "title": "Array changes",
+      "summary": "2 related files share the \"array\" change signal.",
+      "paths": [
+        "internal/hosted/review/verifier.go",
+        "internal/hosted/review/verifier_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-594213f2fe088620",
+      "path": "internal/hosted/review/verifier.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/review/verifier_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 2,
+    "filesAnalyzed": 2,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "verifier-json-schema",
+      "path": "internal/hosted/review/verifier.go",
+      "lineStart": 72,
+      "lineEnd": 72,
+      "title": "Specify the verifier response schema",
+      "summary": "The verifier now tells the model to return one JSON object per candidate with a fixed set of fields, preserve each candidate ID, and mark a claim supported only when evidence establishes it. This gives the response parser a clearer expected format; it is an instruction to the model, not an enforcement mechanism."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "fce08e1de13a4542bf1df9fe9f525c192e02e32c",
+      "revision": "8fb3a26fcb43d7a5e9e8d105fe1de825f502b744",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "fce08e1de13a4542bf1df9fe9f525c192e02e32c",
+      "revision": "8fb3a26fcb43d7a5e9e8d105fe1de825f502b744",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "8fb3a26fcb43d7a5e9e8d105fe1de825f502b744",
+      "detail": "1 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "8fb3a26fcb43d7a5e9e8d105fe1de825f502b744",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "8fb3a26fcb43d7a5e9e8d105fe1de825f502b744",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42606626840",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42606626840/job/129124163828",
+        "startedAt": "2026-11-09T11:08:52Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42606626886/job/129124161149",
+        "startedAt": "2026-11-09T11:08:50Z"
+      }
+    ]
+  }
+}
