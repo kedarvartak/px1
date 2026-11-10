@@ -19,6 +19,14 @@
 
 Each run uploads the report as one unzipped `px1-review.html` artifact (kept 14 days), and the summary comment links straight to it. GitHub serves artifacts from its own storage, and only people who can read the repository can open the link; whether the browser shows it or saves it is up to GitHub. The report contains your code. Raw model transcripts (`private/`) are never uploaded.
 
+## px1 reviewing itself
+
+`.github/workflows/px1-agentic-review.yml` runs the reviewer on this repository's
+own pull requests. It does nothing until a repository secret `OPENAI_API_KEY` exists
+(add it in Settings, Secrets and variables, Actions). The reviewer is built from the
+base commit, not the pull request, so a pull request cannot change the code that holds
+the key; the pull request is checked out only as data. Fork pull requests are skipped.
+
 ## Safety
 
 - Runs on `pull_request`, never `pull_request_target`. Pull requests from forks are skipped: they get no secrets and a read-only token.

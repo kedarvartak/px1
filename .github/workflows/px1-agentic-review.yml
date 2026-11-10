@@ -1,0 +1,71 @@
+name: px1 agentic review
+
+# px1 reviews its own pull requests with its own agentic reviewer. The reviewer
+# that holds OPENAI_API_KEY is built from the BASE commit, never from the pull
+# request, so a pull request cannot change the code that sees the key. The
+# pull request is checked out only as data to read.
+#
+# The job does nothing until a repository secret named OPENAI_API_KEY exists,
+# and never runs for pull requests from forks, which get no secrets.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: px1-agentic-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true # a failed review must never block a merge
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    steps:
+      - name: Check for the API key
+        id: key
+        run: |
+          if [[ -z "$OPENAI_API_KEY" ]]; then
+            echo "::notice title=px1 agentic review skipped::add an OPENAI_API_KEY repository secret to enable it"
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check out the pull request (data only)
+        if: steps.key.outputs.present == 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out the reviewer from the base commit
+        if: steps.key.outputs.present == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: .px1-tool
+          persist-credentials: false
+
+      - name: Review
+        if: steps.key.outputs.present == 'true'
+        uses: ./.px1-tool/agentic-action
+        with:
+          model: gpt-6-luna
+          price-input: '0.10'
+          price-output: '0.50'
+          price-cached-input: '0.01'
+          max-cost: '0.50'
+          exclude-globs: |
+            dist/**
+            dist-npm/**
+            launch-film/**
+            output/**
+            tmp/**
+            web/dashboard/**/package-lock.json
