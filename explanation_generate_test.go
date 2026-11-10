@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -103,5 +104,38 @@ func TestFilterExplanationDiffOmitsBinaryAndRenameOnlyFiles(t *testing.T) {
 	}
 	if filtered != "" {
 		t.Fatalf("filtered diff retained excluded metadata: %q", filtered)
+	}
+}
+
+func TestKeepValidExplanationsDropsOnlyTheBadOnes(t *testing.T) {
+	changed := map[string]bool{"a.go": true}
+	good := staticExplanation{ID: "ok", Path: "a.go", LineStart: 1, LineEnd: 3, Title: "t", Summary: "s"}
+	badRange := staticExplanation{ID: "range", Path: "a.go", LineStart: 9, LineEnd: 2, Title: "t", Summary: "s"}
+	badPath := staticExplanation{ID: "path", Path: "other.go", LineStart: 1, LineEnd: 1, Title: "t", Summary: "s"}
+	dupe := good
+	empty := staticExplanation{ID: "empty", Path: "a.go", LineStart: 1, LineEnd: 1, Title: "t"}
+	kept, dropped := keepValidExplanations([]staticExplanation{good, badRange, badPath, dupe, empty}, changed)
+	if len(kept) != 1 || kept[0].ID != "ok" || dropped != 4 {
+		t.Fatalf("kept=%+v dropped=%d", kept, dropped)
+	}
+}
+
+func TestKeepValidExplanationsCapsTheCount(t *testing.T) {
+	changed := map[string]bool{"a.go": true}
+	var items []staticExplanation
+	for i := 0; i < explanationMaxItems+3; i++ {
+		items = append(items, staticExplanation{ID: fmt.Sprintf("e%d", i), Path: "a.go", LineStart: 1, LineEnd: 1, Title: "t", Summary: "s"})
+	}
+	kept, dropped := keepValidExplanations(items, changed)
+	if len(kept) != explanationMaxItems || dropped != 3 {
+		t.Fatalf("kept=%d dropped=%d", len(kept), dropped)
+	}
+}
+
+// Hand-supplied files stay strict: a wrong line range is an error, not a silent drop.
+func TestSuppliedExplanationFilesStayStrict(t *testing.T) {
+	bad := []staticExplanation{{ID: "x", Path: "a.go", LineStart: 5, LineEnd: 1, Title: "t", Summary: "s"}}
+	if _, err := validateStaticExplanations(bad, map[string]bool{"a.go": true}, "fixture"); err == nil {
+		t.Fatal("an invalid explanation in a supplied file must be rejected")
 	}
 }
