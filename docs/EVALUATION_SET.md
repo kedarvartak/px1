@@ -62,3 +62,22 @@ only commit identities and labelled line ranges, never source or model output.
   an outage never looks like a miss.
 - A score from a few runs is a sketch: the report states how many runs it covers.
 
+
+### Running a repeat evaluation
+
+    OPENAI_API_KEY=... px1 eval-run --cases eval/cases.json --root ~/code/repo \
+      --model gpt-6-luna --price-input 0.10 --price-output 0.50 \
+      --runs 3 --max-total-cost 5 --out ~/px1-eval --dry-run   # then --yes
+
+- Every review goes through the same path as `px1 agentic-review`: consent
+  (`--yes`), the privacy policy and secret blocking, and a per-review cost cap
+  (`--max-cost`, default $0.50). `--max-total-cost` (default $5) caps the whole
+  evaluation; it stops before a review that could cross it and says how to resume.
+- Reviews run in rounds: every case once before any case twice, so a stop leaves
+  whole runs to compare.
+- `results.json` is written after every review. `--resume` skips reviews already
+  in it. `report.md` holds the scores.
+- Each case's commits must exist in `--root`. Check them out or fetch the branch first.
+- A review that failed or did not finish (a sub-agent or the verifier failed, the
+  cap stopped it) is recorded with its reason and left out of scoring. It is never
+  counted as a missed bug.

@@ -334,7 +334,7 @@ func writeAgenticOutputs(out, private string, o agenticOptions, prep agenticPrep
 	if err := writeJSON(filepath.Join(out, "findings.json"), hostedFindingsEnvelope{Revision: prep.HeadSHA, Findings: findings}, 0o644); err != nil {
 		return err
 	}
-	scope := reviewScope{Reviewed: len(prep.Files), Total: prep.TotalReviewable}
+	scope := reviewScope{Reviewed: len(prep.Files), Total: prep.TotalReviewable, Complete: reviewComplete(result)}
 	for _, e := range prep.Skipped {
 		scope.Skipped = append(scope.Skipped, e.Path)
 	}
@@ -448,4 +448,11 @@ type reviewScope struct {
 	Reviewed int      `json:"reviewed"`
 	Total    int      `json:"total"`
 	Skipped  []string `json:"skipped,omitempty"`
+	// Complete is false when a step failed (a sub-agent, or verification), so
+	// "no findings" cannot be read as "nothing found".
+	Complete bool `json:"complete"`
+}
+
+func reviewComplete(result agent.PipelineResult) bool {
+	return (result.Run.Complete || result.Run.Outcomes == nil) && len(result.Unverified) == 0
 }
