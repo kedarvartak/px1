@@ -1,0 +1,88 @@
+name: px1 agentic PR review
+description: An AI reviewer that investigates a pull request with read-only tools and comments only on findings it verified.
+author: px1
+
+inputs:
+  model:
+    description: OpenAI model, for example gpt-6-luna.
+    required: true
+  price-input:
+    description: Model input price in USD per million tokens. The cost cap is only as accurate as the prices you give.
+    required: true
+  price-output:
+    description: Model output price in USD per million tokens.
+    required: true
+  price-cached-input:
+    description: Cached input price in USD per million tokens (default same as input).
+    required: false
+    default: ''
+  max-cost:
+    description: Hard cost cap in USD per run.
+    required: false
+    default: '0.50'
+  exclude-globs:
+    description: Optional newline-separated globs never shown to the model. Exclusion is not redaction.
+    required: false
+    default: ''
+  post:
+    description: Post findings to the pull request (true) or only write them to the job summary (false).
+    required: false
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: ${{ github.action_path }}/../go.mod
+        cache: false
+
+    - name: Review the pull request
+      shell: bash
+      env:
+        PX1_MODEL: ${{ inputs.model }}
+        PX1_PRICE_IN: ${{ inputs.price-input }}
+        PX1_PRICE_OUT: ${{ inputs.price-output }}
+        PX1_PRICE_CACHED: ${{ inputs.price-cached-input }}
+        PX1_MAX_COST: ${{ inputs.max-cost }}
+        PX1_EXCLUDES: ${{ inputs.exclude-globs }}
+        PX1_POST: ${{ inputs.post }}
+        PX1_BASE: ${{ github.event.pull_request.base.sha }}
+        PX1_HEAD: ${{ github.event.pull_request.head.sha }}
+        PX1_PR: ${{ github.event.pull_request.number }}
+        PX1_PR_TITLE: ${{ github.event.pull_request.title }}
+        PX1_PR_BODY: ${{ github.event.pull_request.body }}
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        set -euo pipefail
+        if [[ -z "$PX1_PR" ]]; then
+          echo "px1: this action runs on pull_request events" >&2
+          exit 2
+        fi
+        if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+          echo "px1: set OPENAI_API_KEY from a repository secret in the step's env" >&2
+          exit 2
+        fi
+        bin="${RUNNER_TEMP:-/tmp}/px1"
+        (cd "$GITHUB_ACTION_PATH/.." && go build -o "$bin" .)
+        out="${RUNNER_TEMP:-/tmp}/px1-agentic"
+        args=(agentic-review --root "$GITHUB_WORKSPACE" --base "$PX1_BASE" --head "$PX1_HEAD" --out "$out"
+          --model "$PX1_MODEL" --price-input "$PX1_PRICE_IN" --price-output "$PX1_PRICE_OUT"
+          --max-cost "$PX1_MAX_COST" --title "$PX1_PR_TITLE" --body "$PX1_PR_BODY" --transcripts=false --yes)
+        if [[ -n "$PX1_PRICE_CACHED" ]]; then args+=(--price-cached-input "$PX1_PRICE_CACHED"); fi
+        while IFS= read -r pattern || [[ -n "$pattern" ]]; do
+          [[ -z "$pattern" ]] || args+=(--exclude-glob "$pattern")
+        done <<< "$PX1_EXCLUDES"
+        echo "::warning title=px1 model transfer::This sends the pull-request diff, and files the model chooses to read, to OpenAI. Exclusion globs are not redaction."
+        "$bin" agentic-review "${args[@]:1}" | tee "$out.log"
+        if [[ "$PX1_POST" == "true" ]]; then
+          cost="$(grep -m1 '^Spent about' "$out.log" || true)"
+          "$bin" post-github --findings "$out/findings.json" --pr "$PX1_PR" --head "$PX1_HEAD" --footer "$cost"
+        fi
+        {
+          echo "### px1 review"
+          echo '```'
+          sed -n '/=== Result ===/,/^Report:/p' "$out.log" | sed '$d'
+          echo '```'
+        } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"

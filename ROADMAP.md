@@ -325,3 +325,4 @@ are no longer active roadmap work.
 - Prefer evidence visible in the diff over opaque scores.
 - Put a tenant identifier on every hosted data row and test isolation.
 - Never execute pull-request code during review or indexing.
+- [ ] 91. Agentic review in CI: `post-github` (sticky summary + inline comments), `agentic-action`, example workflow. Large-PR fallback and provider retry follow.
