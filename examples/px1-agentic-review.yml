@@ -1,0 +1,42 @@
+# Copy to .github/workflows/px1-agentic-review.yml in the repository to review.
+# Needs a repository secret named OPENAI_API_KEY. Never put the key in this file.
+name: px1 review
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: px1-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true # a failed review must never block a merge
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: kedarvartak/px1
+          ref: master # pin to a commit SHA once you trust a version
+          path: .px1-tool
+          token: ${{ secrets.PX1_TOOL_TOKEN }} # only needed while px1 is private
+          persist-credentials: false
+      - uses: ./.px1-tool/agentic-action
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        with:
+          model: gpt-6-luna
+          price-input: '0.10'
+          price-output: '0.50'
+          price-cached-input: '0.01'
+          max-cost: '0.50'
