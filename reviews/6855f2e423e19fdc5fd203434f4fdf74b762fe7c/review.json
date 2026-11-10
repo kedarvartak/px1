@@ -1,0 +1,3480 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "11ecd31a71eb0396ebc0f2cbaf382e32b6c5ecd4",
+  "head": "6855f2e423e19fdc5fd203434f4fdf74b762fe7c",
+  "generatedAt": "2026-11-10T12:46:56.162607746Z",
+  "files": [
+    {
+      "path": "agentic_review.go",
+      "status": "M",
+      "diff": "diff --git a/agentic_review.go b/agentic_review.go\nindex 75014ab..84accf1 100644\n--- a/agentic_review.go\n+++ b/agentic_review.go\n@@ -334,7 +334,7 @@ func writeAgenticOutputs(out, private string, o agenticOptions, prep agenticPrep\n \tif err := writeJSON(filepath.Join(out, \"findings.json\"), hostedFindingsEnvelope{Revision: prep.HeadSHA, Findings: findings}, 0o644); err != nil {\n \t\treturn err\n \t}\n-\tscope := reviewScope{Reviewed: len(prep.Files), Total: prep.TotalReviewable, Complete: reviewComplete(result)}\n+\tscope := reviewScope{Reviewed: len(prep.Files), Total: prep.TotalReviewable}\n \tfor _, e := range prep.Skipped {\n \t\tscope.Skipped = append(scope.Skipped, e.Path)\n \t}\n@@ -448,11 +448,4 @@ type reviewScope struct {\n \tReviewed int      `json:\"reviewed\"`\n \tTotal    int      `json:\"total\"`\n \tSkipped  []string `json:\"skipped,omitempty\"`\n-\t// Complete is false when a step failed (a sub-agent, or verification), so\n-\t// \"no findings\" cannot be read as \"nothing found\".\n-\tComplete bool `json:\"complete\"`\n-}\n-\n-func reviewComplete(result agent.PipelineResult) bool {\n-\treturn (result.Run.Complete || result.Run.Outcomes == nil) \u0026\u0026 len(result.Unverified) == 0\n }\n",
+      "hunks": [
+        {
+          "id": "diff-d0f5312439efacfb",
+          "header": "@@ -334,7 +334,7 @@ func writeAgenticOutputs(out, private string, o agenticOptions, prep agenticPrep",
+          "lines": [
+            {
+              "oldLine": 334,
+              "newLine": 334,
+              "kind": "context",
+              "text": "\tif err := writeJSON(filepath.Join(out, \"findings.json\"), hostedFindingsEnvelope{Revision: prep.HeadSHA, Findings: findings}, 0o644); err != nil {"
+            },
+            {
+              "oldLine": 335,
+              "newLine": 335,
+              "kind": "context",
+              "text": "\t\treturn err"
+            },
+            {
+              "oldLine": 336,
+              "newLine": 336,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 337,
+              "kind": "removed",
+              "text": "\tscope := reviewScope{Reviewed: len(prep.Files), Total: prep.TotalReviewable, Complete: reviewComplete(result)}"
+            },
+            {
+              "newLine": 337,
+              "kind": "added",
+              "text": "\tscope := reviewScope{Reviewed: len(prep.Files), Total: prep.TotalReviewable}"
+            },
+            {
+              "oldLine": 338,
+              "newLine": 338,
+              "kind": "context",
+              "text": "\tfor _, e := range prep.Skipped {"
+            },
+            {
+              "oldLine": 339,
+              "newLine": 339,
+              "kind": "context",
+              "text": "\t\tscope.Skipped = append(scope.Skipped, e.Path)"
+            },
+            {
+              "oldLine": 340,
+              "newLine": 340,
+              "kind": "context",
+              "text": "\t}"
+            }
+          ]
+        },
+        {
+          "id": "diff-b8b346f6aad217e1",
+          "header": "@@ -448,11 +448,4 @@ type reviewScope struct {",
+          "lines": [
+            {
+              "oldLine": 448,
+              "newLine": 448,
+              "kind": "context",
+              "text": "\tReviewed int      `json:\"reviewed\"`"
+            },
+            {
+              "oldLine": 449,
+              "newLine": 449,
+              "kind": "context",
+              "text": "\tTotal    int      `json:\"total\"`"
+            },
+            {
+              "oldLine": 450,
+              "newLine": 450,
+              "kind": "context",
+              "text": "\tSkipped  []string `json:\"skipped,omitempty\"`"
+            },
+            {
+              "oldLine": 451,
+              "kind": "removed",
+              "text": "\t// Complete is false when a step failed (a sub-agent, or verification), so"
+            },
+            {
+              "oldLine": 452,
+              "kind": "removed",
+              "text": "\t// \"no findings\" cannot be read as \"nothing found\"."
+            },
+            {
+              "oldLine": 453,
+              "kind": "removed",
+              "text": "\tComplete bool `json:\"complete\"`"
+            },
+            {
+              "oldLine": 454,
+              "kind": "removed",
+              "text": "}"
+            },
+            {
+              "oldLine": 455,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 456,
+              "kind": "removed",
+              "text": "func reviewComplete(result agent.PipelineResult) bool {"
+            },
+            {
+              "oldLine": 457,
+              "kind": "removed",
+              "text": "\treturn (result.Run.Complete || result.Run.Outcomes == nil) \u0026\u0026 len(result.Unverified) == 0"
+            },
+            {
+              "oldLine": 458,
+              "newLine": 451,
+              "kind": "context",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/EVALUATION_SET.md",
+      "status": "M",
+      "diff": "diff --git a/docs/EVALUATION_SET.md b/docs/EVALUATION_SET.md\nindex f4cb627..8f47ff4 100644\n--- a/docs/EVALUATION_SET.md\n+++ b/docs/EVALUATION_SET.md\n@@ -62,22 +62,28 @@ only commit identities and labelled line ranges, never source or model output.\n   an outage never looks like a miss.\n - A score from a few runs is a sketch: the report states how many runs it covers.\n \n-\n-### Running a repeat evaluation\n-\n-    OPENAI_API_KEY=... px1 eval-run --cases eval/cases.json --root ~/code/repo \\\n-      --model gpt-6-luna --price-input 0.10 --price-output 0.50 \\\n-      --runs 3 --max-total-cost 5 --out ~/px1-eval --dry-run   # then --yes\n-\n-- Every review goes through the same path as `px1 agentic-review`: consent\n-  (`--yes`), the privacy policy and secret blocking, and a per-review cost cap\n-  (`--max-cost`, default $0.50). `--max-total-cost` (default $5) caps the whole\n-  evaluation; it stops before a review that could cross it and says how to resume.\n-- Reviews run in rounds: every case once before any case twice, so a stop leaves\n-  whole runs to compare.\n-- `results.json` is written after every review. `--resume` skips reviews already\n-  in it. `report.md` holds the scores.\n-- Each case's commits must exist in `--root`. Check them out or fetch the branch first.\n-- A review that failed or did not finish (a sub-agent or the verifier failed, the\n-  cap stopped it) is recorded with its reason and left out of scoring. It is never\n-  counted as a missed bug.\n+### Keeping a real case set private\n+\n+`eval/example-cases.json` shows the format with placeholder values. A case file\n+for a private repository names that repository, its commits and file paths, so it\n+does not belong in this public repository: keep it in the repository under test\n+(for example on a branch used only for evaluation), next to the commits it refers to.\n+\n+For seeded cases, make each bug a commit followed by its revert. Then the\n+case's base tree equals your main branch, the branch changes nothing net, and\n+the case is reproducible from commit identities alone.\n+\n+    git -C ~/code/repo fetch origin px1-eval\n+    px1 eval-run --cases ~/code/repo/eval/px1-cases.json --root ~/code/repo ...\n+\n+A first run of this kind on a private repo (six small seeded bugs and two clean\n+changes, three runs each, gpt-6-luna, about $0.10) found five bugs in every run,\n+flagged nothing on the clean changes, and found the sixth, subtler bug in only one\n+of three runs. Small hand-seeded single-line bugs are easier than real ones, so\n+read that as a baseline for comparing changes, not a recall claim.\n+\n+A seeded mutation can turn out to change nothing. The first draft of that set had\n+a `\u003c` to `\u003c=` change that no reviewer could flag, because the values never reach\n+the boundary and the output is identical for every input. Run the changed code\n+and compare outputs before trusting a seeded label; an unobservable mutation\n+measures nothing.\n",
+      "hunks": [
+        {
+          "id": "diff-496aaa9561b1b196",
+          "header": "@@ -62,22 +62,28 @@ only commit identities and labelled line ranges, never source or model output.",
+          "lines": [
+            {
+              "oldLine": 62,
+              "newLine": 62,
+              "kind": "context",
+              "text": "  an outage never looks like a miss."
+            },
+            {
+              "oldLine": 63,
+              "newLine": 63,
+              "kind": "context",
+              "text": "- A score from a few runs is a sketch: the report states how many runs it covers."
+            },
+            {
+              "oldLine": 64,
+              "newLine": 64,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 65,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 66,
+              "kind": "removed",
+              "text": "### Running a repeat evaluation"
+            },
+            {
+              "oldLine": 67,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 68,
+              "kind": "removed",
+              "text": "    OPENAI_API_KEY=... px1 eval-run --cases eval/cases.json --root ~/code/repo \\"
+            },
+            {
+              "oldLine": 69,
+              "kind": "removed",
+              "text": "      --model gpt-6-luna --price-input 0.10 --price-output 0.50 \\"
+            },
+            {
+              "oldLine": 70,
+              "kind": "removed",
+              "text": "      --runs 3 --max-total-cost 5 --out ~/px1-eval --dry-run   # then --yes"
+            },
+            {
+              "oldLine": 71,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 72,
+              "kind": "removed",
+              "text": "- Every review goes through the same path as `px1 agentic-review`: consent"
+            },
+            {
+              "oldLine": 73,
+              "kind": "removed",
+              "text": "  (`--yes`), the privacy policy and secret blocking, and a per-review cost cap"
+            },
+            {
+              "oldLine": 74,
+              "kind": "removed",
+              "text": "  (`--max-cost`, default $0.50). `--max-total-cost` (default $5) caps the whole"
+            },
+            {
+              "oldLine": 75,
+              "kind": "removed",
+              "text": "  evaluation; it stops before a review that could cross it and says how to resume."
+            },
+            {
+              "oldLine": 76,
+              "kind": "removed",
+              "text": "- Reviews run in rounds: every case once before any case twice, so a stop leaves"
+            },
+            {
+              "oldLine": 77,
+              "kind": "removed",
+              "text": "  whole runs to compare."
+            },
+            {
+              "oldLine": 78,
+              "kind": "removed",
+              "text": "- `results.json` is written after every review. `--resume` skips reviews already"
+            },
+            {
+              "oldLine": 79,
+              "kind": "removed",
+              "text": "  in it. `report.md` holds the scores."
+            },
+            {
+              "oldLine": 80,
+              "kind": "removed",
+              "text": "- Each case's commits must exist in `--root`. Check them out or fetch the branch first."
+            },
+            {
+              "oldLine": 81,
+              "kind": "removed",
+              "text": "- A review that failed or did not finish (a sub-agent or the verifier failed, the"
+            },
+            {
+              "oldLine": 82,
+              "kind": "removed",
+              "text": "  cap stopped it) is recorded with its reason and left out of scoring. It is never"
+            },
+            {
+              "oldLine": 83,
+              "kind": "removed",
+              "text": "  counted as a missed bug."
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "### Keeping a real case set private"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "`eval/example-cases.json` shows the format with placeholder values. A case file"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "for a private repository names that repository, its commits and file paths, so it"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "does not belong in this public repository: keep it in the repository under test"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "(for example on a branch used only for evaluation), next to the commits it refers to."
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "For seeded cases, make each bug a commit followed by its revert. Then the"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "case's base tree equals your main branch, the branch changes nothing net, and"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "the case is reproducible from commit identities alone."
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "    git -C ~/code/repo fetch origin px1-eval"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "    px1 eval-run --cases ~/code/repo/eval/px1-cases.json --root ~/code/repo ..."
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "A first run of this kind on a private repo (six small seeded bugs and two clean"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "changes, three runs each, gpt-6-luna, about $0.10) found five bugs in every run,"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "flagged nothing on the clean changes, and found the sixth, subtler bug in only one"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "of three runs. Small hand-seeded single-line bugs are easier than real ones, so"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "read that as a baseline for comparing changes, not a recall claim."
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "A seeded mutation can turn out to change nothing. The first draft of that set had"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "a `\u003c` to `\u003c=` change that no reviewer could flag, because the values never reach"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "the boundary and the output is identical for every input. Run the changed code"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "and compare outputs before trusting a seeded label; an unobservable mutation"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "measures nothing."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "eval/example-cases.json",
+      "status": "A",
+      "diff": "diff --git a/eval/example-cases.json b/eval/example-cases.json\nnew file mode 100644\nindex 0000000..91b43e5\n--- /dev/null\n+++ b/eval/example-cases.json\n@@ -0,0 +1,29 @@\n+{\n+  \"version\": 1,\n+  \"cases\": [\n+    {\n+      \"id\": \"example-seeded-bug\",\n+      \"kind\": \"seeded\",\n+      \"repository\": \"owner/private-repo\",\n+      \"base_sha\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n+      \"head_sha\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n+      \"labels\": [\n+        {\n+          \"path\": \"src/example.ts\",\n+          \"bug_class\": \"logic\",\n+          \"start_line\": 28,\n+          \"end_line\": 28\n+        }\n+      ],\n+      \"notes\": \"Describe the seeded bug in one line; the source stays in the repository.\"\n+    },\n+    {\n+      \"id\": \"example-clean-change\",\n+      \"kind\": \"clean\",\n+      \"repository\": \"owner/private-repo\",\n+      \"base_sha\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n+      \"head_sha\": \"cccccccccccccccccccccccccccccccccccccccc\",\n+      \"notes\": \"A behaviour-preserving change that should draw no findings.\"\n+    }\n+  ]\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-ea487a7313039da0",
+          "header": "@@ -0,0 +1,29 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "{"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "  \"version\": 1,"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "  \"cases\": ["
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "    {"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "      \"id\": \"example-seeded-bug\","
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "      \"kind\": \"seeded\","
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "      \"repository\": \"owner/private-repo\","
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "      \"base_sha\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\","
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "      \"head_sha\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\","
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "      \"labels\": ["
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "        {"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "          \"path\": \"src/example.ts\","
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "          \"bug_class\": \"logic\","
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "          \"start_line\": 28,"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "          \"end_line\": 28"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "        }"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "      ],"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "      \"notes\": \"Describe the seeded bug in one line; the source stays in the repository.\""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "    },"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "    {"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "      \"id\": \"example-clean-change\","
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "      \"kind\": \"clean\","
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "      \"repository\": \"owner/private-repo\","
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "      \"base_sha\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\","
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "      \"head_sha\": \"cccccccccccccccccccccccccccccccccccccccc\","
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "      \"notes\": \"A behaviour-preserving change that should draw no findings.\""
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "    }"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "  ]"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "eval_cases_test.go",
+      "status": "A",
+      "diff": "diff --git a/eval_cases_test.go b/eval_cases_test.go\nnew file mode 100644\nindex 0000000..104f5dd\n--- /dev/null\n+++ b/eval_cases_test.go\n@@ -0,0 +1,33 @@\n+package main\n+\n+import (\n+\t\"os\"\n+\t\"testing\"\n+\n+\t\"px1/internal/hosted/eval\"\n+)\n+\n+// The committed example must stay loadable and show both kinds of case: seeded\n+// bugs, and clean changes, which are what measure false alarms.\n+func TestCommittedEvalCasesAreValid(t *testing.T) {\n+\tdata, err := os.ReadFile(\"eval/example-cases.json\")\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tdataset, err := eval.DecodeRepeat(data)\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tseeded, clean := 0, 0\n+\tfor _, c := range dataset.Cases {\n+\t\tswitch c.Kind {\n+\t\tcase \"seeded\":\n+\t\t\tseeded++\n+\t\tcase \"clean\":\n+\t\t\tclean++\n+\t\t}\n+\t}\n+\tif seeded \u003c 1 || clean \u003c 1 {\n+\t\tt.Fatalf(\"want at least one seeded and one clean case, got %d and %d\", seeded, clean)\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-7a647871d725899e",
+          "header": "@@ -0,0 +1,33 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package main"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"px1/internal/hosted/eval\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "// The committed example must stay loadable and show both kinds of case: seeded"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "// bugs, and clean changes, which are what measure false alarms."
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "func TestCommittedEvalCasesAreValid(t *testing.T) {"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\tdata, err := os.ReadFile(\"eval/example-cases.json\")"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tdataset, err := eval.DecodeRepeat(data)"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tseeded, clean := 0, 0"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tfor _, c := range dataset.Cases {"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t\tswitch c.Kind {"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\tcase \"seeded\":"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t\t\tseeded++"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t\tcase \"clean\":"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t\t\tclean++"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tif seeded \u003c 1 || clean \u003c 1 {"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"want at least one seeded and one clean case, got %d and %d\", seeded, clean)"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "eval_run.go",
+      "status": "D",
+      "diff": "diff --git a/eval_run.go b/eval_run.go\ndeleted file mode 100644\nindex 08ad1fc..0000000\n--- a/eval_run.go\n+++ /dev/null\n@@ -1,283 +0,0 @@\n-package main\n-\n-import (\n-\t\"bytes\"\n-\t\"encoding/json\"\n-\t\"errors\"\n-\t\"flag\"\n-\t\"fmt\"\n-\t\"io\"\n-\t\"os\"\n-\t\"path/filepath\"\n-\t\"strconv\"\n-\t\"strings\"\n-\t\"time\"\n-\n-\t\"px1/internal/hosted/eval\"\n-)\n-\n-type evalRunOptions struct {\n-\tcases, root, out, model, endpoint, tier string\n-\tpriceIn, priceOut, priceCached          float64\n-\tmaxCost, maxTotal                       float64\n-\truns, lineSlack                         int\n-\tmaxMinutes, maxOutput, concurrency      int\n-\tmaxFiles, maxDiffBytes                  int\n-\texcludes                                repeatedStringFlag\n-\tyes, dryRun, resume, requireClass       bool\n-}\n-\n-// runEvalRun reviews every case in a repeat dataset several times with the\n-// agentic reviewer and scores the results. It goes through runAgenticReview\n-// for each run, so consent, the privacy policy and the per-review cost cap are\n-// exactly those of a normal review, and adds a cap on the total spend.\n-func runEvalRun(args []string, stdout io.Writer) error {\n-\to, err := parseEvalRunFlags(args)\n-\tif err != nil {\n-\t\treturn err\n-\t}\n-\tdata, err := os.ReadFile(o.cases)\n-\tif err != nil {\n-\t\treturn fmt.Errorf(\"read cases: %w\", err)\n-\t}\n-\tdataset, err := eval.DecodeRepeat(data)\n-\tif err != nil {\n-\t\treturn err\n-\t}\n-\troot, err := filepath.Abs(o.root)\n-\tif err != nil {\n-\t\treturn err\n-\t}\n-\tfor _, c := range dataset.Cases {\n-\t\tfor _, rev := range []string{c.BaseSHA, c.HeadSHA} {\n-\t\t\tif _, err := resolveCommit(root, rev); err != nil {\n-\t\t\t\treturn fmt.Errorf(\"case %s: commit %s is not in %s (fetch the branch that holds it): %w\", c.ID, rev[:8], root, err)\n-\t\t\t}\n-\t\t}\n-\t}\n-\ttotalRuns := len(dataset.Cases) * o.runs\n-\tfmt.Fprintf(stdout, \"px1 eval of %d cases x %d runs = %d reviews with %s\\n\", len(dataset.Cases), o.runs, totalRuns, o.model)\n-\tfmt.Fprintf(stdout, \"Cost: each review is capped at $%.2f; the whole evaluation at $%.2f. Typical reviews have cost a few cents; the caps are ceilings, not estimates.\\n\", o.maxCost, o.maxTotal)\n-\tfmt.Fprintf(stdout, \"Each review sends its case's diff, and files the model chooses to read, to %s. Secret files and key-shaped values are blocked or redacted.\\n\", hostOf(o.endpoint))\n-\tif o.dryRun {\n-\t\tfmt.Fprintln(stdout, \"\\nDry run: nothing was sent. Cases:\")\n-\t\tfor _, c := range dataset.Cases {\n-\t\t\tfmt.Fprintf(stdout, \"  %s (%s) %s..%s, %d label(s)\\n\", c.ID, c.Kind, c.BaseSHA[:8], c.HeadSHA[:8], len(c.Labels))\n-\t\t}\n-\t\treturn nil\n-\t}\n-\tif !o.yes {\n-\t\treturn errors.New(\"this sends repository content to the model provider; re-run with --yes, or --dry-run to preview\")\n-\t}\n-\tif strings.TrimSpace(os.Getenv(\"OPENAI_API_KEY\")) == \"\" {\n-\t\treturn errors.New(\"eval-run requires OPENAI_API_KEY in the environment; keys are never accepted as flags\")\n-\t}\n-\tif err := os.MkdirAll(o.out, 0o700); err != nil {\n-\t\treturn err\n-\t}\n-\tresultsPath := filepath.Join(o.out, \"results.json\")\n-\tvar results []eval.RunResult\n-\tif o.resume {\n-\t\tif existing, err := os.ReadFile(resultsPath); err == nil {\n-\t\t\tif err := json.Unmarshal(existing, \u0026results); err != nil {\n-\t\t\t\treturn fmt.Errorf(\"read %s to resume: %w\", resultsPath, err)\n-\t\t\t}\n-\t\t}\n-\t}\n-\tdone := map[string]bool{}\n-\tvar spent int64\n-\tfor _, r := range results {\n-\t\tdone[fmt.Sprintf(\"%s#%d\", r.CaseID, r.Run)] = true\n-\t\tspent += r.CostMicrousd\n-\t}\n-\tcapMicro := usdToMicro(o.maxTotal)\n-\tperRunMicro := usdToMicro(o.maxCost)\n-\tstopped := \"\"\n-\t// Run-major order: every case is reviewed once before any is reviewed twice,\n-\t// so a stop leaves whole runs to compare, not one case repeated.\n-\tfor run := 1; run \u003c= o.runs \u0026\u0026 stopped == \"\"; run++ {\n-\t\tfor _, c := range dataset.Cases {\n-\t\t\tkey := fmt.Sprintf(\"%s#%d\", c.ID, run)\n-\t\t\tif done[key] {\n-\t\t\t\tcontinue\n-\t\t\t}\n-\t\t\tif spent+perRunMicro \u003e capMicro {\n-\t\t\t\tstopped = fmt.Sprintf(\"stopped before run %d of %s: another review could pass the $%.2f total cap (spent about $%.4f)\", run, c.ID, o.maxTotal, float64(spent)/1e6)\n-\t\t\t\tbreak\n-\t\t\t}\n-\t\t\tresult := runOneEval(o, root, c, run, stdout)\n-\t\t\tspent += result.CostMicrousd\n-\t\t\tresults = append(results, result)\n-\t\t\tif err := writeResults(resultsPath, results); err != nil {\n-\t\t\t\treturn err\n-\t\t\t}\n-\t\t}\n-\t}\n-\treport, err := eval.ScoreRepeat(dataset, results, eval.MatchOptions{LineSlack: o.lineSlack, RequireClass: o.requireClass})\n-\tif err != nil {\n-\t\treturn err\n-\t}\n-\tmd := report.Markdown()\n-\tif stopped != \"\" {\n-\t\tmd += \"\\n**Note:** \" + stopped + \". Re-run with --resume and a higher --max-total-cost to finish.\\n\"\n-\t}\n-\tif err := os.WriteFile(filepath.Join(o.out, \"report.md\"), []byte(md), 0o600); err != nil {\n-\t\treturn err\n-\t}\n-\tfmt.Fprintf(stdout, \"\\n%s\\nResults: %s\\nReport:  %s\\n\", md, resultsPath, filepath.Join(o.out, \"report.md\"))\n-\treturn nil\n-}\n-\n-func writeResults(path string, results []eval.RunResult) error {\n-\tdata, err := json.MarshalIndent(results, \"\", \"  \")\n-\tif err != nil {\n-\t\treturn err\n-\t}\n-\treturn os.WriteFile(path, append(data, '\\n'), 0o600)\n-}\n-\n-// runOneEval reviews one case once. Anything that stops the review from\n-// completing is recorded as an error, so it is left out of scoring instead of\n-// being counted as a bug the reviewer missed.\n-func runOneEval(o evalRunOptions, root string, c eval.RepeatCase, run int, stdout io.Writer) eval.RunResult {\n-\tresult := eval.RunResult{CaseID: c.ID, Run: run}\n-\tout := filepath.Join(o.out, \"runs\", c.ID, strconv.Itoa(run))\n-\targs := []string{\"--root\", root, \"--base\", c.BaseSHA, \"--head\", c.HeadSHA, \"--out\", out, \"--model\", o.model, \"--endpoint\", o.endpoint,\n-\t\t\"--price-input\", fmt.Sprint(o.priceIn), \"--price-output\", fmt.Sprint(o.priceOut), \"--price-cached-input\", fmt.Sprint(o.priceCached),\n-\t\t\"--tier\", o.tier, \"--max-cost\", fmt.Sprint(o.maxCost), \"--max-output-tokens\", strconv.Itoa(o.maxOutput), \"--concurrency\", strconv.Itoa(o.concurrency),\n-\t\t\"--max-files\", strconv.Itoa(o.maxFiles), \"--max-diff-bytes\", strconv.Itoa(o.maxDiffBytes), \"--transcripts=false\", \"--yes\"}\n-\tif o.maxMinutes \u003e 0 {\n-\t\targs = append(args, \"--max-minutes\", strconv.Itoa(o.maxMinutes))\n-\t}\n-\tfor _, g := range o.excludes {\n-\t\targs = append(args, \"--exclude-glob\", g)\n-\t}\n-\tfmt.Fprintf(stdout, \"[%s run %d] reviewing...\", c.ID, run)\n-\tstarted := time.Now()\n-\tvar sink bytes.Buffer\n-\terr := runAgenticReview(args, \u0026sink)\n-\tresult.Latency = time.Since(started)\n-\tif spend, ok := readSpend(out); ok {\n-\t\tresult.CostMicrousd = spend\n-\t}\n-\tif err != nil {\n-\t\tresult.Error = err.Error()\n-\t\tfmt.Fprintf(stdout, \" failed: %s\\n\", describeEvalError(err))\n-\t\treturn result\n-\t}\n-\tif scope, ok := readScope(out); !ok || !scope.Complete {\n-\t\tresult.Error = \"review did not complete (a step failed); not scored\"\n-\t\tfmt.Fprintf(stdout, \" incomplete, not scored\\n\")\n-\t\treturn result\n-\t}\n-\tfindings, err := readEvalFindings(out)\n-\tif err != nil {\n-\t\tresult.Error = err.Error()\n-\t\tfmt.Fprintf(stdout, \" failed: %v\\n\", err)\n-\t\treturn result\n-\t}\n-\tresult.Findings = findings\n-\tfmt.Fprintf(stdout, \" %d finding(s), $%.4f, %s\\n\", len(findings), float64(result.CostMicrousd)/1e6, result.Latency.Round(time.Second))\n-\treturn result\n-}\n-\n-func describeEvalError(err error) string {\n-\tmsg := err.Error()\n-\tif len(msg) \u003e 160 {\n-\t\tmsg = msg[:160] + \"...\"\n-\t}\n-\treturn msg\n-}\n-\n-func readEvalFindings(out string) ([]eval.Finding, error) {\n-\tdata, err := os.ReadFile(filepath.Join(out, \"findings.json\"))\n-\tif err != nil {\n-\t\treturn nil, fmt.Errorf(\"read findings: %w\", err)\n-\t}\n-\tvar envelope hostedFindingsEnvelope\n-\tif err := json.Unmarshal(data, \u0026envelope); err != nil {\n-\t\treturn nil, fmt.Errorf(\"decode findings: %w\", err)\n-\t}\n-\tfindings := make([]eval.Finding, 0, len(envelope.Findings))\n-\tfor _, f := range envelope.Findings {\n-\t\tfindings = append(findings, eval.Finding{Path: f.Path, BugClass: f.Type, Severity: f.Severity, StartLine: f.StartLine, EndLine: f.EndLine})\n-\t}\n-\treturn findings, nil\n-}\n-\n-func readSpend(out string) (int64, bool) {\n-\tdata, err := os.ReadFile(filepath.Join(out, \"trace.json\"))\n-\tif err != nil {\n-\t\treturn 0, false\n-\t}\n-\tvar trace struct {\n-\t\tSpend struct {\n-\t\t\tCostMicrousd int64 `json:\"cost_microusd\"`\n-\t\t} `json:\"spend\"`\n-\t}\n-\tif json.Unmarshal(data, \u0026trace) != nil {\n-\t\treturn 0, false\n-\t}\n-\treturn trace.Spend.CostMicrousd, true\n-}\n-\n-func readScope(out string) (reviewScope, bool) {\n-\tdata, err := os.ReadFile(filepath.Join(out, \"scope.json\"))\n-\tif err != nil {\n-\t\treturn reviewScope{}, false\n-\t}\n-\tvar scope reviewScope\n-\treturn scope, json.Unmarshal(data, \u0026scope) == nil\n-}\n-\n-func parseEvalRunFlags(args []string) (evalRunOptions, error) {\n-\tvar o evalRunOptions\n-\tfs := flag.NewFlagSet(\"eval-run\", flag.ContinueOnError)\n-\tfs.SetOutput(os.Stderr)\n-\tfs.StringVar(\u0026o.cases, \"cases\", \"\", \"repeat dataset JSON (required)\")\n-\tfs.StringVar(\u0026o.root, \"root\", \".\", \"local clone holding every case's commits\")\n-\tfs.StringVar(\u0026o.out, \"out\", \"px1-eval\", \"output directory\")\n-\tfs.StringVar(\u0026o.model, \"model\", \"\", \"OpenAI model (required)\")\n-\tfs.StringVar(\u0026o.endpoint, \"endpoint\", defaultResponsesEndpoint, \"Responses API endpoint\")\n-\tfs.Float64Var(\u0026o.priceIn, \"price-input\", 0, \"input price, USD per million tokens (required)\")\n-\tfs.Float64Var(\u0026o.priceOut, \"price-output\", 0, \"output price, USD per million tokens (required)\")\n-\tfs.Float64Var(\u0026o.priceCached, \"price-cached-input\", 0, \"cached input price (default: same as input)\")\n-\tfs.StringVar(\u0026o.tier, \"tier\", \"plus\", \"agentic tier: plus or apex\")\n-\tfs.Float64Var(\u0026o.maxCost, \"max-cost\", 0.50, \"hard cap per review, USD\")\n-\tfs.Float64Var(\u0026o.maxTotal, \"max-total-cost\", 5.00, \"hard cap for the whole evaluation, USD\")\n-\tfs.IntVar(\u0026o.runs, \"runs\", 3, \"reviews per case; at least 3 to see run-to-run variance\")\n-\tfs.IntVar(\u0026o.lineSlack, \"line-slack\", 3, \"lines a finding may be from a label and still match\")\n-\tfs.BoolVar(\u0026o.requireClass, \"require-class\", false, \"also require the finding's type to equal the label's bug_class\")\n-\tfs.IntVar(\u0026o.maxMinutes, \"max-minutes\", 0, \"wall-time limit per review in minutes (default: the tier's)\")\n-\tfs.IntVar(\u0026o.maxOutput, \"max-output-tokens\", 4000, \"output-token limit per model call\")\n-\tfs.IntVar(\u0026o.concurrency, \"concurrency\", 3, \"sub-agents running at once\")\n-\tfs.IntVar(\u0026o.maxFiles, \"max-files\", defaultMaxReviewFiles, \"most changed files sent per review\")\n-\tfs.IntVar(\u0026o.maxDiffBytes, \"max-diff-bytes\", defaultMaxReviewDiffBytes, \"most diff bytes sent per review\")\n-\tfs.Var(\u0026o.excludes, \"exclude-glob\", \"repository-relative glob never shown to the model (repeatable)\")\n-\tfs.BoolVar(\u0026o.yes, \"yes\", false, \"send repository content to the model provider\")\n-\tfs.BoolVar(\u0026o.dryRun, \"dry-run\", false, \"list the cases; send nothing\")\n-\tfs.BoolVar(\u0026o.resume, \"resume\", false, \"skip reviews already in \u003cout\u003e/results.json\")\n-\tfs.Usage = func() {\n-\t\tfmt.Fprintln(fs.Output(), \"usage: OPENAI_API_KEY=... px1 eval-run --cases \u003cfile\u003e --root \u003cclone\u003e --model \u003cm\u003e --price-input \u003cusd/M\u003e --price-output \u003cusd/M\u003e [--dry-run | --yes] [options]\")\n-\t\tfs.PrintDefaults()\n-\t}\n-\tif err := fs.Parse(args); err != nil {\n-\t\treturn o, err\n-\t}\n-\tswitch {\n-\tcase o.cases == \"\" || strings.TrimSpace(o.model) == \"\":\n-\t\treturn o, errors.New(\"eval-run requires --cases and --model\")\n-\tcase o.priceIn \u003c= 0 || o.priceOut \u003c= 0 || o.priceCached \u003c 0:\n-\t\treturn o, errors.New(\"--price-input and --price-output must be positive\")\n-\tcase o.runs \u003c 1 || o.runs \u003e 20:\n-\t\treturn o, errors.New(\"--runs must be between 1 and 20\")\n-\tcase o.maxCost \u003c= 0 || o.maxTotal \u003c o.maxCost:\n-\t\treturn o, errors.New(\"--max-cost must be positive and no more than --max-total-cost\")\n-\tcase o.lineSlack \u003c 0:\n-\t\treturn o, errors.New(\"--line-slack cannot be negative\")\n-\t}\n-\tif o.priceCached == 0 {\n-\t\to.priceCached = o.priceIn\n-\t}\n-\treturn o, nil\n-}\n",
+      "hunks": [
+        {
+          "id": "diff-eae9af5e4a2507bb",
+          "header": "@@ -1,283 +0,0 @@",
+          "lines": [
+            {
+              "oldLine": 1,
+              "kind": "removed",
+              "text": "package main"
+            },
+            {
+              "oldLine": 2,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 3,
+              "kind": "removed",
+              "text": "import ("
+            },
+            {
+              "oldLine": 4,
+              "kind": "removed",
+              "text": "\t\"bytes\""
+            },
+            {
+              "oldLine": 5,
+              "kind": "removed",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "oldLine": 6,
+              "kind": "removed",
+              "text": "\t\"errors\""
+            },
+            {
+              "oldLine": 7,
+              "kind": "removed",
+              "text": "\t\"flag\""
+            },
+            {
+              "oldLine": 8,
+              "kind": "removed",
+              "text": "\t\"fmt\""
+            },
+            {
+              "oldLine": 9,
+              "kind": "removed",
+              "text": "\t\"io\""
+            },
+            {
+              "oldLine": 10,
+              "kind": "removed",
+              "text": "\t\"os\""
+            },
+            {
+              "oldLine": 11,
+              "kind": "removed",
+              "text": "\t\"path/filepath\""
+            },
+            {
+              "oldLine": 12,
+              "kind": "removed",
+              "text": "\t\"strconv\""
+            },
+            {
+              "oldLine": 13,
+              "kind": "removed",
+              "text": "\t\"strings\""
+            },
+            {
+              "oldLine": 14,
+              "kind": "removed",
+              "text": "\t\"time\""
+            },
+            {
+              "oldLine": 15,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 16,
+              "kind": "removed",
+              "text": "\t\"px1/internal/hosted/eval\""
+            },
+            {
+              "oldLine": 17,
+              "kind": "removed",
+              "text": ")"
+            },
+            {
+              "oldLine": 18,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 19,
+              "kind": "removed",
+              "text": "type evalRunOptions struct {"
+            },
+            {
+              "oldLine": 20,
+              "kind": "removed",
+              "text": "\tcases, root, out, model, endpoint, tier string"
+            },
+            {
+              "oldLine": 21,
+              "kind": "removed",
+              "text": "\tpriceIn, priceOut, priceCached          float64"
+            },
+            {
+              "oldLine": 22,
+              "kind": "removed",
+              "text": "\tmaxCost, maxTotal                       float64"
+            },
+            {
+              "oldLine": 23,
+              "kind": "removed",
+              "text": "\truns, lineSlack                         int"
+            },
+            {
+              "oldLine": 24,
+              "kind": "removed",
+              "text": "\tmaxMinutes, maxOutput, concurrency      int"
+            },
+            {
+              "oldLine": 25,
+              "kind": "removed",
+              "text": "\tmaxFiles, maxDiffBytes                  int"
+            },
+            {
+              "oldLine": 26,
+              "kind": "removed",
+              "text": "\texcludes                                repeatedStringFlag"
+            },
+            {
+              "oldLine": 27,
+              "kind": "removed",
+              "text": "\tyes, dryRun, resume, requireClass       bool"
+            },
+            {
+              "oldLine": 28,
+              "kind": "removed",
+              "text": "}"
+            },
+            {
+              "oldLine": 29,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 30,
+              "kind": "removed",
+              "text": "// runEvalRun reviews every case in a repeat dataset several times with the"
+            },
+            {
+              "oldLine": 31,
+              "kind": "removed",
+              "text": "// agentic reviewer and scores the results. It goes through runAgenticReview"
+            },
+            {
+              "oldLine": 32,
+              "kind": "removed",
+              "text": "// for each run, so consent, the privacy policy and the per-review cost cap are"
+            },
+            {
+              "oldLine": 33,
+              "kind": "removed",
+              "text": "// exactly those of a normal review, and adds a cap on the total spend."
+            },
+            {
+              "oldLine": 34,
+              "kind": "removed",
+              "text": "func runEvalRun(args []string, stdout io.Writer) error {"
+            },
+            {
+              "oldLine": 35,
+              "kind": "removed",
+              "text": "\to, err := parseEvalRunFlags(args)"
+            },
+            {
+              "oldLine": 36,
+              "kind": "removed",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 37,
+              "kind": "removed",
+              "text": "\t\treturn err"
+            },
+            {
+              "oldLine": 38,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 39,
+              "kind": "removed",
+              "text": "\tdata, err := os.ReadFile(o.cases)"
+            },
+            {
+              "oldLine": 40,
+              "kind": "removed",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 41,
+              "kind": "removed",
+              "text": "\t\treturn fmt.Errorf(\"read cases: %w\", err)"
+            },
+            {
+              "oldLine": 42,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 43,
+              "kind": "removed",
+              "text": "\tdataset, err := eval.DecodeRepeat(data)"
+            },
+            {
+              "oldLine": 44,
+              "kind": "removed",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 45,
+              "kind": "removed",
+              "text": "\t\treturn err"
+            },
+            {
+              "oldLine": 46,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 47,
+              "kind": "removed",
+              "text": "\troot, err := filepath.Abs(o.root)"
+            },
+            {
+              "oldLine": 48,
+              "kind": "removed",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 49,
+              "kind": "removed",
+              "text": "\t\treturn err"
+            },
+            {
+              "oldLine": 50,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 51,
+              "kind": "removed",
+              "text": "\tfor _, c := range dataset.Cases {"
+            },
+            {
+              "oldLine": 52,
+              "kind": "removed",
+              "text": "\t\tfor _, rev := range []string{c.BaseSHA, c.HeadSHA} {"
+            },
+            {
+              "oldLine": 53,
+              "kind": "removed",
+              "text": "\t\t\tif _, err := resolveCommit(root, rev); err != nil {"
+            },
+            {
+              "oldLine": 54,
+              "kind": "removed",
+              "text": "\t\t\t\treturn fmt.Errorf(\"case %s: commit %s is not in %s (fetch the branch that holds it): %w\", c.ID, rev[:8], root, err)"
+            },
+            {
+              "oldLine": 55,
+              "kind": "removed",
+              "text": "\t\t\t}"
+            },
+            {
+              "oldLine": 56,
+              "kind": "removed",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 57,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 58,
+              "kind": "removed",
+              "text": "\ttotalRuns := len(dataset.Cases) * o.runs"
+            },
+            {
+              "oldLine": 59,
+              "kind": "removed",
+              "text": "\tfmt.Fprintf(stdout, \"px1 eval of %d cases x %d runs = %d reviews with %s\\n\", len(dataset.Cases), o.runs, totalRuns, o.model)"
+            },
+            {
+              "oldLine": 60,
+              "kind": "removed",
+              "text": "\tfmt.Fprintf(stdout, \"Cost: each review is capped at $%.2f; the whole evaluation at $%.2f. Typical reviews have cost a few cents; the caps are ceilings, not estimates.\\n\", o.maxCost, o.maxTotal)"
+            },
+            {
+              "oldLine": 61,
+              "kind": "removed",
+              "text": "\tfmt.Fprintf(stdout, \"Each review sends its case's diff, and files the model chooses to read, to %s. Secret files and key-shaped values are blocked or redacted.\\n\", hostOf(o.endpoint))"
+            },
+            {
+              "oldLine": 62,
+              "kind": "removed",
+              "text": "\tif o.dryRun {"
+            },
+            {
+              "oldLine": 63,
+              "kind": "removed",
+              "text": "\t\tfmt.Fprintln(stdout, \"\\nDry run: nothing was sent. Cases:\")"
+            },
+            {
+              "oldLine": 64,
+              "kind": "removed",
+              "text": "\t\tfor _, c := range dataset.Cases {"
+            },
+            {
+              "oldLine": 65,
+              "kind": "removed",
+              "text": "\t\t\tfmt.Fprintf(stdout, \"  %s (%s) %s..%s, %d label(s)\\n\", c.ID, c.Kind, c.BaseSHA[:8], c.HeadSHA[:8], len(c.Labels))"
+            },
+            {
+              "oldLine": 66,
+              "kind": "removed",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 67,
+              "kind": "removed",
+              "text": "\t\treturn nil"
+            },
+            {
+              "oldLine": 68,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 69,
+              "kind": "removed",
+              "text": "\tif !o.yes {"
+            },
+            {
+              "oldLine": 70,
+              "kind": "removed",
+              "text": "\t\treturn errors.New(\"this sends repository content to the model provider; re-run with --yes, or --dry-run to preview\")"
+            },
+            {
+              "oldLine": 71,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 72,
+              "kind": "removed",
+              "text": "\tif strings.TrimSpace(os.Getenv(\"OPENAI_API_KEY\")) == \"\" {"
+            },
+            {
+              "oldLine": 73,
+              "kind": "removed",
+              "text": "\t\treturn errors.New(\"eval-run requires OPENAI_API_KEY in the environment; keys are never accepted as flags\")"
+            },
+            {
+              "oldLine": 74,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 75,
+              "kind": "removed",
+              "text": "\tif err := os.MkdirAll(o.out, 0o700); err != nil {"
+            },
+            {
+              "oldLine": 76,
+              "kind": "removed",
+              "text": "\t\treturn err"
+            },
+            {
+              "oldLine": 77,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 78,
+              "kind": "removed",
+              "text": "\tresultsPath := filepath.Join(o.out, \"results.json\")"
+            },
+            {
+              "oldLine": 79,
+              "kind": "removed",
+              "text": "\tvar results []eval.RunResult"
+            },
+            {
+              "oldLine": 80,
+              "kind": "removed",
+              "text": "\tif o.resume {"
+            },
+            {
+              "oldLine": 81,
+              "kind": "removed",
+              "text": "\t\tif existing, err := os.ReadFile(resultsPath); err == nil {"
+            },
+            {
+              "oldLine": 82,
+              "kind": "removed",
+              "text": "\t\t\tif err := json.Unmarshal(existing, \u0026results); err != nil {"
+            },
+            {
+              "oldLine": 83,
+              "kind": "removed",
+              "text": "\t\t\t\treturn fmt.Errorf(\"read %s to resume: %w\", resultsPath, err)"
+            },
+            {
+              "oldLine": 84,
+              "kind": "removed",
+              "text": "\t\t\t}"
+            },
+            {
+              "oldLine": 85,
+              "kind": "removed",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 86,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 87,
+              "kind": "removed",
+              "text": "\tdone := map[string]bool{}"
+            },
+            {
+              "oldLine": 88,
+              "kind": "removed",
+              "text": "\tvar spent int64"
+            },
+            {
+              "oldLine": 89,
+              "kind": "removed",
+              "text": "\tfor _, r := range results {"
+            },
+            {
+              "oldLine": 90,
+              "kind": "removed",
+              "text": "\t\tdone[fmt.Sprintf(\"%s#%d\", r.CaseID, r.Run)] = true"
+            },
+            {
+              "oldLine": 91,
+              "kind": "removed",
+              "text": "\t\tspent += r.CostMicrousd"
+            },
+            {
+              "oldLine": 92,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 93,
+              "kind": "removed",
+              "text": "\tcapMicro := usdToMicro(o.maxTotal)"
+            },
+            {
+              "oldLine": 94,
+              "kind": "removed",
+              "text": "\tperRunMicro := usdToMicro(o.maxCost)"
+            },
+            {
+              "oldLine": 95,
+              "kind": "removed",
+              "text": "\tstopped := \"\""
+            },
+            {
+              "oldLine": 96,
+              "kind": "removed",
+              "text": "\t// Run-major order: every case is reviewed once before any is reviewed twice,"
+            },
+            {
+              "oldLine": 97,
+              "kind": "removed",
+              "text": "\t// so a stop leaves whole runs to compare, not one case repeated."
+            },
+            {
+              "oldLine": 98,
+              "kind": "removed",
+              "text": "\tfor run := 1; run \u003c= o.runs \u0026\u0026 stopped == \"\"; run++ {"
+            },
+            {
+              "oldLine": 99,
+              "kind": "removed",
+              "text": "\t\tfor _, c := range dataset.Cases {"
+            },
+            {
+              "oldLine": 100,
+              "kind": "removed",
+              "text": "\t\t\tkey := fmt.Sprintf(\"%s#%d\", c.ID, run)"
+            },
+            {
+              "oldLine": 101,
+              "kind": "removed",
+              "text": "\t\t\tif done[key] {"
+            },
+            {
+              "oldLine": 102,
+              "kind": "removed",
+              "text": "\t\t\t\tcontinue"
+            },
+            {
+              "oldLine": 103,
+              "kind": "removed",
+              "text": "\t\t\t}"
+            },
+            {
+              "oldLine": 104,
+              "kind": "removed",
+              "text": "\t\t\tif spent+perRunMicro \u003e capMicro {"
+            },
+            {
+              "oldLine": 105,
+              "kind": "removed",
+              "text": "\t\t\t\tstopped = fmt.Sprintf(\"stopped before run %d of %s: another review could pass the $%.2f total cap (spent about $%.4f)\", run, c.ID, o.maxTotal, float64(spent)/1e6)"
+            },
+            {
+              "oldLine": 106,
+              "kind": "removed",
+              "text": "\t\t\t\tbreak"
+            },
+            {
+              "oldLine": 107,
+              "kind": "removed",
+              "text": "\t\t\t}"
+            },
+            {
+              "oldLine": 108,
+              "kind": "removed",
+              "text": "\t\t\tresult := runOneEval(o, root, c, run, stdout)"
+            },
+            {
+              "oldLine": 109,
+              "kind": "removed",
+              "text": "\t\t\tspent += result.CostMicrousd"
+            },
+            {
+              "oldLine": 110,
+              "kind": "removed",
+              "text": "\t\t\tresults = append(results, result)"
+            },
+            {
+              "oldLine": 111,
+              "kind": "removed",
+              "text": "\t\t\tif err := writeResults(resultsPath, results); err != nil {"
+            },
+            {
+              "oldLine": 112,
+              "kind": "removed",
+              "text": "\t\t\t\treturn err"
+            },
+            {
+              "oldLine": 113,
+              "kind": "removed",
+              "text": "\t\t\t}"
+            },
+            {
+              "oldLine": 114,
+              "kind": "removed",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 115,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 116,
+              "kind": "removed",
+              "text": "\treport, err := eval.ScoreRepeat(dataset, results, eval.MatchOptions{LineSlack: o.lineSlack, RequireClass: o.requireClass})"
+            },
+            {
+              "oldLine": 117,
+              "kind": "removed",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 118,
+              "kind": "removed",
+              "text": "\t\treturn err"
+            },
+            {
+              "oldLine": 119,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 120,
+              "kind": "removed",
+              "text": "\tmd := report.Markdown()"
+            },
+            {
+              "oldLine": 121,
+              "kind": "removed",
+              "text": "\tif stopped != \"\" {"
+            },
+            {
+              "oldLine": 122,
+              "kind": "removed",
+              "text": "\t\tmd += \"\\n**Note:** \" + stopped + \". Re-run with --resume and a higher --max-total-cost to finish.\\n\""
+            },
+            {
+              "oldLine": 123,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 124,
+              "kind": "removed",
+              "text": "\tif err := os.WriteFile(filepath.Join(o.out, \"report.md\"), []byte(md), 0o600); err != nil {"
+            },
+            {
+              "oldLine": 125,
+              "kind": "removed",
+              "text": "\t\treturn err"
+            },
+            {
+              "oldLine": 126,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 127,
+              "kind": "removed",
+              "text": "\tfmt.Fprintf(stdout, \"\\n%s\\nResults: %s\\nReport:  %s\\n\", md, resultsPath, filepath.Join(o.out, \"report.md\"))"
+            },
+            {
+              "oldLine": 128,
+              "kind": "removed",
+              "text": "\treturn nil"
+            },
+            {
+              "oldLine": 129,
+              "kind": "removed",
+              "text": "}"
+            },
+            {
+              "oldLine": 130,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 131,
+              "kind": "removed",
+              "text": "func writeResults(path string, results []eval.RunResult) error {"
+            },
+            {
+              "oldLine": 132,
+              "kind": "removed",
+              "text": "\tdata, err := json.MarshalIndent(results, \"\", \"  \")"
+            },
+            {
+              "oldLine": 133,
+              "kind": "removed",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 134,
+              "kind": "removed",
+              "text": "\t\treturn err"
+            },
+            {
+              "oldLine": 135,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 136,
+              "kind": "removed",
+              "text": "\treturn os.WriteFile(path, append(data, '\\n'), 0o600)"
+            },
+            {
+              "oldLine": 137,
+              "kind": "removed",
+              "text": "}"
+            },
+            {
+              "oldLine": 138,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 139,
+              "kind": "removed",
+              "text": "// runOneEval reviews one case once. Anything that stops the review from"
+            },
+            {
+              "oldLine": 140,
+              "kind": "removed",
+              "text": "// completing is recorded as an error, so it is left out of scoring instead of"
+            },
+            {
+              "oldLine": 141,
+              "kind": "removed",
+              "text": "// being counted as a bug the reviewer missed."
+            },
+            {
+              "oldLine": 142,
+              "kind": "removed",
+              "text": "func runOneEval(o evalRunOptions, root string, c eval.RepeatCase, run int, stdout io.Writer) eval.RunResult {"
+            },
+            {
+              "oldLine": 143,
+              "kind": "removed",
+              "text": "\tresult := eval.RunResult{CaseID: c.ID, Run: run}"
+            },
+            {
+              "oldLine": 144,
+              "kind": "removed",
+              "text": "\tout := filepath.Join(o.out, \"runs\", c.ID, strconv.Itoa(run))"
+            },
+            {
+              "oldLine": 145,
+              "kind": "removed",
+              "text": "\targs := []string{\"--root\", root, \"--base\", c.BaseSHA, \"--head\", c.HeadSHA, \"--out\", out, \"--model\", o.model, \"--endpoint\", o.endpoint,"
+            },
+            {
+              "oldLine": 146,
+              "kind": "removed",
+              "text": "\t\t\"--price-input\", fmt.Sprint(o.priceIn), \"--price-output\", fmt.Sprint(o.priceOut), \"--price-cached-input\", fmt.Sprint(o.priceCached),"
+            },
+            {
+              "oldLine": 147,
+              "kind": "removed",
+              "text": "\t\t\"--tier\", o.tier, \"--max-cost\", fmt.Sprint(o.maxCost), \"--max-output-tokens\", strconv.Itoa(o.maxOutput), \"--concurrency\", strconv.Itoa(o.concurrency),"
+            },
+            {
+              "oldLine": 148,
+              "kind": "removed",
+              "text": "\t\t\"--max-files\", strconv.Itoa(o.maxFiles), \"--max-diff-bytes\", strconv.Itoa(o.maxDiffBytes), \"--transcripts=false\", \"--yes\"}"
+            },
+            {
+              "oldLine": 149,
+              "kind": "removed",
+              "text": "\tif o.maxMinutes \u003e 0 {"
+            },
+            {
+              "oldLine": 150,
+              "kind": "removed",
+              "text": "\t\targs = append(args, \"--max-minutes\", strconv.Itoa(o.maxMinutes))"
+            },
+            {
+              "oldLine": 151,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 152,
+              "kind": "removed",
+              "text": "\tfor _, g := range o.excludes {"
+            },
+            {
+              "oldLine": 153,
+              "kind": "removed",
+              "text": "\t\targs = append(args, \"--exclude-glob\", g)"
+            },
+            {
+              "oldLine": 154,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 155,
+              "kind": "removed",
+              "text": "\tfmt.Fprintf(stdout, \"[%s run %d] reviewing...\", c.ID, run)"
+            },
+            {
+              "oldLine": 156,
+              "kind": "removed",
+              "text": "\tstarted := time.Now()"
+            },
+            {
+              "oldLine": 157,
+              "kind": "removed",
+              "text": "\tvar sink bytes.Buffer"
+            },
+            {
+              "oldLine": 158,
+              "kind": "removed",
+              "text": "\terr := runAgenticReview(args, \u0026sink)"
+            },
+            {
+              "oldLine": 159,
+              "kind": "removed",
+              "text": "\tresult.Latency = time.Since(started)"
+            },
+            {
+              "oldLine": 160,
+              "kind": "removed",
+              "text": "\tif spend, ok := readSpend(out); ok {"
+            },
+            {
+              "oldLine": 161,
+              "kind": "removed",
+              "text": "\t\tresult.CostMicrousd = spend"
+            },
+            {
+              "oldLine": 162,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 163,
+              "kind": "removed",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 164,
+              "kind": "removed",
+              "text": "\t\tresult.Error = err.Error()"
+            },
+            {
+              "oldLine": 165,
+              "kind": "removed",
+              "text": "\t\tfmt.Fprintf(stdout, \" failed: %s\\n\", describeEvalError(err))"
+            },
+            {
+              "oldLine": 166,
+              "kind": "removed",
+              "text": "\t\treturn result"
+            },
+            {
+              "oldLine": 167,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 168,
+              "kind": "removed",
+              "text": "\tif scope, ok := readScope(out); !ok || !scope.Complete {"
+            },
+            {
+              "oldLine": 169,
+              "kind": "removed",
+              "text": "\t\tresult.Error = \"review did not complete (a step failed); not scored\""
+            },
+            {
+              "oldLine": 170,
+              "kind": "removed",
+              "text": "\t\tfmt.Fprintf(stdout, \" incomplete, not scored\\n\")"
+            },
+            {
+              "oldLine": 171,
+              "kind": "removed",
+              "text": "\t\treturn result"
+            },
+            {
+              "oldLine": 172,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 173,
+              "kind": "removed",
+              "text": "\tfindings, err := readEvalFindings(out)"
+            },
+            {
+              "oldLine": 174,
+              "kind": "removed",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 175,
+              "kind": "removed",
+              "text": "\t\tresult.Error = err.Error()"
+            },
+            {
+              "oldLine": 176,
+              "kind": "removed",
+              "text": "\t\tfmt.Fprintf(stdout, \" failed: %v\\n\", err)"
+            },
+            {
+              "oldLine": 177,
+              "kind": "removed",
+              "text": "\t\treturn result"
+            },
+            {
+              "oldLine": 178,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 179,
+              "kind": "removed",
+              "text": "\tresult.Findings = findings"
+            },
+            {
+              "oldLine": 180,
+              "kind": "removed",
+              "text": "\tfmt.Fprintf(stdout, \" %d finding(s), $%.4f, %s\\n\", len(findings), float64(result.CostMicrousd)/1e6, result.Latency.Round(time.Second))"
+            },
+            {
+              "oldLine": 181,
+              "kind": "removed",
+              "text": "\treturn result"
+            },
+            {
+              "oldLine": 182,
+              "kind": "removed",
+              "text": "}"
+            },
+            {
+              "oldLine": 183,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 184,
+              "kind": "removed",
+              "text": "func describeEvalError(err error) string {"
+            },
+            {
+              "oldLine": 185,
+              "kind": "removed",
+              "text": "\tmsg := err.Error()"
+            },
+            {
+              "oldLine": 186,
+              "kind": "removed",
+              "text": "\tif len(msg) \u003e 160 {"
+            },
+            {
+              "oldLine": 187,
+              "kind": "removed",
+              "text": "\t\tmsg = msg[:160] + \"...\""
+            },
+            {
+              "oldLine": 188,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 189,
+              "kind": "removed",
+              "text": "\treturn msg"
+            },
+            {
+              "oldLine": 190,
+              "kind": "removed",
+              "text": "}"
+            },
+            {
+              "oldLine": 191,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 192,
+              "kind": "removed",
+              "text": "func readEvalFindings(out string) ([]eval.Finding, error) {"
+            },
+            {
+              "oldLine": 193,
+              "kind": "removed",
+              "text": "\tdata, err := os.ReadFile(filepath.Join(out, \"findings.json\"))"
+            },
+            {
+              "oldLine": 194,
+              "kind": "removed",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 195,
+              "kind": "removed",
+              "text": "\t\treturn nil, fmt.Errorf(\"read findings: %w\", err)"
+            },
+            {
+              "oldLine": 196,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 197,
+              "kind": "removed",
+              "text": "\tvar envelope hostedFindingsEnvelope"
+            },
+            {
+              "oldLine": 198,
+              "kind": "removed",
+              "text": "\tif err := json.Unmarshal(data, \u0026envelope); err != nil {"
+            },
+            {
+              "oldLine": 199,
+              "kind": "removed",
+              "text": "\t\treturn nil, fmt.Errorf(\"decode findings: %w\", err)"
+            },
+            {
+              "oldLine": 200,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 201,
+              "kind": "removed",
+              "text": "\tfindings := make([]eval.Finding, 0, len(envelope.Findings))"
+            },
+            {
+              "oldLine": 202,
+              "kind": "removed",
+              "text": "\tfor _, f := range envelope.Findings {"
+            },
+            {
+              "oldLine": 203,
+              "kind": "removed",
+              "text": "\t\tfindings = append(findings, eval.Finding{Path: f.Path, BugClass: f.Type, Severity: f.Severity, StartLine: f.StartLine, EndLine: f.EndLine})"
+            },
+            {
+              "oldLine": 204,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 205,
+              "kind": "removed",
+              "text": "\treturn findings, nil"
+            },
+            {
+              "oldLine": 206,
+              "kind": "removed",
+              "text": "}"
+            },
+            {
+              "oldLine": 207,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 208,
+              "kind": "removed",
+              "text": "func readSpend(out string) (int64, bool) {"
+            },
+            {
+              "oldLine": 209,
+              "kind": "removed",
+              "text": "\tdata, err := os.ReadFile(filepath.Join(out, \"trace.json\"))"
+            },
+            {
+              "oldLine": 210,
+              "kind": "removed",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 211,
+              "kind": "removed",
+              "text": "\t\treturn 0, false"
+            },
+            {
+              "oldLine": 212,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 213,
+              "kind": "removed",
+              "text": "\tvar trace struct {"
+            },
+            {
+              "oldLine": 214,
+              "kind": "removed",
+              "text": "\t\tSpend struct {"
+            },
+            {
+              "oldLine": 215,
+              "kind": "removed",
+              "text": "\t\t\tCostMicrousd int64 `json:\"cost_microusd\"`"
+            },
+            {
+              "oldLine": 216,
+              "kind": "removed",
+              "text": "\t\t} `json:\"spend\"`"
+            },
+            {
+              "oldLine": 217,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 218,
+              "kind": "removed",
+              "text": "\tif json.Unmarshal(data, \u0026trace) != nil {"
+            },
+            {
+              "oldLine": 219,
+              "kind": "removed",
+              "text": "\t\treturn 0, false"
+            },
+            {
+              "oldLine": 220,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 221,
+              "kind": "removed",
+              "text": "\treturn trace.Spend.CostMicrousd, true"
+            },
+            {
+              "oldLine": 222,
+              "kind": "removed",
+              "text": "}"
+            },
+            {
+              "oldLine": 223,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 224,
+              "kind": "removed",
+              "text": "func readScope(out string) (reviewScope, bool) {"
+            },
+            {
+              "oldLine": 225,
+              "kind": "removed",
+              "text": "\tdata, err := os.ReadFile(filepath.Join(out, \"scope.json\"))"
+            },
+            {
+              "oldLine": 226,
+              "kind": "removed",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 227,
+              "kind": "removed",
+              "text": "\t\treturn reviewScope{}, false"
+            },
+            {
+              "oldLine": 228,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 229,
+              "kind": "removed",
+              "text": "\tvar scope reviewScope"
+            },
+            {
+              "oldLine": 230,
+              "kind": "removed",
+              "text": "\treturn scope, json.Unmarshal(data, \u0026scope) == nil"
+            },
+            {
+              "oldLine": 231,
+              "kind": "removed",
+              "text": "}"
+            },
+            {
+              "oldLine": 232,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 233,
+              "kind": "removed",
+              "text": "func parseEvalRunFlags(args []string) (evalRunOptions, error) {"
+            },
+            {
+              "oldLine": 234,
+              "kind": "removed",
+              "text": "\tvar o evalRunOptions"
+            },
+            {
+              "oldLine": 235,
+              "kind": "removed",
+              "text": "\tfs := flag.NewFlagSet(\"eval-run\", flag.ContinueOnError)"
+            },
+            {
+              "oldLine": 236,
+              "kind": "removed",
+              "text": "\tfs.SetOutput(os.Stderr)"
+            },
+            {
+              "oldLine": 237,
+              "kind": "removed",
+              "text": "\tfs.StringVar(\u0026o.cases, \"cases\", \"\", \"repeat dataset JSON (required)\")"
+            },
+            {
+              "oldLine": 238,
+              "kind": "removed",
+              "text": "\tfs.StringVar(\u0026o.root, \"root\", \".\", \"local clone holding every case's commits\")"
+            },
+            {
+              "oldLine": 239,
+              "kind": "removed",
+              "text": "\tfs.StringVar(\u0026o.out, \"out\", \"px1-eval\", \"output directory\")"
+            },
+            {
+              "oldLine": 240,
+              "kind": "removed",
+              "text": "\tfs.StringVar(\u0026o.model, \"model\", \"\", \"OpenAI model (required)\")"
+            },
+            {
+              "oldLine": 241,
+              "kind": "removed",
+              "text": "\tfs.StringVar(\u0026o.endpoint, \"endpoint\", defaultResponsesEndpoint, \"Responses API endpoint\")"
+            },
+            {
+              "oldLine": 242,
+              "kind": "removed",
+              "text": "\tfs.Float64Var(\u0026o.priceIn, \"price-input\", 0, \"input price, USD per million tokens (required)\")"
+            },
+            {
+              "oldLine": 243,
+              "kind": "removed",
+              "text": "\tfs.Float64Var(\u0026o.priceOut, \"price-output\", 0, \"output price, USD per million tokens (required)\")"
+            },
+            {
+              "oldLine": 244,
+              "kind": "removed",
+              "text": "\tfs.Float64Var(\u0026o.priceCached, \"price-cached-input\", 0, \"cached input price (default: same as input)\")"
+            },
+            {
+              "oldLine": 245,
+              "kind": "removed",
+              "text": "\tfs.StringVar(\u0026o.tier, \"tier\", \"plus\", \"agentic tier: plus or apex\")"
+            },
+            {
+              "oldLine": 246,
+              "kind": "removed",
+              "text": "\tfs.Float64Var(\u0026o.maxCost, \"max-cost\", 0.50, \"hard cap per review, USD\")"
+            },
+            {
+              "oldLine": 247,
+              "kind": "removed",
+              "text": "\tfs.Float64Var(\u0026o.maxTotal, \"max-total-cost\", 5.00, \"hard cap for the whole evaluation, USD\")"
+            },
+            {
+              "oldLine": 248,
+              "kind": "removed",
+              "text": "\tfs.IntVar(\u0026o.runs, \"runs\", 3, \"reviews per case; at least 3 to see run-to-run variance\")"
+            },
+            {
+              "oldLine": 249,
+              "kind": "removed",
+              "text": "\tfs.IntVar(\u0026o.lineSlack, \"line-slack\", 3, \"lines a finding may be from a label and still match\")"
+            },
+            {
+              "oldLine": 250,
+              "kind": "removed",
+              "text": "\tfs.BoolVar(\u0026o.requireClass, \"require-class\", false, \"also require the finding's type to equal the label's bug_class\")"
+            },
+            {
+              "oldLine": 251,
+              "kind": "removed",
+              "text": "\tfs.IntVar(\u0026o.maxMinutes, \"max-minutes\", 0, \"wall-time limit per review in minutes (default: the tier's)\")"
+            },
+            {
+              "oldLine": 252,
+              "kind": "removed",
+              "text": "\tfs.IntVar(\u0026o.maxOutput, \"max-output-tokens\", 4000, \"output-token limit per model call\")"
+            },
+            {
+              "oldLine": 253,
+              "kind": "removed",
+              "text": "\tfs.IntVar(\u0026o.concurrency, \"concurrency\", 3, \"sub-agents running at once\")"
+            },
+            {
+              "oldLine": 254,
+              "kind": "removed",
+              "text": "\tfs.IntVar(\u0026o.maxFiles, \"max-files\", defaultMaxReviewFiles, \"most changed files sent per review\")"
+            },
+            {
+              "oldLine": 255,
+              "kind": "removed",
+              "text": "\tfs.IntVar(\u0026o.maxDiffBytes, \"max-diff-bytes\", defaultMaxReviewDiffBytes, \"most diff bytes sent per review\")"
+            },
+            {
+              "oldLine": 256,
+              "kind": "removed",
+              "text": "\tfs.Var(\u0026o.excludes, \"exclude-glob\", \"repository-relative glob never shown to the model (repeatable)\")"
+            },
+            {
+              "oldLine": 257,
+              "kind": "removed",
+              "text": "\tfs.BoolVar(\u0026o.yes, \"yes\", false, \"send repository content to the model provider\")"
+            },
+            {
+              "oldLine": 258,
+              "kind": "removed",
+              "text": "\tfs.BoolVar(\u0026o.dryRun, \"dry-run\", false, \"list the cases; send nothing\")"
+            },
+            {
+              "oldLine": 259,
+              "kind": "removed",
+              "text": "\tfs.BoolVar(\u0026o.resume, \"resume\", false, \"skip reviews already in \u003cout\u003e/results.json\")"
+            },
+            {
+              "oldLine": 260,
+              "kind": "removed",
+              "text": "\tfs.Usage = func() {"
+            },
+            {
+              "oldLine": 261,
+              "kind": "removed",
+              "text": "\t\tfmt.Fprintln(fs.Output(), \"usage: OPENAI_API_KEY=... px1 eval-run --cases \u003cfile\u003e --root \u003cclone\u003e --model \u003cm\u003e --price-input \u003cusd/M\u003e --price-output \u003cusd/M\u003e [--dry-run | --yes] [options]\")"
+            },
+            {
+              "oldLine": 262,
+              "kind": "removed",
+              "text": "\t\tfs.PrintDefaults()"
+            },
+            {
+              "oldLine": 263,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 264,
+              "kind": "removed",
+              "text": "\tif err := fs.Parse(args); err != nil {"
+            },
+            {
+              "oldLine": 265,
+              "kind": "removed",
+              "text": "\t\treturn o, err"
+            },
+            {
+              "oldLine": 266,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 267,
+              "kind": "removed",
+              "text": "\tswitch {"
+            },
+            {
+              "oldLine": 268,
+              "kind": "removed",
+              "text": "\tcase o.cases == \"\" || strings.TrimSpace(o.model) == \"\":"
+            },
+            {
+              "oldLine": 269,
+              "kind": "removed",
+              "text": "\t\treturn o, errors.New(\"eval-run requires --cases and --model\")"
+            },
+            {
+              "oldLine": 270,
+              "kind": "removed",
+              "text": "\tcase o.priceIn \u003c= 0 || o.priceOut \u003c= 0 || o.priceCached \u003c 0:"
+            },
+            {
+              "oldLine": 271,
+              "kind": "removed",
+              "text": "\t\treturn o, errors.New(\"--price-input and --price-output must be positive\")"
+            },
+            {
+              "oldLine": 272,
+              "kind": "removed",
+              "text": "\tcase o.runs \u003c 1 || o.runs \u003e 20:"
+            },
+            {
+              "oldLine": 273,
+              "kind": "removed",
+              "text": "\t\treturn o, errors.New(\"--runs must be between 1 and 20\")"
+            },
+            {
+              "oldLine": 274,
+              "kind": "removed",
+              "text": "\tcase o.maxCost \u003c= 0 || o.maxTotal \u003c o.maxCost:"
+            },
+            {
+              "oldLine": 275,
+              "kind": "removed",
+              "text": "\t\treturn o, errors.New(\"--max-cost must be positive and no more than --max-total-cost\")"
+            },
+            {
+              "oldLine": 276,
+              "kind": "removed",
+              "text": "\tcase o.lineSlack \u003c 0:"
+            },
+            {
+              "oldLine": 277,
+              "kind": "removed",
+              "text": "\t\treturn o, errors.New(\"--line-slack cannot be negative\")"
+            },
+            {
+              "oldLine": 278,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 279,
+              "kind": "removed",
+              "text": "\tif o.priceCached == 0 {"
+            },
+            {
+              "oldLine": 280,
+              "kind": "removed",
+              "text": "\t\to.priceCached = o.priceIn"
+            },
+            {
+              "oldLine": 281,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 282,
+              "kind": "removed",
+              "text": "\treturn o, nil"
+            },
+            {
+              "oldLine": 283,
+              "kind": "removed",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "eval_run_test.go",
+      "status": "D",
+      "diff": "diff --git a/eval_run_test.go b/eval_run_test.go\ndeleted file mode 100644\nindex 91bae9c..0000000\n--- a/eval_run_test.go\n+++ /dev/null\n@@ -1,212 +0,0 @@\n-package main\n-\n-import (\n-\t\"bytes\"\n-\t\"encoding/json\"\n-\t\"os\"\n-\t\"path/filepath\"\n-\t\"strings\"\n-\t\"testing\"\n-\n-\t\"px1/internal/hosted/agent\"\n-\t\"px1/internal/hosted/eval\"\n-\thostedreview \"px1/internal/hosted/review\"\n-)\n-\n-func writeEvalCases(t *testing.T, base, head string) string {\n-\tt.Helper()\n-\tcases := map[string]any{\"version\": 1, \"cases\": []map[string]any{\n-\t\t{\"id\": \"found\", \"kind\": \"seeded\", \"base_sha\": base, \"head_sha\": head, \"labels\": []map[string]any{{\"path\": \"src/refund.ts\", \"bug_class\": \"logic\", \"start_line\": 3, \"end_line\": 3}}},\n-\t\t{\"id\": \"never-found\", \"kind\": \"seeded\", \"base_sha\": base, \"head_sha\": head, \"labels\": []map[string]any{{\"path\": \"src/other.ts\", \"bug_class\": \"logic\", \"start_line\": 1, \"end_line\": 1}}},\n-\t\t{\"id\": \"clean\", \"kind\": \"clean\", \"base_sha\": base, \"head_sha\": head},\n-\t}}\n-\tdata, _ := json.Marshal(cases)\n-\tpath := filepath.Join(t.TempDir(), \"cases.json\")\n-\tif err := os.WriteFile(path, data, 0o600); err != nil {\n-\t\tt.Fatal(err)\n-\t}\n-\treturn path\n-}\n-\n-func evalArgs(f *fakeOpenAI, cases, root, out string, extra ...string) []string {\n-\treturn append([]string{\"--cases\", cases, \"--root\", root, \"--out\", out, \"--model\", \"test-model\", \"--price-input\", \"1\", \"--price-output\", \"4\", \"--endpoint\", f.server.URL + \"/v1/responses\"}, extra...)\n-}\n-\n-func readEvalResults(t *testing.T, out string) []eval.RunResult {\n-\tt.Helper()\n-\tdata, err := os.ReadFile(filepath.Join(out, \"results.json\"))\n-\tif err != nil {\n-\t\tt.Fatal(err)\n-\t}\n-\tvar results []eval.RunResult\n-\tif err := json.Unmarshal(data, \u0026results); err != nil {\n-\t\tt.Fatal(err)\n-\t}\n-\treturn results\n-}\n-\n-func TestEvalRunReviewsEveryCaseEveryRunAndScoresThem(t *testing.T) {\n-\tt.Setenv(\"OPENAI_API_KEY\", fakeKey)\n-\tf := newFakeOpenAI(t)\n-\troot, base, head := newAgenticRepo(t, cleanHead)\n-\tcases := writeEvalCases(t, base, head)\n-\tout := filepath.Join(t.TempDir(), \"eval\")\n-\tvar stdout bytes.Buffer\n-\tif err := runEvalRun(evalArgs(f, cases, root, out, \"--yes\", \"--runs\", \"2\"), \u0026stdout); err != nil {\n-\t\tt.Fatalf(\"%v\\n%s\", err, stdout.String())\n-\t}\n-\tresults := readEvalResults(t, out)\n-\tif len(results) != 6 {\n-\t\tt.Fatalf(\"3 cases x 2 runs = 6 reviews, got %d\", len(results))\n-\t}\n-\tfor i, r := range results {\n-\t\t// run-major order: every case once before any case twice\n-\t\tif want := i/3 + 1; r.Run != want {\n-\t\t\tt.Fatalf(\"result %d is run %d, want %d\", i, r.Run, want)\n-\t\t}\n-\t\tif r.Error != \"\" || r.CostMicrousd \u003c= 0 || len(r.Findings) != 1 {\n-\t\t\tt.Fatalf(\"result %+v\", r)\n-\t\t}\n-\t}\n-\treport, err := os.ReadFile(filepath.Join(out, \"report.md\"))\n-\tif err != nil {\n-\t\tt.Fatal(err)\n-\t}\n-\tfor _, want := range []string{\"6 scored runs\", \"2/2\", \"0/2\", \"never found\", \"Noise on clean changes\"} {\n-\t\tif !strings.Contains(string(report), want) {\n-\t\t\tt.Fatalf(\"report lacks %q:\\n%s\", want, report)\n-\t\t}\n-\t}\n-\tinfo, _ := os.Stat(filepath.Join(out, \"results.json\"))\n-\tif info.Mode().Perm() != 0o600 {\n-\t\tt.Fatalf(\"results.json is %v, want owner-only\", info.Mode().Perm())\n-\t}\n-}\n-\n-func TestEvalRunNeedsConsentAndDryRunSendsNothing(t *testing.T) {\n-\tt.Setenv(\"OPENAI_API_KEY\", fakeKey)\n-\tf := newFakeOpenAI(t)\n-\troot, base, head := newAgenticRepo(t, cleanHead)\n-\tcases := writeEvalCases(t, base, head)\n-\tvar dry bytes.Buffer\n-\tif err := runEvalRun(evalArgs(f, cases, root, t.TempDir(), \"--dry-run\"), \u0026dry); err != nil || !strings.Contains(dry.String(), \"Dry run: nothing was sent\") || !strings.Contains(dry.String(), \"never-found\") {\n-\t\tt.Fatalf(\"err=%v\\n%s\", err, dry.String())\n-\t}\n-\tif err := runEvalRun(evalArgs(f, cases, root, t.TempDir()), \u0026bytes.Buffer{}); err == nil || !strings.Contains(err.Error(), \"--yes\") {\n-\t\tt.Fatalf(\"without --yes: %v\", err)\n-\t}\n-\tt.Setenv(\"OPENAI_API_KEY\", \"\")\n-\tif err := runEvalRun(evalArgs(f, cases, root, t.TempDir(), \"--yes\"), \u0026bytes.Buffer{}); err == nil || !strings.Contains(err.Error(), \"OPENAI_API_KEY\") {\n-\t\tt.Fatalf(\"without a key: %v\", err)\n-\t}\n-\tif f.requests != 0 {\n-\t\tt.Fatalf(\"%d requests were sent\", f.requests)\n-\t}\n-}\n-\n-func TestEvalRunStopsAtTheTotalCapAndResumes(t *testing.T) {\n-\tt.Setenv(\"OPENAI_API_KEY\", fakeKey)\n-\tf := newFakeOpenAI(t)\n-\troot, base, head := newAgenticRepo(t, cleanHead)\n-\tcases := writeEvalCases(t, base, head)\n-\tout := filepath.Join(t.TempDir(), \"eval\")\n-\t// Each review may cost up to $0.50 and the whole run $0.50: only one review fits.\n-\tvar first bytes.Buffer\n-\tif err := runEvalRun(evalArgs(f, cases, root, out, \"--yes\", \"--runs\", \"1\", \"--max-cost\", \"0.5\", \"--max-total-cost\", \"0.5\"), \u0026first); err != nil {\n-\t\tt.Fatal(err)\n-\t}\n-\tif got := len(readEvalResults(t, out)); got != 1 {\n-\t\tt.Fatalf(\"the cap should allow one review, got %d\", got)\n-\t}\n-\treport, _ := os.ReadFile(filepath.Join(out, \"report.md\"))\n-\tif !strings.Contains(string(report), \"total cap\") || !strings.Contains(string(report), \"--resume\") {\n-\t\tt.Fatalf(\"the report must say it stopped and how to continue:\\n%s\", report)\n-\t}\n-\tbefore := f.requests\n-\tif err := runEvalRun(evalArgs(f, cases, root, out, \"--yes\", \"--runs\", \"1\", \"--resume\", \"--max-cost\", \"0.5\", \"--max-total-cost\", \"5\"), \u0026bytes.Buffer{}); err != nil {\n-\t\tt.Fatal(err)\n-\t}\n-\tresults := readEvalResults(t, out)\n-\tif len(results) != 3 {\n-\t\tt.Fatalf(\"resume should finish all 3, got %d\", len(results))\n-\t}\n-\tseen := map[string]bool{}\n-\tfor _, r := range results {\n-\t\tif seen[r.CaseID] {\n-\t\t\tt.Fatalf(\"%s was reviewed twice on resume\", r.CaseID)\n-\t\t}\n-\t\tseen[r.CaseID] = true\n-\t}\n-\tif f.requests == before {\n-\t\tt.Fatal(\"resume made no requests\")\n-\t}\n-}\n-\n-func TestEvalRunKeepsFailedReviewsOutOfTheScore(t *testing.T) {\n-\tt.Setenv(\"OPENAI_API_KEY\", fakeKey)\n-\tf := newFakeOpenAI(t)\n-\troot, base, head := newAgenticRepo(t, cleanHead)\n-\tcases := writeEvalCases(t, base, head)\n-\tout := filepath.Join(t.TempDir(), \"eval\")\n-\t// A per-review cap this small stops every review before its first call.\n-\tif err := runEvalRun(evalArgs(f, cases, root, out, \"--yes\", \"--runs\", \"1\", \"--max-cost\", \"0.000001\", \"--max-total-cost\", \"1\"), \u0026bytes.Buffer{}); err != nil {\n-\t\tt.Fatal(err)\n-\t}\n-\tfor _, r := range readEvalResults(t, out) {\n-\t\tif r.Error == \"\" {\n-\t\t\tt.Fatalf(\"a review that could not run must be recorded as failed: %+v\", r)\n-\t\t}\n-\t}\n-\treport, _ := os.ReadFile(filepath.Join(out, \"report.md\"))\n-\tif !strings.Contains(string(report), \"Nothing was scored\") \u0026\u0026 !strings.Contains(string(report), \"3 failed runs\") {\n-\t\tt.Fatalf(\"report:\\n%s\", report)\n-\t}\n-}\n-\n-func TestEvalRunRejectsCasesWhoseCommitsAreMissingAndBadFlags(t *testing.T) {\n-\tt.Setenv(\"OPENAI_API_KEY\", fakeKey)\n-\tf := newFakeOpenAI(t)\n-\troot, base, _ := newAgenticRepo(t, cleanHead)\n-\tcases := writeEvalCases(t, base, strings.Repeat(\"e\", 40))\n-\tif err := runEvalRun(evalArgs(f, cases, root, t.TempDir(), \"--yes\"), \u0026bytes.Buffer{}); err == nil || !strings.Contains(err.Error(), \"is not in\") {\n-\t\tt.Fatalf(\"missing commit: %v\", err)\n-\t}\n-\tif f.requests != 0 {\n-\t\tt.Fatal(\"nothing may be sent when a case cannot be resolved\")\n-\t}\n-\tgood := evalArgs(f, cases, root, t.TempDir())\n-\tfor name, extra := range map[string][]string{\"runs\": {\"--runs\", \"0\"}, \"total below per-review\": {\"--max-cost\", \"2\", \"--max-total-cost\", \"1\"}, \"slack\": {\"--line-slack\", \"-1\"}} {\n-\t\tif _, err := parseEvalRunFlags(append(append([]string{}, good...), extra...)); err == nil {\n-\t\t\tt.Errorf(\"%s was accepted\", name)\n-\t\t}\n-\t}\n-}\n-\n-func TestReviewScopeMarksFailedStepsIncomplete(t *testing.T) {\n-\tt.Setenv(\"OPENAI_API_KEY\", fakeKey)\n-\tf := newFakeOpenAI(t)\n-\troot, base, _ := newAgenticRepo(t, cleanHead)\n-\tout := filepath.Join(t.TempDir(), \"run\")\n-\tif err := runAgenticReview(agenticArgs(f, root, base, out, \"--yes\"), \u0026bytes.Buffer{}); err != nil {\n-\t\tt.Fatal(err)\n-\t}\n-\tif scope, ok := readScope(out); !ok || !scope.Complete {\n-\t\tt.Fatalf(\"a clean run is complete: %+v ok=%v\", scope, ok)\n-\t}\n-}\n-\n-func TestReviewCompleteIsFalseWhenAStepFailed(t *testing.T) {\n-\tvar ok agent.PipelineResult\n-\tok.Run.Complete = true\n-\tif !reviewComplete(ok) {\n-\t\tt.Fatal(\"a finished run is complete\")\n-\t}\n-\tsub := agent.PipelineResult{Run: agent.RunResult{Complete: false, Outcomes: map[string]agent.Partial{\"g\": {}}}}\n-\tif reviewComplete(sub) {\n-\t\tt.Fatal(\"a sub-agent that did not finish makes the run incomplete\")\n-\t}\n-\tunverified := agent.PipelineResult{Run: agent.RunResult{Complete: true}, Unverified: []hostedreview.Finding{{Path: \"a\"}}}\n-\tif reviewComplete(unverified) {\n-\t\tt.Fatal(\"candidates the verifier could not check make the run incomplete\")\n-\t}\n-}\n",
+      "hunks": [
+        {
+          "id": "diff-df1be46e18ff5bb7",
+          "header": "@@ -1,212 +0,0 @@",
+          "lines": [
+            {
+              "oldLine": 1,
+              "kind": "removed",
+              "text": "package main"
+            },
+            {
+              "oldLine": 2,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 3,
+              "kind": "removed",
+              "text": "import ("
+            },
+            {
+              "oldLine": 4,
+              "kind": "removed",
+              "text": "\t\"bytes\""
+            },
+            {
+              "oldLine": 5,
+              "kind": "removed",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "oldLine": 6,
+              "kind": "removed",
+              "text": "\t\"os\""
+            },
+            {
+              "oldLine": 7,
+              "kind": "removed",
+              "text": "\t\"path/filepath\""
+            },
+            {
+              "oldLine": 8,
+              "kind": "removed",
+              "text": "\t\"strings\""
+            },
+            {
+              "oldLine": 9,
+              "kind": "removed",
+              "text": "\t\"testing\""
+            },
+            {
+              "oldLine": 10,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 11,
+              "kind": "removed",
+              "text": "\t\"px1/internal/hosted/agent\""
+            },
+            {
+              "oldLine": 12,
+              "kind": "removed",
+              "text": "\t\"px1/internal/hosted/eval\""
+            },
+            {
+              "oldLine": 13,
+              "kind": "removed",
+              "text": "\thostedreview \"px1/internal/hosted/review\""
+            },
+            {
+              "oldLine": 14,
+              "kind": "removed",
+              "text": ")"
+            },
+            {
+              "oldLine": 15,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 16,
+              "kind": "removed",
+              "text": "func writeEvalCases(t *testing.T, base, head string) string {"
+            },
+            {
+              "oldLine": 17,
+              "kind": "removed",
+              "text": "\tt.Helper()"
+            },
+            {
+              "oldLine": 18,
+              "kind": "removed",
+              "text": "\tcases := map[string]any{\"version\": 1, \"cases\": []map[string]any{"
+            },
+            {
+              "oldLine": 19,
+              "kind": "removed",
+              "text": "\t\t{\"id\": \"found\", \"kind\": \"seeded\", \"base_sha\": base, \"head_sha\": head, \"labels\": []map[string]any{{\"path\": \"src/refund.ts\", \"bug_class\": \"logic\", \"start_line\": 3, \"end_line\": 3}}},"
+            },
+            {
+              "oldLine": 20,
+              "kind": "removed",
+              "text": "\t\t{\"id\": \"never-found\", \"kind\": \"seeded\", \"base_sha\": base, \"head_sha\": head, \"labels\": []map[string]any{{\"path\": \"src/other.ts\", \"bug_class\": \"logic\", \"start_line\": 1, \"end_line\": 1}}},"
+            },
+            {
+              "oldLine": 21,
+              "kind": "removed",
+              "text": "\t\t{\"id\": \"clean\", \"kind\": \"clean\", \"base_sha\": base, \"head_sha\": head},"
+            },
+            {
+              "oldLine": 22,
+              "kind": "removed",
+              "text": "\t}}"
+            },
+            {
+              "oldLine": 23,
+              "kind": "removed",
+              "text": "\tdata, _ := json.Marshal(cases)"
+            },
+            {
+              "oldLine": 24,
+              "kind": "removed",
+              "text": "\tpath := filepath.Join(t.TempDir(), \"cases.json\")"
+            },
+            {
+              "oldLine": 25,
+              "kind": "removed",
+              "text": "\tif err := os.WriteFile(path, data, 0o600); err != nil {"
+            },
+            {
+              "oldLine": 26,
+              "kind": "removed",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "oldLine": 27,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 28,
+              "kind": "removed",
+              "text": "\treturn path"
+            },
+            {
+              "oldLine": 29,
+              "kind": "removed",
+              "text": "}"
+            },
+            {
+              "oldLine": 30,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 31,
+              "kind": "removed",
+              "text": "func evalArgs(f *fakeOpenAI, cases, root, out string, extra ...string) []string {"
+            },
+            {
+              "oldLine": 32,
+              "kind": "removed",
+              "text": "\treturn append([]string{\"--cases\", cases, \"--root\", root, \"--out\", out, \"--model\", \"test-model\", \"--price-input\", \"1\", \"--price-output\", \"4\", \"--endpoint\", f.server.URL + \"/v1/responses\"}, extra...)"
+            },
+            {
+              "oldLine": 33,
+              "kind": "removed",
+              "text": "}"
+            },
+            {
+              "oldLine": 34,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 35,
+              "kind": "removed",
+              "text": "func readEvalResults(t *testing.T, out string) []eval.RunResult {"
+            },
+            {
+              "oldLine": 36,
+              "kind": "removed",
+              "text": "\tt.Helper()"
+            },
+            {
+              "oldLine": 37,
+              "kind": "removed",
+              "text": "\tdata, err := os.ReadFile(filepath.Join(out, \"results.json\"))"
+            },
+            {
+              "oldLine": 38,
+              "kind": "removed",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 39,
+              "kind": "removed",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "oldLine": 40,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 41,
+              "kind": "removed",
+              "text": "\tvar results []eval.RunResult"
+            },
+            {
+              "oldLine": 42,
+              "kind": "removed",
+              "text": "\tif err := json.Unmarshal(data, \u0026results); err != nil {"
+            },
+            {
+              "oldLine": 43,
+              "kind": "removed",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "oldLine": 44,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 45,
+              "kind": "removed",
+              "text": "\treturn results"
+            },
+            {
+              "oldLine": 46,
+              "kind": "removed",
+              "text": "}"
+            },
+            {
+              "oldLine": 47,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 48,
+              "kind": "removed",
+              "text": "func TestEvalRunReviewsEveryCaseEveryRunAndScoresThem(t *testing.T) {"
+            },
+            {
+              "oldLine": 49,
+              "kind": "removed",
+              "text": "\tt.Setenv(\"OPENAI_API_KEY\", fakeKey)"
+            },
+            {
+              "oldLine": 50,
+              "kind": "removed",
+              "text": "\tf := newFakeOpenAI(t)"
+            },
+            {
+              "oldLine": 51,
+              "kind": "removed",
+              "text": "\troot, base, head := newAgenticRepo(t, cleanHead)"
+            },
+            {
+              "oldLine": 52,
+              "kind": "removed",
+              "text": "\tcases := writeEvalCases(t, base, head)"
+            },
+            {
+              "oldLine": 53,
+              "kind": "removed",
+              "text": "\tout := filepath.Join(t.TempDir(), \"eval\")"
+            },
+            {
+              "oldLine": 54,
+              "kind": "removed",
+              "text": "\tvar stdout bytes.Buffer"
+            },
+            {
+              "oldLine": 55,
+              "kind": "removed",
+              "text": "\tif err := runEvalRun(evalArgs(f, cases, root, out, \"--yes\", \"--runs\", \"2\"), \u0026stdout); err != nil {"
+            },
+            {
+              "oldLine": 56,
+              "kind": "removed",
+              "text": "\t\tt.Fatalf(\"%v\\n%s\", err, stdout.String())"
+            },
+            {
+              "oldLine": 57,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 58,
+              "kind": "removed",
+              "text": "\tresults := readEvalResults(t, out)"
+            },
+            {
+              "oldLine": 59,
+              "kind": "removed",
+              "text": "\tif len(results) != 6 {"
+            },
+            {
+              "oldLine": 60,
+              "kind": "removed",
+              "text": "\t\tt.Fatalf(\"3 cases x 2 runs = 6 reviews, got %d\", len(results))"
+            },
+            {
+              "oldLine": 61,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 62,
+              "kind": "removed",
+              "text": "\tfor i, r := range results {"
+            },
+            {
+              "oldLine": 63,
+              "kind": "removed",
+              "text": "\t\t// run-major order: every case once before any case twice"
+            },
+            {
+              "oldLine": 64,
+              "kind": "removed",
+              "text": "\t\tif want := i/3 + 1; r.Run != want {"
+            },
+            {
+              "oldLine": 65,
+              "kind": "removed",
+              "text": "\t\t\tt.Fatalf(\"result %d is run %d, want %d\", i, r.Run, want)"
+            },
+            {
+              "oldLine": 66,
+              "kind": "removed",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 67,
+              "kind": "removed",
+              "text": "\t\tif r.Error != \"\" || r.CostMicrousd \u003c= 0 || len(r.Findings) != 1 {"
+            },
+            {
+              "oldLine": 68,
+              "kind": "removed",
+              "text": "\t\t\tt.Fatalf(\"result %+v\", r)"
+            },
+            {
+              "oldLine": 69,
+              "kind": "removed",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 70,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 71,
+              "kind": "removed",
+              "text": "\treport, err := os.ReadFile(filepath.Join(out, \"report.md\"))"
+            },
+            {
+              "oldLine": 72,
+              "kind": "removed",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 73,
+              "kind": "removed",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "oldLine": 74,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 75,
+              "kind": "removed",
+              "text": "\tfor _, want := range []string{\"6 scored runs\", \"2/2\", \"0/2\", \"never found\", \"Noise on clean changes\"} {"
+            },
+            {
+              "oldLine": 76,
+              "kind": "removed",
+              "text": "\t\tif !strings.Contains(string(report), want) {"
+            },
+            {
+              "oldLine": 77,
+              "kind": "removed",
+              "text": "\t\t\tt.Fatalf(\"report lacks %q:\\n%s\", want, report)"
+            },
+            {
+              "oldLine": 78,
+              "kind": "removed",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 79,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 80,
+              "kind": "removed",
+              "text": "\tinfo, _ := os.Stat(filepath.Join(out, \"results.json\"))"
+            },
+            {
+              "oldLine": 81,
+              "kind": "removed",
+              "text": "\tif info.Mode().Perm() != 0o600 {"
+            },
+            {
+              "oldLine": 82,
+              "kind": "removed",
+              "text": "\t\tt.Fatalf(\"results.json is %v, want owner-only\", info.Mode().Perm())"
+            },
+            {
+              "oldLine": 83,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 84,
+              "kind": "removed",
+              "text": "}"
+            },
+            {
+              "oldLine": 85,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 86,
+              "kind": "removed",
+              "text": "func TestEvalRunNeedsConsentAndDryRunSendsNothing(t *testing.T) {"
+            },
+            {
+              "oldLine": 87,
+              "kind": "removed",
+              "text": "\tt.Setenv(\"OPENAI_API_KEY\", fakeKey)"
+            },
+            {
+              "oldLine": 88,
+              "kind": "removed",
+              "text": "\tf := newFakeOpenAI(t)"
+            },
+            {
+              "oldLine": 89,
+              "kind": "removed",
+              "text": "\troot, base, head := newAgenticRepo(t, cleanHead)"
+            },
+            {
+              "oldLine": 90,
+              "kind": "removed",
+              "text": "\tcases := writeEvalCases(t, base, head)"
+            },
+            {
+              "oldLine": 91,
+              "kind": "removed",
+              "text": "\tvar dry bytes.Buffer"
+            },
+            {
+              "oldLine": 92,
+              "kind": "removed",
+              "text": "\tif err := runEvalRun(evalArgs(f, cases, root, t.TempDir(), \"--dry-run\"), \u0026dry); err != nil || !strings.Contains(dry.String(), \"Dry run: nothing was sent\") || !strings.Contains(dry.String(), \"never-found\") {"
+            },
+            {
+              "oldLine": 93,
+              "kind": "removed",
+              "text": "\t\tt.Fatalf(\"err=%v\\n%s\", err, dry.String())"
+            },
+            {
+              "oldLine": 94,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 95,
+              "kind": "removed",
+              "text": "\tif err := runEvalRun(evalArgs(f, cases, root, t.TempDir()), \u0026bytes.Buffer{}); err == nil || !strings.Contains(err.Error(), \"--yes\") {"
+            },
+            {
+              "oldLine": 96,
+              "kind": "removed",
+              "text": "\t\tt.Fatalf(\"without --yes: %v\", err)"
+            },
+            {
+              "oldLine": 97,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 98,
+              "kind": "removed",
+              "text": "\tt.Setenv(\"OPENAI_API_KEY\", \"\")"
+            },
+            {
+              "oldLine": 99,
+              "kind": "removed",
+              "text": "\tif err := runEvalRun(evalArgs(f, cases, root, t.TempDir(), \"--yes\"), \u0026bytes.Buffer{}); err == nil || !strings.Contains(err.Error(), \"OPENAI_API_KEY\") {"
+            },
+            {
+              "oldLine": 100,
+              "kind": "removed",
+              "text": "\t\tt.Fatalf(\"without a key: %v\", err)"
+            },
+            {
+              "oldLine": 101,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 102,
+              "kind": "removed",
+              "text": "\tif f.requests != 0 {"
+            },
+            {
+              "oldLine": 103,
+              "kind": "removed",
+              "text": "\t\tt.Fatalf(\"%d requests were sent\", f.requests)"
+            },
+            {
+              "oldLine": 104,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 105,
+              "kind": "removed",
+              "text": "}"
+            },
+            {
+              "oldLine": 106,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 107,
+              "kind": "removed",
+              "text": "func TestEvalRunStopsAtTheTotalCapAndResumes(t *testing.T) {"
+            },
+            {
+              "oldLine": 108,
+              "kind": "removed",
+              "text": "\tt.Setenv(\"OPENAI_API_KEY\", fakeKey)"
+            },
+            {
+              "oldLine": 109,
+              "kind": "removed",
+              "text": "\tf := newFakeOpenAI(t)"
+            },
+            {
+              "oldLine": 110,
+              "kind": "removed",
+              "text": "\troot, base, head := newAgenticRepo(t, cleanHead)"
+            },
+            {
+              "oldLine": 111,
+              "kind": "removed",
+              "text": "\tcases := writeEvalCases(t, base, head)"
+            },
+            {
+              "oldLine": 112,
+              "kind": "removed",
+              "text": "\tout := filepath.Join(t.TempDir(), \"eval\")"
+            },
+            {
+              "oldLine": 113,
+              "kind": "removed",
+              "text": "\t// Each review may cost up to $0.50 and the whole run $0.50: only one review fits."
+            },
+            {
+              "oldLine": 114,
+              "kind": "removed",
+              "text": "\tvar first bytes.Buffer"
+            },
+            {
+              "oldLine": 115,
+              "kind": "removed",
+              "text": "\tif err := runEvalRun(evalArgs(f, cases, root, out, \"--yes\", \"--runs\", \"1\", \"--max-cost\", \"0.5\", \"--max-total-cost\", \"0.5\"), \u0026first); err != nil {"
+            },
+            {
+              "oldLine": 116,
+              "kind": "removed",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "oldLine": 117,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 118,
+              "kind": "removed",
+              "text": "\tif got := len(readEvalResults(t, out)); got != 1 {"
+            },
+            {
+              "oldLine": 119,
+              "kind": "removed",
+              "text": "\t\tt.Fatalf(\"the cap should allow one review, got %d\", got)"
+            },
+            {
+              "oldLine": 120,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 121,
+              "kind": "removed",
+              "text": "\treport, _ := os.ReadFile(filepath.Join(out, \"report.md\"))"
+            },
+            {
+              "oldLine": 122,
+              "kind": "removed",
+              "text": "\tif !strings.Contains(string(report), \"total cap\") || !strings.Contains(string(report), \"--resume\") {"
+            },
+            {
+              "oldLine": 123,
+              "kind": "removed",
+              "text": "\t\tt.Fatalf(\"the report must say it stopped and how to continue:\\n%s\", report)"
+            },
+            {
+              "oldLine": 124,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 125,
+              "kind": "removed",
+              "text": "\tbefore := f.requests"
+            },
+            {
+              "oldLine": 126,
+              "kind": "removed",
+              "text": "\tif err := runEvalRun(evalArgs(f, cases, root, out, \"--yes\", \"--runs\", \"1\", \"--resume\", \"--max-cost\", \"0.5\", \"--max-total-cost\", \"5\"), \u0026bytes.Buffer{}); err != nil {"
+            },
+            {
+              "oldLine": 127,
+              "kind": "removed",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "oldLine": 128,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 129,
+              "kind": "removed",
+              "text": "\tresults := readEvalResults(t, out)"
+            },
+            {
+              "oldLine": 130,
+              "kind": "removed",
+              "text": "\tif len(results) != 3 {"
+            },
+            {
+              "oldLine": 131,
+              "kind": "removed",
+              "text": "\t\tt.Fatalf(\"resume should finish all 3, got %d\", len(results))"
+            },
+            {
+              "oldLine": 132,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 133,
+              "kind": "removed",
+              "text": "\tseen := map[string]bool{}"
+            },
+            {
+              "oldLine": 134,
+              "kind": "removed",
+              "text": "\tfor _, r := range results {"
+            },
+            {
+              "oldLine": 135,
+              "kind": "removed",
+              "text": "\t\tif seen[r.CaseID] {"
+            },
+            {
+              "oldLine": 136,
+              "kind": "removed",
+              "text": "\t\t\tt.Fatalf(\"%s was reviewed twice on resume\", r.CaseID)"
+            },
+            {
+              "oldLine": 137,
+              "kind": "removed",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 138,
+              "kind": "removed",
+              "text": "\t\tseen[r.CaseID] = true"
+            },
+            {
+              "oldLine": 139,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 140,
+              "kind": "removed",
+              "text": "\tif f.requests == before {"
+            },
+            {
+              "oldLine": 141,
+              "kind": "removed",
+              "text": "\t\tt.Fatal(\"resume made no requests\")"
+            },
+            {
+              "oldLine": 142,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 143,
+              "kind": "removed",
+              "text": "}"
+            },
+            {
+              "oldLine": 144,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 145,
+              "kind": "removed",
+              "text": "func TestEvalRunKeepsFailedReviewsOutOfTheScore(t *testing.T) {"
+            },
+            {
+              "oldLine": 146,
+              "kind": "removed",
+              "text": "\tt.Setenv(\"OPENAI_API_KEY\", fakeKey)"
+            },
+            {
+              "oldLine": 147,
+              "kind": "removed",
+              "text": "\tf := newFakeOpenAI(t)"
+            },
+            {
+              "oldLine": 148,
+              "kind": "removed",
+              "text": "\troot, base, head := newAgenticRepo(t, cleanHead)"
+            },
+            {
+              "oldLine": 149,
+              "kind": "removed",
+              "text": "\tcases := writeEvalCases(t, base, head)"
+            },
+            {
+              "oldLine": 150,
+              "kind": "removed",
+              "text": "\tout := filepath.Join(t.TempDir(), \"eval\")"
+            },
+            {
+              "oldLine": 151,
+              "kind": "removed",
+              "text": "\t// A per-review cap this small stops every review before its first call."
+            },
+            {
+              "oldLine": 152,
+              "kind": "removed",
+              "text": "\tif err := runEvalRun(evalArgs(f, cases, root, out, \"--yes\", \"--runs\", \"1\", \"--max-cost\", \"0.000001\", \"--max-total-cost\", \"1\"), \u0026bytes.Buffer{}); err != nil {"
+            },
+            {
+              "oldLine": 153,
+              "kind": "removed",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "oldLine": 154,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 155,
+              "kind": "removed",
+              "text": "\tfor _, r := range readEvalResults(t, out) {"
+            },
+            {
+              "oldLine": 156,
+              "kind": "removed",
+              "text": "\t\tif r.Error == \"\" {"
+            },
+            {
+              "oldLine": 157,
+              "kind": "removed",
+              "text": "\t\t\tt.Fatalf(\"a review that could not run must be recorded as failed: %+v\", r)"
+            },
+            {
+              "oldLine": 158,
+              "kind": "removed",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 159,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 160,
+              "kind": "removed",
+              "text": "\treport, _ := os.ReadFile(filepath.Join(out, \"report.md\"))"
+            },
+            {
+              "oldLine": 161,
+              "kind": "removed",
+              "text": "\tif !strings.Contains(string(report), \"Nothing was scored\") \u0026\u0026 !strings.Contains(string(report), \"3 failed runs\") {"
+            },
+            {
+              "oldLine": 162,
+              "kind": "removed",
+              "text": "\t\tt.Fatalf(\"report:\\n%s\", report)"
+            },
+            {
+              "oldLine": 163,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 164,
+              "kind": "removed",
+              "text": "}"
+            },
+            {
+              "oldLine": 165,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 166,
+              "kind": "removed",
+              "text": "func TestEvalRunRejectsCasesWhoseCommitsAreMissingAndBadFlags(t *testing.T) {"
+            },
+            {
+              "oldLine": 167,
+              "kind": "removed",
+              "text": "\tt.Setenv(\"OPENAI_API_KEY\", fakeKey)"
+            },
+            {
+              "oldLine": 168,
+              "kind": "removed",
+              "text": "\tf := newFakeOpenAI(t)"
+            },
+            {
+              "oldLine": 169,
+              "kind": "removed",
+              "text": "\troot, base, _ := newAgenticRepo(t, cleanHead)"
+            },
+            {
+              "oldLine": 170,
+              "kind": "removed",
+              "text": "\tcases := writeEvalCases(t, base, strings.Repeat(\"e\", 40))"
+            },
+            {
+              "oldLine": 171,
+              "kind": "removed",
+              "text": "\tif err := runEvalRun(evalArgs(f, cases, root, t.TempDir(), \"--yes\"), \u0026bytes.Buffer{}); err == nil || !strings.Contains(err.Error(), \"is not in\") {"
+            },
+            {
+              "oldLine": 172,
+              "kind": "removed",
+              "text": "\t\tt.Fatalf(\"missing commit: %v\", err)"
+            },
+            {
+              "oldLine": 173,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 174,
+              "kind": "removed",
+              "text": "\tif f.requests != 0 {"
+            },
+            {
+              "oldLine": 175,
+              "kind": "removed",
+              "text": "\t\tt.Fatal(\"nothing may be sent when a case cannot be resolved\")"
+            },
+            {
+              "oldLine": 176,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 177,
+              "kind": "removed",
+              "text": "\tgood := evalArgs(f, cases, root, t.TempDir())"
+            },
+            {
+              "oldLine": 178,
+              "kind": "removed",
+              "text": "\tfor name, extra := range map[string][]string{\"runs\": {\"--runs\", \"0\"}, \"total below per-review\": {\"--max-cost\", \"2\", \"--max-total-cost\", \"1\"}, \"slack\": {\"--line-slack\", \"-1\"}} {"
+            },
+            {
+              "oldLine": 179,
+              "kind": "removed",
+              "text": "\t\tif _, err := parseEvalRunFlags(append(append([]string{}, good...), extra...)); err == nil {"
+            },
+            {
+              "oldLine": 180,
+              "kind": "removed",
+              "text": "\t\t\tt.Errorf(\"%s was accepted\", name)"
+            },
+            {
+              "oldLine": 181,
+              "kind": "removed",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 182,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 183,
+              "kind": "removed",
+              "text": "}"
+            },
+            {
+              "oldLine": 184,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 185,
+              "kind": "removed",
+              "text": "func TestReviewScopeMarksFailedStepsIncomplete(t *testing.T) {"
+            },
+            {
+              "oldLine": 186,
+              "kind": "removed",
+              "text": "\tt.Setenv(\"OPENAI_API_KEY\", fakeKey)"
+            },
+            {
+              "oldLine": 187,
+              "kind": "removed",
+              "text": "\tf := newFakeOpenAI(t)"
+            },
+            {
+              "oldLine": 188,
+              "kind": "removed",
+              "text": "\troot, base, _ := newAgenticRepo(t, cleanHead)"
+            },
+            {
+              "oldLine": 189,
+              "kind": "removed",
+              "text": "\tout := filepath.Join(t.TempDir(), \"run\")"
+            },
+            {
+              "oldLine": 190,
+              "kind": "removed",
+              "text": "\tif err := runAgenticReview(agenticArgs(f, root, base, out, \"--yes\"), \u0026bytes.Buffer{}); err != nil {"
+            },
+            {
+              "oldLine": 191,
+              "kind": "removed",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "oldLine": 192,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 193,
+              "kind": "removed",
+              "text": "\tif scope, ok := readScope(out); !ok || !scope.Complete {"
+            },
+            {
+              "oldLine": 194,
+              "kind": "removed",
+              "text": "\t\tt.Fatalf(\"a clean run is complete: %+v ok=%v\", scope, ok)"
+            },
+            {
+              "oldLine": 195,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 196,
+              "kind": "removed",
+              "text": "}"
+            },
+            {
+              "oldLine": 197,
+              "kind": "removed",
+              "text": ""
+            },
+            {
+              "oldLine": 198,
+              "kind": "removed",
+              "text": "func TestReviewCompleteIsFalseWhenAStepFailed(t *testing.T) {"
+            },
+            {
+              "oldLine": 199,
+              "kind": "removed",
+              "text": "\tvar ok agent.PipelineResult"
+            },
+            {
+              "oldLine": 200,
+              "kind": "removed",
+              "text": "\tok.Run.Complete = true"
+            },
+            {
+              "oldLine": 201,
+              "kind": "removed",
+              "text": "\tif !reviewComplete(ok) {"
+            },
+            {
+              "oldLine": 202,
+              "kind": "removed",
+              "text": "\t\tt.Fatal(\"a finished run is complete\")"
+            },
+            {
+              "oldLine": 203,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 204,
+              "kind": "removed",
+              "text": "\tsub := agent.PipelineResult{Run: agent.RunResult{Complete: false, Outcomes: map[string]agent.Partial{\"g\": {}}}}"
+            },
+            {
+              "oldLine": 205,
+              "kind": "removed",
+              "text": "\tif reviewComplete(sub) {"
+            },
+            {
+              "oldLine": 206,
+              "kind": "removed",
+              "text": "\t\tt.Fatal(\"a sub-agent that did not finish makes the run incomplete\")"
+            },
+            {
+              "oldLine": 207,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 208,
+              "kind": "removed",
+              "text": "\tunverified := agent.PipelineResult{Run: agent.RunResult{Complete: true}, Unverified: []hostedreview.Finding{{Path: \"a\"}}}"
+            },
+            {
+              "oldLine": 209,
+              "kind": "removed",
+              "text": "\tif reviewComplete(unverified) {"
+            },
+            {
+              "oldLine": 210,
+              "kind": "removed",
+              "text": "\t\tt.Fatal(\"candidates the verifier could not check make the run incomplete\")"
+            },
+            {
+              "oldLine": 211,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 212,
+              "kind": "removed",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "main.go",
+      "status": "M",
+      "diff": "diff --git a/main.go b/main.go\nindex 71c038a..18e3ae9 100644\n--- a/main.go\n+++ b/main.go\n@@ -56,12 +56,6 @@ func main() {\n \t\t}\n \t\treturn\n \t}\n-\tif len(os.Args) \u003e 1 \u0026\u0026 os.Args[1] == \"eval-run\" {\n-\t\tif err := runEvalRun(os.Args[2:], os.Stdout); err != nil {\n-\t\t\tfatal(err)\n-\t\t}\n-\t\treturn\n-\t}\n \tif len(os.Args) \u003e 1 \u0026\u0026 os.Args[1] == \"agentic-review\" {\n \t\tif err := runAgenticReview(os.Args[2:], os.Stdout); err != nil {\n \t\t\tfatal(err)\n@@ -79,7 +73,7 @@ func main() {\n \t\treturn\n \t}\n \tfmt.Fprintf(os.Stderr, \"px1 %s - understand the code your agent wrote before you merge it\\n\\n\", version)\n-\tfmt.Fprintln(os.Stderr, \"usage: px1 \u003cagentic-review|eval-run|post-github|export-review|generate-explanations|privacy-check|summary-comment|validate-config|validate-rules\u003e [options]\")\n+\tfmt.Fprintln(os.Stderr, \"usage: px1 \u003cagentic-review|post-github|export-review|generate-explanations|privacy-check|summary-comment|validate-config|validate-rules\u003e [options]\")\n \tos.Exit(2)\n }\n \n",
+      "hunks": [
+        {
+          "id": "diff-deba820b7d30defd",
+          "header": "@@ -56,12 +56,6 @@ func main() {",
+          "lines": [
+            {
+              "oldLine": 56,
+              "newLine": 56,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 57,
+              "newLine": 57,
+              "kind": "context",
+              "text": "\t\treturn"
+            },
+            {
+              "oldLine": 58,
+              "newLine": 58,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 59,
+              "kind": "removed",
+              "text": "\tif len(os.Args) \u003e 1 \u0026\u0026 os.Args[1] == \"eval-run\" {"
+            },
+            {
+              "oldLine": 60,
+              "kind": "removed",
+              "text": "\t\tif err := runEvalRun(os.Args[2:], os.Stdout); err != nil {"
+            },
+            {
+              "oldLine": 61,
+              "kind": "removed",
+              "text": "\t\t\tfatal(err)"
+            },
+            {
+              "oldLine": 62,
+              "kind": "removed",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 63,
+              "kind": "removed",
+              "text": "\t\treturn"
+            },
+            {
+              "oldLine": 64,
+              "kind": "removed",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 65,
+              "newLine": 59,
+              "kind": "context",
+              "text": "\tif len(os.Args) \u003e 1 \u0026\u0026 os.Args[1] == \"agentic-review\" {"
+            },
+            {
+              "oldLine": 66,
+              "newLine": 60,
+              "kind": "context",
+              "text": "\t\tif err := runAgenticReview(os.Args[2:], os.Stdout); err != nil {"
+            },
+            {
+              "oldLine": 67,
+              "newLine": 61,
+              "kind": "context",
+              "text": "\t\t\tfatal(err)"
+            }
+          ]
+        },
+        {
+          "id": "diff-6343689b8d1e11f9",
+          "header": "@@ -79,7 +73,7 @@ func main() {",
+          "lines": [
+            {
+              "oldLine": 79,
+              "newLine": 73,
+              "kind": "context",
+              "text": "\t\treturn"
+            },
+            {
+              "oldLine": 80,
+              "newLine": 74,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 81,
+              "newLine": 75,
+              "kind": "context",
+              "text": "\tfmt.Fprintf(os.Stderr, \"px1 %s - understand the code your agent wrote before you merge it\\n\\n\", version)"
+            },
+            {
+              "oldLine": 82,
+              "kind": "removed",
+              "text": "\tfmt.Fprintln(os.Stderr, \"usage: px1 \u003cagentic-review|eval-run|post-github|export-review|generate-explanations|privacy-check|summary-comment|validate-config|validate-rules\u003e [options]\")"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\tfmt.Fprintln(os.Stderr, \"usage: px1 \u003cagentic-review|post-github|export-review|generate-explanations|privacy-check|summary-comment|validate-config|validate-rules\u003e [options]\")"
+            },
+            {
+              "oldLine": 83,
+              "newLine": 77,
+              "kind": "context",
+              "text": "\tos.Exit(2)"
+            },
+            {
+              "oldLine": 84,
+              "newLine": 78,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 85,
+              "newLine": 79,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-9f5ff80d7e12a76d",
+      "title": "Cases changes",
+      "summary": "7 related files share the \"cases\" change signal.",
+      "paths": [
+        "agentic_review.go",
+        "docs/EVALUATION_SET.md",
+        "eval/example-cases.json",
+        "eval_cases_test.go",
+        "eval_run.go",
+        "eval_run_test.go",
+        "main.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-982dd8952404b396",
+      "path": "eval_run_test.go",
+      "kind": "deleted-test",
+      "observation": "A test file was deleted: eval_run_test.go.",
+      "question": "Which behavior did this test protect, and where is equivalent coverage now visible?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 7,
+    "filesAnalyzed": 7,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "remove-scope-complete",
+      "path": "agentic_review.go",
+      "lineStart": 337,
+      "lineEnd": 337,
+      "title": "Scope output no longer signals review completion",
+      "summary": "`scope.json` no longer includes a `complete` field. Consumers can still see reviewed, total, and skipped files, but cannot use this file to distinguish a fully completed review from one with failed steps."
+    },
+    {
+      "id": "remove-eval-run",
+      "path": "main.go",
+      "lineStart": 76,
+      "lineEnd": 76,
+      "title": "Repeat evaluation command is no longer available",
+      "summary": "The `eval-run` command has been removed from the CLI, so existing invocations will no longer start repeat evaluations; it is also absent from the usage list."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "11ecd31a71eb0396ebc0f2cbaf382e32b6c5ecd4",
+      "revision": "6855f2e423e19fdc5fd203434f4fdf74b762fe7c",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "11ecd31a71eb0396ebc0f2cbaf382e32b6c5ecd4",
+      "revision": "6855f2e423e19fdc5fd203434f4fdf74b762fe7c",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "6855f2e423e19fdc5fd203434f4fdf74b762fe7c",
+      "detail": "2 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "6855f2e423e19fdc5fd203434f4fdf74b762fe7c",
+      "detail": "1 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-5cd34e50e9db1f6a",
+      "rule": "deleted-test",
+      "title": "Deleted test",
+      "reason": "A test file was removed, which may reduce verification coverage.",
+      "path": "eval_run_test.go",
+      "evidence": "eval_run_test.go"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "6855f2e423e19fdc5fd203434f4fdf74b762fe7c",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42818494523",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42818494523/job/129837633529",
+        "startedAt": "2026-11-10T12:45:46Z"
+      }
+    ]
+  }
+}
