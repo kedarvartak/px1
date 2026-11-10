@@ -1,3 +1,13 @@
+---
+title: Finding verifier
+section: concepts
+kind: narrative
+status: shipped
+covers:
+  - internal/hosted/review/verifier.go
+verified_at:
+---
+
 # Finding verifier
 
 Every model-proposed finding passes through a separate bounded verifier call.

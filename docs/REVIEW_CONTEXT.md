@@ -1,3 +1,13 @@
+---
+title: Review context assembly
+section: concepts
+kind: narrative
+status: built
+covers:
+  - internal/hosted/review/context.go
+verified_at:
+---
+
 # Review context assembly
 
 Hosted reviews assemble context in a fixed, auditable order: diff hunks, full

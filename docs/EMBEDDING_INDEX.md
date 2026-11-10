@@ -1,3 +1,13 @@
+---
+title: Embedding batches and versioning
+section: concepts
+kind: narrative
+status: built
+covers:
+  - internal/hosted/indexer/embed.go
+verified_at:
+---
+
 # Embedding batches and versioning
 
 The indexer sends at most 64 chunks per embedding request and caps one indexing

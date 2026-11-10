@@ -1,0 +1,24 @@
+{
+  "known_gaps": [
+    "config_cascade.go",
+    "internal/hosted/billing/",
+    "internal/hosted/githubapp/",
+    "internal/hosted/gitlab/",
+    "internal/hosted/integrations/issues/",
+    "internal/hosted/integrations/slack/",
+    "internal/hosted/learning/",
+    "internal/hosted/onboarding/",
+    "internal/hosted/report/",
+    "internal/hosted/scm/",
+    "main.go",
+    "validate_config.go",
+    "validate_rules.go"
+  ],
+  "extra_units": [
+    "action.yml",
+    "agentic-action/",
+    "web/dashboard/",
+    "migrations/",
+    "schemas/"
+  ]
+}

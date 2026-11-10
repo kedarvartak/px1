@@ -1,3 +1,14 @@
+---
+title: Releasing the px1 Actions
+section: operations
+kind: narrative
+status: shipped
+covers:
+  - .github/workflows/release-actions.yml
+  - VERSION
+verified_at:
+---
+
 # Releasing the px1 Actions
 
 Consumers should pin px1 to an immutable release or maintained major tag.

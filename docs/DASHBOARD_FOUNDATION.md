@@ -1,3 +1,14 @@
+---
+title: Hosted dashboard foundation
+section: operations
+kind: narrative
+status: built
+covers:
+  - web/dashboard/
+  - internal/hosted/dashboard/
+verified_at:
+---
+
 # Hosted dashboard foundation
 
 The hosted dashboard will use Next.js with TypeScript. The route contract in

@@ -1,3 +1,16 @@
+---
+title: v1 review evaluation set
+section: guides
+kind: narrative
+status: shipped
+covers:
+  - eval_run.go
+  - eval_compare.go
+  - internal/hosted/eval/
+  - eval/example-cases.json
+verified_at:
+---
+
 # v1 review evaluation set
 
 The hosted reviewer uses a versioned JSON manifest rather than copying source

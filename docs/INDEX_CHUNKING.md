@@ -1,3 +1,13 @@
+---
+title: Retrieval chunking
+section: concepts
+kind: narrative
+status: built
+covers:
+  - internal/hosted/indexer/chunk.go
+verified_at:
+---
+
 # Retrieval chunking
 
 The indexer treats parser symbols as preferred boundaries and groups adjacent

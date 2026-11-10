@@ -1,3 +1,12 @@
+---
+title: Hosted data retention
+section: policies
+kind: narrative
+status: shipped
+covers: []
+verified_at:
+---
+
 # Hosted data retention
 
 This is the proposed hosted v1 retention schedule. Deployment configuration

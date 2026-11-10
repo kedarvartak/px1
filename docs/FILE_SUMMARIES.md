@@ -1,3 +1,13 @@
+---
+title: File summaries
+section: concepts
+kind: narrative
+status: built
+covers:
+  - internal/hosted/indexer/summary.go
+verified_at:
+---
+
 # File summaries
 
 The hosted index creates concise summaries only for source files over 50 lines.

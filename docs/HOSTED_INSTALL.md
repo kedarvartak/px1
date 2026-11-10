@@ -1,3 +1,12 @@
+---
+title: Install the hosted GitHub App
+section: guides
+kind: narrative
+status: planned
+covers: []
+verified_at:
+---
+
 # Install the hosted GitHub App
 
 The hosted px1 service is planned for v1. It is not required to use the free,

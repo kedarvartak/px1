@@ -1,3 +1,19 @@
+---
+title: GitHub review artifact architecture
+section: concepts
+kind: narrative
+status: shipped
+covers:
+  - artifact_git.go
+  - artifact_rules.go
+  - review_blocks.go
+  - attention.go
+  - inspection_questions.go
+  - summary_comment.go
+  - scripts/review-report-history.sh
+verified_at:
+---
+
 # GitHub review artifact architecture
 
 px1 helps developers understand the code their agents wrote before merging.

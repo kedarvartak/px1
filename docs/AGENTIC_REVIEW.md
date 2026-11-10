@@ -1,3 +1,18 @@
+---
+title: Agentic review: prompts and budgets
+section: concepts
+kind: narrative
+status: shipped
+covers:
+  - internal/hosted/agent/pipeline.go
+  - internal/hosted/agent/prompts.go
+  - internal/hosted/agent/budget.go
+  - internal/hosted/agent/loop.go
+  - internal/hosted/agent/model.go
+  - internal/hosted/agent/trace.go
+verified_at:
+---
+
 # Agentic review: prompts and budgets
 
 Plus and Apex reviews replace the fixed pipeline with three model roles. Base

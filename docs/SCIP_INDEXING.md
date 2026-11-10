@@ -1,3 +1,13 @@
+---
+title: Sandboxed SCIP indexing
+section: concepts
+kind: narrative
+status: built
+covers:
+  - internal/hosted/graph/
+verified_at:
+---
+
 # Sandboxed SCIP indexing
 
 SCIP supplements tree-sitter with exact cross-file references for configured

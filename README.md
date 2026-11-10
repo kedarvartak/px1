@@ -243,6 +243,10 @@ go run . export-review --base <base-sha> --head <head-sha> --out ./site
 The product boundary and next work are documented in
 [PRODUCT_VISION.md](docs/PRODUCT_VISION.md) and [ROADMAP.md](ROADMAP.md).
 
+Every documentation page is listed in [docs/README.md](docs/README.md). Run
+`go run . docs check` after changing a page, and `go run . docs manifest` after
+adding one or editing its front matter.
+
 ## License
 
 [MIT](LICENSE) © 2026 Arpit Bhayani. px1 began as a fork of
