@@ -1,0 +1,387 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "1cef1b94349b655e67d2231e3aae679b8693caf1",
+  "head": "cc14b4a78b7893c580056bee5813bc7cc60b7cb6",
+  "generatedAt": "2026-11-10T11:15:05.444534374Z",
+  "files": [
+    {
+      "path": "agentic_ci_example_test.go",
+      "status": "A",
+      "diff": "diff --git a/agentic_ci_example_test.go b/agentic_ci_example_test.go\nnew file mode 100644\nindex 0000000..503af6d\n--- /dev/null\n+++ b/agentic_ci_example_test.go\n@@ -0,0 +1,23 @@\n+package main\n+\n+import (\n+\t\"os\"\n+\t\"regexp\"\n+\t\"testing\"\n+)\n+\n+// The example checks out px1 and runs it with the caller's API key, so it must\n+// name an immutable commit, never a branch or tag that can move.\n+func TestCIExamplePinsPx1ToACommitSHA(t *testing.T) {\n+\tdata, err := os.ReadFile(\"examples/px1-agentic-review.yml\")\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\trefs := regexp.MustCompile(`(?m)^\\s+ref:\\s*(\\S+)`).FindAllStringSubmatch(string(data), -1)\n+\tif len(refs) != 1 {\n+\t\tt.Fatalf(\"want exactly one px1 ref, found %d\", len(refs))\n+\t}\n+\tif !regexp.MustCompile(`^[0-9a-f]{40}$`).MatchString(refs[0][1]) {\n+\t\tt.Fatalf(\"px1 ref %q must be a full 40-character commit SHA\", refs[0][1])\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-98e61cd6576e7f8c",
+          "header": "@@ -0,0 +1,23 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package main"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"regexp\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "// The example checks out px1 and runs it with the caller's API key, so it must"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "// name an immutable commit, never a branch or tag that can move."
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "func TestCIExamplePinsPx1ToACommitSHA(t *testing.T) {"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\tdata, err := os.ReadFile(\"examples/px1-agentic-review.yml\")"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\trefs := regexp.MustCompile(`(?m)^\\s+ref:\\s*(\\S+)`).FindAllStringSubmatch(string(data), -1)"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tif len(refs) != 1 {"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"want exactly one px1 ref, found %d\", len(refs))"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tif !regexp.MustCompile(`^[0-9a-f]{40}$`).MatchString(refs[0][1]) {"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"px1 ref %q must be a full 40-character commit SHA\", refs[0][1])"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/AGENTIC_CI.md",
+      "status": "M",
+      "diff": "diff --git a/docs/AGENTIC_CI.md b/docs/AGENTIC_CI.md\nindex ab37ed0..06177ae 100644\n--- a/docs/AGENTIC_CI.md\n+++ b/docs/AGENTIC_CI.md\n@@ -6,7 +6,8 @@\n \n 1. Copy `examples/px1-agentic-review.yml` to `.github/workflows/` in the repository.\n 2. Add a repository secret `OPENAI_API_KEY` (Settings, Secrets and variables, Actions). Never put the key in the workflow file.\n-3. Open a pull request.\n+3. Keep `ref:` in the workflow pinned to a full commit SHA. The px1 checkout runs with your API key in its environment, so never point it at a branch. To update, read the px1 changes first, then change the SHA.\n+4. Open a pull request.\n \n ## What it posts\n \n",
+      "hunks": [
+        {
+          "id": "diff-f14449f8ed0c61e9",
+          "header": "@@ -6,7 +6,8 @@",
+          "lines": [
+            {
+              "oldLine": 6,
+              "newLine": 6,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 7,
+              "newLine": 7,
+              "kind": "context",
+              "text": "1. Copy `examples/px1-agentic-review.yml` to `.github/workflows/` in the repository."
+            },
+            {
+              "oldLine": 8,
+              "newLine": 8,
+              "kind": "context",
+              "text": "2. Add a repository secret `OPENAI_API_KEY` (Settings, Secrets and variables, Actions). Never put the key in the workflow file."
+            },
+            {
+              "oldLine": 9,
+              "kind": "removed",
+              "text": "3. Open a pull request."
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "3. Keep `ref:` in the workflow pinned to a full commit SHA. The px1 checkout runs with your API key in its environment, so never point it at a branch. To update, read the px1 changes first, then change the SHA."
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "4. Open a pull request."
+            },
+            {
+              "oldLine": 10,
+              "newLine": 11,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 11,
+              "newLine": 12,
+              "kind": "context",
+              "text": "## What it posts"
+            },
+            {
+              "oldLine": 12,
+              "newLine": 13,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "examples/px1-agentic-review.yml",
+      "status": "M",
+      "diff": "diff --git a/examples/px1-agentic-review.yml b/examples/px1-agentic-review.yml\nindex e8c88db..d0b3204 100644\n--- a/examples/px1-agentic-review.yml\n+++ b/examples/px1-agentic-review.yml\n@@ -27,7 +27,10 @@ jobs:\n       - uses: actions/checkout@v4\n         with:\n           repository: kedarvartak/px1\n-          ref: master # pin to a commit SHA once you trust a version\n+          # Pinned to a full commit SHA on purpose: this checkout runs with your\n+          # OPENAI_API_KEY, so it must not follow a branch that can change under you.\n+          # Update it deliberately after reading the px1 changes you are adopting.\n+          ref: 1cef1b94349b655e67d2231e3aae679b8693caf1\n           path: .px1-tool\n           persist-credentials: false\n       - uses: ./.px1-tool/agentic-action\n",
+      "hunks": [
+        {
+          "id": "diff-800d7eb85641373d",
+          "header": "@@ -27,7 +27,10 @@ jobs:",
+          "lines": [
+            {
+              "oldLine": 27,
+              "newLine": 27,
+              "kind": "context",
+              "text": "      - uses: actions/checkout@v4"
+            },
+            {
+              "oldLine": 28,
+              "newLine": 28,
+              "kind": "context",
+              "text": "        with:"
+            },
+            {
+              "oldLine": 29,
+              "newLine": 29,
+              "kind": "context",
+              "text": "          repository: kedarvartak/px1"
+            },
+            {
+              "oldLine": 30,
+              "kind": "removed",
+              "text": "          ref: master # pin to a commit SHA once you trust a version"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "          # Pinned to a full commit SHA on purpose: this checkout runs with your"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "          # OPENAI_API_KEY, so it must not follow a branch that can change under you."
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "          # Update it deliberately after reading the px1 changes you are adopting."
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "          ref: 1cef1b94349b655e67d2231e3aae679b8693caf1"
+            },
+            {
+              "oldLine": 31,
+              "newLine": 34,
+              "kind": "context",
+              "text": "          path: .px1-tool"
+            },
+            {
+              "oldLine": 32,
+              "newLine": 35,
+              "kind": "context",
+              "text": "          persist-credentials: false"
+            },
+            {
+              "oldLine": 33,
+              "newLine": 36,
+              "kind": "context",
+              "text": "      - uses: ./.px1-tool/agentic-action"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-66a0164585ad55c9",
+      "title": "Agentic changes",
+      "summary": "3 related files share the \"agentic\" change signal.",
+      "paths": [
+        "agentic_ci_example_test.go",
+        "docs/AGENTIC_CI.md",
+        "examples/px1-agentic-review.yml"
+      ]
+    }
+  ],
+  "inspectionQuestions": [],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 3,
+    "filesAnalyzed": 3,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "sha-test",
+      "path": "agentic_ci_example_test.go",
+      "lineStart": 10,
+      "lineEnd": 21,
+      "title": "Enforce immutable refs",
+      "summary": "The test fails if the example no longer has exactly one px1 ref or if that ref is not a full commit SHA, guarding against accidentally switching back to a movable branch or tag."
+    },
+    {
+      "id": "workflow-pin",
+      "path": "examples/px1-agentic-review.yml",
+      "lineStart": 27,
+      "lineEnd": 31,
+      "title": "Pin the px1 checkout",
+      "summary": "The workflow now checks out a fixed px1 revision instead of following a branch, so changes to px1 cannot silently alter code that runs with the repository’s API key."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "1cef1b94349b655e67d2231e3aae679b8693caf1",
+      "revision": "cc14b4a78b7893c580056bee5813bc7cc60b7cb6",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "1cef1b94349b655e67d2231e3aae679b8693caf1",
+      "revision": "cc14b4a78b7893c580056bee5813bc7cc60b7cb6",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "cc14b4a78b7893c580056bee5813bc7cc60b7cb6",
+      "detail": "2 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "cc14b4a78b7893c580056bee5813bc7cc60b7cb6",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "cc14b4a78b7893c580056bee5813bc7cc60b7cb6",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42805748944",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42805748944/job/129794298190",
+        "startedAt": "2026-11-10T11:13:56Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42805748924/job/129794294128",
+        "startedAt": "2026-11-10T11:13:52Z"
+      }
+    ]
+  }
+}
