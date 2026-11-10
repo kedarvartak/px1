@@ -6,7 +6,8 @@
 
 1. Copy `examples/px1-agentic-review.yml` to `.github/workflows/` in the repository.
 2. Add a repository secret `OPENAI_API_KEY` (Settings, Secrets and variables, Actions). Never put the key in the workflow file.
-3. Open a pull request.
+3. Keep `ref:` in the workflow pinned to a full commit SHA. The px1 checkout runs with your API key in its environment, so never point it at a branch. To update, read the px1 changes first, then change the SHA.
+4. Open a pull request.
 
 ## What it posts
 
