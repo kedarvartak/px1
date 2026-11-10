@@ -38,3 +38,20 @@ func TestDocsCheckCommandReportsProblems(t *testing.T) {
 		t.Fatalf("err=%v out=%q", err, out.String())
 	}
 }
+
+// Every subcommand's description in the reference is the doc comment of its
+// run function, so a command without one would be listed with no explanation.
+func TestEveryCommandHasASummary(t *testing.T) {
+	commands, err := docs.Commands(".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(commands) < 12 {
+		t.Fatalf("found only %d commands", len(commands))
+	}
+	for _, command := range commands {
+		if command.Summary == "" {
+			t.Errorf("px1 %s has no doc comment on its run function", command.Name)
+		}
+	}
+}

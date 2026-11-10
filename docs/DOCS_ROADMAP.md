@@ -91,16 +91,31 @@ verified_at:
   code. It is empty on every page today, because phase 0 did not read the
   prose line by line. Fill it in only after doing that check.
 
-`px1 docs manifest` writes `docs/manifest.json` (what the UI is built from) and
+`px1 docs gen` writes `docs/manifest.json` (what the UI is built from) and
 `docs/README.md` (an index of every page). Run it after adding a page or
 changing front matter.
+
+`px1 docs gen` also writes the reference content, which is read from source
+files as data and never by running them (phase 2):
+
+| Output | Read from |
+| --- | --- |
+| `CLI_REFERENCE.md` | The subcommands `main.go` dispatches, the doc comment of the function each one calls, and its `flag` definitions. |
+| `ACTION_INPUTS.md` | Every `action.yml`. |
+| The fields table in `FINDING_SCHEMA.md` | `schemas/finding.schema.json`. |
+| The tool table in `AGENT_TOOLS.md` | `Toolbox.Specs` in `internal/hosted/agent/tools.go`. |
+
+The two tables live between `<!-- px1:generated NAME -->` and
+`<!-- px1:end NAME -->` markers inside hand-written pages; only the text
+between the markers is replaced. A new subcommand needs a doc comment on its
+`run` function: that comment is its description in the reference.
 
 `px1 docs check` fails on:
 
 - missing or invalid front matter;
 - a relative link that does not resolve;
 - a `covers` entry that names nothing;
-- a manifest or index that is out of date;
+- a reference page, manifest or index that is out of date;
 - code with no page. Each Go package, each Go file of the root package and each
   `extra_units` path in `docs/docs.config.json` must be covered by a page or
   listed in `known_gaps`. A listed gap that gains a page, or disappears, must be

@@ -26,6 +26,24 @@ it is deliberately absent until that sandbox exists.
 | `git_log` | Recent commits to one file | 20 commits |
 | `read_issue` | A Linear or Jira issue linked from the pull request | Linked keys only |
 
+The names, the description each model is given, and the arguments are read
+from `Toolbox.Specs` by `px1 docs gen`:
+
+<!-- px1:generated agent-tools -->
+
+| Tool | What the model is told | Arguments |
+| --- | --- | --- |
+| `read_file` | Read a line range of one file at the reviewed head commit. | `path`, `start_line`, `end_line` |
+| `list_files` | List the files and directories directly inside one directory at the reviewed head commit. Directories end with a slash; an empty directory means the repository root. | `directory` (optional) |
+| `search_code` | Search the repository for exact, case-sensitive text. Returns at most three matches per file. | `query`, `limit` (optional) |
+| `graph_callers` | List symbols that call the named symbol, up to two hops. | `path`, `symbol`, `depth` (optional) |
+| `graph_callees` | List symbols the named symbol calls, up to two hops. | `path`, `symbol`, `depth` (optional) |
+| `git_blame` | Show the last commit to touch each line in a range. | `path`, `start_line`, `end_line` |
+| `git_log` | List recent commits that changed one file. | `path`, `limit` (optional) |
+| `read_issue` | Read an issue linked from this pull request. | `key` |
+
+<!-- px1:end agent-tools -->
+
 Tool names use underscores rather than `graph.callers` because model
 providers restrict tool names to letters, digits, `_`, and `-`.
 

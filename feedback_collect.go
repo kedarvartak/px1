@@ -46,6 +46,9 @@ func (s feedbackStats) Acceptance() (float64, bool) {
 	return float64(s.ThumbsUp) / float64(s.ThumbsUp+s.ThumbsDown), true
 }
 
+// runFeedbackCollect counts the thumbs-up, thumbs-down and replies people left
+// on px1's inline review comments in one repository. It reads from the GitHub
+// API with GITHUB_TOKEN and writes nothing there.
 func runFeedbackCollect(args []string, stdout io.Writer) error {
 	fs := flag.NewFlagSet("feedback-collect", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)

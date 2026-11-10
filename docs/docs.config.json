@@ -9,10 +9,7 @@
     "internal/hosted/learning/",
     "internal/hosted/onboarding/",
     "internal/hosted/report/",
-    "internal/hosted/scm/",
-    "main.go",
-    "validate_config.go",
-    "validate_rules.go"
+    "internal/hosted/scm/"
   ],
   "extra_units": [
     "action.yml",
