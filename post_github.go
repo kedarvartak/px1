@@ -29,9 +29,9 @@ const (
 )
 
 type postGitHubOptions struct {
-	findings, repo, head, footer, apiURL string
-	pr                                   int
-	dryRun                               bool
+	findings, repo, head, footer, apiURL, scope string
+	pr                                          int
+	dryRun                                      bool
 }
 
 // runPostGitHub publishes findings.json to a pull request: one sticky summary
@@ -45,6 +45,7 @@ func runPostGitHub(args []string, stdout io.Writer) error {
 	fs.StringVar(&o.repo, "repo", os.Getenv("GITHUB_REPOSITORY"), "owner/name (default: $GITHUB_REPOSITORY)")
 	fs.IntVar(&o.pr, "pr", 0, "pull request number (required)")
 	fs.StringVar(&o.head, "head", "", "full head commit SHA the review was run on (default: the findings revision)")
+	fs.StringVar(&o.scope, "scope", "", "scope.json written by agentic-review; states when only part of a large change was reviewed")
 	fs.StringVar(&o.footer, "footer", "", "one line appended to the summary, such as the run cost")
 	fs.StringVar(&o.apiURL, "api-url", envOr("GITHUB_API_URL", "https://api.github.com"), "GitHub API base URL")
 	fs.BoolVar(&o.dryRun, "dry-run", false, "print what would be posted; call nothing")
@@ -97,7 +98,11 @@ func runPostGitHub(args []string, stdout io.Writer) error {
 		posted = map[string]bool{}
 	}
 	plan := planPost(envelope.Findings, commentable, posted)
-	summary := renderAgenticSummary(plan, o.head, o.footer)
+	scopeNote, err := readScopeNote(o.scope)
+	if err != nil {
+		return err
+	}
+	summary := renderAgenticSummary(plan, o.head, scopeNote, o.footer)
 	if o.dryRun {
 		fmt.Fprintf(stdout, "Would post %d inline comment(s) and a summary:\n\n%s\n", len(plan.inline), summary)
 		return nil
@@ -175,10 +180,14 @@ func renderInlineFinding(f hostedreview.Finding, key string) string {
 	return b.String()
 }
 
-func renderAgenticSummary(plan postPlan, head, footer string) string {
+func renderAgenticSummary(plan postPlan, head, scopeNote, footer string) string {
 	var b strings.Builder
 	b.WriteString(agenticCommentMarker + "\n")
-	fmt.Fprintf(&b, "## px1 review\n\nReviewed `%s`. ", shortRevision(head))
+	fmt.Fprintf(&b, "## px1 review\n\n")
+	if scopeNote != "" {
+		b.WriteString(scopeNote)
+	}
+	fmt.Fprintf(&b, "Reviewed `%s`. ", shortRevision(head))
 	if len(plan.all) == 0 {
 		b.WriteString("No verified findings. That is not evidence the change is correct: it means nothing the model proposed survived verification.\n")
 	} else {
@@ -353,4 +362,30 @@ func envOr(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// readScopeNote turns scope.json into a sentence, or nothing when the whole
+// change was reviewed.
+func readScopeNote(path string) (string, error) {
+	if path == "" {
+		return "", nil
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("read scope: %w", err)
+	}
+	var scope reviewScope
+	if err := json.Unmarshal(data, &scope); err != nil {
+		return "", fmt.Errorf("decode scope: %w", err)
+	}
+	if len(scope.Skipped) == 0 {
+		return "", nil
+	}
+	shown := scope.Skipped
+	more := ""
+	if len(shown) > 10 {
+		more = fmt.Sprintf(" and %d more", len(shown)-10)
+		shown = shown[:10]
+	}
+	return fmt.Sprintf("**Partial review:** this change is large, so px1 reviewed %d of %d files, highest-risk first. Not reviewed: `%s`%s.\n\n", scope.Reviewed, scope.Total, strings.Join(shown, "`, `"), more), nil
 }

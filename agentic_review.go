@@ -27,6 +27,7 @@ type agenticOptions struct {
 	base, head, root, out, model, endpoint, title, body, tier string
 	priceIn, priceOut, priceCached                            float64
 	maxCost                                                   float64
+	maxFiles, maxDiffBytes                                    int
 	maxMinutes, maxOutput, concurrency                        int
 	excludes                                                  repeatedStringFlag
 	yes, dryRun, transcripts                                  bool
@@ -52,7 +53,7 @@ func runAgenticReview(args []string, stdout io.Writer) error {
 	if err != nil {
 		return err
 	}
-	prep, err := prepareAgenticReview(root, opts.base, opts.head, policy)
+	prep, err := prepareAgenticReview(root, opts.base, opts.head, policy, reviewLimits{maxFiles: opts.maxFiles, maxDiffBytes: opts.maxDiffBytes})
 	if err != nil {
 		return err
 	}
@@ -152,6 +153,8 @@ func parseAgenticFlags(args []string) (agenticOptions, error) {
 	fs.Float64Var(&o.maxCost, "max-cost", 1.00, "hard cost cap in USD; the review stops when it could be crossed")
 	fs.IntVar(&o.maxMinutes, "max-minutes", 0, "wall-time limit in minutes (default: the tier's)")
 	fs.IntVar(&o.maxOutput, "max-output-tokens", 4000, "output-token limit per model call; reasoning models need room for their reasoning")
+	fs.IntVar(&o.maxFiles, "max-files", defaultMaxReviewFiles, "most changed files sent to the model; a larger change is reviewed in part, risky files first (0 = no limit)")
+	fs.IntVar(&o.maxDiffBytes, "max-diff-bytes", defaultMaxReviewDiffBytes, "most diff bytes sent to the model (0 = no limit)")
 	fs.IntVar(&o.concurrency, "concurrency", 3, "sub-agents running at once")
 	fs.Var(&o.excludes, "exclude-glob", "repository-relative glob never shown to the model (repeatable)")
 	fs.StringVar(&o.title, "title", "", "pull request title (default: the head commit subject)")
@@ -217,6 +220,12 @@ func printAgenticPlan(w io.Writer, o agenticOptions, prep agenticPrep, budget ag
 	}
 	if len(prep.TruncatedFiles) > 0 {
 		fmt.Fprintf(w, "  diffs cut at %d bytes: %s\n", maxFileDiffBytes, strings.Join(prep.TruncatedFiles, ", "))
+	}
+	if len(prep.Skipped) > 0 {
+		fmt.Fprintf(w, "\nLarge change: reviewing %d of %d files, highest-risk first. Left out of the diff (the model can still read them with its tools; raise --max-files or --max-diff-bytes to include them):\n", len(prep.Files), prep.TotalReviewable)
+		for _, e := range prep.Skipped {
+			fmt.Fprintf(w, "  %s\n", e.Path)
+		}
 	}
 	if len(prep.Excluded) > 0 {
 		fmt.Fprintln(w, "\nNever shown to the model (also blocked from every tool):")
@@ -325,6 +334,13 @@ func writeAgenticOutputs(out, private string, o agenticOptions, prep agenticPrep
 	if err := writeJSON(filepath.Join(out, "findings.json"), hostedFindingsEnvelope{Revision: prep.HeadSHA, Findings: findings}, 0o644); err != nil {
 		return err
 	}
+	scope := reviewScope{Reviewed: len(prep.Files), Total: prep.TotalReviewable}
+	for _, e := range prep.Skipped {
+		scope.Skipped = append(scope.Skipped, e.Path)
+	}
+	if err := writeJSON(filepath.Join(out, "scope.json"), scope, 0o644); err != nil {
+		return err
+	}
 	if err := writeJSON(filepath.Join(out, "trace.json"), trace.File(result.Spend), 0o644); err != nil {
 		return err
 	}
@@ -424,4 +440,12 @@ func commitSubjects(root, base, head string) ([]string, error) {
 		}
 	}
 	return subjects, nil
+}
+
+// reviewScope records how much of the change was reviewed, so a partial
+// review is never mistaken for a full one.
+type reviewScope struct {
+	Reviewed int      `json:"reviewed"`
+	Total    int      `json:"total"`
+	Skipped  []string `json:"skipped,omitempty"`
 }

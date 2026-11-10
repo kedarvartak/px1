@@ -108,5 +108,5 @@ runs:
         set -euo pipefail
         link="Full report and trace: [open the report]($PX1_REPORT_URL) (a GitHub Actions artifact; visible only to people who can read this repository)."
         if [[ -z "$PX1_REPORT_URL" ]]; then link="The report was not uploaded; see the workflow run."; fi
-        "${RUNNER_TEMP:-/tmp}/px1" post-github --findings "$PX1_OUT/findings.json" --pr "$PX1_PR" --head "$PX1_HEAD" \
+        "${RUNNER_TEMP:-/tmp}/px1" post-github --findings "$PX1_OUT/findings.json" --scope "$PX1_OUT/scope.json" --pr "$PX1_PR" --head "$PX1_HEAD" \
           --footer "$PX1_COST $link"

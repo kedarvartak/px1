@@ -35,5 +35,5 @@ Each run uploads the report as one unzipped `px1-review.html` artifact (kept 14 
 
 ## Known limits
 
-- Very large pull requests exceed the model budget and fail; there is no fallback yet.
+- Very large pull requests are reviewed in part: by default at most 40 files and 120,000 diff bytes go to the model, highest-risk first (workflows, migrations, auth and security paths, then source, then tests, then docs). The summary comment opens with a "Partial review" line naming what was left out. Raise `--max-files` and `--max-diff-bytes` to review more, at more cost.
 - If the provider's safety filter rejects a prompt, the call is retried once (it is non-deterministic: the same prompt has been accepted on the next try). Both attempts are metered and count against the cost cap. A second rejection fails that step and is reported in the notes.
