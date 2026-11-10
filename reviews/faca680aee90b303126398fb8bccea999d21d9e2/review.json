@@ -1,0 +1,954 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "2fbb072eccfc099a8d91e2cb32b9692f8be1989d",
+  "head": "faca680aee90b303126398fb8bccea999d21d9e2",
+  "generatedAt": "2026-11-10T14:31:29.815799647Z",
+  "files": [
+    {
+      "path": "ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/ROADMAP.md b/ROADMAP.md\nindex a619ecb..bef38e3 100644\n--- a/ROADMAP.md\n+++ b/ROADMAP.md\n@@ -227,6 +227,9 @@ backend-foundation tasks are:\n     `px1 post-github` posts a sticky summary and inline comments; the\n     `agentic-action` and an example workflow run it per pull request. A\n     large-pull-request fallback and a provider retry follow.\n+92. [x] **Plan self-evolving documentation.** `docs/DOCS_ROADMAP.md` sets the\n+    design and phases; `docs/DOCS_INVENTORY.md` audits the current pages and\n+    assigns each one a section, status and action.\n \n The v1 review pipeline, indexing, report hosting, evaluation, and launch gates\n follow these foundations. AI findings must remain auditable: evidence,\n",
+      "hunks": [
+        {
+          "id": "diff-fd9d1b52e67a3468",
+          "header": "@@ -227,6 +227,9 @@ backend-foundation tasks are:",
+          "lines": [
+            {
+              "oldLine": 227,
+              "newLine": 227,
+              "kind": "context",
+              "text": "    `px1 post-github` posts a sticky summary and inline comments; the"
+            },
+            {
+              "oldLine": 228,
+              "newLine": 228,
+              "kind": "context",
+              "text": "    `agentic-action` and an example workflow run it per pull request. A"
+            },
+            {
+              "oldLine": 229,
+              "newLine": 229,
+              "kind": "context",
+              "text": "    large-pull-request fallback and a provider retry follow."
+            },
+            {
+              "newLine": 230,
+              "kind": "added",
+              "text": "92. [x] **Plan self-evolving documentation.** `docs/DOCS_ROADMAP.md` sets the"
+            },
+            {
+              "newLine": 231,
+              "kind": "added",
+              "text": "    design and phases; `docs/DOCS_INVENTORY.md` audits the current pages and"
+            },
+            {
+              "newLine": 232,
+              "kind": "added",
+              "text": "    assigns each one a section, status and action."
+            },
+            {
+              "oldLine": 230,
+              "newLine": 233,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 231,
+              "newLine": 234,
+              "kind": "context",
+              "text": "The v1 review pipeline, indexing, report hosting, evaluation, and launch gates"
+            },
+            {
+              "oldLine": 232,
+              "newLine": 235,
+              "kind": "context",
+              "text": "follow these foundations. AI findings must remain auditable: evidence,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/DOCS_INVENTORY.md",
+      "status": "A",
+      "diff": "diff --git a/docs/DOCS_INVENTORY.md b/docs/DOCS_INVENTORY.md\nnew file mode 100644\nindex 0000000..f6dd88d\n--- /dev/null\n+++ b/docs/DOCS_INVENTORY.md\n@@ -0,0 +1,99 @@\n+# Documentation inventory (phase 0)\n+\n+An audit of `docs/` at the start of the self-evolving documentation work. It\n+records what exists, what is wrong, and where each page goes.\n+\n+## How this was checked\n+\n+A script compared every page with the repository: files and directories named\n+in backticks, `px1` subcommands, command-line flags, relative links, and which\n+pages link to which. A sample of pages was then read for whether they describe\n+things as available that are not. The prose of every page was **not** read line\n+by line for factual accuracy; phase 1's `covers` mapping is what makes that\n+check possible page by page.\n+\n+## Findings\n+\n+1. **References are mostly sound.** No broken relative links. Every flag named\n+   in a page exists, apart from one git flag. The file names that do not resolve\n+   are output files (`results.json`, `scope.json`), not source files.\n+2. **Most pages cannot be found.** 17 of 36 pages have no inbound link from the\n+   README, another page, or the dashboard docs page. The dashboard docs page\n+   links to 9 files (8 pages and the config schema), so 28 pages are unreachable from the UI.\n+3. **There is no way in.** No index, no getting-started page, no CLI reference,\n+   and no overview of the path that works today (the CLI and the CI action).\n+4. **Status is not stated.** Pages about the hosted service (indexing, webhooks,\n+   dashboard) are written in the present tense, but that code runs only behind\n+   interfaces and in-memory fakes; nothing is deployed. Only `HOSTED_INSTALL.md`\n+   says \"planned\". A reader cannot tell what they can use.\n+5. **Commands with no documentation.** `generate-explanations`,\n+   `summary-comment` and `validate-config` appear in no page or README;\n+   `validate-rules` appears only in the README. That is 4 of 12 subcommands.\n+6. **Packages with no documentation.** `githubapp`, `integrations`, `learning`,\n+   `onboarding` and `scm`: 5 of 22 packages under `internal/hosted`.\n+7. **Stubs.** 12 pages are under 100 words. Six of them, with `SCIP_INDEXING.md`,\n+   describe parts of indexing and read better as one page.\n+8. **Overlap.** Agentic review is spread over four pages with repeated\n+   material, and `GITHUB_REVIEW_INTEGRATION_PLAN.md` is a plan from before the\n+   work it describes was built.\n+\n+## Target structure\n+\n+| Section | Purpose |\n+| --- | --- |\n+| Start | What px1 is, what works today, and a first run. |\n+| Guides | How to do one thing, step by step. |\n+| Concepts | How px1 works and why. |\n+| Reference | Exact facts generated from code. |\n+| Operations | Running, releasing and measuring px1. |\n+| Policies | Privacy, retention and terms. |\n+\n+Every page states a **status**: `shipped` (usable now), `built` (code and tests\n+exist, not deployed), or `planned`.\n+\n+## Where each page goes\n+\n+| Page | Section | Status | Action |\n+| --- | --- | --- | --- |\n+| (new) index | Start | shipped | Write |\n+| (new) getting started | Start | shipped | Write |\n+| PRODUCT_VISION | Start | shipped | Keep |\n+| FREE_ACTION | Guides | shipped | Keep |\n+| AGENTIC_REVIEW_CLI | Guides | shipped | Keep |\n+| AGENTIC_CI | Guides | shipped | Keep |\n+| PRIVATE_DELIVERY | Guides | shipped | Keep |\n+| STATIC_REVIEW_EXPLANATIONS | Guides | shipped | Keep; document `generate-explanations` |\n+| EVALUATION_SET | Guides | shipped | Split: running an evaluation (guide) and the launch dataset (concept) |\n+| MCP_SERVER | Guides | built | Keep; state status |\n+| HOSTED_INSTALL | Guides | planned | Keep; status already stated |\n+| GITHUB_APP_REGISTRATION | Operations | planned | Keep; state status |\n+| AGENTIC_REVIEW | Concepts | shipped | Keep; remove what the guides repeat |\n+| FINDING_VERIFIER | Concepts | shipped | Expand |\n+| CONFIDENCE_SCORE | Concepts | shipped | Keep |\n+| REVIEW_CONTEXT | Concepts | built | Expand |\n+| VERIFICATION_REPORT | Concepts | shipped | Keep |\n+| SAFE_REPOSITORY_CLONING | Concepts | built | Expand; cover the read-only git rules the CLI uses |\n+| HOSTED_ARCHITECTURE | Concepts | built | Keep; state status |\n+| GITHUB_REVIEW_INTEGRATION_PLAN | Concepts | shipped | Rename to describe the static report architecture |\n+| EMBEDDING_INDEX, FILE_SUMMARIES, INCREMENTAL_REINDEX, INDEX_CHUNKING, INDEX_LIMITS, LANGUAGE_PARSING, SCIP_INDEXING | Concepts | built | Merge into one Indexing page |\n+| (new) CLI reference | Reference | shipped | Generate |\n+| (new) Action inputs | Reference | shipped | Generate |\n+| AGENT_TOOLS | Reference | shipped | Generate the tool list; keep the rules as prose |\n+| FINDING_SCHEMA | Reference | shipped | Generate |\n+| config.schema.json | Reference | shipped | Keep; render |\n+| METRIC_DEFINITIONS | Reference | built | Keep |\n+| API_KEYS | Reference | built | Keep; state status |\n+| PUBLIC_PAGES | Reference | built | Keep; state status |\n+| RELEASING | Operations | shipped | Keep |\n+| DOGFOOD | Operations | shipped | Update: px1 now reviews its own pull requests |\n+| DASHBOARD_FOUNDATION | Operations | built | Keep; state status |\n+| PRIVACY_POLICY, DATA_RETENTION, TERMS | Policies | shipped | Keep |\n+\n+## Gaps to fill with new pages\n+\n+- The four undocumented commands, through the generated CLI reference.\n+- The five undocumented packages, at least a paragraph each in the page that\n+  covers their area.\n+- A security model page that gathers what is now spread across the README and\n+  the agentic pages: what leaves the machine, secret handling, and never\n+  running repository code.\n",
+      "hunks": [
+        {
+          "id": "diff-df4a92d8b414237d",
+          "header": "@@ -0,0 +1,99 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "# Documentation inventory (phase 0)"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "An audit of `docs/` at the start of the self-evolving documentation work. It"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "records what exists, what is wrong, and where each page goes."
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "## How this was checked"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "A script compared every page with the repository: files and directories named"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "in backticks, `px1` subcommands, command-line flags, relative links, and which"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "pages link to which. A sample of pages was then read for whether they describe"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "things as available that are not. The prose of every page was **not** read line"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "by line for factual accuracy; phase 1's `covers` mapping is what makes that"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "check possible page by page."
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "## Findings"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "1. **References are mostly sound.** No broken relative links. Every flag named"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "   in a page exists, apart from one git flag. The file names that do not resolve"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "   are output files (`results.json`, `scope.json`), not source files."
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "2. **Most pages cannot be found.** 17 of 36 pages have no inbound link from the"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "   README, another page, or the dashboard docs page. The dashboard docs page"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "   links to 9 files (8 pages and the config schema), so 28 pages are unreachable from the UI."
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "3. **There is no way in.** No index, no getting-started page, no CLI reference,"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "   and no overview of the path that works today (the CLI and the CI action)."
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "4. **Status is not stated.** Pages about the hosted service (indexing, webhooks,"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "   dashboard) are written in the present tense, but that code runs only behind"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "   interfaces and in-memory fakes; nothing is deployed. Only `HOSTED_INSTALL.md`"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "   says \"planned\". A reader cannot tell what they can use."
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "5. **Commands with no documentation.** `generate-explanations`,"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "   `summary-comment` and `validate-config` appear in no page or README;"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "   `validate-rules` appears only in the README. That is 4 of 12 subcommands."
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "6. **Packages with no documentation.** `githubapp`, `integrations`, `learning`,"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "   `onboarding` and `scm`: 5 of 22 packages under `internal/hosted`."
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "7. **Stubs.** 12 pages are under 100 words. Six of them, with `SCIP_INDEXING.md`,"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "   describe parts of indexing and read better as one page."
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "8. **Overlap.** Agentic review is spread over four pages with repeated"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "   material, and `GITHUB_REVIEW_INTEGRATION_PLAN.md` is a plan from before the"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "   work it describes was built."
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "## Target structure"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "| Section | Purpose |"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "| --- | --- |"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "| Start | What px1 is, what works today, and a first run. |"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "| Guides | How to do one thing, step by step. |"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "| Concepts | How px1 works and why. |"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "| Reference | Exact facts generated from code. |"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "| Operations | Running, releasing and measuring px1. |"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "| Policies | Privacy, retention and terms. |"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "Every page states a **status**: `shipped` (usable now), `built` (code and tests"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "exist, not deployed), or `planned`."
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "## Where each page goes"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "| Page | Section | Status | Action |"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "| --- | --- | --- | --- |"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "| (new) index | Start | shipped | Write |"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "| (new) getting started | Start | shipped | Write |"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "| PRODUCT_VISION | Start | shipped | Keep |"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "| FREE_ACTION | Guides | shipped | Keep |"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "| AGENTIC_REVIEW_CLI | Guides | shipped | Keep |"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "| AGENTIC_CI | Guides | shipped | Keep |"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "| PRIVATE_DELIVERY | Guides | shipped | Keep |"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "| STATIC_REVIEW_EXPLANATIONS | Guides | shipped | Keep; document `generate-explanations` |"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "| EVALUATION_SET | Guides | shipped | Split: running an evaluation (guide) and the launch dataset (concept) |"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "| MCP_SERVER | Guides | built | Keep; state status |"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "| HOSTED_INSTALL | Guides | planned | Keep; status already stated |"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "| GITHUB_APP_REGISTRATION | Operations | planned | Keep; state status |"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "| AGENTIC_REVIEW | Concepts | shipped | Keep; remove what the guides repeat |"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "| FINDING_VERIFIER | Concepts | shipped | Expand |"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "| CONFIDENCE_SCORE | Concepts | shipped | Keep |"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "| REVIEW_CONTEXT | Concepts | built | Expand |"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "| VERIFICATION_REPORT | Concepts | shipped | Keep |"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "| SAFE_REPOSITORY_CLONING | Concepts | built | Expand; cover the read-only git rules the CLI uses |"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "| HOSTED_ARCHITECTURE | Concepts | built | Keep; state status |"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "| GITHUB_REVIEW_INTEGRATION_PLAN | Concepts | shipped | Rename to describe the static report architecture |"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "| EMBEDDING_INDEX, FILE_SUMMARIES, INCREMENTAL_REINDEX, INDEX_CHUNKING, INDEX_LIMITS, LANGUAGE_PARSING, SCIP_INDEXING | Concepts | built | Merge into one Indexing page |"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "| (new) CLI reference | Reference | shipped | Generate |"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "| (new) Action inputs | Reference | shipped | Generate |"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "| AGENT_TOOLS | Reference | shipped | Generate the tool list; keep the rules as prose |"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "| FINDING_SCHEMA | Reference | shipped | Generate |"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "| config.schema.json | Reference | shipped | Keep; render |"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "| METRIC_DEFINITIONS | Reference | built | Keep |"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "| API_KEYS | Reference | built | Keep; state status |"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "| PUBLIC_PAGES | Reference | built | Keep; state status |"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "| RELEASING | Operations | shipped | Keep |"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "| DOGFOOD | Operations | shipped | Update: px1 now reviews its own pull requests |"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "| DASHBOARD_FOUNDATION | Operations | built | Keep; state status |"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "| PRIVACY_POLICY, DATA_RETENTION, TERMS | Policies | shipped | Keep |"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "## Gaps to fill with new pages"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "- The four undocumented commands, through the generated CLI reference."
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "- The five undocumented packages, at least a paragraph each in the page that"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "  covers their area."
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "- A security model page that gathers what is now spread across the README and"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "  the agentic pages: what leaves the machine, secret handling, and never"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "  running repository code."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/DOCS_ROADMAP.md",
+      "status": "A",
+      "diff": "diff --git a/docs/DOCS_ROADMAP.md b/docs/DOCS_ROADMAP.md\nnew file mode 100644\nindex 0000000..7e62a70\n--- /dev/null\n+++ b/docs/DOCS_ROADMAP.md\n@@ -0,0 +1,53 @@\n+# Self-evolving documentation: roadmap\n+\n+Goal: px1's documentation is detailed, has a UI, and changes in the same pull\n+request as the code it describes.\n+\n+## Design\n+\n+- **Markdown in `docs/` is the source of truth.** The UI is rendered from it.\n+  Nothing is written only in the UI.\n+- **Two kinds of content.** Reference pages (CLI flags, config schema, agent\n+  tools, finding schema, action inputs) are generated from code and cannot\n+  drift. Narrative pages (guides, concepts, architecture) are drafted by a model\n+  and must be grounded.\n+- **Every generated claim cites code.** A model-written edit carries the file\n+  and lines it rests on and passes the finding verifier. Unverified edits are\n+  not applied.\n+- **Docs change in the same pull request as the code,** as an ordinary diff a\n+  reviewer approves.\n+- **The docs agent never runs pull-request code.** It is built from the base\n+  commit and reads the pull request as data, like the dogfood reviewer.\n+\n+## Decisions taken\n+\n+| Question | Decision |\n+| --- | --- |\n+| Where do edits land? | A bot commit on the pull-request branch, for same-repository branches only, so docs and code merge together. |\n+| Where is the UI hosted? | GitHub Pages, next to the review reports. px1 is public. Private repositories need a different answer later. |\n+| May the agent create pages? | Not at first. It updates existing pages and flags gaps; a person decides on new pages. |\n+\n+## Phases\n+\n+| Phase | What is built | Needs a model |\n+| --- | --- | --- |\n+| 0. Inventory | Audit of the current pages and the target structure. See `DOCS_INVENTORY.md`. | No |\n+| 1. Foundation | Front matter on every page (title, kind, status, `covers` code paths, `verified_at` commit), `docs/manifest.json`, and `px1 docs check` for broken links, orphan pages and code with no page. | No |\n+| 2. Generated reference | `px1 docs gen` writes reference pages from the real flag sets, schemas, tool specs and action inputs. CI fails when they are out of date. | No |\n+| 3. UI | A static site built from the Markdown: sidebar, search, per-page status and \"verified at commit\", source links, and a \"changed in this pull request\" view. Published on Pages with a preview per pull-request head. | No |\n+| 4. Drift detection | `px1 docs impact --base --head` lists the pages a diff affects, using `covers`. Posted as a pull-request comment; stale pages are marked in the UI. | No |\n+| 5. Self-evolving agent | `px1 docs update` drafts edits to affected pages with the existing planner, tools, budget and verifier, adds a changelog entry, and commits to the branch. | Yes |\n+| 6. Quality gates | A docs evaluation set: seeded code changes with known documentation consequences, and clean changes that must produce no edits. Scored with `eval-run` and `eval-compare`. | Yes |\n+| 7. Rollout | px1's own pull requests first, then a second repository, then as a product feature. | Yes |\n+\n+Phases 1 to 4 are useful without any generation and ship first.\n+\n+## Risks\n+\n+- **Invented documentation.** Mitigated by citations, the verifier, the\n+  evaluation set, and a person approving the diff.\n+- **A bot with write access to branches.** Same-repository branches only, a\n+  narrowly scoped token, and the base-built tool.\n+- **Churn.** Edits are limited to pages the diff affects, and clean cases in the\n+  evaluation set measure needless rewording.\n+- **Cost.** About one extra review per pull request, under the same per-run cap.\n",
+      "hunks": [
+        {
+          "id": "diff-42320c896ef0482f",
+          "header": "@@ -0,0 +1,53 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "# Self-evolving documentation: roadmap"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "Goal: px1's documentation is detailed, has a UI, and changes in the same pull"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "request as the code it describes."
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "## Design"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "- **Markdown in `docs/` is the source of truth.** The UI is rendered from it."
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "  Nothing is written only in the UI."
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "- **Two kinds of content.** Reference pages (CLI flags, config schema, agent"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "  tools, finding schema, action inputs) are generated from code and cannot"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "  drift. Narrative pages (guides, concepts, architecture) are drafted by a model"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "  and must be grounded."
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "- **Every generated claim cites code.** A model-written edit carries the file"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "  and lines it rests on and passes the finding verifier. Unverified edits are"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "  not applied."
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "- **Docs change in the same pull request as the code,** as an ordinary diff a"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "  reviewer approves."
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "- **The docs agent never runs pull-request code.** It is built from the base"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "  commit and reads the pull request as data, like the dogfood reviewer."
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "## Decisions taken"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "| Question | Decision |"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "| --- | --- |"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "| Where do edits land? | A bot commit on the pull-request branch, for same-repository branches only, so docs and code merge together. |"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "| Where is the UI hosted? | GitHub Pages, next to the review reports. px1 is public. Private repositories need a different answer later. |"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "| May the agent create pages? | Not at first. It updates existing pages and flags gaps; a person decides on new pages. |"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "## Phases"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "| Phase | What is built | Needs a model |"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "| --- | --- | --- |"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "| 0. Inventory | Audit of the current pages and the target structure. See `DOCS_INVENTORY.md`. | No |"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "| 1. Foundation | Front matter on every page (title, kind, status, `covers` code paths, `verified_at` commit), `docs/manifest.json`, and `px1 docs check` for broken links, orphan pages and code with no page. | No |"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "| 2. Generated reference | `px1 docs gen` writes reference pages from the real flag sets, schemas, tool specs and action inputs. CI fails when they are out of date. | No |"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "| 3. UI | A static site built from the Markdown: sidebar, search, per-page status and \"verified at commit\", source links, and a \"changed in this pull request\" view. Published on Pages with a preview per pull-request head. | No |"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "| 4. Drift detection | `px1 docs impact --base --head` lists the pages a diff affects, using `covers`. Posted as a pull-request comment; stale pages are marked in the UI. | No |"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "| 5. Self-evolving agent | `px1 docs update` drafts edits to affected pages with the existing planner, tools, budget and verifier, adds a changelog entry, and commits to the branch. | Yes |"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "| 6. Quality gates | A docs evaluation set: seeded code changes with known documentation consequences, and clean changes that must produce no edits. Scored with `eval-run` and `eval-compare`. | Yes |"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "| 7. Rollout | px1's own pull requests first, then a second repository, then as a product feature. | Yes |"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "Phases 1 to 4 are useful without any generation and ship first."
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "## Risks"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "- **Invented documentation.** Mitigated by citations, the verifier, the"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "  evaluation set, and a person approving the diff."
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "- **A bot with write access to branches.** Same-repository branches only, a"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "  narrowly scoped token, and the base-built tool."
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "- **Churn.** Edits are limited to pages the diff affects, and clean cases in the"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "  evaluation set measure needless rewording."
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "- **Cost.** About one extra review per pull request, under the same per-run cap."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-0d4a4aa73c980ae2",
+      "title": "Docs_inventory changes",
+      "summary": "3 related files share the \"docs_inventory\" change signal.",
+      "paths": [
+        "ROADMAP.md",
+        "docs/DOCS_INVENTORY.md",
+        "docs/DOCS_ROADMAP.md"
+      ]
+    }
+  ],
+  "inspectionQuestions": [],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 3,
+    "filesAnalyzed": 3,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "2fbb072eccfc099a8d91e2cb32b9692f8be1989d",
+      "revision": "faca680aee90b303126398fb8bccea999d21d9e2",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "2fbb072eccfc099a8d91e2cb32b9692f8be1989d",
+      "revision": "faca680aee90b303126398fb8bccea999d21d9e2",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "faca680aee90b303126398fb8bccea999d21d9e2",
+      "detail": "0 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "faca680aee90b303126398fb8bccea999d21d9e2",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "faca680aee90b303126398fb8bccea999d21d9e2",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42834755892",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42834755892/job/129893897963",
+        "startedAt": "2026-11-10T14:30:34Z"
+      },
+      {
+        "name": "review",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42834756003/job/129893890975",
+        "startedAt": "2026-11-10T14:30:28Z"
+      }
+    ]
+  }
+}
