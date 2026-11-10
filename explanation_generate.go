@@ -132,12 +132,36 @@ func generateExplanationsWithExclusions(ctx context.Context, root, base, head st
 	if err != nil {
 		return staticExplanationFile{}, err
 	}
-	validated, err := validateStaticExplanations(payload.Explanations, changed, "generated explanations")
+	kept, dropped := keepValidExplanations(payload.Explanations, changed)
+	if dropped > 0 {
+		fmt.Fprintf(os.Stderr, "px1: dropped %d AI explanation(s) that failed validation (bad path, line range or length); kept %d\n", dropped, len(kept))
+	}
+	validated, err := validateStaticExplanations(kept, changed, "generated explanations")
 	if err != nil {
 		return staticExplanationFile{}, err
 	}
 	result.Explanations = validated
 	return result, nil
+}
+
+// keepValidExplanations filters model output one item at a time. A model that
+// writes one bad line range must not cost the whole report its explanations,
+// but nothing invalid is ever kept. Hand-supplied explanation files stay
+// strict: only generated output is filtered.
+func keepValidExplanations(items []staticExplanation, changed map[string]bool) ([]staticExplanation, int) {
+	kept := make([]staticExplanation, 0, len(items))
+	seen := map[string]bool{}
+	dropped := 0
+	for _, item := range items {
+		one, err := validateStaticExplanations([]staticExplanation{item}, changed, "generated explanations")
+		if err != nil || seen[one[0].ID] || len(kept) >= explanationMaxItems {
+			dropped++
+			continue
+		}
+		seen[one[0].ID] = true
+		kept = append(kept, one[0])
+	}
+	return kept, dropped
 }
 
 func explanationDiffPaths(diff string) []string {
