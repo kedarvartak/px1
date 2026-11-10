@@ -43,9 +43,9 @@ type goPackage struct {
 	consts map[string]string    // top-level constants with literal values
 }
 
-func parseGoDir(dir string) (*goPackage, error) {
+func parseGoDir(root, dir string) (*goPackage, error) {
 	pkg := &goPackage{fset: token.NewFileSet(), files: map[string]*ast.File{}, consts: map[string]string{}}
-	entries, err := os.ReadDir(dir)
+	entries, err := readRepoDir(root, dir)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,11 @@ func parseGoDir(dir string) (*goPackage, error) {
 		if entry.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
 			continue
 		}
-		file, err := parser.ParseFile(pkg.fset, filepath.Join(dir, name), nil, parser.ParseComments)
+		src, err := readRepo(root, filepath.Join(dir, name))
+		if err != nil {
+			return nil, err
+		}
+		file, err := parser.ParseFile(pkg.fset, filepath.Join(dir, name), src, parser.ParseComments)
 		if err != nil {
 			return nil, err
 		}
@@ -130,7 +134,7 @@ func Commands(root string) ([]Command, error) {
 	if _, err := os.Stat(filepath.Join(root, "main.go")); errors.Is(err, fs.ErrNotExist) {
 		return nil, nil
 	}
-	pkg, err := parseGoDir(root)
+	pkg, err := parseGoDir(root, root)
 	if err != nil {
 		return nil, err
 	}
@@ -353,7 +357,7 @@ func Tools(root string) ([]Tool, error) {
 	if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(toolsFile))); errors.Is(err, fs.ErrNotExist) {
 		return nil, nil
 	}
-	pkg, err := parseGoDir(filepath.Join(root, filepath.FromSlash(filepath.Dir(toolsFile))))
+	pkg, err := parseGoDir(root, filepath.Join(root, filepath.FromSlash(filepath.Dir(toolsFile))))
 	if err != nil {
 		return nil, err
 	}

@@ -124,6 +124,44 @@ jobs:
           mode: publish
           site: site
 
+      # The documentation site and the impact report are built by the trusted
+      # base checkout. The pull request's files are checked out only as data:
+      # px1 docs reads Markdown and parses source, and never builds or runs it.
+      # This step runs after the report history is validated, and it must
+      # never stop the report from being published.
+      - name: Build the documentation site
+        id: docs
+        continue-on-error: true
+        shell: bash
+        env:
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+          DOCS_COMMENT_FILE: ${{ runner.temp }}/px1-docs-impact.md
+        run: |
+          set -euo pipefail
+          # Until the base commit has the docs command there is nothing to run.
+          if ! grep -q 'os.Args\[1\] == "docs"' main.go; then
+            echo "::notice title=px1 docs skipped::the base commit has no docs command yet"
+            exit 0
+          fi
+          head_tree="${RUNNER_TEMP}/px1-docs-head"
+          build="${RUNNER_TEMP}/px1-docs-build"
+          impact="${RUNNER_TEMP}/px1-docs-impact.json"
+          git worktree add --detach "$head_tree" "$HEAD_SHA" >/dev/null
+          merge_base="$(git merge-base "$BASE_SHA" "$HEAD_SHA")"
+          go build -o "${RUNNER_TEMP}/px1-docs-tool" .
+          tool="${RUNNER_TEMP}/px1-docs-tool"
+          "$tool" docs impact --root "$head_tree" --base "$merge_base" --head "$HEAD_SHA" --out "$DOCS_COMMENT_FILE"
+          "$tool" docs impact --root "$head_tree" --base "$merge_base" --head "$HEAD_SHA" --json --out "$impact"
+          "$tool" docs site --root . --out "${build}/docs" \
+            --source-url "${REPO_URL}/blob/${BASE_SHA}" --commit "${BASE_SHA:0:7}"
+          "$tool" docs site --root "$head_tree" --out "${build}/preview" --impact "$impact" \
+            --source-url "${REPO_URL}/blob/${HEAD_SHA}" --commit "${HEAD_SHA:0:7}"
+          # Move into the site only when everything was built.
+          mkdir -p site/docs-preview
+          mv "${build}/docs" site/docs
+          mv "${build}/preview" "site/docs-preview/${HEAD_SHA}"
+          echo "built=true" >> "$GITHUB_OUTPUT"
+
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
@@ -187,4 +225,45 @@ jobs:
                 ...params,
                 body,
               });
+            }
+
+      - name: Update the documentation impact comment
+        if: steps.docs.outputs.built == 'true'
+        continue-on-error: true
+        uses: actions/github-script@v7
+        env:
+          COMMENT_FILE: ${{ runner.temp }}/px1-docs-impact.md
+          PAGES_URL: ${{ steps.deployment.outputs.page_url }}
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- px1-docs-impact -->';
+            let body = fs.readFileSync(process.env.COMMENT_FILE, 'utf8');
+            if (!body.startsWith(marker)) {
+              core.setFailed('px1 docs impact comment is missing its marker');
+              return;
+            }
+            const pages = (process.env.PAGES_URL || '').replace(/\/$/, '');
+            if (pages) {
+              body += `\n[Preview the documentation for this pull request](${pages}/docs-preview/${process.env.HEAD_SHA}/). The preview is replaced when another pull request is published.\n`;
+            }
+            const params = {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            };
+            const comments = await github.paginate(github.rest.issues.listComments, params);
+            const existing = comments.find(
+              (comment) => comment.user?.type === 'Bot' && comment.body?.includes(marker),
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: params.owner,
+                repo: params.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({ ...params, body });
             }

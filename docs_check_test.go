@@ -116,3 +116,48 @@ func TestDocsImpactCommand(t *testing.T) {
 		t.Fatal("an unknown base was accepted")
 	}
 }
+
+// The Pages workflow runs with write access on pull_request_target. Its docs
+// step must use the base checkout as the tool, read the pull request only as
+// files, and never be able to stop the review report from publishing.
+func TestReviewWorkflowBuildsDocsFromTheTrustedBase(t *testing.T) {
+	body, err := os.ReadFile(".github/workflows/px1-review-report.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	start := strings.Index(text, "- name: Build the documentation site")
+	end := strings.Index(text, "- name: Configure GitHub Pages")
+	if start < 0 || end < start {
+		t.Fatal("the docs step must come before the Pages upload")
+	}
+	if strings.Index(text, "- name: Preserve historical review reports") > start {
+		t.Fatal("the docs step must come after the report history is validated")
+	}
+	step := text[start:end]
+	for _, want := range []string{
+		"continue-on-error: true",
+		`git worktree add --detach "$head_tree" "$HEAD_SHA"`,
+		`git merge-base "$BASE_SHA" "$HEAD_SHA"`,
+		`go build -o "${RUNNER_TEMP}/px1-docs-tool" .`,
+		`docs site --root . --out "${build}/docs"`,
+		`docs site --root "$head_tree" --out "${build}/preview" --impact "$impact"`,
+		`mv "${build}/preview" "site/docs-preview/${HEAD_SHA}"`,
+	} {
+		if !strings.Contains(step, want) {
+			t.Errorf("docs step missing %q", want)
+		}
+	}
+	// Nothing may be built or run from the pull request's tree.
+	for _, banned := range []string{`cd "$head_tree"`, `-C "$head_tree"`, "go run", "npm ", "make "} {
+		if strings.Contains(step, banned) {
+			t.Errorf("docs step contains %q", banned)
+		}
+	}
+	comment := text[strings.Index(text, "- name: Update the documentation impact comment"):]
+	for _, want := range []string{"steps.docs.outputs.built == 'true'", "continue-on-error: true", "'<!-- px1-docs-impact -->'", "body.startsWith(marker)"} {
+		if !strings.Contains(comment, want) {
+			t.Errorf("comment step missing %q", want)
+		}
+	}
+}

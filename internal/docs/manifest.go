@@ -74,7 +74,7 @@ func WriteGenerated(root string) ([]string, error) {
 	var changed []string
 	put := func(rel, want string) error {
 		full := filepath.Join(root, filepath.FromSlash(rel))
-		if got, err := os.ReadFile(full); err == nil && string(got) == want {
+		if got, err := readRepo(root, full); err == nil && string(got) == want {
 			return nil
 		}
 		changed = append(changed, rel)

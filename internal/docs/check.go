@@ -34,7 +34,7 @@ type Config struct {
 // LoadConfig reads the config. A missing file is an empty config.
 func LoadConfig(root string) (Config, error) {
 	var cfg Config
-	data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(ConfigFile)))
+	data, err := readRepo(root, filepath.Join(root, filepath.FromSlash(ConfigFile)))
 	if errors.Is(err, fs.ErrNotExist) {
 		return cfg, nil
 	}
@@ -265,7 +265,7 @@ func checkGenerated(root string, pages []Page) ([]Problem, error) {
 	var problems []Problem
 	for _, files := range []map[string]string{reference, Generated(pages)} {
 		for rel, want := range files {
-			got, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
+			got, err := readRepo(root, filepath.Join(root, filepath.FromSlash(rel)))
 			if err != nil || string(got) != want {
 				problems = append(problems, Problem{rel, 0, "out of date: run px1 docs gen"})
 			}

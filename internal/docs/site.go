@@ -243,7 +243,7 @@ func BuildSite(root string, opts SiteOptions) (map[string][]byte, error) {
 
 		// The Markdown is published next to the HTML, front matter included,
 		// so the site is also a copy of the source.
-		raw, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(p.Path)))
+		raw, err := readRepo(root, filepath.Join(root, filepath.FromSlash(p.Path)))
 		if err != nil {
 			return nil, err
 		}

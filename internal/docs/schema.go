@@ -120,7 +120,7 @@ func Actions(root string) ([]Action, error) {
 			return nil
 		}
 		rel, _ := filepath.Rel(root, p)
-		data, err := readFile(p)
+		data, err := readFile(root, p)
 		if err != nil {
 			return err
 		}

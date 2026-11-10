@@ -244,6 +244,9 @@ backend-foundation tasks are:
 96. [x] **Detect documentation drift.** `px1 docs impact` lists the pages
     whose covered code a diff touches and whether each was updated; the site
     marks them.
+97. [x] **Publish the documentation and its impact per pull request.** The
+    review-report workflow publishes the site and a per-pull-request preview
+    on Pages and posts the impact report as a sticky comment.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,
