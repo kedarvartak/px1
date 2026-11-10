@@ -319,7 +319,16 @@ const dedupeLineSlack = 3
 
 func alreadyPosted(posted []postedComment, key string, f hostedreview.Finding) bool {
 	for _, p := range posted {
-		if p.Key == key || (p.Path == f.Path && p.Line > 0 && abs(p.Line-f.EndLine) <= dedupeLineSlack) {
+		// Location identifies a finding. The title key is only a fallback for a
+		// comment whose line is unknown: matching it elsewhere would hide a
+		// second problem that happens to share a title with the first.
+		if p.Line > 0 {
+			if p.Path == f.Path && abs(p.Line-f.EndLine) <= dedupeLineSlack {
+				return true
+			}
+			continue
+		}
+		if p.Key == key {
 			return true
 		}
 	}

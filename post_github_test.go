@@ -257,7 +257,10 @@ func TestAlreadyPostedUsesTheOriginalLineWhenTheCommentIsOutdated(t *testing.T) 
 		t.Fatal("a comment with an unknown line cannot match by location")
 	}
 	if !alreadyPosted([]postedComment{{Key: "abc", Path: "gone.ts", Line: 0}}, "abc", hf) {
-		t.Fatal("an identical key still matches")
+		t.Fatal("with no known line, an identical key still matches")
+	}
+	if alreadyPosted([]postedComment{{Key: "abc", Path: "src/a.ts", Line: 90}}, "abc", hf) {
+		t.Fatal("an identical title far away is a different problem, not a repeat")
 	}
 }
 
