@@ -76,13 +76,9 @@ runs:
         done <<< "$PX1_EXCLUDES"
         echo "::warning title=px1 model transfer::This sends the pull-request diff, and files the model chooses to read, to OpenAI. Exclusion globs are not redaction."
         "$bin" agentic-review "${args[@]:1}" | tee "$out.log"
-        if [[ "$PX1_POST" == "true" ]]; then
-          cost="$(grep -m1 '^Spent about' "$out.log" || true)"
-          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          "$bin" post-github --findings "$out/findings.json" --pr "$PX1_PR" --head "$PX1_HEAD" \
-            --footer "$cost Full report and trace: download the px1-review artifact from [this run]($run_url) and open report/index.html."
-        fi
+        cp "$out/report/index.html" "${RUNNER_TEMP:-/tmp}/px1-review.html"
         echo "PX1_OUT=$out" >> "$GITHUB_ENV"
+        echo "PX1_COST=$(grep -m1 '^Spent about' "$out.log" || true)" >> "$GITHUB_ENV"
         {
           echo "### px1 review"
           echo '```'
@@ -91,13 +87,26 @@ runs:
         } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
 
     - name: Upload the report
+      id: upload
       if: always() && env.PX1_OUT != ''
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
-        name: px1-review
-        path: |
-          ${{ env.PX1_OUT }}/report
-          ${{ env.PX1_OUT }}/findings.json
-          ${{ env.PX1_OUT }}/trace.json
+        path: ${{ runner.temp }}/px1-review.html
+        archive: false
         retention-days: 14
         if-no-files-found: ignore
+
+    - name: Post findings to the pull request
+      if: always() && env.PX1_OUT != '' && inputs.post == 'true'
+      shell: bash
+      env:
+        PX1_PR: ${{ github.event.pull_request.number }}
+        PX1_HEAD: ${{ github.event.pull_request.head.sha }}
+        PX1_REPORT_URL: ${{ steps.upload.outputs.artifact-url }}
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        set -euo pipefail
+        link="Full report and trace: [open the report]($PX1_REPORT_URL) (a GitHub Actions artifact; visible only to people who can read this repository)."
+        if [[ -z "$PX1_REPORT_URL" ]]; then link="The report was not uploaded; see the workflow run."; fi
+        "${RUNNER_TEMP:-/tmp}/px1" post-github --findings "$PX1_OUT/findings.json" --pr "$PX1_PR" --head "$PX1_HEAD" \
+          --footer "$PX1_COST $link"
