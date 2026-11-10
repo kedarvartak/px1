@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"strings"
 	"time"
 
 	"px1/internal/hosted/llm"
@@ -29,6 +31,9 @@ type Model struct {
 	// ContentionWait is how long to wait before retrying a reservation that
 	// other in-flight calls are holding. Defaults to 50ms.
 	ContentionWait time.Duration
+	// PolicyRetryWait is how long to wait before the one retry of a call the
+	// provider's safety filter rejected. Defaults to 2s.
+	PolicyRetryWait time.Duration
 }
 
 // EstimateTokens is a deliberately high estimate (three bytes per token) so a
@@ -51,6 +56,38 @@ func ActualCost(price llm.Price, usage llm.Usage) int64 {
 // a provider may bill a request it did not complete; this can undercount a
 // call that timed out after generating, and the real bill is authoritative.
 func (m Model) Call(ctx context.Context, agent, role string, prompt Prompt) (string, error) {
+	text, err := m.callOnce(ctx, agent, role, prompt)
+	if !isPolicyRejection(err) {
+		return text, err
+	}
+	// The provider's safety filter is not deterministic: the same request
+	// has been rejected once and accepted on the next try. Retry exactly once,
+	// as a new metered call, so the retry is charged and bounded like any other.
+	wait := m.PolicyRetryWait
+	if wait <= 0 {
+		wait = 2 * time.Second
+	}
+	select {
+	case <-ctx.Done():
+		return "", err
+	case <-time.After(wait):
+	}
+	return m.callOnce(ctx, agent, role, prompt)
+}
+
+// isPolicyRejection recognizes the provider's usage-policy rejection of a
+// prompt: a 400 whose message says the prompt was flagged. Other 400s, such as
+// an unknown model, are real errors and are never retried.
+func isPolicyRejection(err error) bool {
+	var providerErr llm.ProviderError
+	if !errors.As(err, &providerErr) || providerErr.StatusCode != http.StatusBadRequest {
+		return false
+	}
+	detail := strings.ToLower(providerErr.Detail)
+	return strings.Contains(detail, "flagged") && strings.Contains(detail, "usage policy")
+}
+
+func (m Model) callOnce(ctx context.Context, agent, role string, prompt Prompt) (string, error) {
 	if m.Client == nil || m.Meter == nil || m.MaxOutputTokens <= 0 || m.Name == "" {
 		return "", errors.New("model client, meter, model name, and output limit are required")
 	}

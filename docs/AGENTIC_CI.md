@@ -36,4 +36,4 @@ Each run uploads the report as one unzipped `px1-review.html` artifact (kept 14 
 ## Known limits
 
 - Very large pull requests exceed the model budget and fail; there is no fallback yet.
-- A policy rejection from the model provider is not retried yet.
+- If the provider's safety filter rejects a prompt, the call is retried once (it is non-deterministic: the same prompt has been accepted on the next try). Both attempts are metered and count against the cost cap. A second rejection fails that step and is reported in the notes.
