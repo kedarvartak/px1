@@ -312,7 +312,12 @@ func blockDiff(block review.Block, files map[string]ReviewFile, note func(string
 }
 
 const (
-	diffContextLimit    = 2_000
+	// The window is at most 13 numbered lines (the finding plus six either
+	// side). Each is shortened so all of them fit, and the limit holds them
+	// with room for some removed lines, so nothing in the window is lost to
+	// the final cut.
+	maxKeptLineBytes    = 200
+	diffContextLimit    = 13*(maxKeptLineBytes+1) + 400
 	maxRemovedRunLines  = 8
 	maxRemovedLineBytes = 160
 )
@@ -352,7 +357,7 @@ func diffContext(diff string, start, end int) string {
 			for _, r := range pending {
 				entries = append(entries, entry{r, true})
 			}
-			entries = append(entries, entry{line, false})
+			entries = append(entries, entry{clip(line, maxKeptLineBytes), false})
 		}
 		pending = nil
 	}

@@ -413,3 +413,20 @@ func TestDiffContextDropsRemovalsBeforeEvidenceWhenTheLimitIsTight(t *testing.T)
 		t.Fatalf("kept lines must survive: %d", strings.Count(got, "k"))
 	}
 }
+
+// Long lines are shortened, not allowed to push later lines of the window out.
+func TestDiffContextShortensLongLinesSoTheWholeWindowFits(t *testing.T) {
+	var diff strings.Builder
+	for n := 44; n <= 56; n++ {
+		diff.WriteString(fmt.Sprintf("%d\t+%s\n", n, strings.Repeat("x", 1_000)))
+	}
+	got := diffContext(diff.String(), 50, 50)
+	for n := 44; n <= 56; n++ {
+		if !strings.Contains(got, fmt.Sprintf("%d\t+", n)) {
+			t.Fatalf("line %d of the window was lost:\n%d bytes", n, len(got))
+		}
+	}
+	if len(got) > diffContextLimit {
+		t.Fatalf("context is %d bytes, limit %d", len(got), diffContextLimit)
+	}
+}
