@@ -213,3 +213,11 @@ func TestWriteGeneratedRefusesBadFrontMatter(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 }
+
+func TestConfigRejectsUnknownKeys(t *testing.T) {
+	root := repo(t)
+	write(t, root, ConfigFile, `{"extra_unit":["action.yml"]}`)
+	if _, err := Check(root); err == nil || !strings.Contains(err.Error(), "extra_unit") {
+		t.Fatalf("err = %v", err)
+	}
+}
