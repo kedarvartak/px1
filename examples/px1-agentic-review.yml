@@ -29,7 +29,6 @@ jobs:
           repository: kedarvartak/px1
           ref: master # pin to a commit SHA once you trust a version
           path: .px1-tool
-          token: ${{ secrets.PX1_TOOL_TOKEN }} # only needed while px1 is private
           persist-credentials: false
       - uses: ./.px1-tool/agentic-action
         env:
