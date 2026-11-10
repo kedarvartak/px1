@@ -10,6 +10,19 @@
   ],
   "pages": [
     {
+      "path": "docs/ACTION_INPUTS.md",
+      "title": "Action inputs",
+      "section": "reference",
+      "kind": "reference",
+      "status": "shipped",
+      "covers": [
+        "action.yml",
+        "agentic-action/action.yml",
+        "history/action.yml"
+      ],
+      "verified_at": ""
+    },
+    {
       "path": "docs/AGENTIC_CI.md",
       "title": "Agentic review in CI",
       "section": "guides",
@@ -74,6 +87,30 @@
       "status": "built",
       "covers": [
         "internal/hosted/apikeys/"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/CLI_REFERENCE.md",
+      "title": "Command-line reference",
+      "section": "reference",
+      "kind": "reference",
+      "status": "shipped",
+      "covers": [
+        "agentic_review.go",
+        "docs_cmd.go",
+        "eval_compare.go",
+        "eval_run.go",
+        "explanation_generate.go",
+        "export.go",
+        "feedback_collect.go",
+        "main.go",
+        "mcp_proxy.go",
+        "post_github.go",
+        "privacy.go",
+        "summary_comment.go",
+        "validate_config.go",
+        "validate_rules.go"
       ],
       "verified_at": ""
     },

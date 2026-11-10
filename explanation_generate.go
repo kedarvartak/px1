@@ -60,6 +60,10 @@ type responsesAPIResponse struct {
 	} `json:"output"`
 }
 
+// runGenerateExplanations asks a model to explain the changed blocks between
+// two commits and writes commit-pinned explanation JSON for export-review. It
+// sends bounded, non-excluded diff content to the endpoint and needs
+// OPENAI_API_KEY.
 func runGenerateExplanations(args []string) error {
 	fs := flag.NewFlagSet("generate-explanations", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)

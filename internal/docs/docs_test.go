@@ -221,3 +221,219 @@ func TestConfigRejectsUnknownKeys(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 }
+
+const mainSource = `package main
+
+import (
+	"flag"
+	"os"
+)
+
+const defaultOut = "report"
+
+func main() {
+	if len(os.Args) > 1 && os.Args[1] == "review" {
+		runReview(os.Args[2:])
+		return
+	}
+	if len(os.Args) > 1 && os.Args[1] == "tools" {
+		runTools(os.Args[2:])
+		return
+	}
+	if len(os.Args) == 2 && (os.Args[1] == "version" || os.Args[1] == "--version") {
+		return
+	}
+}
+
+// runReview reviews two commits
+// and writes a report.
+func runReview(args []string) {
+	o := struct{ out string; n int; yes bool }{}
+	fs := flag.NewFlagSet("review", flag.ContinueOnError)
+	base := fs.String("base", "", "base commit (required)")
+	fs.StringVar(&o.out, "out", defaultOut, "where <out> | goes")
+	fs.IntVar(&o.n, "max", 120_000, "limit")
+	fs.BoolVar(&o.yes, "yes", false, "send")
+	env := fs.String("repo", os.Getenv("REPO"), "owner/name")
+	fs.Var(nil, "exclude", "glob (repeatable)")
+	_, _ = base, env
+}
+`
+
+const toolsSource = `package main
+
+import "flag"
+
+func runTools(args []string) {
+	fs := flag.NewFlagSet("tools "+args[0], flag.ContinueOnError)
+	_ = fs.String("root", ".", "repository root")
+}
+`
+
+func TestCommandsAreReadFromSource(t *testing.T) {
+	root := t.TempDir()
+	write(t, root, "main.go", mainSource)
+	write(t, root, "tools.go", toolsSource)
+	write(t, root, "main_test.go", "package main\nthis is not parsed\n")
+	commands, err := Commands(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(commands) != 2 || commands[0].Name != "review" || commands[1].Name != "tools" {
+		t.Fatalf("commands = %+v", commands)
+	}
+	review := commands[0]
+	if review.Summary != "Reviews two commits and writes a report." {
+		t.Errorf("summary = %q", review.Summary)
+	}
+	want := []Flag{
+		{"base", "string", "", "base commit (required)"},
+		{"out", "string", "`report`", "where <out> | goes"},
+		{"max", "integer", "`120000`", "limit"},
+		{"yes", "boolean", "", "send"},
+		{"repo", "string", "computed: `os.Getenv(\"REPO\")`", "owner/name"},
+		{"exclude", "value", "", "glob (repeatable)"},
+	}
+	if len(review.Flags) != len(want) {
+		t.Fatalf("flags = %+v", review.Flags)
+	}
+	for i, f := range want {
+		if review.Flags[i] != f {
+			t.Errorf("flag %d = %+v, want %+v", i, review.Flags[i], f)
+		}
+	}
+	tools := commands[1]
+	if tools.Summary != "" || len(tools.Flags) != 1 || tools.Flags[0].Name != "root" || tools.Files[0] != "tools.go" {
+		t.Errorf("tools = %+v", tools)
+	}
+
+	page := renderCLI(commands)
+	for _, want := range []string{
+		"  - main.go\n  - tools.go\n",
+		"## px1 review\n\nReviews two commits and writes a report.\n",
+		"| `--out` | string | `report` | where \\<out> \\| goes |",
+	} {
+		if !strings.Contains(page, want) {
+			t.Errorf("want %q in:\n%s", want, page)
+		}
+	}
+	if _, problems := parsePage(CLIReferenceFile, page); len(problems) != 0 {
+		t.Errorf("generated page has invalid front matter: %v", problems)
+	}
+}
+
+func TestSchemaFields(t *testing.T) {
+	fields, err := SchemaFields([]byte(`{"required":["b","a"],"properties":{
+		"a":{"type":"string","minLength":1,"maxLength":20},
+		"b":{"enum":["x","y"]},
+		"c":{"type":"number","minimum":0,"maximum":1},
+		"z":{"type":"string"}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []Field{
+		{"b", "enum", true, "one of `x`, `y`"},
+		{"a", "string", true, "not empty; at most 20 characters"},
+		{"c", "number", false, "at least 0; at most 1"},
+		{"z", "string", false, ""},
+	}
+	if len(fields) != len(want) {
+		t.Fatalf("fields = %+v", fields)
+	}
+	for i := range want {
+		if fields[i] != want[i] {
+			t.Errorf("field %d = %+v, want %+v", i, fields[i], want[i])
+		}
+	}
+	if _, err := SchemaFields([]byte(`{"required":["gone"],"properties":{}}`)); err == nil {
+		t.Error("a required property with no definition was accepted")
+	}
+}
+
+func TestParseAction(t *testing.T) {
+	action, err := parseAction("action.yml", "name: Review\ndescription: 'Does a review.'\n\ninputs:\n  model:\n    description: The model.\n    required: true\n  cap:\n    description: Cost cap.\n    required: false\n    default: '0.50'\n\nruns:\n  using: composite\n  steps:\n    - name: x\n      with:\n        a: b\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if action.Name != "Review" || action.Description != "Does a review." || len(action.Inputs) != 2 {
+		t.Fatalf("action = %+v", action)
+	}
+	if in := action.Inputs[0]; in.Name != "model" || !in.Required || in.Description != "The model." {
+		t.Errorf("first input = %+v", in)
+	}
+	if in := action.Inputs[1]; in.Required || in.Default != "0.50" {
+		t.Errorf("second input = %+v", in)
+	}
+	for name, text := range map[string]string{
+		"multi-line": "inputs:\n  a:\n    description: |\n      long\n",
+		"unknown":    "inputs:\n  a:\n    colour: red\n",
+		"indent":     "inputs:\n   a:\n",
+	} {
+		if _, err := parseAction("action.yml", text); err == nil {
+			t.Errorf("%s: accepted", name)
+		}
+	}
+}
+
+const toolsGo = `package agent
+
+const ReadFile = "read_file"
+
+type Toolbox struct{}
+
+func (t Toolbox) Specs() []string {
+	add := func(enabled bool, name, description, schema string) {}
+	shared := ` + "`" + `{"required":["path"],"properties":{"path":{"type":"string"},"limit":{"type":"integer"}}}` + "`" + `
+	add(true, ReadFile, "Read a file.", shared)
+	add(true, "git_log", "List commits.", ` + "`" + `{"properties":{}}` + "`" + `)
+	return nil
+}
+`
+
+func TestReferenceFillsRegionsAndCheckCatchesDrift(t *testing.T) {
+	root := repo(t)
+	write(t, root, toolsFile, toolsGo)
+	write(t, root, findingSchemaFile, `{"required":["path"],"properties":{"path":{"type":"string"}}}`)
+	write(t, root, "action.yml", "name: Review\ndescription: Does a review.\ninputs:\n  model:\n    description: The model.\n    required: true\n")
+	front := strings.Replace(goodFront, "covers:\n  - tool.go\n  - pkg/\n", "covers:\n  - internal/hosted/agent/\n", 1)
+	write(t, root, agentToolsPage, front+"\n# Tools\n\nBefore.\n\n<!-- px1:generated agent-tools -->\nold text\n<!-- px1:end agent-tools -->\n\nAfter.\n")
+	write(t, root, findingSchemaPage, strings.Replace(front, "internal/hosted/agent/", "schemas/finding.schema.json", 1)+"\n# Finding\n\n<!-- px1:generated finding-fields -->\n<!-- px1:end finding-fields -->\n")
+
+	if got := messages(t, root); !strings.Contains(got, "docs/AGENT_TOOLS.md: out of date: run px1 docs gen") || !strings.Contains(got, "docs/ACTION_INPUTS.md: out of date") {
+		t.Fatalf("stale reference not reported:\n%s", got)
+	}
+	if _, err := WriteGenerated(root); err != nil {
+		t.Fatal(err)
+	}
+	if got := messages(t, root); got != "" {
+		t.Fatalf("problems after gen:\n%s", got)
+	}
+	tools, _ := os.ReadFile(filepath.Join(root, filepath.FromSlash(agentToolsPage)))
+	for _, want := range []string{
+		"Before.\n", "After.\n",
+		"| `read_file` | Read a file. | `path`, `limit` (optional) |",
+		"| `git_log` | List commits. |  |",
+	} {
+		if !strings.Contains(string(tools), want) {
+			t.Errorf("want %q in:\n%s", want, tools)
+		}
+	}
+	if strings.Contains(string(tools), "old text") {
+		t.Errorf("the old region text survived:\n%s", tools)
+	}
+	if again, _ := WriteGenerated(root); len(again) != 0 {
+		t.Fatalf("second gen changed %v", again)
+	}
+
+	// The code changes; the page must be reported until it is regenerated.
+	write(t, root, toolsFile, strings.Replace(toolsGo, "Read a file.", "Read one file.", 1))
+	if got := messages(t, root); !strings.Contains(got, "docs/AGENT_TOOLS.md: out of date") {
+		t.Fatalf("drift not reported:\n%s", got)
+	}
+
+	// A page that lost its markers is an error, not a silent skip.
+	write(t, root, agentToolsPage, front+"\n# Tools\n")
+	if _, err := Check(root); err == nil || !strings.Contains(err.Error(), "missing the") {
+		t.Fatalf("err = %v", err)
+	}
+}

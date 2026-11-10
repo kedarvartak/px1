@@ -69,7 +69,11 @@ func Check(root string) ([]Problem, error) {
 		return nil, err
 	}
 	problems = append(problems, checkCoverage(root, pages, units, cfg)...)
-	problems = append(problems, checkGenerated(root, pages)...)
+	stale, err := checkGenerated(root, pages)
+	if err != nil {
+		return nil, err
+	}
+	problems = append(problems, stale...)
 	sort.SliceStable(problems, func(i, j int) bool {
 		if problems[i].Path != problems[j].Path {
 			return problems[i].Path < problems[j].Path
@@ -251,14 +255,21 @@ func checkCoverage(root string, pages []Page, units []string, cfg Config) []Prob
 	return problems
 }
 
-// checkGenerated reports a manifest or index that no longer matches the pages.
-func checkGenerated(root string, pages []Page) []Problem {
+// checkGenerated reports reference pages, a manifest or an index that no
+// longer match the code and the pages.
+func checkGenerated(root string, pages []Page) ([]Problem, error) {
+	reference, err := Reference(root)
+	if err != nil {
+		return nil, err
+	}
 	var problems []Problem
-	for rel, want := range Generated(pages) {
-		got, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
-		if err != nil || string(got) != want {
-			problems = append(problems, Problem{rel, 0, "out of date: run px1 docs manifest"})
+	for _, files := range []map[string]string{reference, Generated(pages)} {
+		for rel, want := range files {
+			got, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
+			if err != nil || string(got) != want {
+				problems = append(problems, Problem{rel, 0, "out of date: run px1 docs gen"})
+			}
 		}
 	}
-	return problems
+	return problems, nil
 }

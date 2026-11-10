@@ -231,10 +231,13 @@ backend-foundation tasks are:
     design and phases; `docs/DOCS_INVENTORY.md` audits the current pages and
     assigns each one a section, status and action.
 93. [x] **Give the documentation a checked structure.** Every page carries
-    front matter (section, status, the code it covers). `px1 docs manifest`
+    front matter (section, status, the code it covers). `px1 docs gen`
     writes `docs/manifest.json` and the index; `px1 docs check` runs in the
     tests and fails on broken links, stale generated files and code with no
     page.
+94. [x] **Generate the reference documentation from code.** `px1 docs gen`
+    reads the CLI flags, action inputs, finding schema and agent tools from
+    source, without running it, and the tests fail when a page is out of date.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,

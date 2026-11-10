@@ -10,6 +10,9 @@ import (
 	"path/filepath"
 )
 
+// runValidateConfig resolves the px1 configuration that applies to one path,
+// merging the config files from the repository root down to that path, and
+// prints the result as JSON. It fails when a config file is invalid.
 func runValidateConfig(args []string, out io.Writer) error {
 	fs := flag.NewFlagSet("validate-config", flag.ContinueOnError)
 	root := fs.String("root", ".", "repository root")

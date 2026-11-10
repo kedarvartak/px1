@@ -31,6 +31,9 @@ var highConfidenceSecretPatterns = []struct {
 	{"npm access token", regexp.MustCompile(`\bnpm_[A-Za-z0-9]{20,}\b`)},
 }
 
+// runPrivacyCheck scans a generated review.json for high-confidence secret
+// signatures and sensitive paths and fails when it finds any. It is a check
+// before publishing, not redaction or access control.
 func runPrivacyCheck(args []string, stdout io.Writer) error {
 	fs := flag.NewFlagSet("privacy-check", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)

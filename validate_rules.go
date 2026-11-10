@@ -19,6 +19,8 @@ type ruleValidationSummary struct {
 	Errors   int    `json:"errors"`
 }
 
+// runValidateRules checks a team rules JSON file and reports its errors and
+// warnings.
 func runValidateRules(args []string, out io.Writer) error {
 	fs := flag.NewFlagSet("validate-rules", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)

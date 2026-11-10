@@ -105,6 +105,9 @@ type staticReviewContextBlock struct {
 	Lines []staticReviewContextLine
 }
 
+// runExportReview builds the static review report for two commits of a local
+// clone: an HTML page and review.json. It runs git only and sends nothing
+// anywhere.
 func runExportReview(args []string) error {
 	fs := flag.NewFlagSet("export-review", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)

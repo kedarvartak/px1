@@ -10,10 +10,13 @@ import (
 	"px1/internal/docs"
 )
 
-// runDocs is "px1 docs <check|manifest>": the documentation's own checks.
+// runDocs maintains the documentation under docs/. "px1 docs gen" writes the
+// reference pages, the manifest and the index from the code and the pages;
+// "px1 docs check" fails when they are out of date, a link is broken, or code
+// has no page. It reads files only.
 func runDocs(args []string, stdout io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("usage: px1 docs <check|manifest> [--root dir]")
+		return errors.New("usage: px1 docs <check|gen> [--root dir]")
 	}
 	fs := flag.NewFlagSet("docs "+args[0], flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
@@ -35,7 +38,7 @@ func runDocs(args []string, stdout io.Writer) error {
 		}
 		fmt.Fprintln(stdout, "docs check: ok")
 		return nil
-	case "manifest":
+	case "gen":
 		changed, err := docs.WriteGenerated(*root)
 		if err != nil {
 			return err
@@ -44,9 +47,9 @@ func runDocs(args []string, stdout io.Writer) error {
 			fmt.Fprintln(stdout, "wrote", rel)
 		}
 		if len(changed) == 0 {
-			fmt.Fprintln(stdout, "docs manifest: up to date")
+			fmt.Fprintln(stdout, "docs gen: up to date")
 		}
 		return nil
 	}
-	return fmt.Errorf("unknown docs command %q: use check or manifest", args[0])
+	return fmt.Errorf("unknown docs command %q: use check or gen", args[0])
 }

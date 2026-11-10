@@ -14,6 +14,9 @@ import (
 
 const summaryCommentMarker = "<!-- px1-static-review -->"
 
+// runSummaryComment renders the sticky pull-request summary comment for a
+// static review from review.json and the report's URL. It prints Markdown and
+// posts nothing.
 func runSummaryComment(args []string, stdout io.Writer) error {
 	fs := flag.NewFlagSet("summary-comment", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
