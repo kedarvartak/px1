@@ -359,3 +359,26 @@ func TestProviderErrorTextNeverReachesNotesOrTheTrace(t *testing.T) {
 		t.Fatalf("a failed verifier should be explained without detail and report nothing: %s", everything)
 	}
 }
+
+func TestDiffContextIncludesRemovedLinesNextToTheFinding(t *testing.T) {
+	diff := "@@ -40,3 +40,3 @@\n40\t ctx\n-\told := a > b\n41\t+new := a >= b\n42\t ctx2\n-\tunrelated removal\n90\t far away\n"
+	got := diffContext(diff, 41, 41)
+	for _, want := range []string{"-\told := a > b", "41\t+new := a >= b", "40\t ctx", "42\t ctx2"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("context lacks %q:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, "far away") {
+		t.Fatalf("lines outside the window must be left out:\n%s", got)
+	}
+	if strings.Contains(got, "unrelated removal") {
+		t.Fatalf("a removal that precedes a line outside the window is not context:\n%s", got)
+	}
+}
+
+func TestDiffContextWithoutRemovalsIsUnchanged(t *testing.T) {
+	diff := "10\t ctx\n11\t+added\n12\t ctx\n"
+	if got := diffContext(diff, 11, 11); got != diff[:len(diff)-1] {
+		t.Fatalf("got %q", got)
+	}
+}

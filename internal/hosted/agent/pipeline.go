@@ -243,7 +243,7 @@ func (p Pipeline) verify(ctx context.Context, findings []review.Finding, files m
 	}
 	model := p.Model
 	model.MaxOutputTokens = max(p.Model.MaxOutputTokens, min(len(findings)*200+500, 6_000))
-	verifier := review.FindingVerifier{Client: cleaningClient{model: model}, Provider: p.Model.Provider, Model: p.Model.Name, PromptVersion: "px1-agentic-1", MinConfidence: p.MinConfidence, MaxOutputTokens: model.MaxOutputTokens}
+	verifier := review.FindingVerifier{Client: cleaningClient{model: model}, Provider: p.Model.Provider, Model: p.Model.Name, PromptVersion: "px1-agentic-2", MinConfidence: p.MinConfidence, MaxOutputTokens: model.MaxOutputTokens}
 	var result review.VerificationResult
 	var err error
 	for attempt := 0; attempt < 2; attempt++ {
@@ -312,22 +312,31 @@ func blockDiff(block review.Block, files map[string]ReviewFile, note func(string
 }
 
 // diffContext returns the numbered diff lines near a finding, bounded so a
-// verifier request stays small.
+// verifier request stays small. Removed lines ("-") directly before a kept line
+// are included: a finding that a change introduced something cannot be checked
+// without seeing what the change replaced.
 func diffContext(diff string, start, end int) string {
-	lines := strings.Split(diff, "\n")
-	var picked []string
-	for _, line := range lines {
+	var picked, pendingRemoved []string
+	for _, line := range strings.Split(diff, "\n") {
 		number, _, ok := strings.Cut(line, "\t")
 		if !ok {
+			pendingRemoved = nil
+			continue
+		}
+		if number == "-" {
+			pendingRemoved = append(pendingRemoved, line)
 			continue
 		}
 		var n int
 		if _, err := fmt.Sscanf(number, "%d", &n); err != nil {
+			pendingRemoved = nil
 			continue
 		}
 		if n >= start-6 && n <= end+6 {
+			picked = append(picked, pendingRemoved...)
 			picked = append(picked, line)
 		}
+		pendingRemoved = nil
 	}
 	return clip(strings.Join(picked, "\n"), 2_000)
 }
