@@ -1,0 +1,2477 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "298086aca39755219395661828791ac2c7315993",
+  "head": "ac8a71a5070d58257b39a493db2098678e350250",
+  "generatedAt": "2026-11-10T12:51:54.494206171Z",
+  "files": [
+    {
+      "path": "docs/EVALUATION_SET.md",
+      "status": "M",
+      "diff": "diff --git a/docs/EVALUATION_SET.md b/docs/EVALUATION_SET.md\nindex efe9c4b..35a780b 100644\n--- a/docs/EVALUATION_SET.md\n+++ b/docs/EVALUATION_SET.md\n@@ -107,3 +107,18 @@ a `\u003c` to `\u003c=` change that no reviewer could flag, because the values never reach\n the boundary and the output is identical for every input. Run the changed code\n and compare outputs before trusting a seeded label; an unobservable mutation\n measures nothing.\n+\n+### Comparing two runs\n+\n+    px1 eval-compare --cases cases.json --before old/results.json --after new/results.json\n+\n+Use it after changing a prompt, a tool or a model: run `eval-run` before and\n+after with the same cases, then compare. Each labelled bug is tested with\n+Fisher's exact test on found versus missed runs, and the pooled result is\n+reported too. A difference counts only at p ≤ 0.10. That is loose on purpose: with\n+three runs a side the smallest possible p-value is 0.10 (3 of 3 against 0 of 3), so\n+a stricter bar would call everything noise. Two found against none, or one extra\n+find, is shown as \"same\". The report warns when the after run flags more on clean\n+changes, since more findings can mean more false alarms. Pooling treats runs of\n+different bugs as independent, which they are not entirely: read the overall\n+verdict as a guide, and prefer more runs over a cleverer statistic.\n",
+      "hunks": [
+        {
+          "id": "diff-efba96dbdfec947b",
+          "header": "@@ -107,3 +107,18 @@ a `\u003c` to `\u003c=` change that no reviewer could flag, because the values never reach",
+          "lines": [
+            {
+              "oldLine": 107,
+              "newLine": 107,
+              "kind": "context",
+              "text": "the boundary and the output is identical for every input. Run the changed code"
+            },
+            {
+              "oldLine": 108,
+              "newLine": 108,
+              "kind": "context",
+              "text": "and compare outputs before trusting a seeded label; an unobservable mutation"
+            },
+            {
+              "oldLine": 109,
+              "newLine": 109,
+              "kind": "context",
+              "text": "measures nothing."
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "### Comparing two runs"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "    px1 eval-compare --cases cases.json --before old/results.json --after new/results.json"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "Use it after changing a prompt, a tool or a model: run `eval-run` before and"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "after with the same cases, then compare. Each labelled bug is tested with"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "Fisher's exact test on found versus missed runs, and the pooled result is"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "reported too. A difference counts only at p ≤ 0.10. That is loose on purpose: with"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "three runs a side the smallest possible p-value is 0.10 (3 of 3 against 0 of 3), so"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "a stricter bar would call everything noise. Two found against none, or one extra"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "find, is shown as \"same\". The report warns when the after run flags more on clean"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "changes, since more findings can mean more false alarms. Pooling treats runs of"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "different bugs as independent, which they are not entirely: read the overall"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "verdict as a guide, and prefer more runs over a cleverer statistic."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "eval_compare.go",
+      "status": "A",
+      "diff": "diff --git a/eval_compare.go b/eval_compare.go\nnew file mode 100644\nindex 0000000..2546743\n--- /dev/null\n+++ b/eval_compare.go\n@@ -0,0 +1,72 @@\n+package main\n+\n+import (\n+\t\"encoding/json\"\n+\t\"errors\"\n+\t\"flag\"\n+\t\"fmt\"\n+\t\"io\"\n+\t\"os\"\n+\n+\t\"px1/internal/hosted/eval\"\n+)\n+\n+// runEvalCompare scores two eval-run result files against the same cases and\n+// says whether the difference is larger than run-to-run noise. It sends nothing\n+// anywhere: it reads files only.\n+func runEvalCompare(args []string, stdout io.Writer) error {\n+\tfs := flag.NewFlagSet(\"eval-compare\", flag.ContinueOnError)\n+\tfs.SetOutput(os.Stderr)\n+\tcases := fs.String(\"cases\", \"\", \"the repeat dataset both runs used (required)\")\n+\tbefore := fs.String(\"before\", \"\", \"results.json from the earlier eval-run (required)\")\n+\tafter := fs.String(\"after\", \"\", \"results.json from the later eval-run (required)\")\n+\tslack := fs.Int(\"line-slack\", 3, \"lines a finding may be from a label and still match\")\n+\trequireClass := fs.Bool(\"require-class\", false, \"also require the finding's type to equal the label's bug_class\")\n+\tout := fs.String(\"out\", \"\", \"optional file to write the comparison to\")\n+\tif err := fs.Parse(args); err != nil {\n+\t\treturn err\n+\t}\n+\tif *cases == \"\" || *before == \"\" || *after == \"\" || *slack \u003c 0 {\n+\t\treturn errors.New(\"eval-compare requires --cases, --before and --after\")\n+\t}\n+\tdata, err := os.ReadFile(*cases)\n+\tif err != nil {\n+\t\treturn fmt.Errorf(\"read cases: %w\", err)\n+\t}\n+\tdataset, err := eval.DecodeRepeat(data)\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\toptions := eval.MatchOptions{LineSlack: *slack, RequireClass: *requireClass}\n+\tscore := func(path string) (eval.RepeatReport, error) {\n+\t\traw, err := os.ReadFile(path)\n+\t\tif err != nil {\n+\t\t\treturn eval.RepeatReport{}, fmt.Errorf(\"read results: %w\", err)\n+\t\t}\n+\t\tvar results []eval.RunResult\n+\t\tif err := json.Unmarshal(raw, \u0026results); err != nil {\n+\t\t\treturn eval.RepeatReport{}, fmt.Errorf(\"decode %s: %w\", path, err)\n+\t\t}\n+\t\treturn eval.ScoreRepeat(dataset, results, options)\n+\t}\n+\tb, err := score(*before)\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\ta, err := score(*after)\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\tcomparison, err := eval.CompareRepeat(b, a)\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\tmd := comparison.Markdown()\n+\tif *out != \"\" {\n+\t\tif err := os.WriteFile(*out, []byte(md), 0o600); err != nil {\n+\t\t\treturn err\n+\t\t}\n+\t}\n+\t_, err = io.WriteString(stdout, md)\n+\treturn err\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-659a205ca0d52c32",
+          "header": "@@ -0,0 +1,72 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package main"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"flag\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"io\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"px1/internal/hosted/eval\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "// runEvalCompare scores two eval-run result files against the same cases and"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "// says whether the difference is larger than run-to-run noise. It sends nothing"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "// anywhere: it reads files only."
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "func runEvalCompare(args []string, stdout io.Writer) error {"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tfs := flag.NewFlagSet(\"eval-compare\", flag.ContinueOnError)"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tfs.SetOutput(os.Stderr)"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tcases := fs.String(\"cases\", \"\", \"the repeat dataset both runs used (required)\")"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tbefore := fs.String(\"before\", \"\", \"results.json from the earlier eval-run (required)\")"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tafter := fs.String(\"after\", \"\", \"results.json from the later eval-run (required)\")"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tslack := fs.Int(\"line-slack\", 3, \"lines a finding may be from a label and still match\")"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\trequireClass := fs.Bool(\"require-class\", false, \"also require the finding's type to equal the label's bug_class\")"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tout := fs.String(\"out\", \"\", \"optional file to write the comparison to\")"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tif err := fs.Parse(args); err != nil {"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tif *cases == \"\" || *before == \"\" || *after == \"\" || *slack \u003c 0 {"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"eval-compare requires --cases, --before and --after\")"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tdata, err := os.ReadFile(*cases)"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t\treturn fmt.Errorf(\"read cases: %w\", err)"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tdataset, err := eval.DecodeRepeat(data)"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\toptions := eval.MatchOptions{LineSlack: *slack, RequireClass: *requireClass}"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\tscore := func(path string) (eval.RepeatReport, error) {"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t\traw, err := os.ReadFile(path)"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t\t\treturn eval.RepeatReport{}, fmt.Errorf(\"read results: %w\", err)"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t\tvar results []eval.RunResult"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\tif err := json.Unmarshal(raw, \u0026results); err != nil {"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\t\treturn eval.RepeatReport{}, fmt.Errorf(\"decode %s: %w\", path, err)"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t\treturn eval.ScoreRepeat(dataset, results, options)"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\tb, err := score(*before)"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\ta, err := score(*after)"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\tcomparison, err := eval.CompareRepeat(b, a)"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\tmd := comparison.Markdown()"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\tif *out != \"\" {"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\tif err := os.WriteFile(*out, []byte(md), 0o600); err != nil {"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\t\treturn err"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t_, err = io.WriteString(stdout, md)"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\treturn err"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "eval_compare_test.go",
+      "status": "A",
+      "diff": "diff --git a/eval_compare_test.go b/eval_compare_test.go\nnew file mode 100644\nindex 0000000..7ce61db\n--- /dev/null\n+++ b/eval_compare_test.go\n@@ -0,0 +1,75 @@\n+package main\n+\n+import (\n+\t\"bytes\"\n+\t\"encoding/json\"\n+\t\"os\"\n+\t\"path/filepath\"\n+\t\"strings\"\n+\t\"testing\"\n+\n+\t\"px1/internal/hosted/eval\"\n+)\n+\n+func writeResults2(t *testing.T, caught []bool) string {\n+\tt.Helper()\n+\tvar results []eval.RunResult\n+\tfor run, hit := range caught {\n+\t\tr := eval.RunResult{CaseID: \"found\", Run: run + 1}\n+\t\tif hit {\n+\t\t\tr.Findings = []eval.Finding{{Path: \"src/refund.ts\", StartLine: 3, EndLine: 3}}\n+\t\t}\n+\t\tresults = append(results, r, eval.RunResult{CaseID: \"never-found\", Run: run + 1}, eval.RunResult{CaseID: \"clean\", Run: run + 1})\n+\t}\n+\tdata, _ := json.Marshal(results)\n+\tpath := filepath.Join(t.TempDir(), \"results.json\")\n+\tif err := os.WriteFile(path, data, 0o600); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\treturn path\n+}\n+\n+func TestEvalCompareReportsRealAndNoiseDifferences(t *testing.T) {\n+\tcases := writeEvalCases(t, strings.Repeat(\"a\", 40), strings.Repeat(\"b\", 40))\n+\tbefore := writeResults2(t, []bool{false, false, false})\n+\tafter := writeResults2(t, []bool{true, true, true})\n+\tout := filepath.Join(t.TempDir(), \"cmp.md\")\n+\tvar stdout bytes.Buffer\n+\tif err := runEvalCompare([]string{\"--cases\", cases, \"--before\", before, \"--after\", after, \"--out\", out}, \u0026stdout); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tfor _, want := range []string{\"| found | 0/3 | 3/3 |\", \"better\", \"| never-found | 0/3 | 0/3 |\", \"same\"} {\n+\t\tif !strings.Contains(stdout.String(), want) {\n+\t\t\tt.Fatalf(\"missing %q:\\n%s\", want, stdout.String())\n+\t\t}\n+\t}\n+\tif saved, err := os.ReadFile(out); err != nil || string(saved) != stdout.String() {\n+\t\tt.Fatalf(\"saved report differs: %v\", err)\n+\t}\n+\t// A one-run difference is noise.\n+\tvar noise bytes.Buffer\n+\tif err := runEvalCompare([]string{\"--cases\", cases, \"--before\", writeResults2(t, []bool{true, true, false}), \"--after\", writeResults2(t, []bool{true, true, true})}, \u0026noise); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif !strings.Contains(noise.String(), \"| found | 2/3 | 3/3 |\") || strings.Contains(noise.String(), \"| better |\") {\n+\t\tt.Fatalf(\"a single extra find must not count as better:\\n%s\", noise.String())\n+\t}\n+}\n+\n+func TestEvalCompareValidatesInput(t *testing.T) {\n+\tcases := writeEvalCases(t, strings.Repeat(\"a\", 40), strings.Repeat(\"b\", 40))\n+\tif err := runEvalCompare([]string{\"--cases\", cases}, \u0026bytes.Buffer{}); err == nil {\n+\t\tt.Fatal(\"missing results must be rejected\")\n+\t}\n+\tbad := filepath.Join(t.TempDir(), \"bad.json\")\n+\tos.WriteFile(bad, []byte(\"not json\"), 0o600)\n+\tif err := runEvalCompare([]string{\"--cases\", cases, \"--before\", bad, \"--after\", bad}, \u0026bytes.Buffer{}); err == nil {\n+\t\tt.Fatal(\"malformed results must be rejected\")\n+\t}\n+\tunknown := writeResults2(t, []bool{true})\n+\tdata, _ := os.ReadFile(unknown)\n+\tos.WriteFile(unknown, bytes.Replace(data, []byte(`\"found\"`), []byte(`\"nope\"`), 1), 0o600)\n+\tif err := runEvalCompare([]string{\"--cases\", cases, \"--before\", unknown, \"--after\", unknown}, \u0026bytes.Buffer{}); err == nil {\n+\t\tt.Fatal(\"results for an unknown case must be rejected\")\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-76d83371753278a7",
+          "header": "@@ -0,0 +1,75 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package main"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"bytes\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"path/filepath\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"px1/internal/hosted/eval\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "func writeResults2(t *testing.T, caught []bool) string {"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\tt.Helper()"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tvar results []eval.RunResult"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tfor run, hit := range caught {"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t\tr := eval.RunResult{CaseID: \"found\", Run: run + 1}"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t\tif hit {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t\t\tr.Findings = []eval.Finding{{Path: \"src/refund.ts\", StartLine: 3, EndLine: 3}}"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\t\tresults = append(results, r, eval.RunResult{CaseID: \"never-found\", Run: run + 1}, eval.RunResult{CaseID: \"clean\", Run: run + 1})"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tdata, _ := json.Marshal(results)"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tpath := filepath.Join(t.TempDir(), \"results.json\")"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tif err := os.WriteFile(path, data, 0o600); err != nil {"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\treturn path"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "func TestEvalCompareReportsRealAndNoiseDifferences(t *testing.T) {"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tcases := writeEvalCases(t, strings.Repeat(\"a\", 40), strings.Repeat(\"b\", 40))"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tbefore := writeResults2(t, []bool{false, false, false})"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tafter := writeResults2(t, []bool{true, true, true})"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tout := filepath.Join(t.TempDir(), \"cmp.md\")"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\tvar stdout bytes.Buffer"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tif err := runEvalCompare([]string{\"--cases\", cases, \"--before\", before, \"--after\", after, \"--out\", out}, \u0026stdout); err != nil {"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\tfor _, want := range []string{\"| found | 0/3 | 3/3 |\", \"better\", \"| never-found | 0/3 | 0/3 |\", \"same\"} {"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t\tif !strings.Contains(stdout.String(), want) {"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"missing %q:\\n%s\", want, stdout.String())"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\tif saved, err := os.ReadFile(out); err != nil || string(saved) != stdout.String() {"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"saved report differs: %v\", err)"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t// A one-run difference is noise."
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\tvar noise bytes.Buffer"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\tif err := runEvalCompare([]string{\"--cases\", cases, \"--before\", writeResults2(t, []bool{true, true, false}), \"--after\", writeResults2(t, []bool{true, true, true})}, \u0026noise); err != nil {"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\tif !strings.Contains(noise.String(), \"| found | 2/3 | 3/3 |\") || strings.Contains(noise.String(), \"| better |\") {"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"a single extra find must not count as better:\\n%s\", noise.String())"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "func TestEvalCompareValidatesInput(t *testing.T) {"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\tcases := writeEvalCases(t, strings.Repeat(\"a\", 40), strings.Repeat(\"b\", 40))"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\tif err := runEvalCompare([]string{\"--cases\", cases}, \u0026bytes.Buffer{}); err == nil {"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"missing results must be rejected\")"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\tbad := filepath.Join(t.TempDir(), \"bad.json\")"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\tos.WriteFile(bad, []byte(\"not json\"), 0o600)"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\tif err := runEvalCompare([]string{\"--cases\", cases, \"--before\", bad, \"--after\", bad}, \u0026bytes.Buffer{}); err == nil {"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"malformed results must be rejected\")"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\tunknown := writeResults2(t, []bool{true})"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\tdata, _ := os.ReadFile(unknown)"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\tos.WriteFile(unknown, bytes.Replace(data, []byte(`\"found\"`), []byte(`\"nope\"`), 1), 0o600)"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\tif err := runEvalCompare([]string{\"--cases\", cases, \"--before\", unknown, \"--after\", unknown}, \u0026bytes.Buffer{}); err == nil {"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"results for an unknown case must be rejected\")"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/eval/compare.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/eval/compare.go b/internal/hosted/eval/compare.go\nnew file mode 100644\nindex 0000000..0ac8fe7\n--- /dev/null\n+++ b/internal/hosted/eval/compare.go\n@@ -0,0 +1,154 @@\n+package eval\n+\n+import (\n+\t\"fmt\"\n+\t\"math\"\n+\t\"strings\"\n+)\n+\n+// A reviewer change is only worth keeping if it beats the noise. The same case\n+// can be found in one run and missed in the next, so a before/after difference\n+// of one run means nothing. CompareRepeat tests each labelled bug, and the\n+// pooled result, with Fisher's exact test on found-versus-missed counts.\n+\n+// Significance is the two-sided p-value below which a difference is called real.\n+// It is deliberately loose: with three runs a side the smallest possible p-value\n+// is 0.1, and a stricter bar would call everything noise.\n+const Significance = 0.10\n+\n+type LabelChange struct {\n+\tCaseID       string\n+\tPath         string\n+\tLine         int\n+\tBeforeCaught int\n+\tBeforeRuns   int\n+\tAfterCaught  int\n+\tAfterRuns    int\n+\tP            float64\n+\tVerdict      string // better, worse, or same\n+}\n+\n+type Comparison struct {\n+\tLabels                    []LabelChange\n+\tBefore, After             RepeatReport\n+\tPooledP                   float64\n+\tPooledVerdict             string\n+\tImproved, Regressed, Same int\n+}\n+\n+// CompareRepeat compares two scored reports over the same dataset. Labels with\n+// no scored run on either side are left out, since nothing can be said of them.\n+func CompareRepeat(before, after RepeatReport) (Comparison, error) {\n+\tif len(before.Cases) != len(after.Cases) {\n+\t\treturn Comparison{}, fmt.Errorf(\"reports cover different datasets (%d and %d cases)\", len(before.Cases), len(after.Cases))\n+\t}\n+\tc := Comparison{Before: before, After: after}\n+\tvar bc, bn, ac, an int\n+\tfor i, b := range before.Cases {\n+\t\ta := after.Cases[i]\n+\t\tif a.ID != b.ID || len(a.Labels) != len(b.Labels) {\n+\t\t\treturn Comparison{}, fmt.Errorf(\"case %d differs between reports (%q and %q)\", i, b.ID, a.ID)\n+\t\t}\n+\t\tfor j, bl := range b.Labels {\n+\t\t\tal := a.Labels[j]\n+\t\t\tif b.Runs == 0 || a.Runs == 0 {\n+\t\t\t\tcontinue\n+\t\t\t}\n+\t\t\tch := LabelChange{CaseID: b.ID, Path: bl.Label.Path, Line: bl.Label.StartLine,\n+\t\t\t\tBeforeCaught: bl.Caught, BeforeRuns: b.Runs, AfterCaught: al.Caught, AfterRuns: a.Runs}\n+\t\t\tch.P = fisherExact(bl.Caught, b.Runs-bl.Caught, al.Caught, a.Runs-al.Caught)\n+\t\t\tch.Verdict = verdict(ch.P, rate(al.Caught, a.Runs)-rate(bl.Caught, b.Runs))\n+\t\t\tswitch ch.Verdict {\n+\t\t\tcase \"better\":\n+\t\t\t\tc.Improved++\n+\t\t\tcase \"worse\":\n+\t\t\t\tc.Regressed++\n+\t\t\tdefault:\n+\t\t\t\tc.Same++\n+\t\t\t}\n+\t\t\tbc, bn, ac, an = bc+bl.Caught, bn+b.Runs, ac+al.Caught, an+a.Runs\n+\t\t\tc.Labels = append(c.Labels, ch)\n+\t\t}\n+\t}\n+\tif bn \u003e 0 \u0026\u0026 an \u003e 0 {\n+\t\tc.PooledP = fisherExact(bc, bn-bc, ac, an-ac)\n+\t\tc.PooledVerdict = verdict(c.PooledP, rate(ac, an)-rate(bc, bn))\n+\t}\n+\treturn c, nil\n+}\n+\n+func rate(n, total int) float64 {\n+\tif total == 0 {\n+\t\treturn 0\n+\t}\n+\treturn float64(n) / float64(total)\n+}\n+\n+func verdict(p, delta float64) string {\n+\tswitch {\n+\tcase p \u003e Significance || delta == 0:\n+\t\treturn \"same\"\n+\tcase delta \u003e 0:\n+\t\treturn \"better\"\n+\tdefault:\n+\t\treturn \"worse\"\n+\t}\n+}\n+\n+// fisherExact is the two-sided p-value for the table [[a b] [c d]]: the total\n+// probability of tables, with the same margins, at most as likely as the one seen.\n+func fisherExact(a, b, c, d int) float64 {\n+\trow1, row2, col1 := a+b, c+d, a+c\n+\tn := row1 + row2\n+\tif n == 0 {\n+\t\treturn 1\n+\t}\n+\tprob := func(x int) float64 {\n+\t\treturn math.Exp(logChoose(row1, x) + logChoose(row2, col1-x) - logChoose(n, col1))\n+\t}\n+\tobserved := prob(a)\n+\tlo, hi := max(0, col1-row2), min(row1, col1)\n+\tp := 0.0\n+\tfor x := lo; x \u003c= hi; x++ {\n+\t\tif q := prob(x); q \u003c= observed*(1+1e-9) {\n+\t\t\tp += q\n+\t\t}\n+\t}\n+\treturn math.Min(1, p)\n+}\n+\n+func logChoose(n, k int) float64 {\n+\tif k \u003c 0 || k \u003e n {\n+\t\treturn math.Inf(-1)\n+\t}\n+\ta, _ := math.Lgamma(float64(n + 1))\n+\tb, _ := math.Lgamma(float64(k + 1))\n+\tc, _ := math.Lgamma(float64(n - k + 1))\n+\treturn a - b - c\n+}\n+\n+// Markdown renders the comparison. It leads with what cannot be concluded,\n+// because most small before/after differences are noise.\n+func (c Comparison) Markdown() string {\n+\tvar b strings.Builder\n+\tb.WriteString(\"# Review comparison\\n\\n\")\n+\tfmt.Fprintf(\u0026b, \"Before: %d scored runs, after: %d scored runs. A difference counts only at p ≤ %.2f (Fisher's exact test); with few runs most differences are noise.\\n\\n\", c.Before.ScoredRuns, c.After.ScoredRuns, Significance)\n+\tfmt.Fprintf(\u0026b, \"| | Before | After |\\n| --- | --- | --- |\\n\")\n+\tfmt.Fprintf(\u0026b, \"| Recall | %.0f%% | %.0f%% |\\n\", c.Before.Recall*100, c.After.Recall*100)\n+\tfmt.Fprintf(\u0026b, \"| Precision | %.0f%% | %.0f%% |\\n\", c.Before.Precision*100, c.After.Precision*100)\n+\tfmt.Fprintf(\u0026b, \"| Noise per clean run | %.2f | %.2f |\\n\", c.Before.NoisePerCleanRun, c.After.NoisePerCleanRun)\n+\tfmt.Fprintf(\u0026b, \"| Unstable bugs | %d | %d |\\n\", c.Before.FlakyLabels, c.After.FlakyLabels)\n+\tfmt.Fprintf(\u0026b, \"| Cost | $%.4f | $%.4f |\\n\\n\", float64(c.Before.CostMicrousd)/1e6, float64(c.After.CostMicrousd)/1e6)\n+\tif c.PooledVerdict != \"\" {\n+\t\tfmt.Fprintf(\u0026b, \"**Overall: %s** (p=%.2f, pooled over all labelled bugs; runs of one bug are not fully independent, so treat this as a guide).\\n\\n\", c.PooledVerdict, c.PooledP)\n+\t}\n+\tfmt.Fprintf(\u0026b, \"%d bugs clearly better, %d clearly worse, %d no clear difference.\\n\\n\", c.Improved, c.Regressed, c.Same)\n+\tb.WriteString(\"| Case | Before | After | p | Verdict |\\n| --- | --- | --- | --- | --- |\\n\")\n+\tfor _, l := range c.Labels {\n+\t\tfmt.Fprintf(\u0026b, \"| %s | %d/%d | %d/%d | %.2f | %s |\\n\", l.CaseID, l.BeforeCaught, l.BeforeRuns, l.AfterCaught, l.AfterRuns, l.P, l.Verdict)\n+\t}\n+\tif c.After.NoisePerCleanRun \u003e c.Before.NoisePerCleanRun {\n+\t\tb.WriteString(\"\\n**Warning:** the after run flags more on clean changes: more findings may mean more false alarms, not a better reviewer.\\n\")\n+\t}\n+\treturn b.String()\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-30addffd3e4b87f4",
+          "header": "@@ -0,0 +1,154 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package eval"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"math\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "// A reviewer change is only worth keeping if it beats the noise. The same case"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "// can be found in one run and missed in the next, so a before/after difference"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "// of one run means nothing. CompareRepeat tests each labelled bug, and the"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "// pooled result, with Fisher's exact test on found-versus-missed counts."
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "// Significance is the two-sided p-value below which a difference is called real."
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "// It is deliberately loose: with three runs a side the smallest possible p-value"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "// is 0.1, and a stricter bar would call everything noise."
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "const Significance = 0.10"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "type LabelChange struct {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tCaseID       string"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tPath         string"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tLine         int"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tBeforeCaught int"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tBeforeRuns   int"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tAfterCaught  int"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tAfterRuns    int"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tP            float64"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tVerdict      string // better, worse, or same"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "type Comparison struct {"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tLabels                    []LabelChange"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tBefore, After             RepeatReport"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tPooledP                   float64"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tPooledVerdict             string"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tImproved, Regressed, Same int"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "// CompareRepeat compares two scored reports over the same dataset. Labels with"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "// no scored run on either side are left out, since nothing can be said of them."
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "func CompareRepeat(before, after RepeatReport) (Comparison, error) {"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tif len(before.Cases) != len(after.Cases) {"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t\treturn Comparison{}, fmt.Errorf(\"reports cover different datasets (%d and %d cases)\", len(before.Cases), len(after.Cases))"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\tc := Comparison{Before: before, After: after}"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\tvar bc, bn, ac, an int"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\tfor i, b := range before.Cases {"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\ta := after.Cases[i]"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\tif a.ID != b.ID || len(a.Labels) != len(b.Labels) {"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t\t\treturn Comparison{}, fmt.Errorf(\"case %d differs between reports (%q and %q)\", i, b.ID, a.ID)"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\tfor j, bl := range b.Labels {"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t\t\tal := a.Labels[j]"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\t\tif b.Runs == 0 || a.Runs == 0 {"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t\t\t\tcontinue"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\t\tch := LabelChange{CaseID: b.ID, Path: bl.Label.Path, Line: bl.Label.StartLine,"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t\t\t\tBeforeCaught: bl.Caught, BeforeRuns: b.Runs, AfterCaught: al.Caught, AfterRuns: a.Runs}"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t\t\tch.P = fisherExact(bl.Caught, b.Runs-bl.Caught, al.Caught, a.Runs-al.Caught)"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t\t\tch.Verdict = verdict(ch.P, rate(al.Caught, a.Runs)-rate(bl.Caught, b.Runs))"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t\t\tswitch ch.Verdict {"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t\t\tcase \"better\":"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t\t\t\tc.Improved++"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t\t\tcase \"worse\":"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t\t\t\tc.Regressed++"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\t\tdefault:"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\t\t\tc.Same++"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\t\tbc, bn, ac, an = bc+bl.Caught, bn+b.Runs, ac+al.Caught, an+a.Runs"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\t\tc.Labels = append(c.Labels, ch)"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\tif bn \u003e 0 \u0026\u0026 an \u003e 0 {"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t\tc.PooledP = fisherExact(bc, bn-bc, ac, an-ac)"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\t\tc.PooledVerdict = verdict(c.PooledP, rate(ac, an)-rate(bc, bn))"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\treturn c, nil"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "func rate(n, total int) float64 {"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\tif total == 0 {"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\t\treturn 0"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\treturn float64(n) / float64(total)"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "func verdict(p, delta float64) string {"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\tswitch {"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\tcase p \u003e Significance || delta == 0:"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t\treturn \"same\""
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\tcase delta \u003e 0:"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\t\treturn \"better\""
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\tdefault:"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t\treturn \"worse\""
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "// fisherExact is the two-sided p-value for the table [[a b] [c d]]: the total"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "// probability of tables, with the same margins, at most as likely as the one seen."
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "func fisherExact(a, b, c, d int) float64 {"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\trow1, row2, col1 := a+b, c+d, a+c"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\tn := row1 + row2"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\tif n == 0 {"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t\treturn 1"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\tprob := func(x int) float64 {"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\t\treturn math.Exp(logChoose(row1, x) + logChoose(row2, col1-x) - logChoose(n, col1))"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\tobserved := prob(a)"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\tlo, hi := max(0, col1-row2), min(row1, col1)"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\tp := 0.0"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\tfor x := lo; x \u003c= hi; x++ {"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\t\tif q := prob(x); q \u003c= observed*(1+1e-9) {"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "\t\t\tp += q"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\treturn math.Min(1, p)"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "func logChoose(n, k int) float64 {"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\tif k \u003c 0 || k \u003e n {"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\t\treturn math.Inf(-1)"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\ta, _ := math.Lgamma(float64(n + 1))"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\tb, _ := math.Lgamma(float64(k + 1))"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\tc, _ := math.Lgamma(float64(n - k + 1))"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\treturn a - b - c"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "// Markdown renders the comparison. It leads with what cannot be concluded,"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "// because most small before/after differences are noise."
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "func (c Comparison) Markdown() string {"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\tvar b strings.Builder"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\tb.WriteString(\"# Review comparison\\n\\n\")"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\tfmt.Fprintf(\u0026b, \"Before: %d scored runs, after: %d scored runs. A difference counts only at p ≤ %.2f (Fisher's exact test); with few runs most differences are noise.\\n\\n\", c.Before.ScoredRuns, c.After.ScoredRuns, Significance)"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\tfmt.Fprintf(\u0026b, \"| | Before | After |\\n| --- | --- | --- |\\n\")"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\tfmt.Fprintf(\u0026b, \"| Recall | %.0f%% | %.0f%% |\\n\", c.Before.Recall*100, c.After.Recall*100)"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\tfmt.Fprintf(\u0026b, \"| Precision | %.0f%% | %.0f%% |\\n\", c.Before.Precision*100, c.After.Precision*100)"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\tfmt.Fprintf(\u0026b, \"| Noise per clean run | %.2f | %.2f |\\n\", c.Before.NoisePerCleanRun, c.After.NoisePerCleanRun)"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "\tfmt.Fprintf(\u0026b, \"| Unstable bugs | %d | %d |\\n\", c.Before.FlakyLabels, c.After.FlakyLabels)"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "\tfmt.Fprintf(\u0026b, \"| Cost | $%.4f | $%.4f |\\n\\n\", float64(c.Before.CostMicrousd)/1e6, float64(c.After.CostMicrousd)/1e6)"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "\tif c.PooledVerdict != \"\" {"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "\t\tfmt.Fprintf(\u0026b, \"**Overall: %s** (p=%.2f, pooled over all labelled bugs; runs of one bug are not fully independent, so treat this as a guide).\\n\\n\", c.PooledVerdict, c.PooledP)"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\tfmt.Fprintf(\u0026b, \"%d bugs clearly better, %d clearly worse, %d no clear difference.\\n\\n\", c.Improved, c.Regressed, c.Same)"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\tb.WriteString(\"| Case | Before | After | p | Verdict |\\n| --- | --- | --- | --- | --- |\\n\")"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "\tfor _, l := range c.Labels {"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "\t\tfmt.Fprintf(\u0026b, \"| %s | %d/%d | %d/%d | %.2f | %s |\\n\", l.CaseID, l.BeforeCaught, l.BeforeRuns, l.AfterCaught, l.AfterRuns, l.P, l.Verdict)"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "\tif c.After.NoisePerCleanRun \u003e c.Before.NoisePerCleanRun {"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "\t\tb.WriteString(\"\\n**Warning:** the after run flags more on clean changes: more findings may mean more false alarms, not a better reviewer.\\n\")"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "\treturn b.String()"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/eval/compare_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/eval/compare_test.go b/internal/hosted/eval/compare_test.go\nnew file mode 100644\nindex 0000000..615c126\n--- /dev/null\n+++ b/internal/hosted/eval/compare_test.go\n@@ -0,0 +1,99 @@\n+package eval\n+\n+import (\n+\t\"math\"\n+\t\"strings\"\n+\t\"testing\"\n+)\n+\n+func TestFisherExactKnownValues(t *testing.T) {\n+\tcases := []struct {\n+\t\ta, b, c, d int\n+\t\twant       float64\n+\t}{\n+\t\t{3, 0, 0, 3, 0.1}, // 3/3 against 0/3: the best a three-run test can show\n+\t\t{1, 2, 1, 2, 1},   // identical rates\n+\t\t{3, 0, 3, 0, 1},   // identical\n+\t\t{2, 1, 0, 3, 0.4}, // 2/3 against 0/3 is still noise\n+\t\t{10, 0, 0, 10, 1.08e-5},\n+\t\t{0, 0, 0, 0, 1},\n+\t}\n+\tfor _, c := range cases {\n+\t\tgot := fisherExact(c.a, c.b, c.c, c.d)\n+\t\tif math.Abs(got-c.want) \u003e math.Max(1e-9, c.want*0.01) {\n+\t\t\tt.Errorf(\"fisherExact(%d,%d,%d,%d) = %v, want %v\", c.a, c.b, c.c, c.d, got, c.want)\n+\t\t}\n+\t}\n+}\n+\n+func reportFor(caught []int, runs int, noise float64) RepeatReport {\n+\tvar r RepeatReport\n+\tr.NoisePerCleanRun = noise\n+\tfor i, n := range caught {\n+\t\tr.Cases = append(r.Cases, CaseScore{ID: string(rune('a' + i)), Kind: \"seeded\", Runs: runs,\n+\t\t\tLabels: []LabelScore{{Label: Label{Path: \"f.ts\", StartLine: i + 1, EndLine: i + 1}, Caught: n}}})\n+\t\tr.ScoredRuns += runs\n+\t}\n+\treturn r\n+}\n+\n+func TestCompareRepeatCallsOnlyClearDifferencesReal(t *testing.T) {\n+\tbefore := reportFor([]int{3, 0, 2, 1}, 3, 0)\n+\tafter := reportFor([]int{3, 3, 0, 1}, 3, 0)\n+\tc, err := CompareRepeat(before, after)\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\twant := map[string]string{\"a\": \"same\", \"b\": \"better\", \"c\": \"same\", \"d\": \"same\"}\n+\tfor _, l := range c.Labels {\n+\t\tif l.Verdict != want[l.CaseID] {\n+\t\t\tt.Errorf(\"%s: %d/%d -\u003e %d/%d verdict %s (p=%.2f), want %s\", l.CaseID, l.BeforeCaught, l.BeforeRuns, l.AfterCaught, l.AfterRuns, l.Verdict, l.P, want[l.CaseID])\n+\t\t}\n+\t}\n+\tif c.Improved != 1 || c.Regressed != 0 || c.Same != 3 {\n+\t\tt.Fatalf(\"%+v\", c)\n+\t}\n+}\n+\n+func TestCompareRepeatPooledAndRegression(t *testing.T) {\n+\tbefore := reportFor([]int{3, 3, 3, 3, 3, 3}, 3, 0)\n+\tafter := reportFor([]int{0, 1, 0, 1, 0, 1}, 3, 0)\n+\tc, err := CompareRepeat(before, after)\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif c.PooledVerdict != \"worse\" || c.Regressed \u003c 1 {\n+\t\tt.Fatalf(\"pooled=%s regressed=%d\", c.PooledVerdict, c.Regressed)\n+\t}\n+\tmd := c.Markdown()\n+\tfor _, want := range []string{\"Overall: worse\", \"clearly worse\", \"Fisher\"} {\n+\t\tif !strings.Contains(md, want) {\n+\t\t\tt.Fatalf(\"markdown lacks %q:\\n%s\", want, md)\n+\t\t}\n+\t}\n+}\n+\n+func TestCompareRepeatSkipsUnscoredLabelsAndRejectsMismatches(t *testing.T) {\n+\tbefore := reportFor([]int{3, 3}, 3, 0)\n+\tafter := reportFor([]int{3, 3}, 3, 0)\n+\tafter.Cases[1].Runs = 0 // every run failed\n+\tc, err := CompareRepeat(before, after)\n+\tif err != nil || len(c.Labels) != 1 {\n+\t\tt.Fatalf(\"labels=%d err=%v\", len(c.Labels), err)\n+\t}\n+\tif _, err := CompareRepeat(reportFor([]int{1}, 3, 0), reportFor([]int{1, 1}, 3, 0)); err == nil {\n+\t\tt.Fatal(\"different datasets must be rejected\")\n+\t}\n+\trenamed := reportFor([]int{1}, 3, 0)\n+\trenamed.Cases[0].ID = \"other\"\n+\tif _, err := CompareRepeat(reportFor([]int{1}, 3, 0), renamed); err == nil {\n+\t\tt.Fatal(\"different case IDs must be rejected\")\n+\t}\n+}\n+\n+func TestComparisonWarnsWhenCleanNoiseRises(t *testing.T) {\n+\tc, _ := CompareRepeat(reportFor([]int{1}, 3, 0), reportFor([]int{3}, 3, 1.5))\n+\tif !strings.Contains(c.Markdown(), \"more false alarms\") {\n+\t\tt.Fatal(c.Markdown())\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-fddc58812dd96c26",
+          "header": "@@ -0,0 +1,99 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package eval"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"math\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "func TestFisherExactKnownValues(t *testing.T) {"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\tcases := []struct {"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\ta, b, c, d int"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\twant       float64"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t}{"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\t\t{3, 0, 0, 3, 0.1}, // 3/3 against 0/3: the best a three-run test can show"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\t\t{1, 2, 1, 2, 1},   // identical rates"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t\t{3, 0, 3, 0, 1},   // identical"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t\t{2, 1, 0, 3, 0.4}, // 2/3 against 0/3 is still noise"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t\t{10, 0, 0, 10, 1.08e-5},"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t\t{0, 0, 0, 0, 1},"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tfor _, c := range cases {"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\t\tgot := fisherExact(c.a, c.b, c.c, c.d)"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t\tif math.Abs(got-c.want) \u003e math.Max(1e-9, c.want*0.01) {"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"fisherExact(%d,%d,%d,%d) = %v, want %v\", c.a, c.b, c.c, c.d, got, c.want)"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "func reportFor(caught []int, runs int, noise float64) RepeatReport {"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tvar r RepeatReport"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tr.NoisePerCleanRun = noise"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tfor i, n := range caught {"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t\tr.Cases = append(r.Cases, CaseScore{ID: string(rune('a' + i)), Kind: \"seeded\", Runs: runs,"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t\t\tLabels: []LabelScore{{Label: Label{Path: \"f.ts\", StartLine: i + 1, EndLine: i + 1}, Caught: n}}})"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t\tr.ScoredRuns += runs"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\treturn r"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "func TestCompareRepeatCallsOnlyClearDifferencesReal(t *testing.T) {"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\tbefore := reportFor([]int{3, 0, 2, 1}, 3, 0)"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tafter := reportFor([]int{3, 3, 0, 1}, 3, 0)"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tc, err := CompareRepeat(before, after)"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\twant := map[string]string{\"a\": \"same\", \"b\": \"better\", \"c\": \"same\", \"d\": \"same\"}"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\tfor _, l := range c.Labels {"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\tif l.Verdict != want[l.CaseID] {"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"%s: %d/%d -\u003e %d/%d verdict %s (p=%.2f), want %s\", l.CaseID, l.BeforeCaught, l.BeforeRuns, l.AfterCaught, l.AfterRuns, l.Verdict, l.P, want[l.CaseID])"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\tif c.Improved != 1 || c.Regressed != 0 || c.Same != 3 {"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"%+v\", c)"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "func TestCompareRepeatPooledAndRegression(t *testing.T) {"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\tbefore := reportFor([]int{3, 3, 3, 3, 3, 3}, 3, 0)"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\tafter := reportFor([]int{0, 1, 0, 1, 0, 1}, 3, 0)"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\tc, err := CompareRepeat(before, after)"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\tif c.PooledVerdict != \"worse\" || c.Regressed \u003c 1 {"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"pooled=%s regressed=%d\", c.PooledVerdict, c.Regressed)"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\tmd := c.Markdown()"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\tfor _, want := range []string{\"Overall: worse\", \"clearly worse\", \"Fisher\"} {"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\tif !strings.Contains(md, want) {"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"markdown lacks %q:\\n%s\", want, md)"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "func TestCompareRepeatSkipsUnscoredLabelsAndRejectsMismatches(t *testing.T) {"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\tbefore := reportFor([]int{3, 3}, 3, 0)"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\tafter := reportFor([]int{3, 3}, 3, 0)"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\tafter.Cases[1].Runs = 0 // every run failed"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\tc, err := CompareRepeat(before, after)"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\tif err != nil || len(c.Labels) != 1 {"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"labels=%d err=%v\", len(c.Labels), err)"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\tif _, err := CompareRepeat(reportFor([]int{1}, 3, 0), reportFor([]int{1, 1}, 3, 0)); err == nil {"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"different datasets must be rejected\")"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\trenamed := reportFor([]int{1}, 3, 0)"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\trenamed.Cases[0].ID = \"other\""
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\tif _, err := CompareRepeat(reportFor([]int{1}, 3, 0), renamed); err == nil {"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"different case IDs must be rejected\")"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "func TestComparisonWarnsWhenCleanNoiseRises(t *testing.T) {"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\tc, _ := CompareRepeat(reportFor([]int{1}, 3, 0), reportFor([]int{3}, 3, 1.5))"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\tif !strings.Contains(c.Markdown(), \"more false alarms\") {"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t\tt.Fatal(c.Markdown())"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "main.go",
+      "status": "M",
+      "diff": "diff --git a/main.go b/main.go\nindex 71c038a..020b5ee 100644\n--- a/main.go\n+++ b/main.go\n@@ -56,6 +56,12 @@ func main() {\n \t\t}\n \t\treturn\n \t}\n+\tif len(os.Args) \u003e 1 \u0026\u0026 os.Args[1] == \"eval-compare\" {\n+\t\tif err := runEvalCompare(os.Args[2:], os.Stdout); err != nil {\n+\t\t\tfatal(err)\n+\t\t}\n+\t\treturn\n+\t}\n \tif len(os.Args) \u003e 1 \u0026\u0026 os.Args[1] == \"eval-run\" {\n \t\tif err := runEvalRun(os.Args[2:], os.Stdout); err != nil {\n \t\t\tfatal(err)\n@@ -79,7 +85,7 @@ func main() {\n \t\treturn\n \t}\n \tfmt.Fprintf(os.Stderr, \"px1 %s - understand the code your agent wrote before you merge it\\n\\n\", version)\n-\tfmt.Fprintln(os.Stderr, \"usage: px1 \u003cagentic-review|eval-run|post-github|export-review|generate-explanations|privacy-check|summary-comment|validate-config|validate-rules\u003e [options]\")\n+\tfmt.Fprintln(os.Stderr, \"usage: px1 \u003cagentic-review|eval-compare|eval-run|post-github|export-review|generate-explanations|privacy-check|summary-comment|validate-config|validate-rules\u003e [options]\")\n \tos.Exit(2)\n }\n \n",
+      "hunks": [
+        {
+          "id": "diff-34e31bf1bc2a791a",
+          "header": "@@ -56,6 +56,12 @@ func main() {",
+          "lines": [
+            {
+              "oldLine": 56,
+              "newLine": 56,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 57,
+              "newLine": 57,
+              "kind": "context",
+              "text": "\t\treturn"
+            },
+            {
+              "oldLine": 58,
+              "newLine": 58,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\tif len(os.Args) \u003e 1 \u0026\u0026 os.Args[1] == \"eval-compare\" {"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t\tif err := runEvalCompare(os.Args[2:], os.Stdout); err != nil {"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t\t\tfatal(err)"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t\treturn"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 59,
+              "newLine": 65,
+              "kind": "context",
+              "text": "\tif len(os.Args) \u003e 1 \u0026\u0026 os.Args[1] == \"eval-run\" {"
+            },
+            {
+              "oldLine": 60,
+              "newLine": 66,
+              "kind": "context",
+              "text": "\t\tif err := runEvalRun(os.Args[2:], os.Stdout); err != nil {"
+            },
+            {
+              "oldLine": 61,
+              "newLine": 67,
+              "kind": "context",
+              "text": "\t\t\tfatal(err)"
+            }
+          ]
+        },
+        {
+          "id": "diff-ebc89be1138532d8",
+          "header": "@@ -79,7 +85,7 @@ func main() {",
+          "lines": [
+            {
+              "oldLine": 79,
+              "newLine": 85,
+              "kind": "context",
+              "text": "\t\treturn"
+            },
+            {
+              "oldLine": 80,
+              "newLine": 86,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 81,
+              "newLine": 87,
+              "kind": "context",
+              "text": "\tfmt.Fprintf(os.Stderr, \"px1 %s - understand the code your agent wrote before you merge it\\n\\n\", version)"
+            },
+            {
+              "oldLine": 82,
+              "kind": "removed",
+              "text": "\tfmt.Fprintln(os.Stderr, \"usage: px1 \u003cagentic-review|eval-run|post-github|export-review|generate-explanations|privacy-check|summary-comment|validate-config|validate-rules\u003e [options]\")"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\tfmt.Fprintln(os.Stderr, \"usage: px1 \u003cagentic-review|eval-compare|eval-run|post-github|export-review|generate-explanations|privacy-check|summary-comment|validate-config|validate-rules\u003e [options]\")"
+            },
+            {
+              "oldLine": 83,
+              "newLine": 89,
+              "kind": "context",
+              "text": "\tos.Exit(2)"
+            },
+            {
+              "oldLine": 84,
+              "newLine": 90,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 85,
+              "newLine": 91,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-45896f6a454b9464",
+      "title": "Eval changes",
+      "summary": "6 related files share the \"eval\" change signal.",
+      "paths": [
+        "docs/EVALUATION_SET.md",
+        "eval_compare.go",
+        "eval_compare_test.go",
+        "internal/hosted/eval/compare.go",
+        "internal/hosted/eval/compare_test.go",
+        "main.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-73184449cf55361c",
+      "path": "eval_compare.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "eval_compare_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-ac370876c5ca3d65",
+      "path": "internal/hosted/eval/compare.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/eval/compare_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-86d0af530d5e17f9",
+      "path": "internal/hosted/eval/compare.go",
+      "line": 41,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func CompareRepeat(before, after RepeatReport) (Comparison, error) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 6,
+    "filesAnalyzed": 6,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "eval-compare-command",
+      "path": "eval_compare.go",
+      "lineStart": 20,
+      "lineEnd": 72,
+      "title": "Compare two evaluation runs",
+      "summary": "Adds `px1 eval-compare` to score two result files against the same repeat dataset. It supports configurable finding matching, can save the Markdown report, and also prints it to stdout; input and scoring errors stop the command."
+    },
+    {
+      "id": "significance-comparison",
+      "path": "internal/hosted/eval/compare.go",
+      "lineStart": 25,
+      "lineEnd": 77,
+      "title": "Distinguish changes from run noise",
+      "summary": "Compares each labelled bug’s found/missed counts with a two-sided Fisher exact test and calls a change better or worse only when p ≤ 0.10. It also calculates a pooled verdict and omits labels with no scored runs; reports for different case or label counts are rejected."
+    },
+    {
+      "id": "comparison-report",
+      "path": "internal/hosted/eval/compare.go",
+      "lineStart": 104,
+      "lineEnd": 153,
+      "title": "Report quality and false-alarm changes",
+      "summary": "The report summarizes recall, precision, clean-run noise, unstable bugs, and cost for both runs, then shows per-bug counts and verdicts. It warns when clean-run noise rises, since additional findings may be false alarms."
+    },
+    {
+      "id": "command-dispatch",
+      "path": "main.go",
+      "lineStart": 59,
+      "lineEnd": 90,
+      "title": "Expose the comparison command",
+      "summary": "Recognizes `eval-compare` as a CLI command and includes it in the usage list, making the comparison workflow available through the main executable."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "298086aca39755219395661828791ac2c7315993",
+      "revision": "ac8a71a5070d58257b39a493db2098678e350250",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "298086aca39755219395661828791ac2c7315993",
+      "revision": "ac8a71a5070d58257b39a493db2098678e350250",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "ac8a71a5070d58257b39a493db2098678e350250",
+      "detail": "4 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "ac8a71a5070d58257b39a493db2098678e350250",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-a18c48d553d7ccde",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/eval/compare.go",
+      "line": 41,
+      "evidence": "func CompareRepeat(before, after RepeatReport) (Comparison, error) {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "ac8a71a5070d58257b39a493db2098678e350250",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42819209307",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42819209307/job/129840073707",
+        "startedAt": "2026-11-10T12:50:47Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42819209422/job/129840069574",
+        "startedAt": "2026-11-10T12:50:44Z"
+      }
+    ]
+  }
+}
