@@ -19,7 +19,7 @@ import (
 	"github.com/yuin/goldmark/parser"
 )
 
-//go:embed site/docs.css site/docs.js
+//go:embed webassets/docs.css webassets/docs.js
 var siteAssets embed.FS
 
 // SiteOptions configures the static documentation site.
@@ -112,7 +112,7 @@ func BuildSite(root string, opts SiteOptions) (map[string][]byte, error) {
 
 	files := map[string][]byte{}
 	for _, name := range []string{"docs.css", "docs.js"} {
-		data, err := siteAssets.ReadFile("site/" + name)
+		data, err := siteAssets.ReadFile("webassets/" + name)
 		if err != nil {
 			return nil, err
 		}
