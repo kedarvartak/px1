@@ -1,0 +1,4106 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "45b057b1c0c5148072fef7ca7e40c0c02122ebb0",
+  "head": "d07106444c28a2207e009d66e8265b54999f8dff",
+  "generatedAt": "2026-11-10T09:46:22.082502626Z",
+  "files": [
+    {
+      "path": "ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/ROADMAP.md b/ROADMAP.md\nindex 73f2a41..fa7662c 100644\n--- a/ROADMAP.md\n+++ b/ROADMAP.md\n@@ -223,6 +223,10 @@ backend-foundation tasks are:\n     previews what leaves the machine, requires consent, enforces a cost cap,\n     blocks secrets and excluded paths, and writes a report, trace, and feedback\n     sheet.\n+91. [ ] **Run the review in CI and comment on the pull request.**\n+    `px1 post-github` posts a sticky summary and inline comments; the\n+    `agentic-action` and an example workflow run it per pull request. A\n+    large-pull-request fallback and a provider retry follow.\n \n The v1 review pipeline, indexing, report hosting, evaluation, and launch gates\n follow these foundations. AI findings must remain auditable: evidence,\n",
+      "hunks": [
+        {
+          "id": "diff-57ebf78dc33b931b",
+          "header": "@@ -223,6 +223,10 @@ backend-foundation tasks are:",
+          "lines": [
+            {
+              "oldLine": 223,
+              "newLine": 223,
+              "kind": "context",
+              "text": "    previews what leaves the machine, requires consent, enforces a cost cap,"
+            },
+            {
+              "oldLine": 224,
+              "newLine": 224,
+              "kind": "context",
+              "text": "    blocks secrets and excluded paths, and writes a report, trace, and feedback"
+            },
+            {
+              "oldLine": 225,
+              "newLine": 225,
+              "kind": "context",
+              "text": "    sheet."
+            },
+            {
+              "newLine": 226,
+              "kind": "added",
+              "text": "91. [ ] **Run the review in CI and comment on the pull request.**"
+            },
+            {
+              "newLine": 227,
+              "kind": "added",
+              "text": "    `px1 post-github` posts a sticky summary and inline comments; the"
+            },
+            {
+              "newLine": 228,
+              "kind": "added",
+              "text": "    `agentic-action` and an example workflow run it per pull request. A"
+            },
+            {
+              "newLine": 229,
+              "kind": "added",
+              "text": "    large-pull-request fallback and a provider retry follow."
+            },
+            {
+              "oldLine": 226,
+              "newLine": 230,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 227,
+              "newLine": 231,
+              "kind": "context",
+              "text": "The v1 review pipeline, indexing, report hosting, evaluation, and launch gates"
+            },
+            {
+              "oldLine": 228,
+              "newLine": 232,
+              "kind": "context",
+              "text": "follow these foundations. AI findings must remain auditable: evidence,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "agentic-action/action.yml",
+      "status": "A",
+      "diff": "diff --git a/agentic-action/action.yml b/agentic-action/action.yml\nnew file mode 100644\nindex 0000000..5765046\n--- /dev/null\n+++ b/agentic-action/action.yml\n@@ -0,0 +1,88 @@\n+name: px1 agentic PR review\n+description: An AI reviewer that investigates a pull request with read-only tools and comments only on findings it verified.\n+author: px1\n+\n+inputs:\n+  model:\n+    description: OpenAI model, for example gpt-6-luna.\n+    required: true\n+  price-input:\n+    description: Model input price in USD per million tokens. The cost cap is only as accurate as the prices you give.\n+    required: true\n+  price-output:\n+    description: Model output price in USD per million tokens.\n+    required: true\n+  price-cached-input:\n+    description: Cached input price in USD per million tokens (default same as input).\n+    required: false\n+    default: ''\n+  max-cost:\n+    description: Hard cost cap in USD per run.\n+    required: false\n+    default: '0.50'\n+  exclude-globs:\n+    description: Optional newline-separated globs never shown to the model. Exclusion is not redaction.\n+    required: false\n+    default: ''\n+  post:\n+    description: Post findings to the pull request (true) or only write them to the job summary (false).\n+    required: false\n+    default: 'true'\n+\n+runs:\n+  using: composite\n+  steps:\n+    - name: Set up Go\n+      uses: actions/setup-go@v5\n+      with:\n+        go-version-file: ${{ github.action_path }}/../go.mod\n+        cache: false\n+\n+    - name: Review the pull request\n+      shell: bash\n+      env:\n+        PX1_MODEL: ${{ inputs.model }}\n+        PX1_PRICE_IN: ${{ inputs.price-input }}\n+        PX1_PRICE_OUT: ${{ inputs.price-output }}\n+        PX1_PRICE_CACHED: ${{ inputs.price-cached-input }}\n+        PX1_MAX_COST: ${{ inputs.max-cost }}\n+        PX1_EXCLUDES: ${{ inputs.exclude-globs }}\n+        PX1_POST: ${{ inputs.post }}\n+        PX1_BASE: ${{ github.event.pull_request.base.sha }}\n+        PX1_HEAD: ${{ github.event.pull_request.head.sha }}\n+        PX1_PR: ${{ github.event.pull_request.number }}\n+        PX1_PR_TITLE: ${{ github.event.pull_request.title }}\n+        PX1_PR_BODY: ${{ github.event.pull_request.body }}\n+        GITHUB_TOKEN: ${{ github.token }}\n+      run: |\n+        set -euo pipefail\n+        if [[ -z \"$PX1_PR\" ]]; then\n+          echo \"px1: this action runs on pull_request events\" \u003e\u00262\n+          exit 2\n+        fi\n+        if [[ -z \"${OPENAI_API_KEY:-}\" ]]; then\n+          echo \"px1: set OPENAI_API_KEY from a repository secret in the step's env\" \u003e\u00262\n+          exit 2\n+        fi\n+        bin=\"${RUNNER_TEMP:-/tmp}/px1\"\n+        (cd \"$GITHUB_ACTION_PATH/..\" \u0026\u0026 go build -o \"$bin\" .)\n+        out=\"${RUNNER_TEMP:-/tmp}/px1-agentic\"\n+        args=(agentic-review --root \"$GITHUB_WORKSPACE\" --base \"$PX1_BASE\" --head \"$PX1_HEAD\" --out \"$out\"\n+          --model \"$PX1_MODEL\" --price-input \"$PX1_PRICE_IN\" --price-output \"$PX1_PRICE_OUT\"\n+          --max-cost \"$PX1_MAX_COST\" --title \"$PX1_PR_TITLE\" --body \"$PX1_PR_BODY\" --transcripts=false --yes)\n+        if [[ -n \"$PX1_PRICE_CACHED\" ]]; then args+=(--price-cached-input \"$PX1_PRICE_CACHED\"); fi\n+        while IFS= read -r pattern || [[ -n \"$pattern\" ]]; do\n+          [[ -z \"$pattern\" ]] || args+=(--exclude-glob \"$pattern\")\n+        done \u003c\u003c\u003c \"$PX1_EXCLUDES\"\n+        echo \"::warning title=px1 model transfer::This sends the pull-request diff, and files the model chooses to read, to OpenAI. Exclusion globs are not redaction.\"\n+        \"$bin\" agentic-review \"${args[@]:1}\" | tee \"$out.log\"\n+        if [[ \"$PX1_POST\" == \"true\" ]]; then\n+          cost=\"$(grep -m1 '^Spent about' \"$out.log\" || true)\"\n+          \"$bin\" post-github --findings \"$out/findings.json\" --pr \"$PX1_PR\" --head \"$PX1_HEAD\" --footer \"$cost\"\n+        fi\n+        {\n+          echo \"### px1 review\"\n+          echo '```'\n+          sed -n '/=== Result ===/,/^Report:/p' \"$out.log\" | sed '$d'\n+          echo '```'\n+        } \u003e\u003e \"${GITHUB_STEP_SUMMARY:-/dev/null}\"\n",
+      "hunks": [
+        {
+          "id": "diff-a3de524814e3335a",
+          "header": "@@ -0,0 +1,88 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "name: px1 agentic PR review"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "description: An AI reviewer that investigates a pull request with read-only tools and comments only on findings it verified."
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "author: px1"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "inputs:"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "  model:"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "    description: OpenAI model, for example gpt-6-luna."
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "    required: true"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "  price-input:"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "    description: Model input price in USD per million tokens. The cost cap is only as accurate as the prices you give."
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "    required: true"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "  price-output:"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "    description: Model output price in USD per million tokens."
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "    required: true"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "  price-cached-input:"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "    description: Cached input price in USD per million tokens (default same as input)."
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "    required: false"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "    default: ''"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "  max-cost:"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "    description: Hard cost cap in USD per run."
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "    required: false"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "    default: '0.50'"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "  exclude-globs:"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "    description: Optional newline-separated globs never shown to the model. Exclusion is not redaction."
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "    required: false"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "    default: ''"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "  post:"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "    description: Post findings to the pull request (true) or only write them to the job summary (false)."
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "    required: false"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "    default: 'true'"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "runs:"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "  using: composite"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "  steps:"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "    - name: Set up Go"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "      uses: actions/setup-go@v5"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "      with:"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "        go-version-file: ${{ github.action_path }}/../go.mod"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "        cache: false"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "    - name: Review the pull request"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "      shell: bash"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "      env:"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "        PX1_MODEL: ${{ inputs.model }}"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "        PX1_PRICE_IN: ${{ inputs.price-input }}"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "        PX1_PRICE_OUT: ${{ inputs.price-output }}"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "        PX1_PRICE_CACHED: ${{ inputs.price-cached-input }}"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "        PX1_MAX_COST: ${{ inputs.max-cost }}"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "        PX1_EXCLUDES: ${{ inputs.exclude-globs }}"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "        PX1_POST: ${{ inputs.post }}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "        PX1_BASE: ${{ github.event.pull_request.base.sha }}"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "        PX1_HEAD: ${{ github.event.pull_request.head.sha }}"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "        PX1_PR: ${{ github.event.pull_request.number }}"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "        PX1_PR_TITLE: ${{ github.event.pull_request.title }}"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "        PX1_PR_BODY: ${{ github.event.pull_request.body }}"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "        GITHUB_TOKEN: ${{ github.token }}"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "      run: |"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "        set -euo pipefail"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "        if [[ -z \"$PX1_PR\" ]]; then"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "          echo \"px1: this action runs on pull_request events\" \u003e\u00262"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "          exit 2"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "        fi"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "        if [[ -z \"${OPENAI_API_KEY:-}\" ]]; then"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "          echo \"px1: set OPENAI_API_KEY from a repository secret in the step's env\" \u003e\u00262"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "          exit 2"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "        fi"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "        bin=\"${RUNNER_TEMP:-/tmp}/px1\""
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "        (cd \"$GITHUB_ACTION_PATH/..\" \u0026\u0026 go build -o \"$bin\" .)"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "        out=\"${RUNNER_TEMP:-/tmp}/px1-agentic\""
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "        args=(agentic-review --root \"$GITHUB_WORKSPACE\" --base \"$PX1_BASE\" --head \"$PX1_HEAD\" --out \"$out\""
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "          --model \"$PX1_MODEL\" --price-input \"$PX1_PRICE_IN\" --price-output \"$PX1_PRICE_OUT\""
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "          --max-cost \"$PX1_MAX_COST\" --title \"$PX1_PR_TITLE\" --body \"$PX1_PR_BODY\" --transcripts=false --yes)"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "        if [[ -n \"$PX1_PRICE_CACHED\" ]]; then args+=(--price-cached-input \"$PX1_PRICE_CACHED\"); fi"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "        while IFS= read -r pattern || [[ -n \"$pattern\" ]]; do"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "          [[ -z \"$pattern\" ]] || args+=(--exclude-glob \"$pattern\")"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "        done \u003c\u003c\u003c \"$PX1_EXCLUDES\""
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "        echo \"::warning title=px1 model transfer::This sends the pull-request diff, and files the model chooses to read, to OpenAI. Exclusion globs are not redaction.\""
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "        \"$bin\" agentic-review \"${args[@]:1}\" | tee \"$out.log\""
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "        if [[ \"$PX1_POST\" == \"true\" ]]; then"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "          cost=\"$(grep -m1 '^Spent about' \"$out.log\" || true)\""
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "          \"$bin\" post-github --findings \"$out/findings.json\" --pr \"$PX1_PR\" --head \"$PX1_HEAD\" --footer \"$cost\""
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "        fi"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "        {"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "          echo \"### px1 review\""
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "          echo '```'"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "          sed -n '/=== Result ===/,/^Report:/p' \"$out.log\" | sed '$d'"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "          echo '```'"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "        } \u003e\u003e \"${GITHUB_STEP_SUMMARY:-/dev/null}\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/AGENTIC_CI.md",
+      "status": "A",
+      "diff": "diff --git a/docs/AGENTIC_CI.md b/docs/AGENTIC_CI.md\nnew file mode 100644\nindex 0000000..90a6be7\n--- /dev/null\n+++ b/docs/AGENTIC_CI.md\n@@ -0,0 +1,35 @@\n+# Agentic review in CI\n+\n+`px1 post-github` and `agentic-action/` run the agentic reviewer on every pull request and comment on the result, like a hosted reviewer, without a hosted service. Each repository carries a workflow; the key stays in that repository's secrets.\n+\n+## Set up a repository\n+\n+1. Copy `examples/px1-agentic-review.yml` to `.github/workflows/` in the repository.\n+2. Add a repository secret `OPENAI_API_KEY` (Settings, Secrets and variables, Actions). Never put the key in the workflow file.\n+3. While px1 is private, also add `PX1_TOOL_TOKEN`, a read-only token for the px1 repository, or make the action available to the repository under px1's Actions settings.\n+4. Open a pull request.\n+\n+## What it posts\n+\n+- One **sticky summary comment**, found by a hidden marker and edited on every push instead of adding a new one. With no findings it says so, and that this is not evidence the change is correct.\n+- **Inline comments** on the changed lines for findings that fall inside the diff, at most 20 per run. A finding already commented on an earlier push is not posted again.\n+- Findings outside the diff stay in the summary, with their evidence.\n+\n+## Safety\n+\n+- Runs on `pull_request`, never `pull_request_target`. Pull requests from forks are skipped: they get no secrets and a read-only token.\n+- The model reads the diff and any file it asks for at that commit through read-only git. Secret files and key-shaped values are blocked or redacted; this is detection, not access control.\n+- `max-cost` is a hard per-run cap checked before every model call, using the prices you supply.\n+- `continue-on-error: true` in the example keeps a failed or skipped review from blocking a merge.\n+- The title and description of the pull request are passed as environment variables, never interpolated into a shell script.\n+\n+## Commands\n+\n+    px1 post-github --findings findings.json --pr 7 [--repo owner/name] [--head SHA] [--footer TEXT] [--dry-run]\n+\n+`GITHUB_TOKEN` is read from the environment only. The workflow needs `pull-requests: write`.\n+\n+## Known limits\n+\n+- Very large pull requests exceed the model budget and fail; there is no fallback yet.\n+- A policy rejection from the model provider is not retried yet.\n",
+      "hunks": [
+        {
+          "id": "diff-d3a83953dc3eb264",
+          "header": "@@ -0,0 +1,35 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "# Agentic review in CI"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "`px1 post-github` and `agentic-action/` run the agentic reviewer on every pull request and comment on the result, like a hosted reviewer, without a hosted service. Each repository carries a workflow; the key stays in that repository's secrets."
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "## Set up a repository"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "1. Copy `examples/px1-agentic-review.yml` to `.github/workflows/` in the repository."
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "2. Add a repository secret `OPENAI_API_KEY` (Settings, Secrets and variables, Actions). Never put the key in the workflow file."
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "3. While px1 is private, also add `PX1_TOOL_TOKEN`, a read-only token for the px1 repository, or make the action available to the repository under px1's Actions settings."
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "4. Open a pull request."
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "## What it posts"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "- One **sticky summary comment**, found by a hidden marker and edited on every push instead of adding a new one. With no findings it says so, and that this is not evidence the change is correct."
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "- **Inline comments** on the changed lines for findings that fall inside the diff, at most 20 per run. A finding already commented on an earlier push is not posted again."
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "- Findings outside the diff stay in the summary, with their evidence."
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "## Safety"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "- Runs on `pull_request`, never `pull_request_target`. Pull requests from forks are skipped: they get no secrets and a read-only token."
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "- The model reads the diff and any file it asks for at that commit through read-only git. Secret files and key-shaped values are blocked or redacted; this is detection, not access control."
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "- `max-cost` is a hard per-run cap checked before every model call, using the prices you supply."
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "- `continue-on-error: true` in the example keeps a failed or skipped review from blocking a merge."
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "- The title and description of the pull request are passed as environment variables, never interpolated into a shell script."
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "## Commands"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "    px1 post-github --findings findings.json --pr 7 [--repo owner/name] [--head SHA] [--footer TEXT] [--dry-run]"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "`GITHUB_TOKEN` is read from the environment only. The workflow needs `pull-requests: write`."
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "## Known limits"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "- Very large pull requests exceed the model budget and fail; there is no fallback yet."
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "- A policy rejection from the model provider is not retried yet."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "examples/px1-agentic-review.yml",
+      "status": "A",
+      "diff": "diff --git a/examples/px1-agentic-review.yml b/examples/px1-agentic-review.yml\nnew file mode 100644\nindex 0000000..108e721\n--- /dev/null\n+++ b/examples/px1-agentic-review.yml\n@@ -0,0 +1,42 @@\n+# Copy to .github/workflows/px1-agentic-review.yml in the repository to review.\n+# Needs a repository secret named OPENAI_API_KEY. Never put the key in this file.\n+name: px1 review\n+on:\n+  pull_request:\n+    types: [opened, synchronize, reopened, ready_for_review]\n+\n+permissions:\n+  contents: read\n+  pull-requests: write\n+\n+concurrency:\n+  group: px1-review-${{ github.event.pull_request.number }}\n+  cancel-in-progress: true\n+\n+jobs:\n+  review:\n+    if: github.event.pull_request.draft == false \u0026\u0026 github.event.pull_request.head.repo.full_name == github.repository\n+    runs-on: ubuntu-latest\n+    timeout-minutes: 15\n+    continue-on-error: true # a failed review must never block a merge\n+    steps:\n+      - uses: actions/checkout@v4\n+        with:\n+          fetch-depth: 0\n+          persist-credentials: false\n+      - uses: actions/checkout@v4\n+        with:\n+          repository: kedarvartak/px1\n+          ref: master # pin to a commit SHA once you trust a version\n+          path: .px1-tool\n+          token: ${{ secrets.PX1_TOOL_TOKEN }} # only needed while px1 is private\n+          persist-credentials: false\n+      - uses: ./.px1-tool/agentic-action\n+        env:\n+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}\n+        with:\n+          model: gpt-6-luna\n+          price-input: '0.10'\n+          price-output: '0.50'\n+          price-cached-input: '0.01'\n+          max-cost: '0.50'\n",
+      "hunks": [
+        {
+          "id": "diff-973303faf2910822",
+          "header": "@@ -0,0 +1,42 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "# Copy to .github/workflows/px1-agentic-review.yml in the repository to review."
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "# Needs a repository secret named OPENAI_API_KEY. Never put the key in this file."
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "name: px1 review"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "on:"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "  pull_request:"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "    types: [opened, synchronize, reopened, ready_for_review]"
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "permissions:"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "  contents: read"
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "  pull-requests: write"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "concurrency:"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "  group: px1-review-${{ github.event.pull_request.number }}"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "  cancel-in-progress: true"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "jobs:"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "  review:"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "    if: github.event.pull_request.draft == false \u0026\u0026 github.event.pull_request.head.repo.full_name == github.repository"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "    runs-on: ubuntu-latest"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "    timeout-minutes: 15"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "    continue-on-error: true # a failed review must never block a merge"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "    steps:"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "      - uses: actions/checkout@v4"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "        with:"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "          fetch-depth: 0"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "          persist-credentials: false"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "      - uses: actions/checkout@v4"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "        with:"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "          repository: kedarvartak/px1"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "          ref: master # pin to a commit SHA once you trust a version"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "          path: .px1-tool"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "          token: ${{ secrets.PX1_TOOL_TOKEN }} # only needed while px1 is private"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "          persist-credentials: false"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "      - uses: ./.px1-tool/agentic-action"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "        env:"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "        with:"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "          model: gpt-6-luna"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "          price-input: '0.10'"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "          price-output: '0.50'"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "          price-cached-input: '0.01'"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "          max-cost: '0.50'"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "main.go",
+      "status": "M",
+      "diff": "diff --git a/main.go b/main.go\nindex 953222c..18e3ae9 100644\n--- a/main.go\n+++ b/main.go\n@@ -50,6 +50,12 @@ func main() {\n \t\t}\n \t\treturn\n \t}\n+\tif len(os.Args) \u003e 1 \u0026\u0026 os.Args[1] == \"post-github\" {\n+\t\tif err := runPostGitHub(os.Args[2:], os.Stdout); err != nil {\n+\t\t\tfatal(err)\n+\t\t}\n+\t\treturn\n+\t}\n \tif len(os.Args) \u003e 1 \u0026\u0026 os.Args[1] == \"agentic-review\" {\n \t\tif err := runAgenticReview(os.Args[2:], os.Stdout); err != nil {\n \t\t\tfatal(err)\n@@ -67,7 +73,7 @@ func main() {\n \t\treturn\n \t}\n \tfmt.Fprintf(os.Stderr, \"px1 %s - understand the code your agent wrote before you merge it\\n\\n\", version)\n-\tfmt.Fprintln(os.Stderr, \"usage: px1 \u003cagentic-review|export-review|generate-explanations|privacy-check|summary-comment|validate-config|validate-rules\u003e [options]\")\n+\tfmt.Fprintln(os.Stderr, \"usage: px1 \u003cagentic-review|post-github|export-review|generate-explanations|privacy-check|summary-comment|validate-config|validate-rules\u003e [options]\")\n \tos.Exit(2)\n }\n \n",
+      "hunks": [
+        {
+          "id": "diff-3876e0a36e71d805",
+          "header": "@@ -50,6 +50,12 @@ func main() {",
+          "lines": [
+            {
+              "oldLine": 50,
+              "newLine": 50,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 51,
+              "newLine": 51,
+              "kind": "context",
+              "text": "\t\treturn"
+            },
+            {
+              "oldLine": 52,
+              "newLine": 52,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\tif len(os.Args) \u003e 1 \u0026\u0026 os.Args[1] == \"post-github\" {"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\tif err := runPostGitHub(os.Args[2:], os.Stdout); err != nil {"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t\t\tfatal(err)"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\treturn"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 53,
+              "newLine": 59,
+              "kind": "context",
+              "text": "\tif len(os.Args) \u003e 1 \u0026\u0026 os.Args[1] == \"agentic-review\" {"
+            },
+            {
+              "oldLine": 54,
+              "newLine": 60,
+              "kind": "context",
+              "text": "\t\tif err := runAgenticReview(os.Args[2:], os.Stdout); err != nil {"
+            },
+            {
+              "oldLine": 55,
+              "newLine": 61,
+              "kind": "context",
+              "text": "\t\t\tfatal(err)"
+            }
+          ]
+        },
+        {
+          "id": "diff-b43b031f8ab40af4",
+          "header": "@@ -67,7 +73,7 @@ func main() {",
+          "lines": [
+            {
+              "oldLine": 67,
+              "newLine": 73,
+              "kind": "context",
+              "text": "\t\treturn"
+            },
+            {
+              "oldLine": 68,
+              "newLine": 74,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 69,
+              "newLine": 75,
+              "kind": "context",
+              "text": "\tfmt.Fprintf(os.Stderr, \"px1 %s - understand the code your agent wrote before you merge it\\n\\n\", version)"
+            },
+            {
+              "oldLine": 70,
+              "kind": "removed",
+              "text": "\tfmt.Fprintln(os.Stderr, \"usage: px1 \u003cagentic-review|export-review|generate-explanations|privacy-check|summary-comment|validate-config|validate-rules\u003e [options]\")"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\tfmt.Fprintln(os.Stderr, \"usage: px1 \u003cagentic-review|post-github|export-review|generate-explanations|privacy-check|summary-comment|validate-config|validate-rules\u003e [options]\")"
+            },
+            {
+              "oldLine": 71,
+              "newLine": 77,
+              "kind": "context",
+              "text": "\tos.Exit(2)"
+            },
+            {
+              "oldLine": 72,
+              "newLine": 78,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 73,
+              "newLine": 79,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "post_github.go",
+      "status": "A",
+      "diff": "diff --git a/post_github.go b/post_github.go\nnew file mode 100644\nindex 0000000..2ffdaaf\n--- /dev/null\n+++ b/post_github.go\n@@ -0,0 +1,356 @@\n+package main\n+\n+import (\n+\t\"bytes\"\n+\t\"context\"\n+\t\"crypto/sha256\"\n+\t\"encoding/hex\"\n+\t\"encoding/json\"\n+\t\"errors\"\n+\t\"flag\"\n+\t\"fmt\"\n+\t\"io\"\n+\t\"net/http\"\n+\t\"net/url\"\n+\t\"os\"\n+\t\"regexp\"\n+\t\"sort\"\n+\t\"strconv\"\n+\t\"strings\"\n+\t\"time\"\n+\n+\thostedreview \"px1/internal/hosted/review\"\n+)\n+\n+const (\n+\tagenticCommentMarker = \"\u003c!-- px1-agentic-review --\u003e\"\n+\tmaxInlineFindings    = 20\n+\tmaxFilePages         = 30\n+)\n+\n+type postGitHubOptions struct {\n+\tfindings, repo, head, footer, apiURL string\n+\tpr                                   int\n+\tdryRun                               bool\n+}\n+\n+// runPostGitHub publishes findings.json to a pull request: one sticky summary\n+// comment that is updated on every push, plus inline comments for findings that\n+// sit on lines the pull request changed. The token comes only from GITHUB_TOKEN.\n+func runPostGitHub(args []string, stdout io.Writer) error {\n+\tvar o postGitHubOptions\n+\tfs := flag.NewFlagSet(\"post-github\", flag.ContinueOnError)\n+\tfs.SetOutput(os.Stderr)\n+\tfs.StringVar(\u0026o.findings, \"findings\", \"\", \"findings.json written by agentic-review (required)\")\n+\tfs.StringVar(\u0026o.repo, \"repo\", os.Getenv(\"GITHUB_REPOSITORY\"), \"owner/name (default: $GITHUB_REPOSITORY)\")\n+\tfs.IntVar(\u0026o.pr, \"pr\", 0, \"pull request number (required)\")\n+\tfs.StringVar(\u0026o.head, \"head\", \"\", \"full head commit SHA the review was run on (default: the findings revision)\")\n+\tfs.StringVar(\u0026o.footer, \"footer\", \"\", \"one line appended to the summary, such as the run cost\")\n+\tfs.StringVar(\u0026o.apiURL, \"api-url\", envOr(\"GITHUB_API_URL\", \"https://api.github.com\"), \"GitHub API base URL\")\n+\tfs.BoolVar(\u0026o.dryRun, \"dry-run\", false, \"print what would be posted; call nothing\")\n+\tif err := fs.Parse(args); err != nil {\n+\t\treturn err\n+\t}\n+\tif o.findings == \"\" || o.pr \u003c= 0 || !validRepoSlug(o.repo) {\n+\t\treturn errors.New(\"post-github requires --findings, --pr and --repo owner/name\")\n+\t}\n+\tdata, err := os.ReadFile(o.findings)\n+\tif err != nil {\n+\t\treturn fmt.Errorf(\"read findings: %w\", err)\n+\t}\n+\tvar envelope hostedFindingsEnvelope\n+\tif err := json.Unmarshal(data, \u0026envelope); err != nil {\n+\t\treturn fmt.Errorf(\"decode findings: %w\", err)\n+\t}\n+\tif o.head == \"\" {\n+\t\to.head = envelope.Revision\n+\t}\n+\tif !validRevision(o.head) {\n+\t\treturn errors.New(\"a full 40-character head SHA is required\")\n+\t}\n+\tfor _, finding := range envelope.Findings {\n+\t\tif err := finding.Validate(); err != nil {\n+\t\t\treturn fmt.Errorf(\"invalid finding: %w\", err)\n+\t\t}\n+\t}\n+\ttoken := os.Getenv(\"GITHUB_TOKEN\")\n+\tif token == \"\" \u0026\u0026 !o.dryRun {\n+\t\treturn errors.New(\"GITHUB_TOKEN is required (in a workflow: env GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} with pull-requests: write)\")\n+\t}\n+\tgh := githubClient{base: strings.TrimRight(o.apiURL, \"/\"), token: token, http: \u0026http.Client{Timeout: 30 * time.Second}}\n+\tctx := context.Background()\n+\n+\tvar commentable map[string]map[int]bool\n+\tvar posted map[string]bool\n+\tif !o.dryRun {\n+\t\tif commentable, err = gh.commentableLines(ctx, o.repo, o.pr); err != nil {\n+\t\t\treturn err\n+\t\t}\n+\t\tif posted, err = gh.postedFindingKeys(ctx, o.repo, o.pr); err != nil {\n+\t\t\treturn err\n+\t\t}\n+\t} else {\n+\t\tcommentable = map[string]map[int]bool{}\n+\t\tfor _, f := range envelope.Findings {\n+\t\t\tcommentable[f.Path] = map[int]bool{f.EndLine: true, f.StartLine: true}\n+\t\t}\n+\t\tposted = map[string]bool{}\n+\t}\n+\tplan := planPost(envelope.Findings, commentable, posted)\n+\tsummary := renderAgenticSummary(plan, o.head, o.footer)\n+\tif o.dryRun {\n+\t\tfmt.Fprintf(stdout, \"Would post %d inline comment(s) and a summary:\\n\\n%s\\n\", len(plan.inline), summary)\n+\t\treturn nil\n+\t}\n+\tif len(plan.inline) \u003e 0 {\n+\t\tif err := gh.createReview(ctx, o.repo, o.pr, o.head, plan.inline); err != nil {\n+\t\t\treturn err\n+\t\t}\n+\t}\n+\tif err := gh.upsertSummary(ctx, o.repo, o.pr, summary); err != nil {\n+\t\treturn err\n+\t}\n+\tfmt.Fprintf(stdout, \"Posted %d inline comment(s), %d finding(s) in the summary.\\n\", len(plan.inline), len(plan.all))\n+\treturn nil\n+}\n+\n+type inlineComment struct {\n+\tPath      string `json:\"path\"`\n+\tLine      int    `json:\"line\"`\n+\tSide      string `json:\"side\"`\n+\tStartLine int    `json:\"start_line,omitempty\"`\n+\tStartSide string `json:\"start_side,omitempty\"`\n+\tBody      string `json:\"body\"`\n+}\n+\n+type postPlan struct {\n+\tall      []hostedreview.Finding\n+\tinline   []inlineComment\n+\tinlined  map[string]bool // finding key -\u003e shown as inline comment (now or earlier)\n+\toutside  []hostedreview.Finding\n+\toverflow int\n+}\n+\n+func findingKey(f hostedreview.Finding) string {\n+\tsum := sha256.Sum256([]byte(f.Path + \"\\x00\" + f.Title))\n+\treturn hex.EncodeToString(sum[:6])\n+}\n+\n+func planPost(findings []hostedreview.Finding, commentable map[string]map[int]bool, posted map[string]bool) postPlan {\n+\tplan := postPlan{inlined: map[string]bool{}}\n+\tplan.all = append(plan.all, findings...)\n+\tsort.SliceStable(plan.all, func(i, j int) bool { return plan.all[i].Severity \u003c plan.all[j].Severity })\n+\tfor _, f := range plan.all {\n+\t\tkey := findingKey(f)\n+\t\tlines := commentable[f.Path]\n+\t\tif !lines[f.EndLine] || (f.StartLine != f.EndLine \u0026\u0026 !lines[f.StartLine]) {\n+\t\t\tplan.outside = append(plan.outside, f)\n+\t\t\tcontinue\n+\t\t}\n+\t\tif posted[key] {\n+\t\t\tplan.inlined[key] = true // already commented on an earlier push\n+\t\t\tcontinue\n+\t\t}\n+\t\tif len(plan.inline) \u003e= maxInlineFindings {\n+\t\t\tplan.overflow++\n+\t\t\tplan.outside = append(plan.outside, f)\n+\t\t\tcontinue\n+\t\t}\n+\t\tc := inlineComment{Path: f.Path, Line: f.EndLine, Side: \"RIGHT\", Body: renderInlineFinding(f, key)}\n+\t\tif f.StartLine != f.EndLine {\n+\t\t\tc.StartLine, c.StartSide = f.StartLine, \"RIGHT\"\n+\t\t}\n+\t\tplan.inline = append(plan.inline, c)\n+\t\tplan.inlined[key] = true\n+\t}\n+\treturn plan\n+}\n+\n+func renderInlineFinding(f hostedreview.Finding, key string) string {\n+\tvar b strings.Builder\n+\tfmt.Fprintf(\u0026b, \"\u003c!-- px1-finding:%s --\u003e\\n**%s: %s**\\n\\n%s\\n\\nEvidence: %s\\n\\nConfidence: %.2f\", key, f.Severity, f.Title, f.Body, f.Evidence, f.Confidence)\n+\tif f.Suggestion != \"\" {\n+\t\tfmt.Fprintf(\u0026b, \"\\n\\nSuggestion: %s\", f.Suggestion)\n+\t}\n+\treturn b.String()\n+}\n+\n+func renderAgenticSummary(plan postPlan, head, footer string) string {\n+\tvar b strings.Builder\n+\tb.WriteString(agenticCommentMarker + \"\\n\")\n+\tfmt.Fprintf(\u0026b, \"## px1 review\\n\\nReviewed `%s`. \", shortRevision(head))\n+\tif len(plan.all) == 0 {\n+\t\tb.WriteString(\"No verified findings. That is not evidence the change is correct: it means nothing the model proposed survived verification.\\n\")\n+\t} else {\n+\t\tfmt.Fprintf(\u0026b, \"%d verified finding(s).\\n\\n\", len(plan.all))\n+\t\tfor _, f := range plan.all {\n+\t\t\twhere := \"inline\"\n+\t\t\tif !plan.inlined[findingKey(f)] {\n+\t\t\t\twhere = \"not on a changed line\"\n+\t\t\t}\n+\t\t\tfmt.Fprintf(\u0026b, \"- **%s** `%s:%d` %s (%s)\\n\", f.Severity, f.Path, f.EndLine, f.Title, where)\n+\t\t}\n+\t\tfor _, f := range plan.outside {\n+\t\t\tfmt.Fprintf(\u0026b, \"\\n\u003cdetails\u003e\u003csummary\u003e%s: %s\u003c/summary\u003e\\n\\n`%s:%d-%d`\\n\\n%s\\n\\nEvidence: %s\\n\\nConfidence: %.2f\\n\u003c/details\u003e\\n\", f.Severity, f.Title, f.Path, f.StartLine, f.EndLine, f.Body, f.Evidence, f.Confidence)\n+\t\t}\n+\t}\n+\tif footer != \"\" {\n+\t\tfmt.Fprintf(\u0026b, \"\\n---\\n%s\\n\", footer)\n+\t}\n+\tb.WriteString(\"\\n_Findings come from an AI model; check each one before acting on it._\\n\")\n+\treturn b.String()\n+}\n+\n+var patchHunkHeader = regexp.MustCompile(`^@@ -\\d+(?:,\\d+)? \\+(\\d+)(?:,\\d+)? @@`)\n+\n+// patchLines returns the new-file line numbers a patch shows, which are the\n+// only lines GitHub accepts inline comments on.\n+func patchLines(patch string) map[int]bool {\n+\tlines := map[int]bool{}\n+\tn := 0\n+\tfor _, line := range strings.Split(patch, \"\\n\") {\n+\t\tif m := patchHunkHeader.FindStringSubmatch(line); m != nil {\n+\t\t\tn, _ = strconv.Atoi(m[1])\n+\t\t\tcontinue\n+\t\t}\n+\t\tif n == 0 || strings.HasPrefix(line, `\\`) {\n+\t\t\tcontinue\n+\t\t}\n+\t\tswitch {\n+\t\tcase strings.HasPrefix(line, \"-\"):\n+\t\tcase strings.HasPrefix(line, \"+\"), strings.HasPrefix(line, \" \"):\n+\t\t\tlines[n] = true\n+\t\t\tn++\n+\t\t}\n+\t}\n+\treturn lines\n+}\n+\n+type githubClient struct {\n+\tbase, token string\n+\thttp        *http.Client\n+}\n+\n+func (g githubClient) do(ctx context.Context, method, path string, body any, out any) error {\n+\tvar reader io.Reader\n+\tif body != nil {\n+\t\tdata, err := json.Marshal(body)\n+\t\tif err != nil {\n+\t\t\treturn err\n+\t\t}\n+\t\treader = bytes.NewReader(data)\n+\t}\n+\treq, err := http.NewRequestWithContext(ctx, method, g.base+path, reader)\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\treq.Header.Set(\"Authorization\", \"Bearer \"+g.token)\n+\treq.Header.Set(\"Accept\", \"application/vnd.github+json\")\n+\treq.Header.Set(\"X-GitHub-Api-Version\", \"2022-11-28\")\n+\tif body != nil {\n+\t\treq.Header.Set(\"Content-Type\", \"application/json\")\n+\t}\n+\tresp, err := g.http.Do(req)\n+\tif err != nil {\n+\t\treturn fmt.Errorf(\"%s %s: %w\", method, path, err)\n+\t}\n+\tdefer resp.Body.Close()\n+\tif resp.StatusCode \u003c 200 || resp.StatusCode \u003e= 300 {\n+\t\t_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 1\u003c\u003c20))\n+\t\thint := \"\"\n+\t\tif resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusNotFound {\n+\t\t\thint = \" (the workflow needs permissions: pull-requests: write; fork pull requests get a read-only token)\"\n+\t\t}\n+\t\treturn fmt.Errorf(\"%s %s: GitHub returned status %d%s\", method, path, resp.StatusCode, hint)\n+\t}\n+\tif out == nil {\n+\t\t_, _ = io.Copy(io.Discard, resp.Body)\n+\t\treturn nil\n+\t}\n+\treturn json.NewDecoder(io.LimitReader(resp.Body, 32\u003c\u003c20)).Decode(out)\n+}\n+\n+func repoPath(repo string) string {\n+\towner, name, _ := strings.Cut(repo, \"/\")\n+\treturn \"/repos/\" + url.PathEscape(owner) + \"/\" + url.PathEscape(name)\n+}\n+\n+func (g githubClient) commentableLines(ctx context.Context, repo string, pr int) (map[string]map[int]bool, error) {\n+\tresult := map[string]map[int]bool{}\n+\tfor page := 1; page \u003c= maxFilePages; page++ {\n+\t\tvar files []struct {\n+\t\t\tFilename string `json:\"filename\"`\n+\t\t\tPatch    string `json:\"patch\"`\n+\t\t}\n+\t\tif err := g.do(ctx, http.MethodGet, fmt.Sprintf(\"%s/pulls/%d/files?per_page=100\u0026page=%d\", repoPath(repo), pr, page), nil, \u0026files); err != nil {\n+\t\t\treturn nil, err\n+\t\t}\n+\t\tfor _, f := range files {\n+\t\t\tresult[f.Filename] = patchLines(f.Patch)\n+\t\t}\n+\t\tif len(files) \u003c 100 {\n+\t\t\tbreak\n+\t\t}\n+\t}\n+\treturn result, nil\n+}\n+\n+var findingMarker = regexp.MustCompile(`\u003c!-- px1-finding:([0-9a-f]{12}) --\u003e`)\n+\n+func (g githubClient) postedFindingKeys(ctx context.Context, repo string, pr int) (map[string]bool, error) {\n+\tkeys := map[string]bool{}\n+\tfor page := 1; page \u003c= maxFilePages; page++ {\n+\t\tvar comments []struct {\n+\t\t\tBody string `json:\"body\"`\n+\t\t}\n+\t\tif err := g.do(ctx, http.MethodGet, fmt.Sprintf(\"%s/pulls/%d/comments?per_page=100\u0026page=%d\", repoPath(repo), pr, page), nil, \u0026comments); err != nil {\n+\t\t\treturn nil, err\n+\t\t}\n+\t\tfor _, c := range comments {\n+\t\t\tif m := findingMarker.FindStringSubmatch(c.Body); m != nil {\n+\t\t\t\tkeys[m[1]] = true\n+\t\t\t}\n+\t\t}\n+\t\tif len(comments) \u003c 100 {\n+\t\t\tbreak\n+\t\t}\n+\t}\n+\treturn keys, nil\n+}\n+\n+func (g githubClient) createReview(ctx context.Context, repo string, pr int, head string, comments []inlineComment) error {\n+\tpayload := map[string]any{\"commit_id\": head, \"event\": \"COMMENT\", \"body\": \"px1 found issues on changed lines; details in the px1 review comment.\", \"comments\": comments}\n+\treturn g.do(ctx, http.MethodPost, fmt.Sprintf(\"%s/pulls/%d/reviews\", repoPath(repo), pr), payload, nil)\n+}\n+\n+func (g githubClient) upsertSummary(ctx context.Context, repo string, pr int, body string) error {\n+\tfor page := 1; page \u003c= maxFilePages; page++ {\n+\t\tvar comments []struct {\n+\t\t\tID   int64  `json:\"id\"`\n+\t\t\tBody string `json:\"body\"`\n+\t\t}\n+\t\tif err := g.do(ctx, http.MethodGet, fmt.Sprintf(\"%s/issues/%d/comments?per_page=100\u0026page=%d\", repoPath(repo), pr, page), nil, \u0026comments); err != nil {\n+\t\t\treturn err\n+\t\t}\n+\t\tfor _, c := range comments {\n+\t\t\tif strings.HasPrefix(c.Body, agenticCommentMarker) {\n+\t\t\t\treturn g.do(ctx, http.MethodPatch, fmt.Sprintf(\"%s/issues/comments/%d\", repoPath(repo), c.ID), map[string]string{\"body\": body}, nil)\n+\t\t\t}\n+\t\t}\n+\t\tif len(comments) \u003c 100 {\n+\t\t\tbreak\n+\t\t}\n+\t}\n+\treturn g.do(ctx, http.MethodPost, fmt.Sprintf(\"%s/issues/%d/comments\", repoPath(repo), pr), map[string]string{\"body\": body}, nil)\n+}\n+\n+var repoSlug = regexp.MustCompile(`^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$`)\n+\n+func validRepoSlug(s string) bool { return repoSlug.MatchString(s) }\n+\n+func envOr(key, fallback string) string {\n+\tif v := os.Getenv(key); v != \"\" {\n+\t\treturn v\n+\t}\n+\treturn fallback\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-ea14ab1456c36f51",
+          "header": "@@ -0,0 +1,356 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package main"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"bytes\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"crypto/sha256\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"encoding/hex\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"flag\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\"io\""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t\"net/http\""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\t\"net/url\""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t\"regexp\""
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t\"sort\""
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t\"strconv\""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\thostedreview \"px1/internal/hosted/review\""
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "const ("
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tagenticCommentMarker = \"\u003c!-- px1-agentic-review --\u003e\""
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tmaxInlineFindings    = 20"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tmaxFilePages         = 30"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "type postGitHubOptions struct {"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tfindings, repo, head, footer, apiURL string"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tpr                                   int"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tdryRun                               bool"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "// runPostGitHub publishes findings.json to a pull request: one sticky summary"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "// comment that is updated on every push, plus inline comments for findings that"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "// sit on lines the pull request changed. The token comes only from GITHUB_TOKEN."
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "func runPostGitHub(args []string, stdout io.Writer) error {"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\tvar o postGitHubOptions"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tfs := flag.NewFlagSet(\"post-github\", flag.ContinueOnError)"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tfs.SetOutput(os.Stderr)"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tfs.StringVar(\u0026o.findings, \"findings\", \"\", \"findings.json written by agentic-review (required)\")"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\tfs.StringVar(\u0026o.repo, \"repo\", os.Getenv(\"GITHUB_REPOSITORY\"), \"owner/name (default: $GITHUB_REPOSITORY)\")"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\tfs.IntVar(\u0026o.pr, \"pr\", 0, \"pull request number (required)\")"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\tfs.StringVar(\u0026o.head, \"head\", \"\", \"full head commit SHA the review was run on (default: the findings revision)\")"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\tfs.StringVar(\u0026o.footer, \"footer\", \"\", \"one line appended to the summary, such as the run cost\")"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\tfs.StringVar(\u0026o.apiURL, \"api-url\", envOr(\"GITHUB_API_URL\", \"https://api.github.com\"), \"GitHub API base URL\")"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\tfs.BoolVar(\u0026o.dryRun, \"dry-run\", false, \"print what would be posted; call nothing\")"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\tif err := fs.Parse(args); err != nil {"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\tif o.findings == \"\" || o.pr \u003c= 0 || !validRepoSlug(o.repo) {"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"post-github requires --findings, --pr and --repo owner/name\")"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\tdata, err := os.ReadFile(o.findings)"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t\treturn fmt.Errorf(\"read findings: %w\", err)"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\tvar envelope hostedFindingsEnvelope"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\tif err := json.Unmarshal(data, \u0026envelope); err != nil {"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t\treturn fmt.Errorf(\"decode findings: %w\", err)"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\tif o.head == \"\" {"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\to.head = envelope.Revision"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\tif !validRevision(o.head) {"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"a full 40-character head SHA is required\")"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\tfor _, finding := range envelope.Findings {"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t\tif err := finding.Validate(); err != nil {"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\t\treturn fmt.Errorf(\"invalid finding: %w\", err)"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\ttoken := os.Getenv(\"GITHUB_TOKEN\")"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\tif token == \"\" \u0026\u0026 !o.dryRun {"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"GITHUB_TOKEN is required (in a workflow: env GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} with pull-requests: write)\")"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\tgh := githubClient{base: strings.TrimRight(o.apiURL, \"/\"), token: token, http: \u0026http.Client{Timeout: 30 * time.Second}}"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\tctx := context.Background()"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\tvar commentable map[string]map[int]bool"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\tvar posted map[string]bool"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\tif !o.dryRun {"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\t\tif commentable, err = gh.commentableLines(ctx, o.repo, o.pr); err != nil {"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\t\t\treturn err"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\t\tif posted, err = gh.postedFindingKeys(ctx, o.repo, o.pr); err != nil {"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t\t\treturn err"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\t} else {"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\t\tcommentable = map[string]map[int]bool{}"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t\tfor _, f := range envelope.Findings {"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t\t\tcommentable[f.Path] = map[int]bool{f.EndLine: true, f.StartLine: true}"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t\tposted = map[string]bool{}"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\tplan := planPost(envelope.Findings, commentable, posted)"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\tsummary := renderAgenticSummary(plan, o.head, o.footer)"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\tif o.dryRun {"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\t\tfmt.Fprintf(stdout, \"Would post %d inline comment(s) and a summary:\\n\\n%s\\n\", len(plan.inline), summary)"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t\treturn nil"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\tif len(plan.inline) \u003e 0 {"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\t\tif err := gh.createReview(ctx, o.repo, o.pr, o.head, plan.inline); err != nil {"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\t\t\treturn err"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\tif err := gh.upsertSummary(ctx, o.repo, o.pr, summary); err != nil {"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\tfmt.Fprintf(stdout, \"Posted %d inline comment(s), %d finding(s) in the summary.\\n\", len(plan.inline), len(plan.all))"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "type inlineComment struct {"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\tPath      string `json:\"path\"`"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\tLine      int    `json:\"line\"`"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\tSide      string `json:\"side\"`"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\tStartLine int    `json:\"start_line,omitempty\"`"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\tStartSide string `json:\"start_side,omitempty\"`"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "\tBody      string `json:\"body\"`"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "type postPlan struct {"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\tall      []hostedreview.Finding"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\tinline   []inlineComment"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\tinlined  map[string]bool // finding key -\u003e shown as inline comment (now or earlier)"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\toutside  []hostedreview.Finding"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\toverflow int"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "func findingKey(f hostedreview.Finding) string {"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\tsum := sha256.Sum256([]byte(f.Path + \"\\x00\" + f.Title))"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\treturn hex.EncodeToString(sum[:6])"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "func planPost(findings []hostedreview.Finding, commentable map[string]map[int]bool, posted map[string]bool) postPlan {"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "\tplan := postPlan{inlined: map[string]bool{}}"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "\tplan.all = append(plan.all, findings...)"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "\tsort.SliceStable(plan.all, func(i, j int) bool { return plan.all[i].Severity \u003c plan.all[j].Severity })"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "\tfor _, f := range plan.all {"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\t\tkey := findingKey(f)"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\t\tlines := commentable[f.Path]"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\t\tif !lines[f.EndLine] || (f.StartLine != f.EndLine \u0026\u0026 !lines[f.StartLine]) {"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "\t\t\tplan.outside = append(plan.outside, f)"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "\t\tif posted[key] {"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "\t\t\tplan.inlined[key] = true // already commented on an earlier push"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "\t\tif len(plan.inline) \u003e= maxInlineFindings {"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "\t\t\tplan.overflow++"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "\t\t\tplan.outside = append(plan.outside, f)"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "\t\tc := inlineComment{Path: f.Path, Line: f.EndLine, Side: \"RIGHT\", Body: renderInlineFinding(f, key)}"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "\t\tif f.StartLine != f.EndLine {"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "\t\t\tc.StartLine, c.StartSide = f.StartLine, \"RIGHT\""
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "\t\tplan.inline = append(plan.inline, c)"
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "\t\tplan.inlined[key] = true"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "\treturn plan"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "func renderInlineFinding(f hostedreview.Finding, key string) string {"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "\tvar b strings.Builder"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "\tfmt.Fprintf(\u0026b, \"\u003c!-- px1-finding:%s --\u003e\\n**%s: %s**\\n\\n%s\\n\\nEvidence: %s\\n\\nConfidence: %.2f\", key, f.Severity, f.Title, f.Body, f.Evidence, f.Confidence)"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "\tif f.Suggestion != \"\" {"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "\t\tfmt.Fprintf(\u0026b, \"\\n\\nSuggestion: %s\", f.Suggestion)"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "\treturn b.String()"
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 178,
+              "kind": "added",
+              "text": "func renderAgenticSummary(plan postPlan, head, footer string) string {"
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": "\tvar b strings.Builder"
+            },
+            {
+              "newLine": 180,
+              "kind": "added",
+              "text": "\tb.WriteString(agenticCommentMarker + \"\\n\")"
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": "\tfmt.Fprintf(\u0026b, \"## px1 review\\n\\nReviewed `%s`. \", shortRevision(head))"
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": "\tif len(plan.all) == 0 {"
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": "\t\tb.WriteString(\"No verified findings. That is not evidence the change is correct: it means nothing the model proposed survived verification.\\n\")"
+            },
+            {
+              "newLine": 184,
+              "kind": "added",
+              "text": "\t} else {"
+            },
+            {
+              "newLine": 185,
+              "kind": "added",
+              "text": "\t\tfmt.Fprintf(\u0026b, \"%d verified finding(s).\\n\\n\", len(plan.all))"
+            },
+            {
+              "newLine": 186,
+              "kind": "added",
+              "text": "\t\tfor _, f := range plan.all {"
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "\t\t\twhere := \"inline\""
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": "\t\t\tif !plan.inlined[findingKey(f)] {"
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "\t\t\t\twhere = \"not on a changed line\""
+            },
+            {
+              "newLine": 190,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 191,
+              "kind": "added",
+              "text": "\t\t\tfmt.Fprintf(\u0026b, \"- **%s** `%s:%d` %s (%s)\\n\", f.Severity, f.Path, f.EndLine, f.Title, where)"
+            },
+            {
+              "newLine": 192,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 193,
+              "kind": "added",
+              "text": "\t\tfor _, f := range plan.outside {"
+            },
+            {
+              "newLine": 194,
+              "kind": "added",
+              "text": "\t\t\tfmt.Fprintf(\u0026b, \"\\n\u003cdetails\u003e\u003csummary\u003e%s: %s\u003c/summary\u003e\\n\\n`%s:%d-%d`\\n\\n%s\\n\\nEvidence: %s\\n\\nConfidence: %.2f\\n\u003c/details\u003e\\n\", f.Severity, f.Title, f.Path, f.StartLine, f.EndLine, f.Body, f.Evidence, f.Confidence)"
+            },
+            {
+              "newLine": 195,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 196,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 197,
+              "kind": "added",
+              "text": "\tif footer != \"\" {"
+            },
+            {
+              "newLine": 198,
+              "kind": "added",
+              "text": "\t\tfmt.Fprintf(\u0026b, \"\\n---\\n%s\\n\", footer)"
+            },
+            {
+              "newLine": 199,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 200,
+              "kind": "added",
+              "text": "\tb.WriteString(\"\\n_Findings come from an AI model; check each one before acting on it._\\n\")"
+            },
+            {
+              "newLine": 201,
+              "kind": "added",
+              "text": "\treturn b.String()"
+            },
+            {
+              "newLine": 202,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 203,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 204,
+              "kind": "added",
+              "text": "var patchHunkHeader = regexp.MustCompile(`^@@ -\\d+(?:,\\d+)? \\+(\\d+)(?:,\\d+)? @@`)"
+            },
+            {
+              "newLine": 205,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 206,
+              "kind": "added",
+              "text": "// patchLines returns the new-file line numbers a patch shows, which are the"
+            },
+            {
+              "newLine": 207,
+              "kind": "added",
+              "text": "// only lines GitHub accepts inline comments on."
+            },
+            {
+              "newLine": 208,
+              "kind": "added",
+              "text": "func patchLines(patch string) map[int]bool {"
+            },
+            {
+              "newLine": 209,
+              "kind": "added",
+              "text": "\tlines := map[int]bool{}"
+            },
+            {
+              "newLine": 210,
+              "kind": "added",
+              "text": "\tn := 0"
+            },
+            {
+              "newLine": 211,
+              "kind": "added",
+              "text": "\tfor _, line := range strings.Split(patch, \"\\n\") {"
+            },
+            {
+              "newLine": 212,
+              "kind": "added",
+              "text": "\t\tif m := patchHunkHeader.FindStringSubmatch(line); m != nil {"
+            },
+            {
+              "newLine": 213,
+              "kind": "added",
+              "text": "\t\t\tn, _ = strconv.Atoi(m[1])"
+            },
+            {
+              "newLine": 214,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 215,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 216,
+              "kind": "added",
+              "text": "\t\tif n == 0 || strings.HasPrefix(line, `\\`) {"
+            },
+            {
+              "newLine": 217,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 218,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 219,
+              "kind": "added",
+              "text": "\t\tswitch {"
+            },
+            {
+              "newLine": 220,
+              "kind": "added",
+              "text": "\t\tcase strings.HasPrefix(line, \"-\"):"
+            },
+            {
+              "newLine": 221,
+              "kind": "added",
+              "text": "\t\tcase strings.HasPrefix(line, \"+\"), strings.HasPrefix(line, \" \"):"
+            },
+            {
+              "newLine": 222,
+              "kind": "added",
+              "text": "\t\t\tlines[n] = true"
+            },
+            {
+              "newLine": 223,
+              "kind": "added",
+              "text": "\t\t\tn++"
+            },
+            {
+              "newLine": 224,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 225,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 226,
+              "kind": "added",
+              "text": "\treturn lines"
+            },
+            {
+              "newLine": 227,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 228,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 229,
+              "kind": "added",
+              "text": "type githubClient struct {"
+            },
+            {
+              "newLine": 230,
+              "kind": "added",
+              "text": "\tbase, token string"
+            },
+            {
+              "newLine": 231,
+              "kind": "added",
+              "text": "\thttp        *http.Client"
+            },
+            {
+              "newLine": 232,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 233,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 234,
+              "kind": "added",
+              "text": "func (g githubClient) do(ctx context.Context, method, path string, body any, out any) error {"
+            },
+            {
+              "newLine": 235,
+              "kind": "added",
+              "text": "\tvar reader io.Reader"
+            },
+            {
+              "newLine": 236,
+              "kind": "added",
+              "text": "\tif body != nil {"
+            },
+            {
+              "newLine": 237,
+              "kind": "added",
+              "text": "\t\tdata, err := json.Marshal(body)"
+            },
+            {
+              "newLine": 238,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 239,
+              "kind": "added",
+              "text": "\t\t\treturn err"
+            },
+            {
+              "newLine": 240,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 241,
+              "kind": "added",
+              "text": "\t\treader = bytes.NewReader(data)"
+            },
+            {
+              "newLine": 242,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 243,
+              "kind": "added",
+              "text": "\treq, err := http.NewRequestWithContext(ctx, method, g.base+path, reader)"
+            },
+            {
+              "newLine": 244,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 245,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 246,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 247,
+              "kind": "added",
+              "text": "\treq.Header.Set(\"Authorization\", \"Bearer \"+g.token)"
+            },
+            {
+              "newLine": 248,
+              "kind": "added",
+              "text": "\treq.Header.Set(\"Accept\", \"application/vnd.github+json\")"
+            },
+            {
+              "newLine": 249,
+              "kind": "added",
+              "text": "\treq.Header.Set(\"X-GitHub-Api-Version\", \"2022-11-28\")"
+            },
+            {
+              "newLine": 250,
+              "kind": "added",
+              "text": "\tif body != nil {"
+            },
+            {
+              "newLine": 251,
+              "kind": "added",
+              "text": "\t\treq.Header.Set(\"Content-Type\", \"application/json\")"
+            },
+            {
+              "newLine": 252,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 253,
+              "kind": "added",
+              "text": "\tresp, err := g.http.Do(req)"
+            },
+            {
+              "newLine": 254,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 255,
+              "kind": "added",
+              "text": "\t\treturn fmt.Errorf(\"%s %s: %w\", method, path, err)"
+            },
+            {
+              "newLine": 256,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 257,
+              "kind": "added",
+              "text": "\tdefer resp.Body.Close()"
+            },
+            {
+              "newLine": 258,
+              "kind": "added",
+              "text": "\tif resp.StatusCode \u003c 200 || resp.StatusCode \u003e= 300 {"
+            },
+            {
+              "newLine": 259,
+              "kind": "added",
+              "text": "\t\t_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 1\u003c\u003c20))"
+            },
+            {
+              "newLine": 260,
+              "kind": "added",
+              "text": "\t\thint := \"\""
+            },
+            {
+              "newLine": 261,
+              "kind": "added",
+              "text": "\t\tif resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusNotFound {"
+            },
+            {
+              "newLine": 262,
+              "kind": "added",
+              "text": "\t\t\thint = \" (the workflow needs permissions: pull-requests: write; fork pull requests get a read-only token)\""
+            },
+            {
+              "newLine": 263,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 264,
+              "kind": "added",
+              "text": "\t\treturn fmt.Errorf(\"%s %s: GitHub returned status %d%s\", method, path, resp.StatusCode, hint)"
+            },
+            {
+              "newLine": 265,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 266,
+              "kind": "added",
+              "text": "\tif out == nil {"
+            },
+            {
+              "newLine": 267,
+              "kind": "added",
+              "text": "\t\t_, _ = io.Copy(io.Discard, resp.Body)"
+            },
+            {
+              "newLine": 268,
+              "kind": "added",
+              "text": "\t\treturn nil"
+            },
+            {
+              "newLine": 269,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 270,
+              "kind": "added",
+              "text": "\treturn json.NewDecoder(io.LimitReader(resp.Body, 32\u003c\u003c20)).Decode(out)"
+            },
+            {
+              "newLine": 271,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 272,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 273,
+              "kind": "added",
+              "text": "func repoPath(repo string) string {"
+            },
+            {
+              "newLine": 274,
+              "kind": "added",
+              "text": "\towner, name, _ := strings.Cut(repo, \"/\")"
+            },
+            {
+              "newLine": 275,
+              "kind": "added",
+              "text": "\treturn \"/repos/\" + url.PathEscape(owner) + \"/\" + url.PathEscape(name)"
+            },
+            {
+              "newLine": 276,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 277,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 278,
+              "kind": "added",
+              "text": "func (g githubClient) commentableLines(ctx context.Context, repo string, pr int) (map[string]map[int]bool, error) {"
+            },
+            {
+              "newLine": 279,
+              "kind": "added",
+              "text": "\tresult := map[string]map[int]bool{}"
+            },
+            {
+              "newLine": 280,
+              "kind": "added",
+              "text": "\tfor page := 1; page \u003c= maxFilePages; page++ {"
+            },
+            {
+              "newLine": 281,
+              "kind": "added",
+              "text": "\t\tvar files []struct {"
+            },
+            {
+              "newLine": 282,
+              "kind": "added",
+              "text": "\t\t\tFilename string `json:\"filename\"`"
+            },
+            {
+              "newLine": 283,
+              "kind": "added",
+              "text": "\t\t\tPatch    string `json:\"patch\"`"
+            },
+            {
+              "newLine": 284,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 285,
+              "kind": "added",
+              "text": "\t\tif err := g.do(ctx, http.MethodGet, fmt.Sprintf(\"%s/pulls/%d/files?per_page=100\u0026page=%d\", repoPath(repo), pr, page), nil, \u0026files); err != nil {"
+            },
+            {
+              "newLine": 286,
+              "kind": "added",
+              "text": "\t\t\treturn nil, err"
+            },
+            {
+              "newLine": 287,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 288,
+              "kind": "added",
+              "text": "\t\tfor _, f := range files {"
+            },
+            {
+              "newLine": 289,
+              "kind": "added",
+              "text": "\t\t\tresult[f.Filename] = patchLines(f.Patch)"
+            },
+            {
+              "newLine": 290,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 291,
+              "kind": "added",
+              "text": "\t\tif len(files) \u003c 100 {"
+            },
+            {
+              "newLine": 292,
+              "kind": "added",
+              "text": "\t\t\tbreak"
+            },
+            {
+              "newLine": 293,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 294,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 295,
+              "kind": "added",
+              "text": "\treturn result, nil"
+            },
+            {
+              "newLine": 296,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 297,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 298,
+              "kind": "added",
+              "text": "var findingMarker = regexp.MustCompile(`\u003c!-- px1-finding:([0-9a-f]{12}) --\u003e`)"
+            },
+            {
+              "newLine": 299,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 300,
+              "kind": "added",
+              "text": "func (g githubClient) postedFindingKeys(ctx context.Context, repo string, pr int) (map[string]bool, error) {"
+            },
+            {
+              "newLine": 301,
+              "kind": "added",
+              "text": "\tkeys := map[string]bool{}"
+            },
+            {
+              "newLine": 302,
+              "kind": "added",
+              "text": "\tfor page := 1; page \u003c= maxFilePages; page++ {"
+            },
+            {
+              "newLine": 303,
+              "kind": "added",
+              "text": "\t\tvar comments []struct {"
+            },
+            {
+              "newLine": 304,
+              "kind": "added",
+              "text": "\t\t\tBody string `json:\"body\"`"
+            },
+            {
+              "newLine": 305,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 306,
+              "kind": "added",
+              "text": "\t\tif err := g.do(ctx, http.MethodGet, fmt.Sprintf(\"%s/pulls/%d/comments?per_page=100\u0026page=%d\", repoPath(repo), pr, page), nil, \u0026comments); err != nil {"
+            },
+            {
+              "newLine": 307,
+              "kind": "added",
+              "text": "\t\t\treturn nil, err"
+            },
+            {
+              "newLine": 308,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 309,
+              "kind": "added",
+              "text": "\t\tfor _, c := range comments {"
+            },
+            {
+              "newLine": 310,
+              "kind": "added",
+              "text": "\t\t\tif m := findingMarker.FindStringSubmatch(c.Body); m != nil {"
+            },
+            {
+              "newLine": 311,
+              "kind": "added",
+              "text": "\t\t\t\tkeys[m[1]] = true"
+            },
+            {
+              "newLine": 312,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 313,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 314,
+              "kind": "added",
+              "text": "\t\tif len(comments) \u003c 100 {"
+            },
+            {
+              "newLine": 315,
+              "kind": "added",
+              "text": "\t\t\tbreak"
+            },
+            {
+              "newLine": 316,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 317,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 318,
+              "kind": "added",
+              "text": "\treturn keys, nil"
+            },
+            {
+              "newLine": 319,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 320,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 321,
+              "kind": "added",
+              "text": "func (g githubClient) createReview(ctx context.Context, repo string, pr int, head string, comments []inlineComment) error {"
+            },
+            {
+              "newLine": 322,
+              "kind": "added",
+              "text": "\tpayload := map[string]any{\"commit_id\": head, \"event\": \"COMMENT\", \"body\": \"px1 found issues on changed lines; details in the px1 review comment.\", \"comments\": comments}"
+            },
+            {
+              "newLine": 323,
+              "kind": "added",
+              "text": "\treturn g.do(ctx, http.MethodPost, fmt.Sprintf(\"%s/pulls/%d/reviews\", repoPath(repo), pr), payload, nil)"
+            },
+            {
+              "newLine": 324,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 325,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 326,
+              "kind": "added",
+              "text": "func (g githubClient) upsertSummary(ctx context.Context, repo string, pr int, body string) error {"
+            },
+            {
+              "newLine": 327,
+              "kind": "added",
+              "text": "\tfor page := 1; page \u003c= maxFilePages; page++ {"
+            },
+            {
+              "newLine": 328,
+              "kind": "added",
+              "text": "\t\tvar comments []struct {"
+            },
+            {
+              "newLine": 329,
+              "kind": "added",
+              "text": "\t\t\tID   int64  `json:\"id\"`"
+            },
+            {
+              "newLine": 330,
+              "kind": "added",
+              "text": "\t\t\tBody string `json:\"body\"`"
+            },
+            {
+              "newLine": 331,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 332,
+              "kind": "added",
+              "text": "\t\tif err := g.do(ctx, http.MethodGet, fmt.Sprintf(\"%s/issues/%d/comments?per_page=100\u0026page=%d\", repoPath(repo), pr, page), nil, \u0026comments); err != nil {"
+            },
+            {
+              "newLine": 333,
+              "kind": "added",
+              "text": "\t\t\treturn err"
+            },
+            {
+              "newLine": 334,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 335,
+              "kind": "added",
+              "text": "\t\tfor _, c := range comments {"
+            },
+            {
+              "newLine": 336,
+              "kind": "added",
+              "text": "\t\t\tif strings.HasPrefix(c.Body, agenticCommentMarker) {"
+            },
+            {
+              "newLine": 337,
+              "kind": "added",
+              "text": "\t\t\t\treturn g.do(ctx, http.MethodPatch, fmt.Sprintf(\"%s/issues/comments/%d\", repoPath(repo), c.ID), map[string]string{\"body\": body}, nil)"
+            },
+            {
+              "newLine": 338,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 339,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 340,
+              "kind": "added",
+              "text": "\t\tif len(comments) \u003c 100 {"
+            },
+            {
+              "newLine": 341,
+              "kind": "added",
+              "text": "\t\t\tbreak"
+            },
+            {
+              "newLine": 342,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 343,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 344,
+              "kind": "added",
+              "text": "\treturn g.do(ctx, http.MethodPost, fmt.Sprintf(\"%s/issues/%d/comments\", repoPath(repo), pr), map[string]string{\"body\": body}, nil)"
+            },
+            {
+              "newLine": 345,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 346,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 347,
+              "kind": "added",
+              "text": "var repoSlug = regexp.MustCompile(`^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$`)"
+            },
+            {
+              "newLine": 348,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 349,
+              "kind": "added",
+              "text": "func validRepoSlug(s string) bool { return repoSlug.MatchString(s) }"
+            },
+            {
+              "newLine": 350,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 351,
+              "kind": "added",
+              "text": "func envOr(key, fallback string) string {"
+            },
+            {
+              "newLine": 352,
+              "kind": "added",
+              "text": "\tif v := os.Getenv(key); v != \"\" {"
+            },
+            {
+              "newLine": 353,
+              "kind": "added",
+              "text": "\t\treturn v"
+            },
+            {
+              "newLine": 354,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 355,
+              "kind": "added",
+              "text": "\treturn fallback"
+            },
+            {
+              "newLine": 356,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "post_github_test.go",
+      "status": "A",
+      "diff": "diff --git a/post_github_test.go b/post_github_test.go\nnew file mode 100644\nindex 0000000..b2845da\n--- /dev/null\n+++ b/post_github_test.go\n@@ -0,0 +1,216 @@\n+package main\n+\n+import (\n+\t\"bytes\"\n+\t\"encoding/json\"\n+\t\"io\"\n+\t\"net/http\"\n+\t\"net/http/httptest\"\n+\t\"os\"\n+\t\"path/filepath\"\n+\t\"strings\"\n+\t\"sync\"\n+\t\"testing\"\n+)\n+\n+const testHead = \"32b2cee1c0b7a7aa98d4f1cda08f7d5dbbc374f3\"\n+\n+type fakeGitHub struct {\n+\tmu          sync.Mutex\n+\tissueBodies map[int64]string\n+\tprComments  []string\n+\treviews     []map[string]any\n+\tpatches     map[string]string\n+\trequests    []string\n+}\n+\n+func (f *fakeGitHub) handler() http.Handler {\n+\treturn http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {\n+\t\tf.mu.Lock()\n+\t\tdefer f.mu.Unlock()\n+\t\tf.requests = append(f.requests, r.Method+\" \"+r.URL.Path)\n+\t\tif r.Header.Get(\"Authorization\") != \"Bearer test-token\" {\n+\t\t\thttp.Error(w, \"no\", http.StatusUnauthorized)\n+\t\t\treturn\n+\t\t}\n+\t\tbody, _ := io.ReadAll(r.Body)\n+\t\tswitch {\n+\t\tcase r.Method == \"GET\" \u0026\u0026 strings.HasSuffix(r.URL.Path, \"/pulls/7/files\"):\n+\t\t\tvar files []map[string]string\n+\t\t\tfor name, patch := range f.patches {\n+\t\t\t\tfiles = append(files, map[string]string{\"filename\": name, \"patch\": patch})\n+\t\t\t}\n+\t\t\tjson.NewEncoder(w).Encode(files)\n+\t\tcase r.Method == \"GET\" \u0026\u0026 strings.HasSuffix(r.URL.Path, \"/pulls/7/comments\"):\n+\t\t\tvar out []map[string]string\n+\t\t\tfor _, b := range f.prComments {\n+\t\t\t\tout = append(out, map[string]string{\"body\": b})\n+\t\t\t}\n+\t\t\tjson.NewEncoder(w).Encode(out)\n+\t\tcase r.Method == \"POST\" \u0026\u0026 strings.HasSuffix(r.URL.Path, \"/pulls/7/reviews\"):\n+\t\t\tvar payload map[string]any\n+\t\t\tjson.Unmarshal(body, \u0026payload)\n+\t\t\tf.reviews = append(f.reviews, payload)\n+\t\t\tfor _, c := range payload[\"comments\"].([]any) {\n+\t\t\t\tf.prComments = append(f.prComments, c.(map[string]any)[\"body\"].(string))\n+\t\t\t}\n+\t\t\tw.WriteHeader(http.StatusOK)\n+\t\t\tw.Write([]byte(\"{}\"))\n+\t\tcase r.Method == \"GET\" \u0026\u0026 strings.HasSuffix(r.URL.Path, \"/issues/7/comments\"):\n+\t\t\tvar out []map[string]any\n+\t\t\tfor id, b := range f.issueBodies {\n+\t\t\t\tout = append(out, map[string]any{\"id\": id, \"body\": b})\n+\t\t\t}\n+\t\t\tjson.NewEncoder(w).Encode(out)\n+\t\tcase r.Method == \"POST\" \u0026\u0026 strings.HasSuffix(r.URL.Path, \"/issues/7/comments\"):\n+\t\t\tvar payload map[string]string\n+\t\t\tjson.Unmarshal(body, \u0026payload)\n+\t\t\tf.issueBodies[int64(len(f.issueBodies)+1)] = payload[\"body\"]\n+\t\t\tw.WriteHeader(http.StatusCreated)\n+\t\t\tw.Write([]byte(\"{}\"))\n+\t\tcase r.Method == \"PATCH\" \u0026\u0026 strings.Contains(r.URL.Path, \"/issues/comments/\"):\n+\t\t\tvar payload map[string]string\n+\t\t\tjson.Unmarshal(body, \u0026payload)\n+\t\t\tf.issueBodies[1] = payload[\"body\"]\n+\t\t\tw.Write([]byte(\"{}\"))\n+\t\tdefault:\n+\t\t\thttp.NotFound(w, r)\n+\t\t}\n+\t})\n+}\n+\n+func writeFindings(t *testing.T, findings ...map[string]any) string {\n+\tt.Helper()\n+\tdata, _ := json.Marshal(map[string]any{\"revision\": testHead, \"findings\": findings})\n+\tpath := filepath.Join(t.TempDir(), \"findings.json\")\n+\tif err := os.WriteFile(path, data, 0o600); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\treturn path\n+}\n+\n+func finding(path string, line int, title string) map[string]any {\n+\treturn map[string]any{\"path\": path, \"start_line\": line, \"end_line\": line, \"severity\": \"P2\", \"type\": \"logic\", \"title\": title, \"body\": \"why\", \"evidence\": \"line \" + path, \"confidence\": 0.9}\n+}\n+\n+func runPost(t *testing.T, server *httptest.Server, findings string, extra ...string) (string, error) {\n+\tt.Helper()\n+\tt.Setenv(\"GITHUB_TOKEN\", \"test-token\")\n+\tvar out bytes.Buffer\n+\targs := append([]string{\"--findings\", findings, \"--repo\", \"o/r\", \"--pr\", \"7\", \"--api-url\", server.URL}, extra...)\n+\terr := runPostGitHub(args, \u0026out)\n+\treturn out.String(), err\n+}\n+\n+const samplePatch = \"@@ -1,3 +10,4 @@\\n ctx\\n-old\\n+new1\\n+new2\\n ctx2\\n\"\n+\n+func TestPatchLinesCountsOnlyNewSideLines(t *testing.T) {\n+\tlines := patchLines(samplePatch)\n+\tfor _, want := range []int{10, 11, 12, 13} {\n+\t\tif !lines[want] {\n+\t\t\tt.Fatalf(\"line %d should be commentable: %v\", want, lines)\n+\t\t}\n+\t}\n+\tif lines[9] || lines[14] || len(lines) != 4 {\n+\t\tt.Fatalf(\"lines=%v\", lines)\n+\t}\n+}\n+\n+func TestPostGitHubPostsInlineAndStickySummaryThenUpdatesInPlace(t *testing.T) {\n+\tfake := \u0026fakeGitHub{issueBodies: map[int64]string{}, patches: map[string]string{\"src/a.ts\": samplePatch}}\n+\tserver := httptest.NewServer(fake.handler())\n+\tdefer server.Close()\n+\tfindings := writeFindings(t, finding(\"src/a.ts\", 11, \"In the diff\"), finding(\"src/a.ts\", 99, \"Outside the diff\"), finding(\"src/other.ts\", 3, \"File not in PR\"))\n+\n+\tout, err := runPost(t, server, findings, \"--footer\", \"cost $0.02\")\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif len(fake.reviews) != 1 || len(fake.reviews[0][\"comments\"].([]any)) != 1 {\n+\t\tt.Fatalf(\"want one review with one inline comment, got %+v (%s)\", fake.reviews, out)\n+\t}\n+\tc := fake.reviews[0][\"comments\"].([]any)[0].(map[string]any)\n+\tif c[\"path\"] != \"src/a.ts\" || c[\"line\"].(float64) != 11 || c[\"side\"] != \"RIGHT\" || fake.reviews[0][\"commit_id\"] != testHead {\n+\t\tt.Fatalf(\"inline comment=%v\", c)\n+\t}\n+\tsummary := fake.issueBodies[1]\n+\tfor _, want := range []string{agenticCommentMarker, \"3 verified finding(s)\", \"In the diff\", \"Outside the diff\", \"File not in PR\", \"cost $0.02\", \"not on a changed line\"} {\n+\t\tif !strings.Contains(summary, want) {\n+\t\t\tt.Fatalf(\"summary lacks %q:\\n%s\", want, summary)\n+\t\t}\n+\t}\n+\n+\t// Second push, same findings: no duplicate inline comment, summary updated, not re-created.\n+\tif _, err := runPost(t, server, findings); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif len(fake.reviews) != 1 {\n+\t\tt.Fatalf(\"inline comment was posted twice: %d reviews\", len(fake.reviews))\n+\t}\n+\tif len(fake.issueBodies) != 1 {\n+\t\tt.Fatalf(\"summary was duplicated: %v\", fake.issueBodies)\n+\t}\n+\tif !strings.Contains(fake.issueBodies[1], \"In the diff\") || !strings.Contains(fake.issueBodies[1], \"inline\") {\n+\t\tt.Fatalf(\"summary after update:\\n%s\", fake.issueBodies[1])\n+\t}\n+}\n+\n+func TestPostGitHubWithNoFindingsStillSaysSoWithoutClaimingCorrectness(t *testing.T) {\n+\tfake := \u0026fakeGitHub{issueBodies: map[int64]string{}, patches: map[string]string{}}\n+\tserver := httptest.NewServer(fake.handler())\n+\tdefer server.Close()\n+\tif _, err := runPost(t, server, writeFindings(t)); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif len(fake.reviews) != 0 {\n+\t\tt.Fatal(\"no review should be created without findings\")\n+\t}\n+\tif s := fake.issueBodies[1]; !strings.Contains(s, \"No verified findings\") || !strings.Contains(s, \"not evidence the change is correct\") {\n+\t\tt.Fatalf(\"summary:\\n%s\", s)\n+\t}\n+}\n+\n+func TestPostGitHubRequiresTokenAndNeverEchoesIt(t *testing.T) {\n+\tt.Setenv(\"GITHUB_TOKEN\", \"\")\n+\terr := runPostGitHub([]string{\"--findings\", writeFindings(t), \"--repo\", \"o/r\", \"--pr\", \"7\"}, io.Discard)\n+\tif err == nil || !strings.Contains(err.Error(), \"GITHUB_TOKEN\") {\n+\t\tt.Fatalf(\"err=%v\", err)\n+\t}\n+\tfake := \u0026fakeGitHub{issueBodies: map[int64]string{}, patches: map[string]string{}}\n+\tserver := httptest.NewServer(fake.handler())\n+\tdefer server.Close()\n+\tt.Setenv(\"GITHUB_TOKEN\", \"wrong-token-value\")\n+\terr = runPostGitHub([]string{\"--findings\", writeFindings(t), \"--repo\", \"o/r\", \"--pr\", \"7\", \"--api-url\", server.URL}, io.Discard)\n+\tif err == nil || strings.Contains(err.Error(), \"wrong-token-value\") || !strings.Contains(err.Error(), \"401\") {\n+\t\tt.Fatalf(\"err=%v\", err)\n+\t}\n+}\n+\n+func TestPostGitHubDryRunCallsNothing(t *testing.T) {\n+\tt.Setenv(\"GITHUB_TOKEN\", \"\")\n+\tvar out bytes.Buffer\n+\terr := runPostGitHub([]string{\"--findings\", writeFindings(t, finding(\"a.ts\", 2, \"T\")), \"--repo\", \"o/r\", \"--pr\", \"7\", \"--api-url\", \"http://127.0.0.1:1\", \"--dry-run\"}, \u0026out)\n+\tif err != nil || !strings.Contains(out.String(), \"Would post 1 inline\") {\n+\t\tt.Fatalf(\"err=%v out=%s\", err, out.String())\n+\t}\n+}\n+\n+func TestPostGitHubCapsInlineCommentsAndKeepsTheRest(t *testing.T) {\n+\tpatch := \"@@ -0,0 +1,40 @@\\n\" + strings.Repeat(\"+x\\n\", 40)\n+\tfake := \u0026fakeGitHub{issueBodies: map[int64]string{}, patches: map[string]string{\"a.ts\": patch}}\n+\tserver := httptest.NewServer(fake.handler())\n+\tdefer server.Close()\n+\tvar list []map[string]any\n+\tfor i := 1; i \u003c= 25; i++ {\n+\t\tlist = append(list, finding(\"a.ts\", i, \"Issue \"+strings.Repeat(\"x\", i)))\n+\t}\n+\tif _, err := runPost(t, server, writeFindings(t, list...)); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif got := len(fake.reviews[0][\"comments\"].([]any)); got != maxInlineFindings {\n+\t\tt.Fatalf(\"inline=%d\", got)\n+\t}\n+\tif !strings.Contains(fake.issueBodies[1], \"25 verified finding(s)\") {\n+\t\tt.Fatalf(\"summary dropped findings:\\n%s\", fake.issueBodies[1])\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-fb9b26a7354b2b15",
+          "header": "@@ -0,0 +1,216 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package main"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"bytes\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"io\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"net/http\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"net/http/httptest\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"path/filepath\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\"sync\""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "const testHead = \"32b2cee1c0b7a7aa98d4f1cda08f7d5dbbc374f3\""
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "type fakeGitHub struct {"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tmu          sync.Mutex"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tissueBodies map[int64]string"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tprComments  []string"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\treviews     []map[string]any"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tpatches     map[string]string"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\trequests    []string"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "func (f *fakeGitHub) handler() http.Handler {"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\treturn http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t\tf.mu.Lock()"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t\tdefer f.mu.Unlock()"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t\tf.requests = append(f.requests, r.Method+\" \"+r.URL.Path)"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t\tif r.Header.Get(\"Authorization\") != \"Bearer test-token\" {"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t\t\thttp.Error(w, \"no\", http.StatusUnauthorized)"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t\t\treturn"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t\tbody, _ := io.ReadAll(r.Body)"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t\tswitch {"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\t\tcase r.Method == \"GET\" \u0026\u0026 strings.HasSuffix(r.URL.Path, \"/pulls/7/files\"):"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t\t\tvar files []map[string]string"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t\t\tfor name, patch := range f.patches {"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t\t\t\tfiles = append(files, map[string]string{\"filename\": name, \"patch\": patch})"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t\t\tjson.NewEncoder(w).Encode(files)"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t\tcase r.Method == \"GET\" \u0026\u0026 strings.HasSuffix(r.URL.Path, \"/pulls/7/comments\"):"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t\t\tvar out []map[string]string"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t\t\tfor _, b := range f.prComments {"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\t\t\tout = append(out, map[string]string{\"body\": b})"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\t\tjson.NewEncoder(w).Encode(out)"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t\tcase r.Method == \"POST\" \u0026\u0026 strings.HasSuffix(r.URL.Path, \"/pulls/7/reviews\"):"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t\t\tvar payload map[string]any"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\t\tjson.Unmarshal(body, \u0026payload)"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t\t\tf.reviews = append(f.reviews, payload)"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\t\tfor _, c := range payload[\"comments\"].([]any) {"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t\t\t\tf.prComments = append(f.prComments, c.(map[string]any)[\"body\"].(string))"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\t\tw.WriteHeader(http.StatusOK)"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t\t\tw.Write([]byte(\"{}\"))"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t\tcase r.Method == \"GET\" \u0026\u0026 strings.HasSuffix(r.URL.Path, \"/issues/7/comments\"):"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t\t\tvar out []map[string]any"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t\t\tfor id, b := range f.issueBodies {"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t\t\t\tout = append(out, map[string]any{\"id\": id, \"body\": b})"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t\t\tjson.NewEncoder(w).Encode(out)"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t\tcase r.Method == \"POST\" \u0026\u0026 strings.HasSuffix(r.URL.Path, \"/issues/7/comments\"):"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\t\tvar payload map[string]string"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\t\tjson.Unmarshal(body, \u0026payload)"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\t\tf.issueBodies[int64(len(f.issueBodies)+1)] = payload[\"body\"]"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\t\tw.WriteHeader(http.StatusCreated)"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\t\tw.Write([]byte(\"{}\"))"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\tcase r.Method == \"PATCH\" \u0026\u0026 strings.Contains(r.URL.Path, \"/issues/comments/\"):"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t\t\tvar payload map[string]string"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\t\tjson.Unmarshal(body, \u0026payload)"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t\t\tf.issueBodies[1] = payload[\"body\"]"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\t\t\tw.Write([]byte(\"{}\"))"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t\tdefault:"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t\t\thttp.NotFound(w, r)"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\t})"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "func writeFindings(t *testing.T, findings ...map[string]any) string {"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\tt.Helper()"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\tdata, _ := json.Marshal(map[string]any{\"revision\": testHead, \"findings\": findings})"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\tpath := filepath.Join(t.TempDir(), \"findings.json\")"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\tif err := os.WriteFile(path, data, 0o600); err != nil {"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\treturn path"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "func finding(path string, line int, title string) map[string]any {"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\treturn map[string]any{\"path\": path, \"start_line\": line, \"end_line\": line, \"severity\": \"P2\", \"type\": \"logic\", \"title\": title, \"body\": \"why\", \"evidence\": \"line \" + path, \"confidence\": 0.9}"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "func runPost(t *testing.T, server *httptest.Server, findings string, extra ...string) (string, error) {"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\tt.Helper()"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\tt.Setenv(\"GITHUB_TOKEN\", \"test-token\")"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\tvar out bytes.Buffer"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\targs := append([]string{\"--findings\", findings, \"--repo\", \"o/r\", \"--pr\", \"7\", \"--api-url\", server.URL}, extra...)"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\terr := runPostGitHub(args, \u0026out)"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\treturn out.String(), err"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "const samplePatch = \"@@ -1,3 +10,4 @@\\n ctx\\n-old\\n+new1\\n+new2\\n ctx2\\n\""
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "func TestPatchLinesCountsOnlyNewSideLines(t *testing.T) {"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\tlines := patchLines(samplePatch)"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\tfor _, want := range []int{10, 11, 12, 13} {"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\t\tif !lines[want] {"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"line %d should be commentable: %v\", want, lines)"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "\tif lines[9] || lines[14] || len(lines) != 4 {"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"lines=%v\", lines)"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "func TestPostGitHubPostsInlineAndStickySummaryThenUpdatesInPlace(t *testing.T) {"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\tfake := \u0026fakeGitHub{issueBodies: map[int64]string{}, patches: map[string]string{\"src/a.ts\": samplePatch}}"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\tserver := httptest.NewServer(fake.handler())"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\tdefer server.Close()"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "\tfindings := writeFindings(t, finding(\"src/a.ts\", 11, \"In the diff\"), finding(\"src/a.ts\", 99, \"Outside the diff\"), finding(\"src/other.ts\", 3, \"File not in PR\"))"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\tout, err := runPost(t, server, findings, \"--footer\", \"cost $0.02\")"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\tif len(fake.reviews) != 1 || len(fake.reviews[0][\"comments\"].([]any)) != 1 {"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"want one review with one inline comment, got %+v (%s)\", fake.reviews, out)"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\tc := fake.reviews[0][\"comments\"].([]any)[0].(map[string]any)"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\tif c[\"path\"] != \"src/a.ts\" || c[\"line\"].(float64) != 11 || c[\"side\"] != \"RIGHT\" || fake.reviews[0][\"commit_id\"] != testHead {"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"inline comment=%v\", c)"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\tsummary := fake.issueBodies[1]"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\tfor _, want := range []string{agenticCommentMarker, \"3 verified finding(s)\", \"In the diff\", \"Outside the diff\", \"File not in PR\", \"cost $0.02\", \"not on a changed line\"} {"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\t\tif !strings.Contains(summary, want) {"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"summary lacks %q:\\n%s\", want, summary)"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "\t// Second push, same findings: no duplicate inline comment, summary updated, not re-created."
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\tif _, err := runPost(t, server, findings); err != nil {"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "\tif len(fake.reviews) != 1 {"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"inline comment was posted twice: %d reviews\", len(fake.reviews))"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "\tif len(fake.issueBodies) != 1 {"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"summary was duplicated: %v\", fake.issueBodies)"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "\tif !strings.Contains(fake.issueBodies[1], \"In the diff\") || !strings.Contains(fake.issueBodies[1], \"inline\") {"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"summary after update:\\n%s\", fake.issueBodies[1])"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "func TestPostGitHubWithNoFindingsStillSaysSoWithoutClaimingCorrectness(t *testing.T) {"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "\tfake := \u0026fakeGitHub{issueBodies: map[int64]string{}, patches: map[string]string{}}"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "\tserver := httptest.NewServer(fake.handler())"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "\tdefer server.Close()"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "\tif _, err := runPost(t, server, writeFindings(t)); err != nil {"
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": "\tif len(fake.reviews) != 0 {"
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"no review should be created without findings\")"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": "\tif s := fake.issueBodies[1]; !strings.Contains(s, \"No verified findings\") || !strings.Contains(s, \"not evidence the change is correct\") {"
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"summary:\\n%s\", s)"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "func TestPostGitHubRequiresTokenAndNeverEchoesIt(t *testing.T) {"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "\tt.Setenv(\"GITHUB_TOKEN\", \"\")"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "\terr := runPostGitHub([]string{\"--findings\", writeFindings(t), \"--repo\", \"o/r\", \"--pr\", \"7\"}, io.Discard)"
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "\tif err == nil || !strings.Contains(err.Error(), \"GITHUB_TOKEN\") {"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"err=%v\", err)"
+            },
+            {
+              "newLine": 178,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": "\tfake := \u0026fakeGitHub{issueBodies: map[int64]string{}, patches: map[string]string{}}"
+            },
+            {
+              "newLine": 180,
+              "kind": "added",
+              "text": "\tserver := httptest.NewServer(fake.handler())"
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": "\tdefer server.Close()"
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": "\tt.Setenv(\"GITHUB_TOKEN\", \"wrong-token-value\")"
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": "\terr = runPostGitHub([]string{\"--findings\", writeFindings(t), \"--repo\", \"o/r\", \"--pr\", \"7\", \"--api-url\", server.URL}, io.Discard)"
+            },
+            {
+              "newLine": 184,
+              "kind": "added",
+              "text": "\tif err == nil || strings.Contains(err.Error(), \"wrong-token-value\") || !strings.Contains(err.Error(), \"401\") {"
+            },
+            {
+              "newLine": 185,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"err=%v\", err)"
+            },
+            {
+              "newLine": 186,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "func TestPostGitHubDryRunCallsNothing(t *testing.T) {"
+            },
+            {
+              "newLine": 190,
+              "kind": "added",
+              "text": "\tt.Setenv(\"GITHUB_TOKEN\", \"\")"
+            },
+            {
+              "newLine": 191,
+              "kind": "added",
+              "text": "\tvar out bytes.Buffer"
+            },
+            {
+              "newLine": 192,
+              "kind": "added",
+              "text": "\terr := runPostGitHub([]string{\"--findings\", writeFindings(t, finding(\"a.ts\", 2, \"T\")), \"--repo\", \"o/r\", \"--pr\", \"7\", \"--api-url\", \"http://127.0.0.1:1\", \"--dry-run\"}, \u0026out)"
+            },
+            {
+              "newLine": 193,
+              "kind": "added",
+              "text": "\tif err != nil || !strings.Contains(out.String(), \"Would post 1 inline\") {"
+            },
+            {
+              "newLine": 194,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"err=%v out=%s\", err, out.String())"
+            },
+            {
+              "newLine": 195,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 196,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 197,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 198,
+              "kind": "added",
+              "text": "func TestPostGitHubCapsInlineCommentsAndKeepsTheRest(t *testing.T) {"
+            },
+            {
+              "newLine": 199,
+              "kind": "added",
+              "text": "\tpatch := \"@@ -0,0 +1,40 @@\\n\" + strings.Repeat(\"+x\\n\", 40)"
+            },
+            {
+              "newLine": 200,
+              "kind": "added",
+              "text": "\tfake := \u0026fakeGitHub{issueBodies: map[int64]string{}, patches: map[string]string{\"a.ts\": patch}}"
+            },
+            {
+              "newLine": 201,
+              "kind": "added",
+              "text": "\tserver := httptest.NewServer(fake.handler())"
+            },
+            {
+              "newLine": 202,
+              "kind": "added",
+              "text": "\tdefer server.Close()"
+            },
+            {
+              "newLine": 203,
+              "kind": "added",
+              "text": "\tvar list []map[string]any"
+            },
+            {
+              "newLine": 204,
+              "kind": "added",
+              "text": "\tfor i := 1; i \u003c= 25; i++ {"
+            },
+            {
+              "newLine": 205,
+              "kind": "added",
+              "text": "\t\tlist = append(list, finding(\"a.ts\", i, \"Issue \"+strings.Repeat(\"x\", i)))"
+            },
+            {
+              "newLine": 206,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 207,
+              "kind": "added",
+              "text": "\tif _, err := runPost(t, server, writeFindings(t, list...)); err != nil {"
+            },
+            {
+              "newLine": 208,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 209,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 210,
+              "kind": "added",
+              "text": "\tif got := len(fake.reviews[0][\"comments\"].([]any)); got != maxInlineFindings {"
+            },
+            {
+              "newLine": 211,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"inline=%d\", got)"
+            },
+            {
+              "newLine": 212,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 213,
+              "kind": "added",
+              "text": "\tif !strings.Contains(fake.issueBodies[1], \"25 verified finding(s)\") {"
+            },
+            {
+              "newLine": 214,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"summary dropped findings:\\n%s\", fake.issueBodies[1])"
+            },
+            {
+              "newLine": 215,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 216,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-3168aca71c29ce0d",
+      "title": "Review changes",
+      "summary": "7 related files share the \"review\" change signal.",
+      "paths": [
+        "ROADMAP.md",
+        "agentic-action/action.yml",
+        "docs/AGENTIC_CI.md",
+        "examples/px1-agentic-review.yml",
+        "main.go",
+        "post_github.go",
+        "post_github_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-6aaaaaa4fecf773d",
+      "path": "post_github.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "post_github_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 7,
+    "filesAnalyzed": 7,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "action-review-and-post",
+      "path": "agentic-action/action.yml",
+      "lineStart": 41,
+      "lineEnd": 88,
+      "title": "Runs the reviewer and optionally publishes its findings",
+      "summary": "The action runs the reviewer against the pull request’s base and head, using the configured model, prices, cost cap, and exclusions. It requires an OpenAI key; with `post: true` it publishes findings, while `post: false` leaves the result in the job summary."
+    },
+    {
+      "id": "ci-trigger-and-scope",
+      "path": "examples/px1-agentic-review.yml",
+      "lineStart": 4,
+      "lineEnd": 25,
+      "title": "Adds a non-blocking, same-repository PR review workflow",
+      "summary": "After this workflow is added to a repository, it reviews non-draft pull requests from branches in that same repository on open, push, reopen, and ready-for-review events. Fork pull requests are skipped, and a newer run cancels an older one for the same pull request; review failures do not block merging."
+    },
+    {
+      "id": "github-commenting",
+      "path": "post_github.go",
+      "lineStart": 140,
+      "lineEnd": 220,
+      "title": "Publishes inline findings and retains the rest in a summary",
+      "summary": "The new command puts findings on changed lines into inline review comments, up to 20 per run. Other findings remain in the summary, and inline findings already posted on an earlier push are not posted again."
+    },
+    {
+      "id": "sticky-summary-and-empty-result",
+      "path": "post_github.go",
+      "lineStart": 265,
+      "lineEnd": 356,
+      "title": "Keeps one summary comment and qualifies empty results",
+      "summary": "The summary comment is identified by a marker and updated on later runs instead of duplicated. When there are no verified findings, it says so without implying the change is correct."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "45b057b1c0c5148072fef7ca7e40c0c02122ebb0",
+      "revision": "d07106444c28a2207e009d66e8265b54999f8dff",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "45b057b1c0c5148072fef7ca7e40c0c02122ebb0",
+      "revision": "d07106444c28a2207e009d66e8265b54999f8dff",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "d07106444c28a2207e009d66e8265b54999f8dff",
+      "detail": "4 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "d07106444c28a2207e009d66e8265b54999f8dff",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "d07106444c28a2207e009d66e8265b54999f8dff",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42793231101",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42793231101/job/129751854539",
+        "startedAt": "2026-11-10T09:44:53Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42793234455/job/129751731869",
+        "startedAt": "2026-11-10T09:44:34Z"
+      }
+    ]
+  }
+}
