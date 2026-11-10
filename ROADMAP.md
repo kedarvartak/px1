@@ -223,6 +223,10 @@ backend-foundation tasks are:
     previews what leaves the machine, requires consent, enforces a cost cap,
     blocks secrets and excluded paths, and writes a report, trace, and feedback
     sheet.
+91. [ ] **Run the review in CI and comment on the pull request.**
+    `px1 post-github` posts a sticky summary and inline comments; the
+    `agentic-action` and an example workflow run it per pull request. A
+    large-pull-request fallback and a provider retry follow.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,
@@ -325,4 +329,3 @@ are no longer active roadmap work.
 - Prefer evidence visible in the diff over opaque scores.
 - Put a tenant identifier on every hosted data row and test isolation.
 - Never execute pull-request code during review or indexing.
-- [ ] 91. Agentic review in CI: `post-github` (sticky summary + inline comments), `agentic-action`, example workflow. Large-PR fallback and provider retry follow.
