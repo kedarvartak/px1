@@ -1,0 +1,3348 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "b3df9c6b831652fe34bc145cda121c37849503a8",
+  "head": "23ace0f6a5ebf7799275a23ea0ae1f6620ae388b",
+  "generatedAt": "2026-11-10T18:48:22.453118097Z",
+  "files": [
+    {
+      "path": "README.md",
+      "status": "M",
+      "diff": "diff --git a/README.md b/README.md\nindex 9bc943b..1c6c122 100644\n--- a/README.md\n+++ b/README.md\n@@ -246,6 +246,7 @@ The product boundary and next work are documented in\n Every documentation page is listed in [docs/README.md](docs/README.md). Run\n `go run . docs check` after changing a page, and `go run . docs gen` after\n adding one or editing its front matter.\n+`go run . docs site --out ./docs-site` renders them as a website.\n \n ## License\n \n",
+      "hunks": [
+        {
+          "id": "diff-fb79647d6b3a13b3",
+          "header": "@@ -246,6 +246,7 @@ The product boundary and next work are documented in",
+          "lines": [
+            {
+              "oldLine": 246,
+              "newLine": 246,
+              "kind": "context",
+              "text": "Every documentation page is listed in [docs/README.md](docs/README.md). Run"
+            },
+            {
+              "oldLine": 247,
+              "newLine": 247,
+              "kind": "context",
+              "text": "`go run . docs check` after changing a page, and `go run . docs gen` after"
+            },
+            {
+              "oldLine": 248,
+              "newLine": 248,
+              "kind": "context",
+              "text": "adding one or editing its front matter."
+            },
+            {
+              "newLine": 249,
+              "kind": "added",
+              "text": "`go run . docs site --out ./docs-site` renders them as a website."
+            },
+            {
+              "oldLine": 249,
+              "newLine": 250,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 250,
+              "newLine": 251,
+              "kind": "context",
+              "text": "## License"
+            },
+            {
+              "oldLine": 251,
+              "newLine": 252,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/ROADMAP.md b/ROADMAP.md\nindex 688f100..06fbb54 100644\n--- a/ROADMAP.md\n+++ b/ROADMAP.md\n@@ -238,6 +238,9 @@ backend-foundation tasks are:\n 94. [x] **Generate the reference documentation from code.** `px1 docs gen`\n     reads the CLI flags, action inputs, finding schema and agent tools from\n     source, without running it, and the tests fail when a page is out of date.\n+95. [x] **Render the documentation as a website.** `px1 docs site` builds a\n+    static site from the pages: sidebar, search, status, outline, the code\n+    each page covers, and a copy of the Markdown.\n \n The v1 review pipeline, indexing, report hosting, evaluation, and launch gates\n follow these foundations. AI findings must remain auditable: evidence,\n",
+      "hunks": [
+        {
+          "id": "diff-7dbe18165c256afb",
+          "header": "@@ -238,6 +238,9 @@ backend-foundation tasks are:",
+          "lines": [
+            {
+              "oldLine": 238,
+              "newLine": 238,
+              "kind": "context",
+              "text": "94. [x] **Generate the reference documentation from code.** `px1 docs gen`"
+            },
+            {
+              "oldLine": 239,
+              "newLine": 239,
+              "kind": "context",
+              "text": "    reads the CLI flags, action inputs, finding schema and agent tools from"
+            },
+            {
+              "oldLine": 240,
+              "newLine": 240,
+              "kind": "context",
+              "text": "    source, without running it, and the tests fail when a page is out of date."
+            },
+            {
+              "newLine": 241,
+              "kind": "added",
+              "text": "95. [x] **Render the documentation as a website.** `px1 docs site` builds a"
+            },
+            {
+              "newLine": 242,
+              "kind": "added",
+              "text": "    static site from the pages: sidebar, search, status, outline, the code"
+            },
+            {
+              "newLine": 243,
+              "kind": "added",
+              "text": "    each page covers, and a copy of the Markdown."
+            },
+            {
+              "oldLine": 241,
+              "newLine": 244,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 242,
+              "newLine": 245,
+              "kind": "context",
+              "text": "The v1 review pipeline, indexing, report hosting, evaluation, and launch gates"
+            },
+            {
+              "oldLine": 243,
+              "newLine": 246,
+              "kind": "context",
+              "text": "follow these foundations. AI findings must remain auditable: evidence,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/CLI_REFERENCE.md",
+      "status": "M",
+      "diff": "diff --git a/docs/CLI_REFERENCE.md b/docs/CLI_REFERENCE.md\nindex 7a0ba6c..b18cfb0 100644\n--- a/docs/CLI_REFERENCE.md\n+++ b/docs/CLI_REFERENCE.md\n@@ -72,11 +72,14 @@ Reviews two commits of a local clone with the agentic pipeline and writes a comm\n \n ## px1 docs\n \n-Maintains the documentation under docs/. \"px1 docs gen\" writes the reference pages, the manifest and the index from the code and the pages; \"px1 docs check\" fails when they are out of date, a link is broken, or code has no page. It reads files only.\n+Maintains the documentation under docs/. \"px1 docs gen\" writes the reference pages, the manifest and the index from the code and the pages; \"px1 docs check\" fails when they are out of date, a link is broken, or code has no page; \"px1 docs site\" renders the pages as a static website. It reads repository files only and runs nothing from them.\n \n | Flag | Type | Default | Description |\n | --- | --- | --- | --- |\n | `--root` | string | `.` | repository root |\n+| `--out` | string |  | site: directory to write the site to; it must be empty or not exist (required) |\n+| `--source-url` | string |  | site: web address of the repository tree at one commit (on GitHub, the blob address); links to code point there |\n+| `--commit` | string |  | site: the commit the site is built from, shown on each page |\n \n ## px1 eval-compare\n \n",
+      "hunks": [
+        {
+          "id": "diff-846086344f9a8fce",
+          "header": "@@ -72,11 +72,14 @@ Reviews two commits of a local clone with the agentic pipeline and writes a comm",
+          "lines": [
+            {
+              "oldLine": 72,
+              "newLine": 72,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 73,
+              "newLine": 73,
+              "kind": "context",
+              "text": "## px1 docs"
+            },
+            {
+              "oldLine": 74,
+              "newLine": 74,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 75,
+              "kind": "removed",
+              "text": "Maintains the documentation under docs/. \"px1 docs gen\" writes the reference pages, the manifest and the index from the code and the pages; \"px1 docs check\" fails when they are out of date, a link is broken, or code has no page. It reads files only."
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "Maintains the documentation under docs/. \"px1 docs gen\" writes the reference pages, the manifest and the index from the code and the pages; \"px1 docs check\" fails when they are out of date, a link is broken, or code has no page; \"px1 docs site\" renders the pages as a static website. It reads repository files only and runs nothing from them."
+            },
+            {
+              "oldLine": 76,
+              "newLine": 76,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 77,
+              "newLine": 77,
+              "kind": "context",
+              "text": "| Flag | Type | Default | Description |"
+            },
+            {
+              "oldLine": 78,
+              "newLine": 78,
+              "kind": "context",
+              "text": "| --- | --- | --- | --- |"
+            },
+            {
+              "oldLine": 79,
+              "newLine": 79,
+              "kind": "context",
+              "text": "| `--root` | string | `.` | repository root |"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "| `--out` | string |  | site: directory to write the site to; it must be empty or not exist (required) |"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "| `--source-url` | string |  | site: web address of the repository tree at one commit (on GitHub, the blob address); links to code point there |"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "| `--commit` | string |  | site: the commit the site is built from, shown on each page |"
+            },
+            {
+              "oldLine": 80,
+              "newLine": 83,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 81,
+              "newLine": 84,
+              "kind": "context",
+              "text": "## px1 eval-compare"
+            },
+            {
+              "oldLine": 82,
+              "newLine": 85,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/DOCS_ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/docs/DOCS_ROADMAP.md b/docs/DOCS_ROADMAP.md\nindex 4776605..a52ad71 100644\n--- a/docs/DOCS_ROADMAP.md\n+++ b/docs/DOCS_ROADMAP.md\n@@ -123,3 +123,22 @@ between the markers is replaced. A new subcommand needs a doc comment on its\n \n The check runs in `go test ./...` (`docs_check_test.go`), so CI fails when a\n pull request adds a package or command without a page.\n+\n+## The site (phase 3)\n+\n+`px1 docs site --out DIR` renders the pages as a static website:\n+\n+- a sidebar of every page by section, with a dot for its status;\n+- search over titles, headings and text, in the browser, with no service;\n+- on each page: its status, whether it was verified or generated, an outline,\n+  and the code it covers, linked to the source when `--source-url` is given;\n+- `md/NAME.md`, the page's Markdown exactly as it is in the repository, linked\n+  from the page, and `manifest.json`.\n+\n+Links between pages become links within the site. Raw HTML inside a page is\n+dropped, so a page cannot inject script. The site has no build step and no\n+network dependency: fonts and scripts are files in the output, and every page\n+works with JavaScript off (only search and the theme switch need it).\n+\n+Not built yet: publishing the site on Pages with a preview per pull request,\n+and the \"changed in this pull request\" view, which needs phase 4.\n",
+      "hunks": [
+        {
+          "id": "diff-b30c9873e72ebd64",
+          "header": "@@ -123,3 +123,22 @@ between the markers is replaced. A new subcommand needs a doc comment on its",
+          "lines": [
+            {
+              "oldLine": 123,
+              "newLine": 123,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 124,
+              "newLine": 124,
+              "kind": "context",
+              "text": "The check runs in `go test ./...` (`docs_check_test.go`), so CI fails when a"
+            },
+            {
+              "oldLine": 125,
+              "newLine": 125,
+              "kind": "context",
+              "text": "pull request adds a package or command without a page."
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "## The site (phase 3)"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "`px1 docs site --out DIR` renders the pages as a static website:"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "- a sidebar of every page by section, with a dot for its status;"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "- search over titles, headings and text, in the browser, with no service;"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "- on each page: its status, whether it was verified or generated, an outline,"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "  and the code it covers, linked to the source when `--source-url` is given;"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "- `md/NAME.md`, the page's Markdown exactly as it is in the repository, linked"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "  from the page, and `manifest.json`."
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "Links between pages become links within the site. Raw HTML inside a page is"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "dropped, so a page cannot inject script. The site has no build step and no"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "network dependency: fonts and scripts are files in the output, and every page"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "works with JavaScript off (only search and the theme switch need it)."
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "Not built yet: publishing the site on Pages with a preview per pull request,"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "and the \"changed in this pull request\" view, which needs phase 4."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs_check_test.go",
+      "status": "M",
+      "diff": "diff --git a/docs_check_test.go b/docs_check_test.go\nindex 9da8d4f..a3df091 100644\n--- a/docs_check_test.go\n+++ b/docs_check_test.go\n@@ -2,6 +2,8 @@ package main\n \n import (\n \t\"bytes\"\n+\t\"os\"\n+\t\"path/filepath\"\n \t\"strings\"\n \t\"testing\"\n \n@@ -55,3 +57,21 @@ func TestEveryCommandHasASummary(t *testing.T) {\n \t\t}\n \t}\n }\n+\n+func TestDocsSiteCommandWritesTheSite(t *testing.T) {\n+\troot := t.TempDir()\n+\twriteExportTestFile(t, root, \"docs/PAGE.md\", \"---\\ntitle: A page\\nsection: guides\\nkind: narrative\\nstatus: shipped\\ncovers: []\\nverified_at:\\n---\\n\\n# A page\\n\")\n+\tout := filepath.Join(t.TempDir(), \"site\")\n+\tvar buf bytes.Buffer\n+\tif err := runDocs([]string{\"site\", \"--root\", root}, \u0026buf); err == nil || !strings.Contains(err.Error(), \"--out\") {\n+\t\tt.Fatalf(\"missing --out: %v\", err)\n+\t}\n+\tif err := runDocs([]string{\"site\", \"--root\", root, \"--out\", out}, \u0026buf); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tfor _, name := range []string{\"index.html\", \"PAGE.html\", \"fonts/plex-sans-var.woff2\"} {\n+\t\tif _, err := os.Stat(filepath.Join(out, filepath.FromSlash(name))); err != nil {\n+\t\t\tt.Error(err)\n+\t\t}\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-2cbae82984b58a21",
+          "header": "@@ -2,6 +2,8 @@ package main",
+          "lines": [
+            {
+              "oldLine": 2,
+              "newLine": 2,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 3,
+              "newLine": 3,
+              "kind": "context",
+              "text": "import ("
+            },
+            {
+              "oldLine": 4,
+              "newLine": 4,
+              "kind": "context",
+              "text": "\t\"bytes\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"path/filepath\""
+            },
+            {
+              "oldLine": 5,
+              "newLine": 7,
+              "kind": "context",
+              "text": "\t\"strings\""
+            },
+            {
+              "oldLine": 6,
+              "newLine": 8,
+              "kind": "context",
+              "text": "\t\"testing\""
+            },
+            {
+              "oldLine": 7,
+              "newLine": 9,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        },
+        {
+          "id": "diff-bb15095fa7b3e9e1",
+          "header": "@@ -55,3 +57,21 @@ func TestEveryCommandHasASummary(t *testing.T) {",
+          "lines": [
+            {
+              "oldLine": 55,
+              "newLine": 57,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 56,
+              "newLine": 58,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 57,
+              "newLine": 59,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "func TestDocsSiteCommandWritesTheSite(t *testing.T) {"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\troot := t.TempDir()"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\twriteExportTestFile(t, root, \"docs/PAGE.md\", \"---\\ntitle: A page\\nsection: guides\\nkind: narrative\\nstatus: shipped\\ncovers: []\\nverified_at:\\n---\\n\\n# A page\\n\")"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\tout := filepath.Join(t.TempDir(), \"site\")"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\tvar buf bytes.Buffer"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\tif err := runDocs([]string{\"site\", \"--root\", root}, \u0026buf); err == nil || !strings.Contains(err.Error(), \"--out\") {"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"missing --out: %v\", err)"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\tif err := runDocs([]string{\"site\", \"--root\", root, \"--out\", out}, \u0026buf); err != nil {"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\tfor _, name := range []string{\"index.html\", \"PAGE.html\", \"fonts/plex-sans-var.woff2\"} {"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\tif _, err := os.Stat(filepath.Join(out, filepath.FromSlash(name))); err != nil {"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t\t\tt.Error(err)"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs_cmd.go",
+      "status": "M",
+      "diff": "diff --git a/docs_cmd.go b/docs_cmd.go\nindex 9667c91..686c08e 100644\n--- a/docs_cmd.go\n+++ b/docs_cmd.go\n@@ -13,14 +13,18 @@ import (\n // runDocs maintains the documentation under docs/. \"px1 docs gen\" writes the\n // reference pages, the manifest and the index from the code and the pages;\n // \"px1 docs check\" fails when they are out of date, a link is broken, or code\n-// has no page. It reads files only.\n+// has no page; \"px1 docs site\" renders the pages as a static website. It reads\n+// repository files only and runs nothing from them.\n func runDocs(args []string, stdout io.Writer) error {\n \tif len(args) == 0 {\n-\t\treturn errors.New(\"usage: px1 docs \u003ccheck|gen\u003e [--root dir]\")\n+\t\treturn errors.New(\"usage: px1 docs \u003ccheck|gen|site\u003e [--root dir]\")\n \t}\n \tfs := flag.NewFlagSet(\"docs \"+args[0], flag.ContinueOnError)\n \tfs.SetOutput(os.Stderr)\n \troot := fs.String(\"root\", \".\", \"repository root\")\n+\tout := fs.String(\"out\", \"\", \"site: directory to write the site to; it must be empty or not exist (required)\")\n+\tsourceURL := fs.String(\"source-url\", \"\", \"site: web address of the repository tree at one commit (on GitHub, the blob address); links to code point there\")\n+\tcommit := fs.String(\"commit\", \"\", \"site: the commit the site is built from, shown on each page\")\n \tif err := fs.Parse(args[1:]); err != nil {\n \t\treturn err\n \t}\n@@ -50,6 +54,28 @@ func runDocs(args []string, stdout io.Writer) error {\n \t\t\tfmt.Fprintln(stdout, \"docs gen: up to date\")\n \t\t}\n \t\treturn nil\n+\tcase \"site\":\n+\t\tif *out == \"\" {\n+\t\t\treturn errors.New(\"docs site requires --out\")\n+\t\t}\n+\t\tfonts := map[string][]byte{}\n+\t\tentries, err := staticReportAssets.ReadDir(\"static_report/fonts\")\n+\t\tif err != nil {\n+\t\t\treturn err\n+\t\t}\n+\t\tfor _, entry := range entries {\n+\t\t\tdata, err := staticReportAssets.ReadFile(\"static_report/fonts/\" + entry.Name())\n+\t\t\tif err != nil {\n+\t\t\t\treturn err\n+\t\t\t}\n+\t\t\tfonts[entry.Name()] = data\n+\t\t}\n+\t\tn, err := docs.WriteSite(*root, *out, docs.SiteOptions{SourceURL: *sourceURL, Commit: *commit, Fonts: fonts})\n+\t\tif err != nil {\n+\t\t\treturn err\n+\t\t}\n+\t\tfmt.Fprintf(stdout, \"wrote %d files to %s\\n\", n, *out)\n+\t\treturn nil\n \t}\n-\treturn fmt.Errorf(\"unknown docs command %q: use check or gen\", args[0])\n+\treturn fmt.Errorf(\"unknown docs command %q: use check, gen or site\", args[0])\n }\n",
+      "hunks": [
+        {
+          "id": "diff-81be76c48b1e3fc5",
+          "header": "@@ -13,14 +13,18 @@ import (",
+          "lines": [
+            {
+              "oldLine": 13,
+              "newLine": 13,
+              "kind": "context",
+              "text": "// runDocs maintains the documentation under docs/. \"px1 docs gen\" writes the"
+            },
+            {
+              "oldLine": 14,
+              "newLine": 14,
+              "kind": "context",
+              "text": "// reference pages, the manifest and the index from the code and the pages;"
+            },
+            {
+              "oldLine": 15,
+              "newLine": 15,
+              "kind": "context",
+              "text": "// \"px1 docs check\" fails when they are out of date, a link is broken, or code"
+            },
+            {
+              "oldLine": 16,
+              "kind": "removed",
+              "text": "// has no page. It reads files only."
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "// has no page; \"px1 docs site\" renders the pages as a static website. It reads"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "// repository files only and runs nothing from them."
+            },
+            {
+              "oldLine": 17,
+              "newLine": 18,
+              "kind": "context",
+              "text": "func runDocs(args []string, stdout io.Writer) error {"
+            },
+            {
+              "oldLine": 18,
+              "newLine": 19,
+              "kind": "context",
+              "text": "\tif len(args) == 0 {"
+            },
+            {
+              "oldLine": 19,
+              "kind": "removed",
+              "text": "\t\treturn errors.New(\"usage: px1 docs \u003ccheck|gen\u003e [--root dir]\")"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"usage: px1 docs \u003ccheck|gen|site\u003e [--root dir]\")"
+            },
+            {
+              "oldLine": 20,
+              "newLine": 21,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 21,
+              "newLine": 22,
+              "kind": "context",
+              "text": "\tfs := flag.NewFlagSet(\"docs \"+args[0], flag.ContinueOnError)"
+            },
+            {
+              "oldLine": 22,
+              "newLine": 23,
+              "kind": "context",
+              "text": "\tfs.SetOutput(os.Stderr)"
+            },
+            {
+              "oldLine": 23,
+              "newLine": 24,
+              "kind": "context",
+              "text": "\troot := fs.String(\"root\", \".\", \"repository root\")"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tout := fs.String(\"out\", \"\", \"site: directory to write the site to; it must be empty or not exist (required)\")"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tsourceURL := fs.String(\"source-url\", \"\", \"site: web address of the repository tree at one commit (on GitHub, the blob address); links to code point there\")"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tcommit := fs.String(\"commit\", \"\", \"site: the commit the site is built from, shown on each page\")"
+            },
+            {
+              "oldLine": 24,
+              "newLine": 28,
+              "kind": "context",
+              "text": "\tif err := fs.Parse(args[1:]); err != nil {"
+            },
+            {
+              "oldLine": 25,
+              "newLine": 29,
+              "kind": "context",
+              "text": "\t\treturn err"
+            },
+            {
+              "oldLine": 26,
+              "newLine": 30,
+              "kind": "context",
+              "text": "\t}"
+            }
+          ]
+        },
+        {
+          "id": "diff-8b0b662de0319bae",
+          "header": "@@ -50,6 +54,28 @@ func runDocs(args []string, stdout io.Writer) error {",
+          "lines": [
+            {
+              "oldLine": 50,
+              "newLine": 54,
+              "kind": "context",
+              "text": "\t\t\tfmt.Fprintln(stdout, \"docs gen: up to date\")"
+            },
+            {
+              "oldLine": 51,
+              "newLine": 55,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 52,
+              "newLine": 56,
+              "kind": "context",
+              "text": "\t\treturn nil"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\tcase \"site\":"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t\tif *out == \"\" {"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t\t\treturn errors.New(\"docs site requires --out\")"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t\tfonts := map[string][]byte{}"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t\tentries, err := staticReportAssets.ReadDir(\"static_report/fonts\")"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t\t\treturn err"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\tfor _, entry := range entries {"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\t\tdata, err := staticReportAssets.ReadFile(\"static_report/fonts/\" + entry.Name())"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\t\tif err != nil {"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\t\t\treturn err"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\t\tfonts[entry.Name()] = data"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\tn, err := docs.WriteSite(*root, *out, docs.SiteOptions{SourceURL: *sourceURL, Commit: *commit, Fonts: fonts})"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\t\t\treturn err"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t\tfmt.Fprintf(stdout, \"wrote %d files to %s\\n\", n, *out)"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t\treturn nil"
+            },
+            {
+              "oldLine": 53,
+              "newLine": 79,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 54,
+              "kind": "removed",
+              "text": "\treturn fmt.Errorf(\"unknown docs command %q: use check or gen\", args[0])"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\treturn fmt.Errorf(\"unknown docs command %q: use check, gen or site\", args[0])"
+            },
+            {
+              "oldLine": 55,
+              "newLine": 81,
+              "kind": "context",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "go.mod",
+      "status": "M",
+      "diff": "diff --git a/go.mod b/go.mod\nindex f7fbc93..e448b5f 100644\n--- a/go.mod\n+++ b/go.mod\n@@ -17,6 +17,7 @@ require (\n \tgithub.com/tree-sitter/tree-sitter-ruby v0.23.1\n \tgithub.com/tree-sitter/tree-sitter-rust v0.24.2\n \tgithub.com/tree-sitter/tree-sitter-typescript v0.23.2\n+\tgithub.com/yuin/goldmark v1.7.8\n \tgo.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.63.0\n \tgo.opentelemetry.io/otel v1.38.0\n \tgo.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.38.0\n",
+      "hunks": [
+        {
+          "id": "diff-41ea7751b5b544e3",
+          "header": "@@ -17,6 +17,7 @@ require (",
+          "lines": [
+            {
+              "oldLine": 17,
+              "newLine": 17,
+              "kind": "context",
+              "text": "\tgithub.com/tree-sitter/tree-sitter-ruby v0.23.1"
+            },
+            {
+              "oldLine": 18,
+              "newLine": 18,
+              "kind": "context",
+              "text": "\tgithub.com/tree-sitter/tree-sitter-rust v0.24.2"
+            },
+            {
+              "oldLine": 19,
+              "newLine": 19,
+              "kind": "context",
+              "text": "\tgithub.com/tree-sitter/tree-sitter-typescript v0.23.2"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tgithub.com/yuin/goldmark v1.7.8"
+            },
+            {
+              "oldLine": 20,
+              "newLine": 21,
+              "kind": "context",
+              "text": "\tgo.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.63.0"
+            },
+            {
+              "oldLine": 21,
+              "newLine": 22,
+              "kind": "context",
+              "text": "\tgo.opentelemetry.io/otel v1.38.0"
+            },
+            {
+              "oldLine": 22,
+              "newLine": 23,
+              "kind": "context",
+              "text": "\tgo.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.38.0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "go.sum",
+      "status": "M",
+      "diff": "diff --git a/go.sum b/go.sum\nindex 488bd96..53a673c 100644\n--- a/go.sum\n+++ b/go.sum\n@@ -73,6 +73,8 @@ github.com/tree-sitter/tree-sitter-typescript v0.23.2 h1:/Odvphn18PniVixb9e97X0D\n github.com/tree-sitter/tree-sitter-typescript v0.23.2/go.mod h1:zjzMXT/Ulffel2xfOcAkQQkiAkmgnbtPGlFQw/5X4xA=\n github.com/yosida95/uritemplate/v3 v3.0.2 h1:Ed3Oyj9yrmi9087+NczuL5BwkIc4wvTb5zIM+UJPGz4=\n github.com/yosida95/uritemplate/v3 v3.0.2/go.mod h1:ILOh0sOhIJR3+L/8afwt/kE++YT040gmv5BQTMR2HP4=\n+github.com/yuin/goldmark v1.7.8 h1:iERMLn0/QJeHFhxSt3p6PeN9mGnvIKSpG9YYorDMnic=\n+github.com/yuin/goldmark v1.7.8/go.mod h1:uzxRWxtg69N339t3louHJ7+O03ezfj6PlliRlaOzY1E=\n go.opentelemetry.io/auto/sdk v1.1.0 h1:cH53jehLUN6UFLY71z+NDOiNJqDdPRaXzTel0sJySYA=\n go.opentelemetry.io/auto/sdk v1.1.0/go.mod h1:3wSPjt5PWp2RhlCcmmOial7AvC4DQqZb7a7wCow3W8A=\n go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.63.0 h1:RbKq8BG0FI8OiXhBfcRtqqHcZcka+gU3cskNuf05R18=\n",
+      "hunks": [
+        {
+          "id": "diff-4c4ad797771564d0",
+          "header": "@@ -73,6 +73,8 @@ github.com/tree-sitter/tree-sitter-typescript v0.23.2 h1:/Odvphn18PniVixb9e97X0D",
+          "lines": [
+            {
+              "oldLine": 73,
+              "newLine": 73,
+              "kind": "context",
+              "text": "github.com/tree-sitter/tree-sitter-typescript v0.23.2/go.mod h1:zjzMXT/Ulffel2xfOcAkQQkiAkmgnbtPGlFQw/5X4xA="
+            },
+            {
+              "oldLine": 74,
+              "newLine": 74,
+              "kind": "context",
+              "text": "github.com/yosida95/uritemplate/v3 v3.0.2 h1:Ed3Oyj9yrmi9087+NczuL5BwkIc4wvTb5zIM+UJPGz4="
+            },
+            {
+              "oldLine": 75,
+              "newLine": 75,
+              "kind": "context",
+              "text": "github.com/yosida95/uritemplate/v3 v3.0.2/go.mod h1:ILOh0sOhIJR3+L/8afwt/kE++YT040gmv5BQTMR2HP4="
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "github.com/yuin/goldmark v1.7.8 h1:iERMLn0/QJeHFhxSt3p6PeN9mGnvIKSpG9YYorDMnic="
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "github.com/yuin/goldmark v1.7.8/go.mod h1:uzxRWxtg69N339t3louHJ7+O03ezfj6PlliRlaOzY1E="
+            },
+            {
+              "oldLine": 76,
+              "newLine": 78,
+              "kind": "context",
+              "text": "go.opentelemetry.io/auto/sdk v1.1.0 h1:cH53jehLUN6UFLY71z+NDOiNJqDdPRaXzTel0sJySYA="
+            },
+            {
+              "oldLine": 77,
+              "newLine": 79,
+              "kind": "context",
+              "text": "go.opentelemetry.io/auto/sdk v1.1.0/go.mod h1:3wSPjt5PWp2RhlCcmmOial7AvC4DQqZb7a7wCow3W8A="
+            },
+            {
+              "oldLine": 78,
+              "newLine": 80,
+              "kind": "context",
+              "text": "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.63.0 h1:RbKq8BG0FI8OiXhBfcRtqqHcZcka+gU3cskNuf05R18="
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/docs/docs_test.go",
+      "status": "M",
+      "diff": "diff --git a/internal/docs/docs_test.go b/internal/docs/docs_test.go\nindex 9491029..894dc71 100644\n--- a/internal/docs/docs_test.go\n+++ b/internal/docs/docs_test.go\n@@ -1,6 +1,7 @@\n package docs\n \n import (\n+\t\"encoding/json\"\n \t\"os\"\n \t\"path/filepath\"\n \t\"strings\"\n@@ -225,6 +226,7 @@ func TestConfigRejectsUnknownKeys(t *testing.T) {\n const mainSource = `package main\n \n import (\n+\t\"encoding/json\"\n \t\"flag\"\n \t\"os\"\n )\n@@ -437,3 +439,77 @@ func TestReferenceFillsRegionsAndCheckCatchesDrift(t *testing.T) {\n \t\tt.Fatalf(\"err = %v\", err)\n \t}\n }\n+\n+func TestBuildSite(t *testing.T) {\n+\troot := repo(t)\n+\twrite(t, root, \"ROADMAP.md\", \"# Roadmap\\n\")\n+\twrite(t, root, \"docs/PAGE.md\", goodFront+\"\\n# A page\\n\\nSee [other](OTHER.md#part), [the index](README.md), [the roadmap](../ROADMAP.md) and [a site](https://example.com).\\n\\n## First part\\n\\n| A | B |\\n| --- | --- |\\n| 1 | `x` |\\n\\n\u003cscript\u003ealert(1)\u003c/script\u003e\\n\\n## Second \u003cpart\u003e\\n\")\n+\tif _, err := WriteGenerated(root); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tfiles, err := BuildSite(root, SiteOptions{SourceURL: \"https://example.com/repo/blob/abc/\", Commit: \"abc1234\", Fonts: map[string][]byte{\"plex-mono-500.woff2\": []byte(\"font\")}})\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tfor _, name := range []string{\"index.html\", \"PAGE.html\", \"OTHER.html\", \"md/PAGE.md\", \"docs.css\", \"docs.js\", \"search.json\", \"manifest.json\", \"fonts/plex-mono-500.woff2\"} {\n+\t\tif _, ok := files[name]; !ok {\n+\t\t\tt.Errorf(\"missing %s\", name)\n+\t\t}\n+\t}\n+\tpage := string(files[\"PAGE.html\"])\n+\tfor _, want := range []string{\n+\t\t`\u003ctitle\u003eA page · px1 docs\u003c/title\u003e`,\n+\t\t`href=\"OTHER.html#part\"`,\n+\t\t`href=\"index.html\"\u003ethe index`,\n+\t\t`href=\"https://example.com/repo/blob/abc/ROADMAP.md\"`,\n+\t\t`href=\"https://example.com\"`,\n+\t\t`\u003cdiv class=\"table\"\u003e\u003ctable\u003e`,\n+\t\t`\u003cspan class=\"chip shipped\"\u003eshipped\u003c/span\u003e`,\n+\t\t`Not yet verified against the code`,\n+\t\t`\u003ca href=\"#first-part\"\u003eFirst part\u003c/a\u003e`,\n+\t\t`\u003ca href=\"https://example.com/repo/blob/abc/pkg/\"\u003e\u003ccode\u003epkg/\u003c/code\u003e\u003c/a\u003e`,\n+\t\t`aria-current=\"page\"`,\n+\t\t`Built from \u003ccode\u003eabc1234\u003c/code\u003e`,\n+\t\t`font-family:'Report Mono'`,\n+\t} {\n+\t\tif !strings.Contains(page, want) {\n+\t\t\tt.Errorf(\"want %q in page\", want)\n+\t\t}\n+\t}\n+\tif strings.Contains(page, \"alert(1)\") {\n+\t\tt.Error(\"raw HTML from a page reached the site\")\n+\t}\n+\tif !strings.HasPrefix(string(files[\"md/PAGE.md\"]), \"---\\ntitle: A page\\n\") {\n+\t\tt.Error(\"the Markdown copy lost its front matter\")\n+\t}\n+\tvar index []searchEntry\n+\tif err := json.Unmarshal(files[\"search.json\"], \u0026index); err != nil || len(index) != 2 {\n+\t\tt.Fatalf(\"search index: %v %+v\", err, index)\n+\t}\n+\tif index[1].URL != \"PAGE.html\" || len(index[1].Headings) != 2 || index[1].Headings[0] != \"First part\" || !strings.Contains(index[1].Text, \"See other\") {\n+\t\tt.Errorf(\"search entry = %+v\", index[1])\n+\t}\n+\thome := string(files[\"index.html\"])\n+\tif !strings.Contains(home, `\u003ca href=\"PAGE.html\"\u003e`) || strings.Contains(home, \"aria-current\") {\n+\t\tt.Errorf(\"home page links are wrong\")\n+\t}\n+}\n+\n+func TestWriteSiteRefusesANonEmptyDirectoryAndBadPages(t *testing.T) {\n+\troot := repo(t)\n+\tout := filepath.Join(t.TempDir(), \"site\")\n+\tn, err := WriteSite(root, out, SiteOptions{})\n+\tif err != nil || n \u003c 6 {\n+\t\tt.Fatalf(\"n=%d err=%v\", n, err)\n+\t}\n+\tif _, err := os.Stat(filepath.Join(out, \"md\", \"PAGE.md\")); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif _, err := WriteSite(root, out, SiteOptions{}); err == nil || !strings.Contains(err.Error(), \"not empty\") {\n+\t\tt.Fatalf(\"second write: %v\", err)\n+\t}\n+\twrite(t, root, \"docs/BAD.md\", \"# no front matter\\n\")\n+\tif _, err := WriteSite(root, filepath.Join(t.TempDir(), \"x\"), SiteOptions{}); err == nil || !strings.Contains(err.Error(), \"docs/BAD.md\") {\n+\t\tt.Fatalf(\"bad page: %v\", err)\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-1e0d241c4022d661",
+          "header": "@@ -1,6 +1,7 @@",
+          "lines": [
+            {
+              "oldLine": 1,
+              "newLine": 1,
+              "kind": "context",
+              "text": "package docs"
+            },
+            {
+              "oldLine": 2,
+              "newLine": 2,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 3,
+              "newLine": 3,
+              "kind": "context",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "oldLine": 4,
+              "newLine": 5,
+              "kind": "context",
+              "text": "\t\"os\""
+            },
+            {
+              "oldLine": 5,
+              "newLine": 6,
+              "kind": "context",
+              "text": "\t\"path/filepath\""
+            },
+            {
+              "oldLine": 6,
+              "newLine": 7,
+              "kind": "context",
+              "text": "\t\"strings\""
+            }
+          ]
+        },
+        {
+          "id": "diff-ebc1a5a4b6ead44f",
+          "header": "@@ -225,6 +226,7 @@ func TestConfigRejectsUnknownKeys(t *testing.T) {",
+          "lines": [
+            {
+              "oldLine": 225,
+              "newLine": 226,
+              "kind": "context",
+              "text": "const mainSource = `package main"
+            },
+            {
+              "oldLine": 226,
+              "newLine": 227,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 227,
+              "newLine": 228,
+              "kind": "context",
+              "text": "import ("
+            },
+            {
+              "newLine": 229,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "oldLine": 228,
+              "newLine": 230,
+              "kind": "context",
+              "text": "\t\"flag\""
+            },
+            {
+              "oldLine": 229,
+              "newLine": 231,
+              "kind": "context",
+              "text": "\t\"os\""
+            },
+            {
+              "oldLine": 230,
+              "newLine": 232,
+              "kind": "context",
+              "text": ")"
+            }
+          ]
+        },
+        {
+          "id": "diff-699fea59e875cb90",
+          "header": "@@ -437,3 +439,77 @@ func TestReferenceFillsRegionsAndCheckCatchesDrift(t *testing.T) {",
+          "lines": [
+            {
+              "oldLine": 437,
+              "newLine": 439,
+              "kind": "context",
+              "text": "\t\tt.Fatalf(\"err = %v\", err)"
+            },
+            {
+              "oldLine": 438,
+              "newLine": 440,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 439,
+              "newLine": 441,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "newLine": 442,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 443,
+              "kind": "added",
+              "text": "func TestBuildSite(t *testing.T) {"
+            },
+            {
+              "newLine": 444,
+              "kind": "added",
+              "text": "\troot := repo(t)"
+            },
+            {
+              "newLine": 445,
+              "kind": "added",
+              "text": "\twrite(t, root, \"ROADMAP.md\", \"# Roadmap\\n\")"
+            },
+            {
+              "newLine": 446,
+              "kind": "added",
+              "text": "\twrite(t, root, \"docs/PAGE.md\", goodFront+\"\\n# A page\\n\\nSee [other](OTHER.md#part), [the index](README.md), [the roadmap](../ROADMAP.md) and [a site](https://example.com).\\n\\n## First part\\n\\n| A | B |\\n| --- | --- |\\n| 1 | `x` |\\n\\n\u003cscript\u003ealert(1)\u003c/script\u003e\\n\\n## Second \u003cpart\u003e\\n\")"
+            },
+            {
+              "newLine": 447,
+              "kind": "added",
+              "text": "\tif _, err := WriteGenerated(root); err != nil {"
+            },
+            {
+              "newLine": 448,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 449,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 450,
+              "kind": "added",
+              "text": "\tfiles, err := BuildSite(root, SiteOptions{SourceURL: \"https://example.com/repo/blob/abc/\", Commit: \"abc1234\", Fonts: map[string][]byte{\"plex-mono-500.woff2\": []byte(\"font\")}})"
+            },
+            {
+              "newLine": 451,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 452,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 453,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 454,
+              "kind": "added",
+              "text": "\tfor _, name := range []string{\"index.html\", \"PAGE.html\", \"OTHER.html\", \"md/PAGE.md\", \"docs.css\", \"docs.js\", \"search.json\", \"manifest.json\", \"fonts/plex-mono-500.woff2\"} {"
+            },
+            {
+              "newLine": 455,
+              "kind": "added",
+              "text": "\t\tif _, ok := files[name]; !ok {"
+            },
+            {
+              "newLine": 456,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"missing %s\", name)"
+            },
+            {
+              "newLine": 457,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 458,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 459,
+              "kind": "added",
+              "text": "\tpage := string(files[\"PAGE.html\"])"
+            },
+            {
+              "newLine": 460,
+              "kind": "added",
+              "text": "\tfor _, want := range []string{"
+            },
+            {
+              "newLine": 461,
+              "kind": "added",
+              "text": "\t\t`\u003ctitle\u003eA page · px1 docs\u003c/title\u003e`,"
+            },
+            {
+              "newLine": 462,
+              "kind": "added",
+              "text": "\t\t`href=\"OTHER.html#part\"`,"
+            },
+            {
+              "newLine": 463,
+              "kind": "added",
+              "text": "\t\t`href=\"index.html\"\u003ethe index`,"
+            },
+            {
+              "newLine": 464,
+              "kind": "added",
+              "text": "\t\t`href=\"https://example.com/repo/blob/abc/ROADMAP.md\"`,"
+            },
+            {
+              "newLine": 465,
+              "kind": "added",
+              "text": "\t\t`href=\"https://example.com\"`,"
+            },
+            {
+              "newLine": 466,
+              "kind": "added",
+              "text": "\t\t`\u003cdiv class=\"table\"\u003e\u003ctable\u003e`,"
+            },
+            {
+              "newLine": 467,
+              "kind": "added",
+              "text": "\t\t`\u003cspan class=\"chip shipped\"\u003eshipped\u003c/span\u003e`,"
+            },
+            {
+              "newLine": 468,
+              "kind": "added",
+              "text": "\t\t`Not yet verified against the code`,"
+            },
+            {
+              "newLine": 469,
+              "kind": "added",
+              "text": "\t\t`\u003ca href=\"#first-part\"\u003eFirst part\u003c/a\u003e`,"
+            },
+            {
+              "newLine": 470,
+              "kind": "added",
+              "text": "\t\t`\u003ca href=\"https://example.com/repo/blob/abc/pkg/\"\u003e\u003ccode\u003epkg/\u003c/code\u003e\u003c/a\u003e`,"
+            },
+            {
+              "newLine": 471,
+              "kind": "added",
+              "text": "\t\t`aria-current=\"page\"`,"
+            },
+            {
+              "newLine": 472,
+              "kind": "added",
+              "text": "\t\t`Built from \u003ccode\u003eabc1234\u003c/code\u003e`,"
+            },
+            {
+              "newLine": 473,
+              "kind": "added",
+              "text": "\t\t`font-family:'Report Mono'`,"
+            },
+            {
+              "newLine": 474,
+              "kind": "added",
+              "text": "\t} {"
+            },
+            {
+              "newLine": 475,
+              "kind": "added",
+              "text": "\t\tif !strings.Contains(page, want) {"
+            },
+            {
+              "newLine": 476,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"want %q in page\", want)"
+            },
+            {
+              "newLine": 477,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 478,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 479,
+              "kind": "added",
+              "text": "\tif strings.Contains(page, \"alert(1)\") {"
+            },
+            {
+              "newLine": 480,
+              "kind": "added",
+              "text": "\t\tt.Error(\"raw HTML from a page reached the site\")"
+            },
+            {
+              "newLine": 481,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 482,
+              "kind": "added",
+              "text": "\tif !strings.HasPrefix(string(files[\"md/PAGE.md\"]), \"---\\ntitle: A page\\n\") {"
+            },
+            {
+              "newLine": 483,
+              "kind": "added",
+              "text": "\t\tt.Error(\"the Markdown copy lost its front matter\")"
+            },
+            {
+              "newLine": 484,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 485,
+              "kind": "added",
+              "text": "\tvar index []searchEntry"
+            },
+            {
+              "newLine": 486,
+              "kind": "added",
+              "text": "\tif err := json.Unmarshal(files[\"search.json\"], \u0026index); err != nil || len(index) != 2 {"
+            },
+            {
+              "newLine": 487,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"search index: %v %+v\", err, index)"
+            },
+            {
+              "newLine": 488,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 489,
+              "kind": "added",
+              "text": "\tif index[1].URL != \"PAGE.html\" || len(index[1].Headings) != 2 || index[1].Headings[0] != \"First part\" || !strings.Contains(index[1].Text, \"See other\") {"
+            },
+            {
+              "newLine": 490,
+              "kind": "added",
+              "text": "\t\tt.Errorf(\"search entry = %+v\", index[1])"
+            },
+            {
+              "newLine": 491,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 492,
+              "kind": "added",
+              "text": "\thome := string(files[\"index.html\"])"
+            },
+            {
+              "newLine": 493,
+              "kind": "added",
+              "text": "\tif !strings.Contains(home, `\u003ca href=\"PAGE.html\"\u003e`) || strings.Contains(home, \"aria-current\") {"
+            },
+            {
+              "newLine": 494,
+              "kind": "added",
+              "text": "\t\tt.Errorf(\"home page links are wrong\")"
+            },
+            {
+              "newLine": 495,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 496,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 497,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 498,
+              "kind": "added",
+              "text": "func TestWriteSiteRefusesANonEmptyDirectoryAndBadPages(t *testing.T) {"
+            },
+            {
+              "newLine": 499,
+              "kind": "added",
+              "text": "\troot := repo(t)"
+            },
+            {
+              "newLine": 500,
+              "kind": "added",
+              "text": "\tout := filepath.Join(t.TempDir(), \"site\")"
+            },
+            {
+              "newLine": 501,
+              "kind": "added",
+              "text": "\tn, err := WriteSite(root, out, SiteOptions{})"
+            },
+            {
+              "newLine": 502,
+              "kind": "added",
+              "text": "\tif err != nil || n \u003c 6 {"
+            },
+            {
+              "newLine": 503,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"n=%d err=%v\", n, err)"
+            },
+            {
+              "newLine": 504,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 505,
+              "kind": "added",
+              "text": "\tif _, err := os.Stat(filepath.Join(out, \"md\", \"PAGE.md\")); err != nil {"
+            },
+            {
+              "newLine": 506,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 507,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 508,
+              "kind": "added",
+              "text": "\tif _, err := WriteSite(root, out, SiteOptions{}); err == nil || !strings.Contains(err.Error(), \"not empty\") {"
+            },
+            {
+              "newLine": 509,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"second write: %v\", err)"
+            },
+            {
+              "newLine": 510,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 511,
+              "kind": "added",
+              "text": "\twrite(t, root, \"docs/BAD.md\", \"# no front matter\\n\")"
+            },
+            {
+              "newLine": 512,
+              "kind": "added",
+              "text": "\tif _, err := WriteSite(root, filepath.Join(t.TempDir(), \"x\"), SiteOptions{}); err == nil || !strings.Contains(err.Error(), \"docs/BAD.md\") {"
+            },
+            {
+              "newLine": 513,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"bad page: %v\", err)"
+            },
+            {
+              "newLine": 514,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 515,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/docs/site.go",
+      "status": "A",
+      "diff": "diff --git a/internal/docs/site.go b/internal/docs/site.go\nnew file mode 100644\nindex 0000000..f37bb72\n--- /dev/null\n+++ b/internal/docs/site.go\n@@ -0,0 +1,349 @@\n+package docs\n+\n+import (\n+\t\"bytes\"\n+\t\"embed\"\n+\t\"encoding/json\"\n+\t\"fmt\"\n+\t\"html\"\n+\t\"html/template\"\n+\t\"os\"\n+\t\"path\"\n+\t\"path/filepath\"\n+\t\"regexp\"\n+\t\"sort\"\n+\t\"strings\"\n+\n+\t\"github.com/yuin/goldmark\"\n+\t\"github.com/yuin/goldmark/extension\"\n+\t\"github.com/yuin/goldmark/parser\"\n+)\n+\n+//go:embed site/docs.css site/docs.js\n+var siteAssets embed.FS\n+\n+// SiteOptions configures the static documentation site.\n+type SiteOptions struct {\n+\t// SourceURL is the web address of the repository tree the pages were\n+\t// built from, such as https://github.com/owner/name/blob/\u003ccommit\u003e. Links\n+\t// to files outside docs/ point there. Empty leaves them unlinked.\n+\tSourceURL string\n+\t// Commit is the commit the site was built from, shown in the footer.\n+\tCommit string\n+\t// Fonts are woff2 files by name, written under fonts/. The stylesheet\n+\t// falls back to system fonts without them.\n+\tFonts map[string][]byte\n+}\n+\n+type navSection struct {\n+\tTitle string\n+\tPages []navPage\n+}\n+\n+type navPage struct {\n+\tTitle, URL, Status string\n+\tKind               string\n+\tCurrent            bool\n+}\n+\n+type tocEntry struct{ ID, Text string }\n+\n+type sitePage struct {\n+\tTitle    string\n+\tHome     bool\n+\tNav      []navSection\n+\tPage     Page\n+\tBody     template.HTML\n+\tTOC      []tocEntry\n+\tCovers   []coverLink\n+\tMarkdown string\n+\tVerified string\n+\tCommit   string\n+\tFontCSS  template.CSS\n+}\n+\n+type coverLink struct{ Path, URL string }\n+\n+type searchEntry struct {\n+\tTitle    string   `json:\"title\"`\n+\tURL      string   `json:\"url\"`\n+\tSection  string   `json:\"section\"`\n+\tHeadings []string `json:\"headings\"`\n+\tText     string   `json:\"text\"`\n+}\n+\n+// pageURL is a page's address within the site: docs/NAME.md is NAME.html.\n+func pageURL(p Page) string {\n+\treturn strings.TrimSuffix(path.Base(p.Path), \".md\") + \".html\"\n+}\n+\n+var markdown = goldmark.New(\n+\tgoldmark.WithExtensions(extension.GFM),\n+\tgoldmark.WithParserOptions(parser.WithAutoHeadingID()),\n+)\n+\n+var (\n+\threfRE    = regexp.MustCompile(`href=\"([^\"]*)\"`)\n+\th2RE      = regexp.MustCompile(`(?s)\u003ch2 id=\"([^\"]+)\"\u003e(.*?)\u003c/h2\u003e`)\n+\theadingRE = regexp.MustCompile(`(?s)\u003ch[23][^\u003e]*\u003e(.*?)\u003c/h[23]\u003e`)\n+\ttagRE     = regexp.MustCompile(`(?s)\u003c[^\u003e]*\u003e`)\n+\ttableRE   = regexp.MustCompile(`(?s)\u003ctable\u003e.*?\u003c/table\u003e`)\n+)\n+\n+func plain(fragment string) string {\n+\treturn strings.Join(strings.Fields(html.UnescapeString(tagRE.ReplaceAllString(fragment, \" \"))), \" \")\n+}\n+\n+// BuildSite renders every page to HTML and returns the site's files by path.\n+// Pages must already pass the check: BuildSite refuses front matter problems.\n+func BuildSite(root string, opts SiteOptions) (map[string][]byte, error) {\n+\tpages, problems, err := LoadPages(root)\n+\tif err != nil {\n+\t\treturn nil, err\n+\t}\n+\tif len(problems) \u003e 0 {\n+\t\treturn nil, fmt.Errorf(\"%s (and %d more): run px1 docs check\", problems[0], len(problems)-1)\n+\t}\n+\tisPage := map[string]bool{}\n+\tfor _, p := range pages {\n+\t\tisPage[p.Path] = true\n+\t}\n+\tsourceURL := strings.TrimSuffix(opts.SourceURL, \"/\")\n+\n+\tfiles := map[string][]byte{}\n+\tfor _, name := range []string{\"docs.css\", \"docs.js\"} {\n+\t\tdata, err := siteAssets.ReadFile(\"site/\" + name)\n+\t\tif err != nil {\n+\t\t\treturn nil, err\n+\t\t}\n+\t\tfiles[name] = data\n+\t}\n+\tvar fontCSS strings.Builder\n+\tfontNames := make([]string, 0, len(opts.Fonts))\n+\tfor name := range opts.Fonts {\n+\t\tfontNames = append(fontNames, name)\n+\t}\n+\tsort.Strings(fontNames)\n+\tfor _, name := range fontNames {\n+\t\tfiles[\"fonts/\"+name] = opts.Fonts[name]\n+\t\tfamily, weight := \"Report Sans\", \"400 600\"\n+\t\tif strings.Contains(name, \"mono\") {\n+\t\t\tfamily, weight = \"Report Mono\", \"400\"\n+\t\t\tif strings.Contains(name, \"500\") {\n+\t\t\t\tweight = \"500\"\n+\t\t\t}\n+\t\t}\n+\t\tfmt.Fprintf(\u0026fontCSS, \"@font-face{font-family:'%s';src:url(fonts/%s) format('woff2');font-weight:%s;font-display:swap}\", family, name, weight)\n+\t}\n+\n+\tnav := func(current string) []navSection {\n+\t\tvar sections []navSection\n+\t\tfor _, section := range Sections {\n+\t\t\ts := navSection{Title: sectionTitles[section]}\n+\t\t\tfor _, p := range pages {\n+\t\t\t\tif p.Section == section {\n+\t\t\t\t\ts.Pages = append(s.Pages, navPage{Title: p.Title, URL: pageURL(p), Status: p.Status, Kind: p.Kind, Current: p.Path == current})\n+\t\t\t\t}\n+\t\t\t}\n+\t\t\tif len(s.Pages) \u003e 0 {\n+\t\t\t\tsections = append(sections, s)\n+\t\t\t}\n+\t\t}\n+\t\treturn sections\n+\t}\n+\n+\tvar index []searchEntry\n+\tfor _, p := range pages {\n+\t\tvar buf bytes.Buffer\n+\t\tif err := markdown.Convert([]byte(p.body), \u0026buf); err != nil {\n+\t\t\treturn nil, fmt.Errorf(\"%s: %w\", p.Path, err)\n+\t\t}\n+\t\tbody := buf.String()\n+\n+\t\t// Links to other pages become links within the site; links to other\n+\t\t// repository files go to the source when its address is known.\n+\t\tbody = hrefRE.ReplaceAllStringFunc(body, func(match string) string {\n+\t\t\ttarget := html.UnescapeString(hrefRE.FindStringSubmatch(match)[1])\n+\t\t\tif target == \"\" || strings.Contains(target, \"://\") || strings.HasPrefix(target, \"#\") || strings.HasPrefix(target, \"mailto:\") {\n+\t\t\t\treturn match\n+\t\t\t}\n+\t\t\tfile, fragment, _ := strings.Cut(target, \"#\")\n+\t\t\tif fragment != \"\" {\n+\t\t\t\tfragment = \"#\" + fragment\n+\t\t\t}\n+\t\t\trel := path.Join(path.Dir(p.Path), file)\n+\t\t\tswitch {\n+\t\t\tcase isPage[rel]:\n+\t\t\t\ttarget = strings.TrimSuffix(path.Base(rel), \".md\") + \".html\" + fragment\n+\t\t\tcase rel == Dir+\"/\"+IndexFile:\n+\t\t\t\ttarget = \"index.html\"\n+\t\t\tcase sourceURL != \"\":\n+\t\t\t\ttarget = sourceURL + \"/\" + rel + fragment\n+\t\t\tdefault:\n+\t\t\t\treturn match\n+\t\t\t}\n+\t\t\treturn `href=\"` + html.EscapeString(target) + `\"`\n+\t\t})\n+\t\t// Wide tables scroll inside their own box instead of the page.\n+\t\tbody = tableRE.ReplaceAllStringFunc(body, func(table string) string {\n+\t\t\treturn `\u003cdiv class=\"table\"\u003e` + table + `\u003c/div\u003e`\n+\t\t})\n+\n+\t\tvar toc []tocEntry\n+\t\tfor _, m := range h2RE.FindAllStringSubmatch(body, -1) {\n+\t\t\ttoc = append(toc, tocEntry{ID: m[1], Text: plain(m[2])})\n+\t\t}\n+\t\tvar headings []string\n+\t\tfor _, m := range headingRE.FindAllStringSubmatch(body, -1) {\n+\t\t\theadings = append(headings, plain(m[1]))\n+\t\t}\n+\t\tvar covers []coverLink\n+\t\tfor _, entry := range p.Covers {\n+\t\t\tlink := coverLink{Path: entry}\n+\t\t\tif sourceURL != \"\" \u0026\u0026 !strings.ContainsAny(entry, \"*?[\") {\n+\t\t\t\tlink.URL = sourceURL + \"/\" + entry\n+\t\t\t}\n+\t\t\tcovers = append(covers, link)\n+\t\t}\n+\t\tverified := \"Not yet verified against the code\"\n+\t\tif p.VerifiedAt != \"\" {\n+\t\t\tverified = \"Verified at \" + p.VerifiedAt[:min(7, len(p.VerifiedAt))]\n+\t\t}\n+\t\tif p.Kind == \"reference\" \u0026\u0026 strings.Contains(p.body, generatedNote) {\n+\t\t\tverified = \"Generated from the code\"\n+\t\t}\n+\n+\t\tname := path.Base(p.Path)\n+\t\tout, err := render(sitePage{\n+\t\t\tTitle: p.Title, Nav: nav(p.Path), Page: p, Body: template.HTML(body), TOC: toc,\n+\t\t\tCovers: covers, Markdown: \"md/\" + name, Verified: verified, Commit: opts.Commit,\n+\t\t\tFontCSS: template.CSS(fontCSS.String()),\n+\t\t})\n+\t\tif err != nil {\n+\t\t\treturn nil, err\n+\t\t}\n+\t\tfiles[pageURL(p)] = out\n+\n+\t\t// The Markdown is published next to the HTML, front matter included,\n+\t\t// so the site is also a copy of the source.\n+\t\traw, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(p.Path)))\n+\t\tif err != nil {\n+\t\t\treturn nil, err\n+\t\t}\n+\t\tfiles[\"md/\"+name] = raw\n+\n+\t\tindex = append(index, searchEntry{\n+\t\t\tTitle: p.Title, URL: pageURL(p), Section: sectionTitles[p.Section],\n+\t\t\tHeadings: headings, Text: plain(body),\n+\t\t})\n+\t}\n+\n+\thome, err := render(sitePage{Title: \"px1 documentation\", Home: true, Nav: nav(\"\"), Commit: opts.Commit, FontCSS: template.CSS(fontCSS.String())})\n+\tif err != nil {\n+\t\treturn nil, err\n+\t}\n+\tfiles[\"index.html\"] = home\n+\n+\tsearch, err := json.Marshal(index)\n+\tif err != nil {\n+\t\treturn nil, err\n+\t}\n+\tfiles[\"search.json\"] = search\n+\tfiles[\"manifest.json\"] = []byte(Generated(pages)[ManifestFile])\n+\treturn files, nil\n+}\n+\n+func render(data sitePage) ([]byte, error) {\n+\tvar buf bytes.Buffer\n+\tif err := siteTemplate.Execute(\u0026buf, data); err != nil {\n+\t\treturn nil, err\n+\t}\n+\treturn buf.Bytes(), nil\n+}\n+\n+// WriteSite builds the site into dir, which must be empty or not exist, so a\n+// stale page from an earlier build can never be published.\n+func WriteSite(root, dir string, opts SiteOptions) (int, error) {\n+\tif entries, err := os.ReadDir(dir); err == nil \u0026\u0026 len(entries) \u003e 0 {\n+\t\treturn 0, fmt.Errorf(\"%s is not empty\", dir)\n+\t}\n+\tfiles, err := BuildSite(root, opts)\n+\tif err != nil {\n+\t\treturn 0, err\n+\t}\n+\tfor rel, data := range files {\n+\t\tfull := filepath.Join(dir, filepath.FromSlash(rel))\n+\t\tif err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {\n+\t\t\treturn 0, err\n+\t\t}\n+\t\tif err := os.WriteFile(full, data, 0o644); err != nil {\n+\t\t\treturn 0, err\n+\t\t}\n+\t}\n+\treturn len(files), nil\n+}\n+\n+var siteTemplate = template.Must(template.New(\"page\").Parse(`\u003c!doctype html\u003e\n+\u003chtml lang=\"en\"\u003e\n+\u003chead\u003e\n+\u003cmeta charset=\"utf-8\"\u003e\n+\u003cmeta name=\"viewport\" content=\"width=device-width, initial-scale=1\"\u003e\n+\u003ctitle\u003e{{if .Home}}px1 documentation{{else}}{{.Title}} · px1 docs{{end}}\u003c/title\u003e\n+\u003cstyle\u003e{{.FontCSS}}\u003c/style\u003e\n+\u003clink rel=\"stylesheet\" href=\"docs.css\"\u003e\n+\u003cscript\u003etry{var t=localStorage.getItem('px1-docs-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}\u003c/script\u003e\n+\u003c/head\u003e\n+\u003cbody\u003e\n+\u003cheader class=\"bar\"\u003e\n+  \u003cbutton class=\"icon-btn\" id=\"menu\" aria-label=\"Pages\" aria-expanded=\"false\"\u003e☰\u003c/button\u003e\n+  \u003ca class=\"logo\" href=\"index.html\"\u003epx1\u003cspan\u003edocumentation\u003c/span\u003e\u003c/a\u003e\n+  \u003cdiv class=\"search\" role=\"search\"\u003e\n+    \u003cinput id=\"q\" type=\"search\" placeholder=\"Search the docs  ( / )\" aria-label=\"Search the documentation\" autocomplete=\"off\"\u003e\n+    \u003cul class=\"results\" id=\"results\" hidden\u003e\u003c/ul\u003e\n+  \u003c/div\u003e\n+  \u003cbutton class=\"icon-btn\" id=\"theme\" aria-label=\"Switch between dark and light\"\u003e◐\u003c/button\u003e\n+\u003c/header\u003e\n+\u003cdiv class=\"shell\"\u003e\n+  \u003cnav class=\"rail\" aria-label=\"Pages\"\u003e\n+    {{range .Nav}}\u003ch2\u003e{{.Title}}\u003c/h2\u003e\n+    {{range .Pages}}\u003ca href=\"{{.URL}}\"{{if .Current}} aria-current=\"page\"{{end}}\u003e\u003cspan class=\"dot {{.Status}}\" title=\"{{.Status}}\"\u003e\u003c/span\u003e{{.Title}}\u003c/a\u003e\n+    {{end}}{{end}}\n+    {{if .Commit}}\u003cp class=\"built-from\"\u003eBuilt from \u003ccode\u003e{{.Commit}}\u003c/code\u003e\u003c/p\u003e{{end}}\n+  \u003c/nav\u003e\n+  \u003cmain\u003e\n+    {{if .Home}}\u003cdiv class=\"doc\"\u003e\n+      \u003ch1\u003epx1 documentation\u003c/h1\u003e\n+      \u003cp class=\"lede\"\u003eHow px1 reviews code, how to run it, and exactly what each command and input does. Every page says whether what it describes can be used today.\u003c/p\u003e\n+      \u003cp class=\"legend\"\u003e\u003cspan\u003e\u003ci class=\"dot shipped\"\u003e\u003c/i\u003eShipped: usable now\u003c/span\u003e\u003cspan\u003e\u003ci class=\"dot built\"\u003e\u003c/i\u003eBuilt: code and tests exist, not deployed\u003c/span\u003e\u003cspan\u003e\u003ci class=\"dot\"\u003e\u003c/i\u003ePlanned\u003c/span\u003e\u003c/p\u003e\n+      {{range .Nav}}\u003ch2\u003e{{.Title}}\u003c/h2\u003e\n+      \u003cul class=\"cards\"\u003e\n+        {{range .Pages}}\u003cli\u003e\u003ca href=\"{{.URL}}\"\u003e\u003cstrong\u003e\u003cspan class=\"dot {{.Status}}\"\u003e\u003c/span\u003e{{.Title}}\u003c/strong\u003e\u003csmall\u003e{{.Status}} · {{.Kind}}\u003c/small\u003e\u003c/a\u003e\u003c/li\u003e\n+        {{end}}\n+      \u003c/ul\u003e\n+      {{end}}\n+    \u003c/div\u003e{{else}}\u003carticle class=\"doc\"\u003e\n+      \u003cdiv class=\"meta\"\u003e\n+        \u003cspan class=\"chip {{.Page.Status}}\"\u003e{{.Page.Status}}\u003c/span\u003e\n+        \u003cspan\u003e{{.Page.Kind}}\u003c/span\u003e\n+        \u003cspan\u003e{{.Verified}}\u003c/span\u003e\n+        \u003cspan class=\"grow\"\u003e\u003c/span\u003e\n+        \u003ca href=\"{{.Markdown}}\"\u003eMarkdown\u003c/a\u003e\n+      \u003c/div\u003e\n+      {{.Body}}\n+      {{if .Covers}}\u003csection class=\"covers\"\u003e\n+        \u003ch2\u003eCode this page covers\u003c/h2\u003e\n+        \u003cp\u003eWhen these files change, this page is checked.\u003c/p\u003e\n+        \u003cul\u003e{{range .Covers}}\u003cli\u003e{{if .URL}}\u003ca href=\"{{.URL}}\"\u003e\u003ccode\u003e{{.Path}}\u003c/code\u003e\u003c/a\u003e{{else}}\u003ccode\u003e{{.Path}}\u003c/code\u003e{{end}}\u003c/li\u003e{{end}}\u003c/ul\u003e\n+      \u003c/section\u003e{{end}}\n+    \u003c/article\u003e{{end}}\n+  \u003c/main\u003e\n+  {{if .TOC}}\u003caside class=\"toc\" aria-label=\"On this page\"\u003e\n+    \u003ch2\u003eOn this page\u003c/h2\u003e\n+    {{range .TOC}}\u003ca href=\"#{{.ID}}\"\u003e{{.Text}}\u003c/a\u003e\n+    {{end}}\n+  \u003c/aside\u003e{{end}}\n+\u003c/div\u003e\n+\u003cscript src=\"docs.js\"\u003e\u003c/script\u003e\n+\u003c/body\u003e\n+\u003c/html\u003e\n+`))\n",
+      "hunks": [
+        {
+          "id": "diff-d0a4bef9f2a428d2",
+          "header": "@@ -0,0 +1,349 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package docs"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"bytes\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"embed\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"html\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"html/template\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"path\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\"path/filepath\""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t\"regexp\""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\t\"sort\""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t\"github.com/yuin/goldmark\""
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t\"github.com/yuin/goldmark/extension\""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t\"github.com/yuin/goldmark/parser\""
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "//go:embed site/docs.css site/docs.js"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "var siteAssets embed.FS"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "// SiteOptions configures the static documentation site."
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "type SiteOptions struct {"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t// SourceURL is the web address of the repository tree the pages were"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t// built from, such as https://github.com/owner/name/blob/\u003ccommit\u003e. Links"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t// to files outside docs/ point there. Empty leaves them unlinked."
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tSourceURL string"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t// Commit is the commit the site was built from, shown in the footer."
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tCommit string"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t// Fonts are woff2 files by name, written under fonts/. The stylesheet"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t// falls back to system fonts without them."
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tFonts map[string][]byte"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "type navSection struct {"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tTitle string"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tPages []navPage"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "type navPage struct {"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tTitle, URL, Status string"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\tKind               string"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\tCurrent            bool"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "type tocEntry struct{ ID, Text string }"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "type sitePage struct {"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\tTitle    string"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\tHome     bool"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\tNav      []navSection"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\tPage     Page"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\tBody     template.HTML"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\tTOC      []tocEntry"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\tCovers   []coverLink"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\tMarkdown string"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\tVerified string"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\tCommit   string"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\tFontCSS  template.CSS"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "type coverLink struct{ Path, URL string }"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "type searchEntry struct {"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\tTitle    string   `json:\"title\"`"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\tURL      string   `json:\"url\"`"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\tSection  string   `json:\"section\"`"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\tHeadings []string `json:\"headings\"`"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\tText     string   `json:\"text\"`"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "// pageURL is a page's address within the site: docs/NAME.md is NAME.html."
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "func pageURL(p Page) string {"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\treturn strings.TrimSuffix(path.Base(p.Path), \".md\") + \".html\""
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "var markdown = goldmark.New("
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\tgoldmark.WithExtensions(extension.GFM),"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\tgoldmark.WithParserOptions(parser.WithAutoHeadingID()),"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "var ("
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\threfRE    = regexp.MustCompile(`href=\"([^\"]*)\"`)"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\th2RE      = regexp.MustCompile(`(?s)\u003ch2 id=\"([^\"]+)\"\u003e(.*?)\u003c/h2\u003e`)"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\theadingRE = regexp.MustCompile(`(?s)\u003ch[23][^\u003e]*\u003e(.*?)\u003c/h[23]\u003e`)"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\ttagRE     = regexp.MustCompile(`(?s)\u003c[^\u003e]*\u003e`)"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\ttableRE   = regexp.MustCompile(`(?s)\u003ctable\u003e.*?\u003c/table\u003e`)"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "func plain(fragment string) string {"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\treturn strings.Join(strings.Fields(html.UnescapeString(tagRE.ReplaceAllString(fragment, \" \"))), \" \")"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "// BuildSite renders every page to HTML and returns the site's files by path."
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "// Pages must already pass the check: BuildSite refuses front matter problems."
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "func BuildSite(root string, opts SiteOptions) (map[string][]byte, error) {"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\tpages, problems, err := LoadPages(root)"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\tif len(problems) \u003e 0 {"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\t\treturn nil, fmt.Errorf(\"%s (and %d more): run px1 docs check\", problems[0], len(problems)-1)"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\tisPage := map[string]bool{}"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\tfor _, p := range pages {"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\t\tisPage[p.Path] = true"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\tsourceURL := strings.TrimSuffix(opts.SourceURL, \"/\")"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\tfiles := map[string][]byte{}"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "\tfor _, name := range []string{\"docs.css\", \"docs.js\"} {"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "\t\tdata, err := siteAssets.ReadFile(\"site/\" + name)"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\t\t\treturn nil, err"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\t\tfiles[name] = data"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\tvar fontCSS strings.Builder"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\tfontNames := make([]string, 0, len(opts.Fonts))"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "\tfor name := range opts.Fonts {"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\t\tfontNames = append(fontNames, name)"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\tsort.Strings(fontNames)"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\tfor _, name := range fontNames {"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\t\tfiles[\"fonts/\"+name] = opts.Fonts[name]"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\t\tfamily, weight := \"Report Sans\", \"400 600\""
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\t\tif strings.Contains(name, \"mono\") {"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\t\t\tfamily, weight = \"Report Mono\", \"400\""
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\t\t\tif strings.Contains(name, \"500\") {"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\t\t\t\tweight = \"500\""
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\t\tfmt.Fprintf(\u0026fontCSS, \"@font-face{font-family:'%s';src:url(fonts/%s) format('woff2');font-weight:%s;font-display:swap}\", family, name, weight)"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\tnav := func(current string) []navSection {"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "\t\tvar sections []navSection"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "\t\tfor _, section := range Sections {"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "\t\t\ts := navSection{Title: sectionTitles[section]}"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "\t\t\tfor _, p := range pages {"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\t\t\t\tif p.Section == section {"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\t\t\t\t\ts.Pages = append(s.Pages, navPage{Title: p.Title, URL: pageURL(p), Status: p.Status, Kind: p.Kind, Current: p.Path == current})"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\t\t\t\t}"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "\t\t\tif len(s.Pages) \u003e 0 {"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "\t\t\t\tsections = append(sections, s)"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "\t\treturn sections"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "\tvar index []searchEntry"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "\tfor _, p := range pages {"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "\t\tvar buf bytes.Buffer"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "\t\tif err := markdown.Convert([]byte(p.body), \u0026buf); err != nil {"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "\t\t\treturn nil, fmt.Errorf(\"%s: %w\", p.Path, err)"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "\t\tbody := buf.String()"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "\t\t// Links to other pages become links within the site; links to other"
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "\t\t// repository files go to the source when its address is known."
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": "\t\tbody = hrefRE.ReplaceAllStringFunc(body, func(match string) string {"
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "\t\t\ttarget := html.UnescapeString(hrefRE.FindStringSubmatch(match)[1])"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": "\t\t\tif target == \"\" || strings.Contains(target, \"://\") || strings.HasPrefix(target, \"#\") || strings.HasPrefix(target, \"mailto:\") {"
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": "\t\t\t\treturn match"
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "\t\t\tfile, fragment, _ := strings.Cut(target, \"#\")"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "\t\t\tif fragment != \"\" {"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "\t\t\t\tfragment = \"#\" + fragment"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "\t\t\trel := path.Join(path.Dir(p.Path), file)"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "\t\t\tswitch {"
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "\t\t\tcase isPage[rel]:"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": "\t\t\t\ttarget = strings.TrimSuffix(path.Base(rel), \".md\") + \".html\" + fragment"
+            },
+            {
+              "newLine": 178,
+              "kind": "added",
+              "text": "\t\t\tcase rel == Dir+\"/\"+IndexFile:"
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": "\t\t\t\ttarget = \"index.html\""
+            },
+            {
+              "newLine": 180,
+              "kind": "added",
+              "text": "\t\t\tcase sourceURL != \"\":"
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": "\t\t\t\ttarget = sourceURL + \"/\" + rel + fragment"
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": "\t\t\tdefault:"
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": "\t\t\t\treturn match"
+            },
+            {
+              "newLine": 184,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 185,
+              "kind": "added",
+              "text": "\t\t\treturn `href=\"` + html.EscapeString(target) + `\"`"
+            },
+            {
+              "newLine": 186,
+              "kind": "added",
+              "text": "\t\t})"
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "\t\t// Wide tables scroll inside their own box instead of the page."
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": "\t\tbody = tableRE.ReplaceAllStringFunc(body, func(table string) string {"
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "\t\t\treturn `\u003cdiv class=\"table\"\u003e` + table + `\u003c/div\u003e`"
+            },
+            {
+              "newLine": 190,
+              "kind": "added",
+              "text": "\t\t})"
+            },
+            {
+              "newLine": 191,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 192,
+              "kind": "added",
+              "text": "\t\tvar toc []tocEntry"
+            },
+            {
+              "newLine": 193,
+              "kind": "added",
+              "text": "\t\tfor _, m := range h2RE.FindAllStringSubmatch(body, -1) {"
+            },
+            {
+              "newLine": 194,
+              "kind": "added",
+              "text": "\t\t\ttoc = append(toc, tocEntry{ID: m[1], Text: plain(m[2])})"
+            },
+            {
+              "newLine": 195,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 196,
+              "kind": "added",
+              "text": "\t\tvar headings []string"
+            },
+            {
+              "newLine": 197,
+              "kind": "added",
+              "text": "\t\tfor _, m := range headingRE.FindAllStringSubmatch(body, -1) {"
+            },
+            {
+              "newLine": 198,
+              "kind": "added",
+              "text": "\t\t\theadings = append(headings, plain(m[1]))"
+            },
+            {
+              "newLine": 199,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 200,
+              "kind": "added",
+              "text": "\t\tvar covers []coverLink"
+            },
+            {
+              "newLine": 201,
+              "kind": "added",
+              "text": "\t\tfor _, entry := range p.Covers {"
+            },
+            {
+              "newLine": 202,
+              "kind": "added",
+              "text": "\t\t\tlink := coverLink{Path: entry}"
+            },
+            {
+              "newLine": 203,
+              "kind": "added",
+              "text": "\t\t\tif sourceURL != \"\" \u0026\u0026 !strings.ContainsAny(entry, \"*?[\") {"
+            },
+            {
+              "newLine": 204,
+              "kind": "added",
+              "text": "\t\t\t\tlink.URL = sourceURL + \"/\" + entry"
+            },
+            {
+              "newLine": 205,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 206,
+              "kind": "added",
+              "text": "\t\t\tcovers = append(covers, link)"
+            },
+            {
+              "newLine": 207,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 208,
+              "kind": "added",
+              "text": "\t\tverified := \"Not yet verified against the code\""
+            },
+            {
+              "newLine": 209,
+              "kind": "added",
+              "text": "\t\tif p.VerifiedAt != \"\" {"
+            },
+            {
+              "newLine": 210,
+              "kind": "added",
+              "text": "\t\t\tverified = \"Verified at \" + p.VerifiedAt[:min(7, len(p.VerifiedAt))]"
+            },
+            {
+              "newLine": 211,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 212,
+              "kind": "added",
+              "text": "\t\tif p.Kind == \"reference\" \u0026\u0026 strings.Contains(p.body, generatedNote) {"
+            },
+            {
+              "newLine": 213,
+              "kind": "added",
+              "text": "\t\t\tverified = \"Generated from the code\""
+            },
+            {
+              "newLine": 214,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 215,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 216,
+              "kind": "added",
+              "text": "\t\tname := path.Base(p.Path)"
+            },
+            {
+              "newLine": 217,
+              "kind": "added",
+              "text": "\t\tout, err := render(sitePage{"
+            },
+            {
+              "newLine": 218,
+              "kind": "added",
+              "text": "\t\t\tTitle: p.Title, Nav: nav(p.Path), Page: p, Body: template.HTML(body), TOC: toc,"
+            },
+            {
+              "newLine": 219,
+              "kind": "added",
+              "text": "\t\t\tCovers: covers, Markdown: \"md/\" + name, Verified: verified, Commit: opts.Commit,"
+            },
+            {
+              "newLine": 220,
+              "kind": "added",
+              "text": "\t\t\tFontCSS: template.CSS(fontCSS.String()),"
+            },
+            {
+              "newLine": 221,
+              "kind": "added",
+              "text": "\t\t})"
+            },
+            {
+              "newLine": 222,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 223,
+              "kind": "added",
+              "text": "\t\t\treturn nil, err"
+            },
+            {
+              "newLine": 224,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 225,
+              "kind": "added",
+              "text": "\t\tfiles[pageURL(p)] = out"
+            },
+            {
+              "newLine": 226,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 227,
+              "kind": "added",
+              "text": "\t\t// The Markdown is published next to the HTML, front matter included,"
+            },
+            {
+              "newLine": 228,
+              "kind": "added",
+              "text": "\t\t// so the site is also a copy of the source."
+            },
+            {
+              "newLine": 229,
+              "kind": "added",
+              "text": "\t\traw, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(p.Path)))"
+            },
+            {
+              "newLine": 230,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 231,
+              "kind": "added",
+              "text": "\t\t\treturn nil, err"
+            },
+            {
+              "newLine": 232,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 233,
+              "kind": "added",
+              "text": "\t\tfiles[\"md/\"+name] = raw"
+            },
+            {
+              "newLine": 234,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 235,
+              "kind": "added",
+              "text": "\t\tindex = append(index, searchEntry{"
+            },
+            {
+              "newLine": 236,
+              "kind": "added",
+              "text": "\t\t\tTitle: p.Title, URL: pageURL(p), Section: sectionTitles[p.Section],"
+            },
+            {
+              "newLine": 237,
+              "kind": "added",
+              "text": "\t\t\tHeadings: headings, Text: plain(body),"
+            },
+            {
+              "newLine": 238,
+              "kind": "added",
+              "text": "\t\t})"
+            },
+            {
+              "newLine": 239,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 240,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 241,
+              "kind": "added",
+              "text": "\thome, err := render(sitePage{Title: \"px1 documentation\", Home: true, Nav: nav(\"\"), Commit: opts.Commit, FontCSS: template.CSS(fontCSS.String())})"
+            },
+            {
+              "newLine": 242,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 243,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 244,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 245,
+              "kind": "added",
+              "text": "\tfiles[\"index.html\"] = home"
+            },
+            {
+              "newLine": 246,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 247,
+              "kind": "added",
+              "text": "\tsearch, err := json.Marshal(index)"
+            },
+            {
+              "newLine": 248,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 249,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 250,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 251,
+              "kind": "added",
+              "text": "\tfiles[\"search.json\"] = search"
+            },
+            {
+              "newLine": 252,
+              "kind": "added",
+              "text": "\tfiles[\"manifest.json\"] = []byte(Generated(pages)[ManifestFile])"
+            },
+            {
+              "newLine": 253,
+              "kind": "added",
+              "text": "\treturn files, nil"
+            },
+            {
+              "newLine": 254,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 255,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 256,
+              "kind": "added",
+              "text": "func render(data sitePage) ([]byte, error) {"
+            },
+            {
+              "newLine": 257,
+              "kind": "added",
+              "text": "\tvar buf bytes.Buffer"
+            },
+            {
+              "newLine": 258,
+              "kind": "added",
+              "text": "\tif err := siteTemplate.Execute(\u0026buf, data); err != nil {"
+            },
+            {
+              "newLine": 259,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 260,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 261,
+              "kind": "added",
+              "text": "\treturn buf.Bytes(), nil"
+            },
+            {
+              "newLine": 262,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 263,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 264,
+              "kind": "added",
+              "text": "// WriteSite builds the site into dir, which must be empty or not exist, so a"
+            },
+            {
+              "newLine": 265,
+              "kind": "added",
+              "text": "// stale page from an earlier build can never be published."
+            },
+            {
+              "newLine": 266,
+              "kind": "added",
+              "text": "func WriteSite(root, dir string, opts SiteOptions) (int, error) {"
+            },
+            {
+              "newLine": 267,
+              "kind": "added",
+              "text": "\tif entries, err := os.ReadDir(dir); err == nil \u0026\u0026 len(entries) \u003e 0 {"
+            },
+            {
+              "newLine": 268,
+              "kind": "added",
+              "text": "\t\treturn 0, fmt.Errorf(\"%s is not empty\", dir)"
+            },
+            {
+              "newLine": 269,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 270,
+              "kind": "added",
+              "text": "\tfiles, err := BuildSite(root, opts)"
+            },
+            {
+              "newLine": 271,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 272,
+              "kind": "added",
+              "text": "\t\treturn 0, err"
+            },
+            {
+              "newLine": 273,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 274,
+              "kind": "added",
+              "text": "\tfor rel, data := range files {"
+            },
+            {
+              "newLine": 275,
+              "kind": "added",
+              "text": "\t\tfull := filepath.Join(dir, filepath.FromSlash(rel))"
+            },
+            {
+              "newLine": 276,
+              "kind": "added",
+              "text": "\t\tif err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {"
+            },
+            {
+              "newLine": 277,
+              "kind": "added",
+              "text": "\t\t\treturn 0, err"
+            },
+            {
+              "newLine": 278,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 279,
+              "kind": "added",
+              "text": "\t\tif err := os.WriteFile(full, data, 0o644); err != nil {"
+            },
+            {
+              "newLine": 280,
+              "kind": "added",
+              "text": "\t\t\treturn 0, err"
+            },
+            {
+              "newLine": 281,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 282,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 283,
+              "kind": "added",
+              "text": "\treturn len(files), nil"
+            },
+            {
+              "newLine": 284,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 285,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 286,
+              "kind": "added",
+              "text": "var siteTemplate = template.Must(template.New(\"page\").Parse(`\u003c!doctype html\u003e"
+            },
+            {
+              "newLine": 287,
+              "kind": "added",
+              "text": "\u003chtml lang=\"en\"\u003e"
+            },
+            {
+              "newLine": 288,
+              "kind": "added",
+              "text": "\u003chead\u003e"
+            },
+            {
+              "newLine": 289,
+              "kind": "added",
+              "text": "\u003cmeta charset=\"utf-8\"\u003e"
+            },
+            {
+              "newLine": 290,
+              "kind": "added",
+              "text": "\u003cmeta name=\"viewport\" content=\"width=device-width, initial-scale=1\"\u003e"
+            },
+            {
+              "newLine": 291,
+              "kind": "added",
+              "text": "\u003ctitle\u003e{{if .Home}}px1 documentation{{else}}{{.Title}} · px1 docs{{end}}\u003c/title\u003e"
+            },
+            {
+              "newLine": 292,
+              "kind": "added",
+              "text": "\u003cstyle\u003e{{.FontCSS}}\u003c/style\u003e"
+            },
+            {
+              "newLine": 293,
+              "kind": "added",
+              "text": "\u003clink rel=\"stylesheet\" href=\"docs.css\"\u003e"
+            },
+            {
+              "newLine": 294,
+              "kind": "added",
+              "text": "\u003cscript\u003etry{var t=localStorage.getItem('px1-docs-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}\u003c/script\u003e"
+            },
+            {
+              "newLine": 295,
+              "kind": "added",
+              "text": "\u003c/head\u003e"
+            },
+            {
+              "newLine": 296,
+              "kind": "added",
+              "text": "\u003cbody\u003e"
+            },
+            {
+              "newLine": 297,
+              "kind": "added",
+              "text": "\u003cheader class=\"bar\"\u003e"
+            },
+            {
+              "newLine": 298,
+              "kind": "added",
+              "text": "  \u003cbutton class=\"icon-btn\" id=\"menu\" aria-label=\"Pages\" aria-expanded=\"false\"\u003e☰\u003c/button\u003e"
+            },
+            {
+              "newLine": 299,
+              "kind": "added",
+              "text": "  \u003ca class=\"logo\" href=\"index.html\"\u003epx1\u003cspan\u003edocumentation\u003c/span\u003e\u003c/a\u003e"
+            },
+            {
+              "newLine": 300,
+              "kind": "added",
+              "text": "  \u003cdiv class=\"search\" role=\"search\"\u003e"
+            },
+            {
+              "newLine": 301,
+              "kind": "added",
+              "text": "    \u003cinput id=\"q\" type=\"search\" placeholder=\"Search the docs  ( / )\" aria-label=\"Search the documentation\" autocomplete=\"off\"\u003e"
+            },
+            {
+              "newLine": 302,
+              "kind": "added",
+              "text": "    \u003cul class=\"results\" id=\"results\" hidden\u003e\u003c/ul\u003e"
+            },
+            {
+              "newLine": 303,
+              "kind": "added",
+              "text": "  \u003c/div\u003e"
+            },
+            {
+              "newLine": 304,
+              "kind": "added",
+              "text": "  \u003cbutton class=\"icon-btn\" id=\"theme\" aria-label=\"Switch between dark and light\"\u003e◐\u003c/button\u003e"
+            },
+            {
+              "newLine": 305,
+              "kind": "added",
+              "text": "\u003c/header\u003e"
+            },
+            {
+              "newLine": 306,
+              "kind": "added",
+              "text": "\u003cdiv class=\"shell\"\u003e"
+            },
+            {
+              "newLine": 307,
+              "kind": "added",
+              "text": "  \u003cnav class=\"rail\" aria-label=\"Pages\"\u003e"
+            },
+            {
+              "newLine": 308,
+              "kind": "added",
+              "text": "    {{range .Nav}}\u003ch2\u003e{{.Title}}\u003c/h2\u003e"
+            },
+            {
+              "newLine": 309,
+              "kind": "added",
+              "text": "    {{range .Pages}}\u003ca href=\"{{.URL}}\"{{if .Current}} aria-current=\"page\"{{end}}\u003e\u003cspan class=\"dot {{.Status}}\" title=\"{{.Status}}\"\u003e\u003c/span\u003e{{.Title}}\u003c/a\u003e"
+            },
+            {
+              "newLine": 310,
+              "kind": "added",
+              "text": "    {{end}}{{end}}"
+            },
+            {
+              "newLine": 311,
+              "kind": "added",
+              "text": "    {{if .Commit}}\u003cp class=\"built-from\"\u003eBuilt from \u003ccode\u003e{{.Commit}}\u003c/code\u003e\u003c/p\u003e{{end}}"
+            },
+            {
+              "newLine": 312,
+              "kind": "added",
+              "text": "  \u003c/nav\u003e"
+            },
+            {
+              "newLine": 313,
+              "kind": "added",
+              "text": "  \u003cmain\u003e"
+            },
+            {
+              "newLine": 314,
+              "kind": "added",
+              "text": "    {{if .Home}}\u003cdiv class=\"doc\"\u003e"
+            },
+            {
+              "newLine": 315,
+              "kind": "added",
+              "text": "      \u003ch1\u003epx1 documentation\u003c/h1\u003e"
+            },
+            {
+              "newLine": 316,
+              "kind": "added",
+              "text": "      \u003cp class=\"lede\"\u003eHow px1 reviews code, how to run it, and exactly what each command and input does. Every page says whether what it describes can be used today.\u003c/p\u003e"
+            },
+            {
+              "newLine": 317,
+              "kind": "added",
+              "text": "      \u003cp class=\"legend\"\u003e\u003cspan\u003e\u003ci class=\"dot shipped\"\u003e\u003c/i\u003eShipped: usable now\u003c/span\u003e\u003cspan\u003e\u003ci class=\"dot built\"\u003e\u003c/i\u003eBuilt: code and tests exist, not deployed\u003c/span\u003e\u003cspan\u003e\u003ci class=\"dot\"\u003e\u003c/i\u003ePlanned\u003c/span\u003e\u003c/p\u003e"
+            },
+            {
+              "newLine": 318,
+              "kind": "added",
+              "text": "      {{range .Nav}}\u003ch2\u003e{{.Title}}\u003c/h2\u003e"
+            },
+            {
+              "newLine": 319,
+              "kind": "added",
+              "text": "      \u003cul class=\"cards\"\u003e"
+            },
+            {
+              "newLine": 320,
+              "kind": "added",
+              "text": "        {{range .Pages}}\u003cli\u003e\u003ca href=\"{{.URL}}\"\u003e\u003cstrong\u003e\u003cspan class=\"dot {{.Status}}\"\u003e\u003c/span\u003e{{.Title}}\u003c/strong\u003e\u003csmall\u003e{{.Status}} · {{.Kind}}\u003c/small\u003e\u003c/a\u003e\u003c/li\u003e"
+            },
+            {
+              "newLine": 321,
+              "kind": "added",
+              "text": "        {{end}}"
+            },
+            {
+              "newLine": 322,
+              "kind": "added",
+              "text": "      \u003c/ul\u003e"
+            },
+            {
+              "newLine": 323,
+              "kind": "added",
+              "text": "      {{end}}"
+            },
+            {
+              "newLine": 324,
+              "kind": "added",
+              "text": "    \u003c/div\u003e{{else}}\u003carticle class=\"doc\"\u003e"
+            },
+            {
+              "newLine": 325,
+              "kind": "added",
+              "text": "      \u003cdiv class=\"meta\"\u003e"
+            },
+            {
+              "newLine": 326,
+              "kind": "added",
+              "text": "        \u003cspan class=\"chip {{.Page.Status}}\"\u003e{{.Page.Status}}\u003c/span\u003e"
+            },
+            {
+              "newLine": 327,
+              "kind": "added",
+              "text": "        \u003cspan\u003e{{.Page.Kind}}\u003c/span\u003e"
+            },
+            {
+              "newLine": 328,
+              "kind": "added",
+              "text": "        \u003cspan\u003e{{.Verified}}\u003c/span\u003e"
+            },
+            {
+              "newLine": 329,
+              "kind": "added",
+              "text": "        \u003cspan class=\"grow\"\u003e\u003c/span\u003e"
+            },
+            {
+              "newLine": 330,
+              "kind": "added",
+              "text": "        \u003ca href=\"{{.Markdown}}\"\u003eMarkdown\u003c/a\u003e"
+            },
+            {
+              "newLine": 331,
+              "kind": "added",
+              "text": "      \u003c/div\u003e"
+            },
+            {
+              "newLine": 332,
+              "kind": "added",
+              "text": "      {{.Body}}"
+            },
+            {
+              "newLine": 333,
+              "kind": "added",
+              "text": "      {{if .Covers}}\u003csection class=\"covers\"\u003e"
+            },
+            {
+              "newLine": 334,
+              "kind": "added",
+              "text": "        \u003ch2\u003eCode this page covers\u003c/h2\u003e"
+            },
+            {
+              "newLine": 335,
+              "kind": "added",
+              "text": "        \u003cp\u003eWhen these files change, this page is checked.\u003c/p\u003e"
+            },
+            {
+              "newLine": 336,
+              "kind": "added",
+              "text": "        \u003cul\u003e{{range .Covers}}\u003cli\u003e{{if .URL}}\u003ca href=\"{{.URL}}\"\u003e\u003ccode\u003e{{.Path}}\u003c/code\u003e\u003c/a\u003e{{else}}\u003ccode\u003e{{.Path}}\u003c/code\u003e{{end}}\u003c/li\u003e{{end}}\u003c/ul\u003e"
+            },
+            {
+              "newLine": 337,
+              "kind": "added",
+              "text": "      \u003c/section\u003e{{end}}"
+            },
+            {
+              "newLine": 338,
+              "kind": "added",
+              "text": "    \u003c/article\u003e{{end}}"
+            },
+            {
+              "newLine": 339,
+              "kind": "added",
+              "text": "  \u003c/main\u003e"
+            },
+            {
+              "newLine": 340,
+              "kind": "added",
+              "text": "  {{if .TOC}}\u003caside class=\"toc\" aria-label=\"On this page\"\u003e"
+            },
+            {
+              "newLine": 341,
+              "kind": "added",
+              "text": "    \u003ch2\u003eOn this page\u003c/h2\u003e"
+            },
+            {
+              "newLine": 342,
+              "kind": "added",
+              "text": "    {{range .TOC}}\u003ca href=\"#{{.ID}}\"\u003e{{.Text}}\u003c/a\u003e"
+            },
+            {
+              "newLine": 343,
+              "kind": "added",
+              "text": "    {{end}}"
+            },
+            {
+              "newLine": 344,
+              "kind": "added",
+              "text": "  \u003c/aside\u003e{{end}}"
+            },
+            {
+              "newLine": 345,
+              "kind": "added",
+              "text": "\u003c/div\u003e"
+            },
+            {
+              "newLine": 346,
+              "kind": "added",
+              "text": "\u003cscript src=\"docs.js\"\u003e\u003c/script\u003e"
+            },
+            {
+              "newLine": 347,
+              "kind": "added",
+              "text": "\u003c/body\u003e"
+            },
+            {
+              "newLine": 348,
+              "kind": "added",
+              "text": "\u003c/html\u003e"
+            },
+            {
+              "newLine": 349,
+              "kind": "added",
+              "text": "`))"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-8207d142d7a9dfa2",
+      "title": "Site changes",
+      "summary": "10 related files share the \"site\" change signal.",
+      "paths": [
+        "README.md",
+        "ROADMAP.md",
+        "docs/CLI_REFERENCE.md",
+        "docs/DOCS_ROADMAP.md",
+        "docs_check_test.go",
+        "docs_cmd.go",
+        "go.mod",
+        "go.sum",
+        "internal/docs/docs_test.go",
+        "internal/docs/site.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-8bab732796dddbfe",
+      "path": "go.mod",
+      "kind": "dependency",
+      "observation": "A dependency manifest or lockfile changed: go.mod.",
+      "question": "Which runtime behavior requires this dependency change, and do the manifest and lockfile agree?",
+      "related": []
+    },
+    {
+      "id": "inspect-b6bb00db8c228c4c",
+      "path": "go.sum",
+      "kind": "dependency",
+      "observation": "A dependency manifest or lockfile changed: go.sum.",
+      "question": "Which runtime behavior requires this dependency change, and do the manifest and lockfile agree?",
+      "related": []
+    },
+    {
+      "id": "inspect-07d7319651c63c3a",
+      "path": "internal/docs/site.go",
+      "line": 99,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func BuildSite(root string, opts SiteOptions) (map[string][]byte, error) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 10,
+    "filesAnalyzed": 10,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "site-command",
+      "path": "docs_cmd.go",
+      "lineStart": 57,
+      "lineEnd": 78,
+      "title": "Adds a documentation-site command",
+      "summary": "Adds `px1 docs site --out DIR` to generate the website. The command can also take a repository source URL and commit, and includes the bundled fonts in the output."
+    },
+    {
+      "id": "site-links",
+      "path": "internal/docs/site.go",
+      "lineStart": 157,
+      "lineEnd": 188,
+      "title": "Adapts links for the site",
+      "summary": "Rewrites links between documentation pages to point within the site. Links to other repository files point to the source URL when one is provided; otherwise they remain unchanged."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "b3df9c6b831652fe34bc145cda121c37849503a8",
+      "revision": "23ace0f6a5ebf7799275a23ea0ae1f6620ae388b",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "b3df9c6b831652fe34bc145cda121c37849503a8",
+      "revision": "23ace0f6a5ebf7799275a23ea0ae1f6620ae388b",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "23ace0f6a5ebf7799275a23ea0ae1f6620ae388b",
+      "detail": "2 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "23ace0f6a5ebf7799275a23ea0ae1f6620ae388b",
+      "detail": "3 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-db601018401b6a01",
+      "rule": "dependency",
+      "title": "Dependency change",
+      "reason": "Dependency manifests and lockfiles can alter code throughout the build.",
+      "path": "go.mod",
+      "evidence": "go.mod"
+    },
+    {
+      "id": "attention-ab6aa2d63ea959ec",
+      "rule": "dependency",
+      "title": "Dependency change",
+      "reason": "Dependency manifests and lockfiles can alter code throughout the build.",
+      "path": "go.sum",
+      "evidence": "go.sum"
+    },
+    {
+      "id": "attention-d6c1b185b241b7f5",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/docs/site.go",
+      "line": 99,
+      "evidence": "func BuildSite(root string, opts SiteOptions) (map[string][]byte, error) {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "23ace0f6a5ebf7799275a23ea0ae1f6620ae388b",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42878644878",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42878644878/job/130048643241",
+        "startedAt": "2026-11-10T18:46:58Z"
+      },
+      {
+        "name": "review",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42878644141/job/130048635884",
+        "startedAt": "2026-11-10T18:46:55Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42878644361/job/130048635626",
+        "startedAt": "2026-11-10T18:46:55Z"
+      }
+    ]
+  }
+}
