@@ -1,0 +1,610 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "11ecd31a71eb0396ebc0f2cbaf382e32b6c5ecd4",
+  "head": "2aacf4f338a7c0074885c7ab080c153d39e82670",
+  "generatedAt": "2026-11-10T12:48:33.438194299Z",
+  "files": [
+    {
+      "path": "docs/EVALUATION_SET.md",
+      "status": "M",
+      "diff": "diff --git a/docs/EVALUATION_SET.md b/docs/EVALUATION_SET.md\nindex f4cb627..efe9c4b 100644\n--- a/docs/EVALUATION_SET.md\n+++ b/docs/EVALUATION_SET.md\n@@ -81,3 +81,29 @@ only commit identities and labelled line ranges, never source or model output.\n - A review that failed or did not finish (a sub-agent or the verifier failed, the\n   cap stopped it) is recorded with its reason and left out of scoring. It is never\n   counted as a missed bug.\n+\n+### Keeping a real case set private\n+\n+`eval/example-cases.json` shows the format with placeholder values. A case file\n+for a private repository names that repository, its commits and file paths, so it\n+does not belong in this public repository: keep it in the repository under test\n+(for example on a branch used only for evaluation), next to the commits it refers to.\n+\n+For seeded cases, make each bug a commit followed by its revert. Then the\n+case's base tree equals your main branch, the branch changes nothing net, and\n+the case is reproducible from commit identities alone.\n+\n+    git -C ~/code/repo fetch origin px1-eval\n+    px1 eval-run --cases ~/code/repo/eval/px1-cases.json --root ~/code/repo ...\n+\n+A first run of this kind on a private repo (six small seeded bugs and two clean\n+changes, three runs each, gpt-6-luna, about $0.10) found five bugs in every run,\n+flagged nothing on the clean changes, and found the sixth, subtler bug in only one\n+of three runs. Small hand-seeded single-line bugs are easier than real ones, so\n+read that as a baseline for comparing changes, not a recall claim.\n+\n+A seeded mutation can turn out to change nothing. The first draft of that set had\n+a `\u003c` to `\u003c=` change that no reviewer could flag, because the values never reach\n+the boundary and the output is identical for every input. Run the changed code\n+and compare outputs before trusting a seeded label; an unobservable mutation\n+measures nothing.\n",
+      "hunks": [
+        {
+          "id": "diff-d8fa393e76a6c188",
+          "header": "@@ -81,3 +81,29 @@ only commit identities and labelled line ranges, never source or model output.",
+          "lines": [
+            {
+              "oldLine": 81,
+              "newLine": 81,
+              "kind": "context",
+              "text": "- A review that failed or did not finish (a sub-agent or the verifier failed, the"
+            },
+            {
+              "oldLine": 82,
+              "newLine": 82,
+              "kind": "context",
+              "text": "  cap stopped it) is recorded with its reason and left out of scoring. It is never"
+            },
+            {
+              "oldLine": 83,
+              "newLine": 83,
+              "kind": "context",
+              "text": "  counted as a missed bug."
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "### Keeping a real case set private"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "`eval/example-cases.json` shows the format with placeholder values. A case file"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "for a private repository names that repository, its commits and file paths, so it"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "does not belong in this public repository: keep it in the repository under test"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "(for example on a branch used only for evaluation), next to the commits it refers to."
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "For seeded cases, make each bug a commit followed by its revert. Then the"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "case's base tree equals your main branch, the branch changes nothing net, and"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "the case is reproducible from commit identities alone."
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "    git -C ~/code/repo fetch origin px1-eval"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "    px1 eval-run --cases ~/code/repo/eval/px1-cases.json --root ~/code/repo ..."
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "A first run of this kind on a private repo (six small seeded bugs and two clean"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "changes, three runs each, gpt-6-luna, about $0.10) found five bugs in every run,"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "flagged nothing on the clean changes, and found the sixth, subtler bug in only one"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "of three runs. Small hand-seeded single-line bugs are easier than real ones, so"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "read that as a baseline for comparing changes, not a recall claim."
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "A seeded mutation can turn out to change nothing. The first draft of that set had"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "a `\u003c` to `\u003c=` change that no reviewer could flag, because the values never reach"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "the boundary and the output is identical for every input. Run the changed code"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "and compare outputs before trusting a seeded label; an unobservable mutation"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "measures nothing."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "eval/example-cases.json",
+      "status": "A",
+      "diff": "diff --git a/eval/example-cases.json b/eval/example-cases.json\nnew file mode 100644\nindex 0000000..91b43e5\n--- /dev/null\n+++ b/eval/example-cases.json\n@@ -0,0 +1,29 @@\n+{\n+  \"version\": 1,\n+  \"cases\": [\n+    {\n+      \"id\": \"example-seeded-bug\",\n+      \"kind\": \"seeded\",\n+      \"repository\": \"owner/private-repo\",\n+      \"base_sha\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n+      \"head_sha\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n+      \"labels\": [\n+        {\n+          \"path\": \"src/example.ts\",\n+          \"bug_class\": \"logic\",\n+          \"start_line\": 28,\n+          \"end_line\": 28\n+        }\n+      ],\n+      \"notes\": \"Describe the seeded bug in one line; the source stays in the repository.\"\n+    },\n+    {\n+      \"id\": \"example-clean-change\",\n+      \"kind\": \"clean\",\n+      \"repository\": \"owner/private-repo\",\n+      \"base_sha\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n+      \"head_sha\": \"cccccccccccccccccccccccccccccccccccccccc\",\n+      \"notes\": \"A behaviour-preserving change that should draw no findings.\"\n+    }\n+  ]\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-ea487a7313039da0",
+          "header": "@@ -0,0 +1,29 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "{"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": "  \"version\": 1,"
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "  \"cases\": ["
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "    {"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "      \"id\": \"example-seeded-bug\","
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "      \"kind\": \"seeded\","
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "      \"repository\": \"owner/private-repo\","
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "      \"base_sha\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\","
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "      \"head_sha\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\","
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "      \"labels\": ["
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "        {"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "          \"path\": \"src/example.ts\","
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "          \"bug_class\": \"logic\","
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "          \"start_line\": 28,"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "          \"end_line\": 28"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "        }"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "      ],"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "      \"notes\": \"Describe the seeded bug in one line; the source stays in the repository.\""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "    },"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "    {"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "      \"id\": \"example-clean-change\","
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "      \"kind\": \"clean\","
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "      \"repository\": \"owner/private-repo\","
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "      \"base_sha\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\","
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "      \"head_sha\": \"cccccccccccccccccccccccccccccccccccccccc\","
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "      \"notes\": \"A behaviour-preserving change that should draw no findings.\""
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "    }"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "  ]"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "eval_cases_test.go",
+      "status": "A",
+      "diff": "diff --git a/eval_cases_test.go b/eval_cases_test.go\nnew file mode 100644\nindex 0000000..104f5dd\n--- /dev/null\n+++ b/eval_cases_test.go\n@@ -0,0 +1,33 @@\n+package main\n+\n+import (\n+\t\"os\"\n+\t\"testing\"\n+\n+\t\"px1/internal/hosted/eval\"\n+)\n+\n+// The committed example must stay loadable and show both kinds of case: seeded\n+// bugs, and clean changes, which are what measure false alarms.\n+func TestCommittedEvalCasesAreValid(t *testing.T) {\n+\tdata, err := os.ReadFile(\"eval/example-cases.json\")\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tdataset, err := eval.DecodeRepeat(data)\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tseeded, clean := 0, 0\n+\tfor _, c := range dataset.Cases {\n+\t\tswitch c.Kind {\n+\t\tcase \"seeded\":\n+\t\t\tseeded++\n+\t\tcase \"clean\":\n+\t\t\tclean++\n+\t\t}\n+\t}\n+\tif seeded \u003c 1 || clean \u003c 1 {\n+\t\tt.Fatalf(\"want at least one seeded and one clean case, got %d and %d\", seeded, clean)\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-7a647871d725899e",
+          "header": "@@ -0,0 +1,33 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package main"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"px1/internal/hosted/eval\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "// The committed example must stay loadable and show both kinds of case: seeded"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "// bugs, and clean changes, which are what measure false alarms."
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "func TestCommittedEvalCasesAreValid(t *testing.T) {"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\tdata, err := os.ReadFile(\"eval/example-cases.json\")"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tdataset, err := eval.DecodeRepeat(data)"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tseeded, clean := 0, 0"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tfor _, c := range dataset.Cases {"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t\tswitch c.Kind {"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\tcase \"seeded\":"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t\t\tseeded++"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t\tcase \"clean\":"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t\t\tclean++"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tif seeded \u003c 1 || clean \u003c 1 {"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"want at least one seeded and one clean case, got %d and %d\", seeded, clean)"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-f322bf6da7c6d7e5",
+      "title": "Cases changes",
+      "summary": "3 related files share the \"cases\" change signal.",
+      "paths": [
+        "docs/EVALUATION_SET.md",
+        "eval/example-cases.json",
+        "eval_cases_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 3,
+    "filesAnalyzed": 3,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "eval-example-validation",
+      "path": "eval_cases_test.go",
+      "lineStart": 12,
+      "lineEnd": 31,
+      "title": "Validate the example evaluation dataset",
+      "summary": "The committed example evaluation dataset is now checked by the test suite: it must decode successfully and contain both a seeded case and a clean case. This helps catch format regressions or examples that no longer demonstrate both evaluation types."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "11ecd31a71eb0396ebc0f2cbaf382e32b6c5ecd4",
+      "revision": "2aacf4f338a7c0074885c7ab080c153d39e82670",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "11ecd31a71eb0396ebc0f2cbaf382e32b6c5ecd4",
+      "revision": "2aacf4f338a7c0074885c7ab080c153d39e82670",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "2aacf4f338a7c0074885c7ab080c153d39e82670",
+      "detail": "1 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "2aacf4f338a7c0074885c7ab080c153d39e82670",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "2aacf4f338a7c0074885c7ab080c153d39e82670",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42818558973",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42818558973/job/129838394766",
+        "startedAt": "2026-11-10T12:47:21Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42818563701/job/129837866771",
+        "startedAt": "2026-11-10T12:46:11Z"
+      }
+    ]
+  }
+}
