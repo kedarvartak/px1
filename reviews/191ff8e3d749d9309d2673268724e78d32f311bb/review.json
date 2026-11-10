@@ -1,0 +1,888 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "2fbb072eccfc099a8d91e2cb32b9692f8be1989d",
+  "head": "191ff8e3d749d9309d2673268724e78d32f311bb",
+  "generatedAt": "2026-11-10T13:43:08.28533791Z",
+  "files": [
+    {
+      "path": "internal/hosted/agent/pipeline.go",
+      "status": "M",
+      "diff": "diff --git a/internal/hosted/agent/pipeline.go b/internal/hosted/agent/pipeline.go\nindex 269ce86..9724017 100644\n--- a/internal/hosted/agent/pipeline.go\n+++ b/internal/hosted/agent/pipeline.go\n@@ -243,7 +243,7 @@ func (p Pipeline) verify(ctx context.Context, findings []review.Finding, files m\n \t}\n \tmodel := p.Model\n \tmodel.MaxOutputTokens = max(p.Model.MaxOutputTokens, min(len(findings)*200+500, 6_000))\n-\tverifier := review.FindingVerifier{Client: cleaningClient{model: model}, Provider: p.Model.Provider, Model: p.Model.Name, PromptVersion: \"px1-agentic-1\", MinConfidence: p.MinConfidence, MaxOutputTokens: model.MaxOutputTokens}\n+\tverifier := review.FindingVerifier{Client: cleaningClient{model: model}, Provider: p.Model.Provider, Model: p.Model.Name, PromptVersion: \"px1-agentic-2\", MinConfidence: p.MinConfidence, MaxOutputTokens: model.MaxOutputTokens}\n \tvar result review.VerificationResult\n \tvar err error\n \tfor attempt := 0; attempt \u003c 2; attempt++ {\n@@ -311,25 +311,68 @@ func blockDiff(block review.Block, files map[string]ReviewFile, note func(string\n \treturn out.String()\n }\n \n+const (\n+\tdiffContextLimit    = 2_000\n+\tmaxRemovedRunLines  = 8\n+\tmaxRemovedLineBytes = 160\n+)\n+\n // diffContext returns the numbered diff lines near a finding, bounded so a\n-// verifier request stays small.\n+// verifier request stays small. Removed lines (\"-\") directly before a kept line\n+// are included: a finding that a change introduced something cannot be checked\n+// without seeing what the change replaced. The numbered lines are the evidence,\n+// so they are never crowded out: removed lines are shortened, capped to the\n+// last few of each run, and dropped first when the limit is reached.\n func diffContext(diff string, start, end int) string {\n-\tlines := strings.Split(diff, \"\\n\")\n-\tvar picked []string\n-\tfor _, line := range lines {\n+\ttype entry struct {\n+\t\ttext    string\n+\t\tremoved bool\n+\t}\n+\tvar entries []entry\n+\tvar pending []string\n+\tfor _, line := range strings.Split(diff, \"\\n\") {\n \t\tnumber, _, ok := strings.Cut(line, \"\\t\")\n \t\tif !ok {\n+\t\t\tpending = nil\n+\t\t\tcontinue\n+\t\t}\n+\t\tif number == \"-\" {\n+\t\t\tpending = append(pending, clip(line, maxRemovedLineBytes))\n \t\t\tcontinue\n \t\t}\n \t\tvar n int\n \t\tif _, err := fmt.Sscanf(number, \"%d\", \u0026n); err != nil {\n+\t\t\tpending = nil\n \t\t\tcontinue\n \t\t}\n \t\tif n \u003e= start-6 \u0026\u0026 n \u003c= end+6 {\n-\t\t\tpicked = append(picked, line)\n+\t\t\tif len(pending) \u003e maxRemovedRunLines {\n+\t\t\t\tpending = pending[len(pending)-maxRemovedRunLines:]\n+\t\t\t}\n+\t\t\tfor _, r := range pending {\n+\t\t\t\tentries = append(entries, entry{r, true})\n+\t\t\t}\n+\t\t\tentries = append(entries, entry{line, false})\n+\t\t}\n+\t\tpending = nil\n+\t}\n+\tbudget := diffContextLimit\n+\tfor _, e := range entries {\n+\t\tif !e.removed {\n+\t\t\tbudget -= len(e.text) + 1\n+\t\t}\n+\t}\n+\tvar picked []string\n+\tfor _, e := range entries {\n+\t\tif e.removed {\n+\t\t\tif budget \u003c len(e.text)+1 {\n+\t\t\t\tcontinue\n+\t\t\t}\n+\t\t\tbudget -= len(e.text) + 1\n \t\t}\n+\t\tpicked = append(picked, e.text)\n \t}\n-\treturn clip(strings.Join(picked, \"\\n\"), 2_000)\n+\treturn clip(strings.Join(picked, \"\\n\"), diffContextLimit)\n }\n \n // describeError classifies a failure for reports and traces. Provider error\n",
+      "hunks": [
+        {
+          "id": "diff-1a8219332c881d04",
+          "header": "@@ -243,7 +243,7 @@ func (p Pipeline) verify(ctx context.Context, findings []review.Finding, files m",
+          "lines": [
+            {
+              "oldLine": 243,
+              "newLine": 243,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 244,
+              "newLine": 244,
+              "kind": "context",
+              "text": "\tmodel := p.Model"
+            },
+            {
+              "oldLine": 245,
+              "newLine": 245,
+              "kind": "context",
+              "text": "\tmodel.MaxOutputTokens = max(p.Model.MaxOutputTokens, min(len(findings)*200+500, 6_000))"
+            },
+            {
+              "oldLine": 246,
+              "kind": "removed",
+              "text": "\tverifier := review.FindingVerifier{Client: cleaningClient{model: model}, Provider: p.Model.Provider, Model: p.Model.Name, PromptVersion: \"px1-agentic-1\", MinConfidence: p.MinConfidence, MaxOutputTokens: model.MaxOutputTokens}"
+            },
+            {
+              "newLine": 246,
+              "kind": "added",
+              "text": "\tverifier := review.FindingVerifier{Client: cleaningClient{model: model}, Provider: p.Model.Provider, Model: p.Model.Name, PromptVersion: \"px1-agentic-2\", MinConfidence: p.MinConfidence, MaxOutputTokens: model.MaxOutputTokens}"
+            },
+            {
+              "oldLine": 247,
+              "newLine": 247,
+              "kind": "context",
+              "text": "\tvar result review.VerificationResult"
+            },
+            {
+              "oldLine": 248,
+              "newLine": 248,
+              "kind": "context",
+              "text": "\tvar err error"
+            },
+            {
+              "oldLine": 249,
+              "newLine": 249,
+              "kind": "context",
+              "text": "\tfor attempt := 0; attempt \u003c 2; attempt++ {"
+            }
+          ]
+        },
+        {
+          "id": "diff-a0e607e6c6ba01a5",
+          "header": "@@ -311,25 +311,68 @@ func blockDiff(block review.Block, files map[string]ReviewFile, note func(string",
+          "lines": [
+            {
+              "oldLine": 311,
+              "newLine": 311,
+              "kind": "context",
+              "text": "\treturn out.String()"
+            },
+            {
+              "oldLine": 312,
+              "newLine": 312,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 313,
+              "newLine": 313,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 314,
+              "kind": "added",
+              "text": "const ("
+            },
+            {
+              "newLine": 315,
+              "kind": "added",
+              "text": "\tdiffContextLimit    = 2_000"
+            },
+            {
+              "newLine": 316,
+              "kind": "added",
+              "text": "\tmaxRemovedRunLines  = 8"
+            },
+            {
+              "newLine": 317,
+              "kind": "added",
+              "text": "\tmaxRemovedLineBytes = 160"
+            },
+            {
+              "newLine": 318,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 319,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 314,
+              "newLine": 320,
+              "kind": "context",
+              "text": "// diffContext returns the numbered diff lines near a finding, bounded so a"
+            },
+            {
+              "oldLine": 315,
+              "kind": "removed",
+              "text": "// verifier request stays small."
+            },
+            {
+              "newLine": 321,
+              "kind": "added",
+              "text": "// verifier request stays small. Removed lines (\"-\") directly before a kept line"
+            },
+            {
+              "newLine": 322,
+              "kind": "added",
+              "text": "// are included: a finding that a change introduced something cannot be checked"
+            },
+            {
+              "newLine": 323,
+              "kind": "added",
+              "text": "// without seeing what the change replaced. The numbered lines are the evidence,"
+            },
+            {
+              "newLine": 324,
+              "kind": "added",
+              "text": "// so they are never crowded out: removed lines are shortened, capped to the"
+            },
+            {
+              "newLine": 325,
+              "kind": "added",
+              "text": "// last few of each run, and dropped first when the limit is reached."
+            },
+            {
+              "oldLine": 316,
+              "newLine": 326,
+              "kind": "context",
+              "text": "func diffContext(diff string, start, end int) string {"
+            },
+            {
+              "oldLine": 317,
+              "kind": "removed",
+              "text": "\tlines := strings.Split(diff, \"\\n\")"
+            },
+            {
+              "oldLine": 318,
+              "kind": "removed",
+              "text": "\tvar picked []string"
+            },
+            {
+              "oldLine": 319,
+              "kind": "removed",
+              "text": "\tfor _, line := range lines {"
+            },
+            {
+              "newLine": 327,
+              "kind": "added",
+              "text": "\ttype entry struct {"
+            },
+            {
+              "newLine": 328,
+              "kind": "added",
+              "text": "\t\ttext    string"
+            },
+            {
+              "newLine": 329,
+              "kind": "added",
+              "text": "\t\tremoved bool"
+            },
+            {
+              "newLine": 330,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 331,
+              "kind": "added",
+              "text": "\tvar entries []entry"
+            },
+            {
+              "newLine": 332,
+              "kind": "added",
+              "text": "\tvar pending []string"
+            },
+            {
+              "newLine": 333,
+              "kind": "added",
+              "text": "\tfor _, line := range strings.Split(diff, \"\\n\") {"
+            },
+            {
+              "oldLine": 320,
+              "newLine": 334,
+              "kind": "context",
+              "text": "\t\tnumber, _, ok := strings.Cut(line, \"\\t\")"
+            },
+            {
+              "oldLine": 321,
+              "newLine": 335,
+              "kind": "context",
+              "text": "\t\tif !ok {"
+            },
+            {
+              "newLine": 336,
+              "kind": "added",
+              "text": "\t\t\tpending = nil"
+            },
+            {
+              "newLine": 337,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 338,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 339,
+              "kind": "added",
+              "text": "\t\tif number == \"-\" {"
+            },
+            {
+              "newLine": 340,
+              "kind": "added",
+              "text": "\t\t\tpending = append(pending, clip(line, maxRemovedLineBytes))"
+            },
+            {
+              "oldLine": 322,
+              "newLine": 341,
+              "kind": "context",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "oldLine": 323,
+              "newLine": 342,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 324,
+              "newLine": 343,
+              "kind": "context",
+              "text": "\t\tvar n int"
+            },
+            {
+              "oldLine": 325,
+              "newLine": 344,
+              "kind": "context",
+              "text": "\t\tif _, err := fmt.Sscanf(number, \"%d\", \u0026n); err != nil {"
+            },
+            {
+              "newLine": 345,
+              "kind": "added",
+              "text": "\t\t\tpending = nil"
+            },
+            {
+              "oldLine": 326,
+              "newLine": 346,
+              "kind": "context",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "oldLine": 327,
+              "newLine": 347,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 328,
+              "newLine": 348,
+              "kind": "context",
+              "text": "\t\tif n \u003e= start-6 \u0026\u0026 n \u003c= end+6 {"
+            },
+            {
+              "oldLine": 329,
+              "kind": "removed",
+              "text": "\t\t\tpicked = append(picked, line)"
+            },
+            {
+              "newLine": 349,
+              "kind": "added",
+              "text": "\t\t\tif len(pending) \u003e maxRemovedRunLines {"
+            },
+            {
+              "newLine": 350,
+              "kind": "added",
+              "text": "\t\t\t\tpending = pending[len(pending)-maxRemovedRunLines:]"
+            },
+            {
+              "newLine": 351,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 352,
+              "kind": "added",
+              "text": "\t\t\tfor _, r := range pending {"
+            },
+            {
+              "newLine": 353,
+              "kind": "added",
+              "text": "\t\t\t\tentries = append(entries, entry{r, true})"
+            },
+            {
+              "newLine": 354,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 355,
+              "kind": "added",
+              "text": "\t\t\tentries = append(entries, entry{line, false})"
+            },
+            {
+              "newLine": 356,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 357,
+              "kind": "added",
+              "text": "\t\tpending = nil"
+            },
+            {
+              "newLine": 358,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 359,
+              "kind": "added",
+              "text": "\tbudget := diffContextLimit"
+            },
+            {
+              "newLine": 360,
+              "kind": "added",
+              "text": "\tfor _, e := range entries {"
+            },
+            {
+              "newLine": 361,
+              "kind": "added",
+              "text": "\t\tif !e.removed {"
+            },
+            {
+              "newLine": 362,
+              "kind": "added",
+              "text": "\t\t\tbudget -= len(e.text) + 1"
+            },
+            {
+              "newLine": 363,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 364,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 365,
+              "kind": "added",
+              "text": "\tvar picked []string"
+            },
+            {
+              "newLine": 366,
+              "kind": "added",
+              "text": "\tfor _, e := range entries {"
+            },
+            {
+              "newLine": 367,
+              "kind": "added",
+              "text": "\t\tif e.removed {"
+            },
+            {
+              "newLine": 368,
+              "kind": "added",
+              "text": "\t\t\tif budget \u003c len(e.text)+1 {"
+            },
+            {
+              "newLine": 369,
+              "kind": "added",
+              "text": "\t\t\t\tcontinue"
+            },
+            {
+              "newLine": 370,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 371,
+              "kind": "added",
+              "text": "\t\t\tbudget -= len(e.text) + 1"
+            },
+            {
+              "oldLine": 330,
+              "newLine": 372,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 373,
+              "kind": "added",
+              "text": "\t\tpicked = append(picked, e.text)"
+            },
+            {
+              "oldLine": 331,
+              "newLine": 374,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 332,
+              "kind": "removed",
+              "text": "\treturn clip(strings.Join(picked, \"\\n\"), 2_000)"
+            },
+            {
+              "newLine": 375,
+              "kind": "added",
+              "text": "\treturn clip(strings.Join(picked, \"\\n\"), diffContextLimit)"
+            },
+            {
+              "oldLine": 333,
+              "newLine": 376,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 334,
+              "newLine": 377,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 335,
+              "newLine": 378,
+              "kind": "context",
+              "text": "// describeError classifies a failure for reports and traces. Provider error"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/agent/pipeline_test.go",
+      "status": "M",
+      "diff": "diff --git a/internal/hosted/agent/pipeline_test.go b/internal/hosted/agent/pipeline_test.go\nindex d72f194..575531b 100644\n--- a/internal/hosted/agent/pipeline_test.go\n+++ b/internal/hosted/agent/pipeline_test.go\n@@ -359,3 +359,57 @@ func TestProviderErrorTextNeverReachesNotesOrTheTrace(t *testing.T) {\n \t\tt.Fatalf(\"a failed verifier should be explained without detail and report nothing: %s\", everything)\n \t}\n }\n+\n+func TestDiffContextIncludesRemovedLinesNextToTheFinding(t *testing.T) {\n+\tdiff := \"@@ -40,3 +40,3 @@\\n40\\t ctx\\n-\\told := a \u003e b\\n41\\t+new := a \u003e= b\\n42\\t ctx2\\n-\\tunrelated removal\\n90\\t far away\\n\"\n+\tgot := diffContext(diff, 41, 41)\n+\tfor _, want := range []string{\"-\\told := a \u003e b\", \"41\\t+new := a \u003e= b\", \"40\\t ctx\", \"42\\t ctx2\"} {\n+\t\tif !strings.Contains(got, want) {\n+\t\t\tt.Fatalf(\"context lacks %q:\\n%s\", want, got)\n+\t\t}\n+\t}\n+\tif strings.Contains(got, \"far away\") {\n+\t\tt.Fatalf(\"lines outside the window must be left out:\\n%s\", got)\n+\t}\n+\tif strings.Contains(got, \"unrelated removal\") {\n+\t\tt.Fatalf(\"a removal that precedes a line outside the window is not context:\\n%s\", got)\n+\t}\n+}\n+\n+func TestDiffContextWithoutRemovalsIsUnchanged(t *testing.T) {\n+\tdiff := \"10\\t ctx\\n11\\t+added\\n12\\t ctx\\n\"\n+\tif got := diffContext(diff, 11, 11); got != diff[:len(diff)-1] {\n+\t\tt.Fatalf(\"got %q\", got)\n+\t}\n+}\n+\n+// A long removal run must not push out the line the verifier is judging.\n+func TestDiffContextKeepsTheFindingLineWhenARemovalRunIsHuge(t *testing.T) {\n+\tvar diff strings.Builder\n+\tfor i := 0; i \u003c 200; i++ {\n+\t\tdiff.WriteString(\"-\\t\" + strings.Repeat(\"old code \", 20) + \"\\n\")\n+\t}\n+\tdiff.WriteString(\"50\\t+const fixed = true\\n51\\t ctx\\n\")\n+\tgot := diffContext(diff.String(), 50, 50)\n+\tif !strings.Contains(got, \"50\\t+const fixed = true\") || !strings.Contains(got, \"51\\t ctx\") {\n+\t\tt.Fatalf(\"the finding's own lines were crowded out:\\n%s\", got)\n+\t}\n+\tif len(got) \u003e diffContextLimit {\n+\t\tt.Fatalf(\"context is %d bytes, limit %d\", len(got), diffContextLimit)\n+\t}\n+\tif n := strings.Count(got, \"old code\"); n \u003c 1 || n \u003e maxRemovedRunLines*20 {\n+\t\tt.Fatalf(\"expected a bounded slice of the removed run, got %d repeats\", n)\n+\t}\n+}\n+\n+func TestDiffContextDropsRemovalsBeforeEvidenceWhenTheLimitIsTight(t *testing.T) {\n+\tvar diff strings.Builder\n+\tfor i := 0; i \u003c 13; i++ {\n+\t\tdiff.WriteString(\"-\\t\" + strings.Repeat(\"r\", 150) + \"\\n\")\n+\t\tdiff.WriteString(strings.Repeat(\"9\", 1) + \"\\t+\" + strings.Repeat(\"k\", 100) + \"\\n\")\n+\t}\n+\tgot := diffContext(strings.ReplaceAll(diff.String(), \"9\\t\", \"10\\t\"), 10, 10)\n+\tif strings.Count(got, \"k\") \u003c 100 {\n+\t\tt.Fatalf(\"kept lines must survive: %d\", strings.Count(got, \"k\"))\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-b2b0c07b0108013f",
+          "header": "@@ -359,3 +359,57 @@ func TestProviderErrorTextNeverReachesNotesOrTheTrace(t *testing.T) {",
+          "lines": [
+            {
+              "oldLine": 359,
+              "newLine": 359,
+              "kind": "context",
+              "text": "\t\tt.Fatalf(\"a failed verifier should be explained without detail and report nothing: %s\", everything)"
+            },
+            {
+              "oldLine": 360,
+              "newLine": 360,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 361,
+              "newLine": 361,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "newLine": 362,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 363,
+              "kind": "added",
+              "text": "func TestDiffContextIncludesRemovedLinesNextToTheFinding(t *testing.T) {"
+            },
+            {
+              "newLine": 364,
+              "kind": "added",
+              "text": "\tdiff := \"@@ -40,3 +40,3 @@\\n40\\t ctx\\n-\\told := a \u003e b\\n41\\t+new := a \u003e= b\\n42\\t ctx2\\n-\\tunrelated removal\\n90\\t far away\\n\""
+            },
+            {
+              "newLine": 365,
+              "kind": "added",
+              "text": "\tgot := diffContext(diff, 41, 41)"
+            },
+            {
+              "newLine": 366,
+              "kind": "added",
+              "text": "\tfor _, want := range []string{\"-\\told := a \u003e b\", \"41\\t+new := a \u003e= b\", \"40\\t ctx\", \"42\\t ctx2\"} {"
+            },
+            {
+              "newLine": 367,
+              "kind": "added",
+              "text": "\t\tif !strings.Contains(got, want) {"
+            },
+            {
+              "newLine": 368,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"context lacks %q:\\n%s\", want, got)"
+            },
+            {
+              "newLine": 369,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 370,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 371,
+              "kind": "added",
+              "text": "\tif strings.Contains(got, \"far away\") {"
+            },
+            {
+              "newLine": 372,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"lines outside the window must be left out:\\n%s\", got)"
+            },
+            {
+              "newLine": 373,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 374,
+              "kind": "added",
+              "text": "\tif strings.Contains(got, \"unrelated removal\") {"
+            },
+            {
+              "newLine": 375,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"a removal that precedes a line outside the window is not context:\\n%s\", got)"
+            },
+            {
+              "newLine": 376,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 377,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 378,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 379,
+              "kind": "added",
+              "text": "func TestDiffContextWithoutRemovalsIsUnchanged(t *testing.T) {"
+            },
+            {
+              "newLine": 380,
+              "kind": "added",
+              "text": "\tdiff := \"10\\t ctx\\n11\\t+added\\n12\\t ctx\\n\""
+            },
+            {
+              "newLine": 381,
+              "kind": "added",
+              "text": "\tif got := diffContext(diff, 11, 11); got != diff[:len(diff)-1] {"
+            },
+            {
+              "newLine": 382,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"got %q\", got)"
+            },
+            {
+              "newLine": 383,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 384,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 385,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 386,
+              "kind": "added",
+              "text": "// A long removal run must not push out the line the verifier is judging."
+            },
+            {
+              "newLine": 387,
+              "kind": "added",
+              "text": "func TestDiffContextKeepsTheFindingLineWhenARemovalRunIsHuge(t *testing.T) {"
+            },
+            {
+              "newLine": 388,
+              "kind": "added",
+              "text": "\tvar diff strings.Builder"
+            },
+            {
+              "newLine": 389,
+              "kind": "added",
+              "text": "\tfor i := 0; i \u003c 200; i++ {"
+            },
+            {
+              "newLine": 390,
+              "kind": "added",
+              "text": "\t\tdiff.WriteString(\"-\\t\" + strings.Repeat(\"old code \", 20) + \"\\n\")"
+            },
+            {
+              "newLine": 391,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 392,
+              "kind": "added",
+              "text": "\tdiff.WriteString(\"50\\t+const fixed = true\\n51\\t ctx\\n\")"
+            },
+            {
+              "newLine": 393,
+              "kind": "added",
+              "text": "\tgot := diffContext(diff.String(), 50, 50)"
+            },
+            {
+              "newLine": 394,
+              "kind": "added",
+              "text": "\tif !strings.Contains(got, \"50\\t+const fixed = true\") || !strings.Contains(got, \"51\\t ctx\") {"
+            },
+            {
+              "newLine": 395,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"the finding's own lines were crowded out:\\n%s\", got)"
+            },
+            {
+              "newLine": 396,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 397,
+              "kind": "added",
+              "text": "\tif len(got) \u003e diffContextLimit {"
+            },
+            {
+              "newLine": 398,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"context is %d bytes, limit %d\", len(got), diffContextLimit)"
+            },
+            {
+              "newLine": 399,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 400,
+              "kind": "added",
+              "text": "\tif n := strings.Count(got, \"old code\"); n \u003c 1 || n \u003e maxRemovedRunLines*20 {"
+            },
+            {
+              "newLine": 401,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"expected a bounded slice of the removed run, got %d repeats\", n)"
+            },
+            {
+              "newLine": 402,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 403,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 404,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 405,
+              "kind": "added",
+              "text": "func TestDiffContextDropsRemovalsBeforeEvidenceWhenTheLimitIsTight(t *testing.T) {"
+            },
+            {
+              "newLine": 406,
+              "kind": "added",
+              "text": "\tvar diff strings.Builder"
+            },
+            {
+              "newLine": 407,
+              "kind": "added",
+              "text": "\tfor i := 0; i \u003c 13; i++ {"
+            },
+            {
+              "newLine": 408,
+              "kind": "added",
+              "text": "\t\tdiff.WriteString(\"-\\t\" + strings.Repeat(\"r\", 150) + \"\\n\")"
+            },
+            {
+              "newLine": 409,
+              "kind": "added",
+              "text": "\t\tdiff.WriteString(strings.Repeat(\"9\", 1) + \"\\t+\" + strings.Repeat(\"k\", 100) + \"\\n\")"
+            },
+            {
+              "newLine": 410,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 411,
+              "kind": "added",
+              "text": "\tgot := diffContext(strings.ReplaceAll(diff.String(), \"9\\t\", \"10\\t\"), 10, 10)"
+            },
+            {
+              "newLine": 412,
+              "kind": "added",
+              "text": "\tif strings.Count(got, \"k\") \u003c 100 {"
+            },
+            {
+              "newLine": 413,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"kept lines must survive: %d\", strings.Count(got, \"k\"))"
+            },
+            {
+              "newLine": 414,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 415,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-d6fc50468a0323eb",
+      "title": "Crowded changes",
+      "summary": "2 related files share the \"crowded\" change signal.",
+      "paths": [
+        "internal/hosted/agent/pipeline.go",
+        "internal/hosted/agent/pipeline_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-2a4c023a75ec5bc3",
+      "path": "internal/hosted/agent/pipeline.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/agent/pipeline_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 2,
+    "filesAnalyzed": 2,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "diff-context-preserves-replaced-code",
+      "path": "internal/hosted/agent/pipeline.go",
+      "lineStart": 314,
+      "lineEnd": 378,
+      "title": "Include bounded removed-line context",
+      "summary": "Verifier context now includes nearby removed lines immediately before an in-range kept line, so it can compare a change with the code it replaced. Removed lines are clipped and capped per run, and are dropped before kept evidence when the 2,000-byte budget is tight."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "2fbb072eccfc099a8d91e2cb32b9692f8be1989d",
+      "revision": "191ff8e3d749d9309d2673268724e78d32f311bb",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "2fbb072eccfc099a8d91e2cb32b9692f8be1989d",
+      "revision": "191ff8e3d749d9309d2673268724e78d32f311bb",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "191ff8e3d749d9309d2673268724e78d32f311bb",
+      "detail": "1 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "191ff8e3d749d9309d2673268724e78d32f311bb",
+      "detail": "3 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "191ff8e3d749d9309d2673268724e78d32f311bb",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42826889193",
+    "checks": [
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42826893296/job/129866447339",
+        "startedAt": "2026-11-10T13:41:59Z"
+      },
+      {
+        "name": "review",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42826892448/job/129866444559",
+        "startedAt": "2026-11-10T13:41:59Z"
+      },
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42826889193/job/129866438328",
+        "startedAt": "2026-11-10T13:42:01Z"
+      }
+    ]
+  }
+}
