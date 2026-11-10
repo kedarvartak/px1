@@ -34,3 +34,31 @@ could pass on recall by adding findings until some match. The gate fails
 closed: it never passes on a partial benchmark, different case sets, zero Base
 recall, or zero Base cost. Each failed check adds a human-readable reason to
 the result.
+
+## Local repeat evaluation
+
+The launch dataset above needs public repositories and many cases. To learn
+how the reviewer behaves on code you can reach today, including private
+repositories, use a repeat dataset (`eval.RepeatDataset`, version 1). It records
+only commit identities and labelled line ranges, never source or model output.
+
+    {"version": 1, "cases": [
+      {"id": "refund-off-by-one", "kind": "seeded", "repository": "owner/repo",
+       "base_sha": "<40 hex>", "head_sha": "<40 hex>",
+       "labels": [{"path": "src/refund.ts", "bug_class": "logic", "start_line": 40, "end_line": 42}]},
+      {"id": "rename-only", "kind": "clean", "base_sha": "<40 hex>", "head_sha": "<40 hex>"}
+    ]}
+
+- `seeded` and `historical` cases need at least one label. A `clean` case has
+  none, so any finding on it is counted as noise.
+- Every case is meant to be run several times. Models are not deterministic: on
+  one real pull request the same seeded bug was missed once and found twice.
+  `ScoreRepeat` reports the share of bugs found per run, the best and worst whole-set
+  run, labels found in some runs but not all ("unstable"), and labels never found.
+- A finding matches a label when the path is equal and the line ranges overlap
+  within a small slack (default 3 lines). The bug class is compared only when
+  `RequireClass` is set, because the reviewer's own classes differ from human labels.
+- A run that failed (outage, budget) is recorded and left out of every score, so
+  an outage never looks like a miss.
+- A score from a few runs is a sketch: the report states how many runs it covers.
+

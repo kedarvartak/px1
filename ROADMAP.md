@@ -223,7 +223,7 @@ backend-foundation tasks are:
     previews what leaves the machine, requires consent, enforces a cost cap,
     blocks secrets and excluded paths, and writes a report, trace, and feedback
     sheet.
-91. [ ] **Run the review in CI and comment on the pull request.**
+91. [x] **Run the review in CI and comment on the pull request.**
     `px1 post-github` posts a sticky summary and inline comments; the
     `agentic-action` and an example workflow run it per pull request. A
     large-pull-request fallback and a provider retry follow.
