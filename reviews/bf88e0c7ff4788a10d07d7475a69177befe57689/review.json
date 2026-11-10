@@ -1,0 +1,776 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "1cef1b94349b655e67d2231e3aae679b8693caf1",
+  "head": "bf88e0c7ff4788a10d07d7475a69177befe57689",
+  "generatedAt": "2026-11-10T11:17:05.412406337Z",
+  "files": [
+    {
+      "path": "docs/AGENTIC_CI.md",
+      "status": "M",
+      "diff": "diff --git a/docs/AGENTIC_CI.md b/docs/AGENTIC_CI.md\nindex ab37ed0..25c0030 100644\n--- a/docs/AGENTIC_CI.md\n+++ b/docs/AGENTIC_CI.md\n@@ -35,4 +35,4 @@ Each run uploads the report as one unzipped `px1-review.html` artifact (kept 14\n ## Known limits\n \n - Very large pull requests exceed the model budget and fail; there is no fallback yet.\n-- A policy rejection from the model provider is not retried yet.\n+- If the provider's safety filter rejects a prompt, the call is retried once (it is non-deterministic: the same prompt has been accepted on the next try). Both attempts are metered and count against the cost cap. A second rejection fails that step and is reported in the notes.\n",
+      "hunks": [
+        {
+          "id": "diff-fbbb0c64daa60e2c",
+          "header": "@@ -35,4 +35,4 @@ Each run uploads the report as one unzipped `px1-review.html` artifact (kept 14",
+          "lines": [
+            {
+              "oldLine": 35,
+              "newLine": 35,
+              "kind": "context",
+              "text": "## Known limits"
+            },
+            {
+              "oldLine": 36,
+              "newLine": 36,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 37,
+              "newLine": 37,
+              "kind": "context",
+              "text": "- Very large pull requests exceed the model budget and fail; there is no fallback yet."
+            },
+            {
+              "oldLine": 38,
+              "kind": "removed",
+              "text": "- A policy rejection from the model provider is not retried yet."
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "- If the provider's safety filter rejects a prompt, the call is retried once (it is non-deterministic: the same prompt has been accepted on the next try). Both attempts are metered and count against the cost cap. A second rejection fails that step and is reported in the notes."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/agent/loop_test.go",
+      "status": "M",
+      "diff": "diff --git a/internal/hosted/agent/loop_test.go b/internal/hosted/agent/loop_test.go\nindex 1db5b9a..4f4d2bc 100644\n--- a/internal/hosted/agent/loop_test.go\n+++ b/internal/hosted/agent/loop_test.go\n@@ -274,3 +274,56 @@ func TestEstimateTokensRoundsUpAndOverestimates(t *testing.T) {\n \t\tt.Fatalf(\"estimates: %d %d %d\", EstimateTokens(\"abc\"), EstimateTokens(\"abcd\"), EstimateTokens(strings.Repeat(\"x\", 3000)))\n \t}\n }\n+\n+type flaggedThenOK struct {\n+\tcalls  int\n+\tfailN  int\n+\tdetail string\n+}\n+\n+func (f *flaggedThenOK) Complete(context.Context, llm.Request) (llm.Response, error) {\n+\tf.calls++\n+\tif f.calls \u003c= f.failN {\n+\t\treturn llm.Response{}, llm.ProviderError{ProviderName: \"openai\", StatusCode: 400, Detail: f.detail}\n+\t}\n+\treturn llm.Response{Text: \"ok\", Usage: llm.Usage{InputTokens: 10, OutputTokens: 5}}, nil\n+}\n+\n+const flaggedDetail = \"Invalid prompt: your prompt was flagged as potentially violating our usage policy.\"\n+\n+func policyModel(client Completer, meter *Meter) Model {\n+\treturn Model{Client: client, Name: \"m\", MaxOutputTokens: 100, Meter: meter, PolicyRetryWait: time.Millisecond, ContentionWait: time.Millisecond,\n+\t\tPrice: llm.Price{InputMicrousdPerMillion: 1_000_000, OutputMicrousdPerMillion: 1_000_000}}\n+}\n+\n+func policyBudget() Budget {\n+\treturn Budget{MaxInputTokens: 10_000, MaxOutputTokens: 10_000, MaxCostMicrousd: 10_000_000, MaxModelCalls: 10, MaxToolCallsPerAgent: 3, WallTime: time.Minute}\n+}\n+\n+func TestModelRetriesOnePolicyRejectionAndChargesBothCalls(t *testing.T) {\n+\tmeter := NewMeter(policyBudget(), time.Now(), nil)\n+\tclient := \u0026flaggedThenOK{failN: 1, detail: flaggedDetail}\n+\ttext, err := policyModel(client, meter).Call(context.Background(), \"g\", \"sub-agent\", Prompt{System: \"s\", User: \"u\"})\n+\tif err != nil || text != \"ok\" || client.calls != 2 {\n+\t\tt.Fatalf(\"text=%q err=%v calls=%d\", text, err, client.calls)\n+\t}\n+\tif spend := meter.Spend(); spend.ModelCalls != 2 {\n+\t\tt.Fatalf(\"both attempts must be metered: %#v\", spend)\n+\t}\n+}\n+\n+func TestModelRetriesPolicyRejectionOnlyOnce(t *testing.T) {\n+\tclient := \u0026flaggedThenOK{failN: 5, detail: flaggedDetail}\n+\t_, err := policyModel(client, NewMeter(policyBudget(), time.Now(), nil)).Call(context.Background(), \"g\", \"sub-agent\", Prompt{System: \"s\", User: \"u\"})\n+\tif err == nil || client.calls != 2 {\n+\t\tt.Fatalf(\"err=%v calls=%d: want a failure after exactly two attempts\", err, client.calls)\n+\t}\n+}\n+\n+func TestModelDoesNotRetryOtherBadRequests(t *testing.T) {\n+\tclient := \u0026flaggedThenOK{failN: 5, detail: \"The model `nope` does not exist\"}\n+\t_, err := policyModel(client, NewMeter(policyBudget(), time.Now(), nil)).Call(context.Background(), \"g\", \"sub-agent\", Prompt{System: \"s\", User: \"u\"})\n+\tif err == nil || client.calls != 1 {\n+\t\tt.Fatalf(\"err=%v calls=%d: a real 400 must not be retried\", err, client.calls)\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-2735191fdcf08f3d",
+          "header": "@@ -274,3 +274,56 @@ func TestEstimateTokensRoundsUpAndOverestimates(t *testing.T) {",
+          "lines": [
+            {
+              "oldLine": 274,
+              "newLine": 274,
+              "kind": "context",
+              "text": "\t\tt.Fatalf(\"estimates: %d %d %d\", EstimateTokens(\"abc\"), EstimateTokens(\"abcd\"), EstimateTokens(strings.Repeat(\"x\", 3000)))"
+            },
+            {
+              "oldLine": 275,
+              "newLine": 275,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 276,
+              "newLine": 276,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "newLine": 277,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 278,
+              "kind": "added",
+              "text": "type flaggedThenOK struct {"
+            },
+            {
+              "newLine": 279,
+              "kind": "added",
+              "text": "\tcalls  int"
+            },
+            {
+              "newLine": 280,
+              "kind": "added",
+              "text": "\tfailN  int"
+            },
+            {
+              "newLine": 281,
+              "kind": "added",
+              "text": "\tdetail string"
+            },
+            {
+              "newLine": 282,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 283,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 284,
+              "kind": "added",
+              "text": "func (f *flaggedThenOK) Complete(context.Context, llm.Request) (llm.Response, error) {"
+            },
+            {
+              "newLine": 285,
+              "kind": "added",
+              "text": "\tf.calls++"
+            },
+            {
+              "newLine": 286,
+              "kind": "added",
+              "text": "\tif f.calls \u003c= f.failN {"
+            },
+            {
+              "newLine": 287,
+              "kind": "added",
+              "text": "\t\treturn llm.Response{}, llm.ProviderError{ProviderName: \"openai\", StatusCode: 400, Detail: f.detail}"
+            },
+            {
+              "newLine": 288,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 289,
+              "kind": "added",
+              "text": "\treturn llm.Response{Text: \"ok\", Usage: llm.Usage{InputTokens: 10, OutputTokens: 5}}, nil"
+            },
+            {
+              "newLine": 290,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 291,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 292,
+              "kind": "added",
+              "text": "const flaggedDetail = \"Invalid prompt: your prompt was flagged as potentially violating our usage policy.\""
+            },
+            {
+              "newLine": 293,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 294,
+              "kind": "added",
+              "text": "func policyModel(client Completer, meter *Meter) Model {"
+            },
+            {
+              "newLine": 295,
+              "kind": "added",
+              "text": "\treturn Model{Client: client, Name: \"m\", MaxOutputTokens: 100, Meter: meter, PolicyRetryWait: time.Millisecond, ContentionWait: time.Millisecond,"
+            },
+            {
+              "newLine": 296,
+              "kind": "added",
+              "text": "\t\tPrice: llm.Price{InputMicrousdPerMillion: 1_000_000, OutputMicrousdPerMillion: 1_000_000}}"
+            },
+            {
+              "newLine": 297,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 298,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 299,
+              "kind": "added",
+              "text": "func policyBudget() Budget {"
+            },
+            {
+              "newLine": 300,
+              "kind": "added",
+              "text": "\treturn Budget{MaxInputTokens: 10_000, MaxOutputTokens: 10_000, MaxCostMicrousd: 10_000_000, MaxModelCalls: 10, MaxToolCallsPerAgent: 3, WallTime: time.Minute}"
+            },
+            {
+              "newLine": 301,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 302,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 303,
+              "kind": "added",
+              "text": "func TestModelRetriesOnePolicyRejectionAndChargesBothCalls(t *testing.T) {"
+            },
+            {
+              "newLine": 304,
+              "kind": "added",
+              "text": "\tmeter := NewMeter(policyBudget(), time.Now(), nil)"
+            },
+            {
+              "newLine": 305,
+              "kind": "added",
+              "text": "\tclient := \u0026flaggedThenOK{failN: 1, detail: flaggedDetail}"
+            },
+            {
+              "newLine": 306,
+              "kind": "added",
+              "text": "\ttext, err := policyModel(client, meter).Call(context.Background(), \"g\", \"sub-agent\", Prompt{System: \"s\", User: \"u\"})"
+            },
+            {
+              "newLine": 307,
+              "kind": "added",
+              "text": "\tif err != nil || text != \"ok\" || client.calls != 2 {"
+            },
+            {
+              "newLine": 308,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"text=%q err=%v calls=%d\", text, err, client.calls)"
+            },
+            {
+              "newLine": 309,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 310,
+              "kind": "added",
+              "text": "\tif spend := meter.Spend(); spend.ModelCalls != 2 {"
+            },
+            {
+              "newLine": 311,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"both attempts must be metered: %#v\", spend)"
+            },
+            {
+              "newLine": 312,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 313,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 314,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 315,
+              "kind": "added",
+              "text": "func TestModelRetriesPolicyRejectionOnlyOnce(t *testing.T) {"
+            },
+            {
+              "newLine": 316,
+              "kind": "added",
+              "text": "\tclient := \u0026flaggedThenOK{failN: 5, detail: flaggedDetail}"
+            },
+            {
+              "newLine": 317,
+              "kind": "added",
+              "text": "\t_, err := policyModel(client, NewMeter(policyBudget(), time.Now(), nil)).Call(context.Background(), \"g\", \"sub-agent\", Prompt{System: \"s\", User: \"u\"})"
+            },
+            {
+              "newLine": 318,
+              "kind": "added",
+              "text": "\tif err == nil || client.calls != 2 {"
+            },
+            {
+              "newLine": 319,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"err=%v calls=%d: want a failure after exactly two attempts\", err, client.calls)"
+            },
+            {
+              "newLine": 320,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 321,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 322,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 323,
+              "kind": "added",
+              "text": "func TestModelDoesNotRetryOtherBadRequests(t *testing.T) {"
+            },
+            {
+              "newLine": 324,
+              "kind": "added",
+              "text": "\tclient := \u0026flaggedThenOK{failN: 5, detail: \"The model `nope` does not exist\"}"
+            },
+            {
+              "newLine": 325,
+              "kind": "added",
+              "text": "\t_, err := policyModel(client, NewMeter(policyBudget(), time.Now(), nil)).Call(context.Background(), \"g\", \"sub-agent\", Prompt{System: \"s\", User: \"u\"})"
+            },
+            {
+              "newLine": 326,
+              "kind": "added",
+              "text": "\tif err == nil || client.calls != 1 {"
+            },
+            {
+              "newLine": 327,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"err=%v calls=%d: a real 400 must not be retried\", err, client.calls)"
+            },
+            {
+              "newLine": 328,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 329,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/agent/model.go",
+      "status": "M",
+      "diff": "diff --git a/internal/hosted/agent/model.go b/internal/hosted/agent/model.go\nindex 340af66..b2015f3 100644\n--- a/internal/hosted/agent/model.go\n+++ b/internal/hosted/agent/model.go\n@@ -4,6 +4,8 @@ import (\n \t\"context\"\n \t\"errors\"\n \t\"fmt\"\n+\t\"net/http\"\n+\t\"strings\"\n \t\"time\"\n \n \t\"px1/internal/hosted/llm\"\n@@ -29,6 +31,9 @@ type Model struct {\n \t// ContentionWait is how long to wait before retrying a reservation that\n \t// other in-flight calls are holding. Defaults to 50ms.\n \tContentionWait time.Duration\n+\t// PolicyRetryWait is how long to wait before the one retry of a call the\n+\t// provider's safety filter rejected. Defaults to 2s.\n+\tPolicyRetryWait time.Duration\n }\n \n // EstimateTokens is a deliberately high estimate (three bytes per token) so a\n@@ -51,6 +56,38 @@ func ActualCost(price llm.Price, usage llm.Usage) int64 {\n // a provider may bill a request it did not complete; this can undercount a\n // call that timed out after generating, and the real bill is authoritative.\n func (m Model) Call(ctx context.Context, agent, role string, prompt Prompt) (string, error) {\n+\ttext, err := m.callOnce(ctx, agent, role, prompt)\n+\tif !isPolicyRejection(err) {\n+\t\treturn text, err\n+\t}\n+\t// The provider's safety filter is not deterministic: the same request\n+\t// has been rejected once and accepted on the next try. Retry exactly once,\n+\t// as a new metered call, so the retry is charged and bounded like any other.\n+\twait := m.PolicyRetryWait\n+\tif wait \u003c= 0 {\n+\t\twait = 2 * time.Second\n+\t}\n+\tselect {\n+\tcase \u003c-ctx.Done():\n+\t\treturn \"\", err\n+\tcase \u003c-time.After(wait):\n+\t}\n+\treturn m.callOnce(ctx, agent, role, prompt)\n+}\n+\n+// isPolicyRejection recognizes the provider's usage-policy rejection of a\n+// prompt: a 400 whose message says the prompt was flagged. Other 400s, such as\n+// an unknown model, are real errors and are never retried.\n+func isPolicyRejection(err error) bool {\n+\tvar providerErr llm.ProviderError\n+\tif !errors.As(err, \u0026providerErr) || providerErr.StatusCode != http.StatusBadRequest {\n+\t\treturn false\n+\t}\n+\tdetail := strings.ToLower(providerErr.Detail)\n+\treturn strings.Contains(detail, \"flagged\") \u0026\u0026 strings.Contains(detail, \"usage policy\")\n+}\n+\n+func (m Model) callOnce(ctx context.Context, agent, role string, prompt Prompt) (string, error) {\n \tif m.Client == nil || m.Meter == nil || m.MaxOutputTokens \u003c= 0 || m.Name == \"\" {\n \t\treturn \"\", errors.New(\"model client, meter, model name, and output limit are required\")\n \t}\n",
+      "hunks": [
+        {
+          "id": "diff-b276e87d2686bdfc",
+          "header": "@@ -4,6 +4,8 @@ import (",
+          "lines": [
+            {
+              "oldLine": 4,
+              "newLine": 4,
+              "kind": "context",
+              "text": "\t\"context\""
+            },
+            {
+              "oldLine": 5,
+              "newLine": 5,
+              "kind": "context",
+              "text": "\t\"errors\""
+            },
+            {
+              "oldLine": 6,
+              "newLine": 6,
+              "kind": "context",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"net/http\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "oldLine": 7,
+              "newLine": 9,
+              "kind": "context",
+              "text": "\t\"time\""
+            },
+            {
+              "oldLine": 8,
+              "newLine": 10,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 9,
+              "newLine": 11,
+              "kind": "context",
+              "text": "\t\"px1/internal/hosted/llm\""
+            }
+          ]
+        },
+        {
+          "id": "diff-a87c4dbbfca2930a",
+          "header": "@@ -29,6 +31,9 @@ type Model struct {",
+          "lines": [
+            {
+              "oldLine": 29,
+              "newLine": 31,
+              "kind": "context",
+              "text": "\t// ContentionWait is how long to wait before retrying a reservation that"
+            },
+            {
+              "oldLine": 30,
+              "newLine": 32,
+              "kind": "context",
+              "text": "\t// other in-flight calls are holding. Defaults to 50ms."
+            },
+            {
+              "oldLine": 31,
+              "newLine": 33,
+              "kind": "context",
+              "text": "\tContentionWait time.Duration"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t// PolicyRetryWait is how long to wait before the one retry of a call the"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t// provider's safety filter rejected. Defaults to 2s."
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tPolicyRetryWait time.Duration"
+            },
+            {
+              "oldLine": 32,
+              "newLine": 37,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 33,
+              "newLine": 38,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 34,
+              "newLine": 39,
+              "kind": "context",
+              "text": "// EstimateTokens is a deliberately high estimate (three bytes per token) so a"
+            }
+          ]
+        },
+        {
+          "id": "diff-43d3e34277218b2d",
+          "header": "@@ -51,6 +56,38 @@ func ActualCost(price llm.Price, usage llm.Usage) int64 {",
+          "lines": [
+            {
+              "oldLine": 51,
+              "newLine": 56,
+              "kind": "context",
+              "text": "// a provider may bill a request it did not complete; this can undercount a"
+            },
+            {
+              "oldLine": 52,
+              "newLine": 57,
+              "kind": "context",
+              "text": "// call that timed out after generating, and the real bill is authoritative."
+            },
+            {
+              "oldLine": 53,
+              "newLine": 58,
+              "kind": "context",
+              "text": "func (m Model) Call(ctx context.Context, agent, role string, prompt Prompt) (string, error) {"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\ttext, err := m.callOnce(ctx, agent, role, prompt)"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\tif !isPolicyRejection(err) {"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t\treturn text, err"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t// The provider's safety filter is not deterministic: the same request"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t// has been rejected once and accepted on the next try. Retry exactly once,"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t// as a new metered call, so the retry is charged and bounded like any other."
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\twait := m.PolicyRetryWait"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\tif wait \u003c= 0 {"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\twait = 2 * time.Second"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\tselect {"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\tcase \u003c-ctx.Done():"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t\treturn \"\", err"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\tcase \u003c-time.After(wait):"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\treturn m.callOnce(ctx, agent, role, prompt)"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "// isPolicyRejection recognizes the provider's usage-policy rejection of a"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "// prompt: a 400 whose message says the prompt was flagged. Other 400s, such as"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "// an unknown model, are real errors and are never retried."
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "func isPolicyRejection(err error) bool {"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\tvar providerErr llm.ProviderError"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\tif !errors.As(err, \u0026providerErr) || providerErr.StatusCode != http.StatusBadRequest {"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\t\treturn false"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\tdetail := strings.ToLower(providerErr.Detail)"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\treturn strings.Contains(detail, \"flagged\") \u0026\u0026 strings.Contains(detail, \"usage policy\")"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "func (m Model) callOnce(ctx context.Context, agent, role string, prompt Prompt) (string, error) {"
+            },
+            {
+              "oldLine": 54,
+              "newLine": 91,
+              "kind": "context",
+              "text": "\tif m.Client == nil || m.Meter == nil || m.MaxOutputTokens \u003c= 0 || m.Name == \"\" {"
+            },
+            {
+              "oldLine": 55,
+              "newLine": 92,
+              "kind": "context",
+              "text": "\t\treturn \"\", errors.New(\"model client, meter, model name, and output limit are required\")"
+            },
+            {
+              "oldLine": 56,
+              "newLine": 93,
+              "kind": "context",
+              "text": "\t}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-02995102a1397705",
+      "title": "Model changes",
+      "summary": "3 related files share the \"model\" change signal.",
+      "paths": [
+        "docs/AGENTIC_CI.md",
+        "internal/hosted/agent/loop_test.go",
+        "internal/hosted/agent/model.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 3,
+    "filesAnalyzed": 3,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "policy-retry",
+      "path": "internal/hosted/agent/model.go",
+      "lineStart": 56,
+      "lineEnd": 71,
+      "title": "Retry policy rejections once",
+      "summary": "A policy rejection now gets one delayed retry. The retry goes through the normal call path, so it is metered separately and still subject to the usual call limits."
+    },
+    {
+      "id": "policy-detection",
+      "path": "internal/hosted/agent/model.go",
+      "lineStart": 74,
+      "lineEnd": 83,
+      "title": "Only retry safety-filter rejections",
+      "summary": "The retry is limited to HTTP 400 errors whose details mention both a flag and the usage policy; other bad requests, such as an unknown model, still fail immediately."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "1cef1b94349b655e67d2231e3aae679b8693caf1",
+      "revision": "bf88e0c7ff4788a10d07d7475a69177befe57689",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "1cef1b94349b655e67d2231e3aae679b8693caf1",
+      "revision": "bf88e0c7ff4788a10d07d7475a69177befe57689",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "bf88e0c7ff4788a10d07d7475a69177befe57689",
+      "detail": "2 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "bf88e0c7ff4788a10d07d7475a69177befe57689",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "bf88e0c7ff4788a10d07d7475a69177befe57689",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42805853358",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42805853358/job/129795199068",
+        "startedAt": "2026-11-10T11:15:49Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42805853582/job/129794651825",
+        "startedAt": "2026-11-10T11:14:37Z"
+      }
+    ]
+  }
+}
