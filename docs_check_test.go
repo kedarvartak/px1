@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -52,6 +54,24 @@ func TestEveryCommandHasASummary(t *testing.T) {
 	for _, command := range commands {
 		if command.Summary == "" {
 			t.Errorf("px1 %s has no doc comment on its run function", command.Name)
+		}
+	}
+}
+
+func TestDocsSiteCommandWritesTheSite(t *testing.T) {
+	root := t.TempDir()
+	writeExportTestFile(t, root, "docs/PAGE.md", "---\ntitle: A page\nsection: guides\nkind: narrative\nstatus: shipped\ncovers: []\nverified_at:\n---\n\n# A page\n")
+	out := filepath.Join(t.TempDir(), "site")
+	var buf bytes.Buffer
+	if err := runDocs([]string{"site", "--root", root}, &buf); err == nil || !strings.Contains(err.Error(), "--out") {
+		t.Fatalf("missing --out: %v", err)
+	}
+	if err := runDocs([]string{"site", "--root", root, "--out", out}, &buf); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"index.html", "PAGE.html", "fonts/plex-sans-var.woff2"} {
+		if _, err := os.Stat(filepath.Join(out, filepath.FromSlash(name))); err != nil {
+			t.Error(err)
 		}
 	}
 }

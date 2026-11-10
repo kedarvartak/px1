@@ -72,11 +72,14 @@ Reviews two commits of a local clone with the agentic pipeline and writes a comm
 
 ## px1 docs
 
-Maintains the documentation under docs/. "px1 docs gen" writes the reference pages, the manifest and the index from the code and the pages; "px1 docs check" fails when they are out of date, a link is broken, or code has no page. It reads files only.
+Maintains the documentation under docs/. "px1 docs gen" writes the reference pages, the manifest and the index from the code and the pages; "px1 docs check" fails when they are out of date, a link is broken, or code has no page; "px1 docs site" renders the pages as a static website. It reads repository files only and runs nothing from them.
 
 | Flag | Type | Default | Description |
 | --- | --- | --- | --- |
 | `--root` | string | `.` | repository root |
+| `--out` | string |  | site: directory to write the site to; it must be empty or not exist (required) |
+| `--source-url` | string |  | site: web address of the repository tree at one commit (on GitHub, the blob address); links to code point there |
+| `--commit` | string |  | site: the commit the site is built from, shown on each page |
 
 ## px1 eval-compare
 

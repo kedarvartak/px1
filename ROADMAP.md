@@ -238,6 +238,9 @@ backend-foundation tasks are:
 94. [x] **Generate the reference documentation from code.** `px1 docs gen`
     reads the CLI flags, action inputs, finding schema and agent tools from
     source, without running it, and the tests fail when a page is out of date.
+95. [x] **Render the documentation as a website.** `px1 docs site` builds a
+    static site from the pages: sidebar, search, status, outline, the code
+    each page covers, and a copy of the Markdown.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,

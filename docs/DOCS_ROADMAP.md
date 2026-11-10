@@ -123,3 +123,22 @@ between the markers is replaced. A new subcommand needs a doc comment on its
 
 The check runs in `go test ./...` (`docs_check_test.go`), so CI fails when a
 pull request adds a package or command without a page.
+
+## The site (phase 3)
+
+`px1 docs site --out DIR` renders the pages as a static website:
+
+- a sidebar of every page by section, with a dot for its status;
+- search over titles, headings and text, in the browser, with no service;
+- on each page: its status, whether it was verified or generated, an outline,
+  and the code it covers, linked to the source when `--source-url` is given;
+- `md/NAME.md`, the page's Markdown exactly as it is in the repository, linked
+  from the page, and `manifest.json`.
+
+Links between pages become links within the site. Raw HTML inside a page is
+dropped, so a page cannot inject script. The site has no build step and no
+network dependency: fonts and scripts are files in the output, and every page
+works with JavaScript off (only search and the theme switch need it).
+
+Not built yet: publishing the site on Pages with a preview per pull request,
+and the "changed in this pull request" view, which needs phase 4.
