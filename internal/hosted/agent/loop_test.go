@@ -274,3 +274,56 @@ func TestEstimateTokensRoundsUpAndOverestimates(t *testing.T) {
 		t.Fatalf("estimates: %d %d %d", EstimateTokens("abc"), EstimateTokens("abcd"), EstimateTokens(strings.Repeat("x", 3000)))
 	}
 }
+
+type flaggedThenOK struct {
+	calls  int
+	failN  int
+	detail string
+}
+
+func (f *flaggedThenOK) Complete(context.Context, llm.Request) (llm.Response, error) {
+	f.calls++
+	if f.calls <= f.failN {
+		return llm.Response{}, llm.ProviderError{ProviderName: "openai", StatusCode: 400, Detail: f.detail}
+	}
+	return llm.Response{Text: "ok", Usage: llm.Usage{InputTokens: 10, OutputTokens: 5}}, nil
+}
+
+const flaggedDetail = "Invalid prompt: your prompt was flagged as potentially violating our usage policy."
+
+func policyModel(client Completer, meter *Meter) Model {
+	return Model{Client: client, Name: "m", MaxOutputTokens: 100, Meter: meter, PolicyRetryWait: time.Millisecond, ContentionWait: time.Millisecond,
+		Price: llm.Price{InputMicrousdPerMillion: 1_000_000, OutputMicrousdPerMillion: 1_000_000}}
+}
+
+func policyBudget() Budget {
+	return Budget{MaxInputTokens: 10_000, MaxOutputTokens: 10_000, MaxCostMicrousd: 10_000_000, MaxModelCalls: 10, MaxToolCallsPerAgent: 3, WallTime: time.Minute}
+}
+
+func TestModelRetriesOnePolicyRejectionAndChargesBothCalls(t *testing.T) {
+	meter := NewMeter(policyBudget(), time.Now(), nil)
+	client := &flaggedThenOK{failN: 1, detail: flaggedDetail}
+	text, err := policyModel(client, meter).Call(context.Background(), "g", "sub-agent", Prompt{System: "s", User: "u"})
+	if err != nil || text != "ok" || client.calls != 2 {
+		t.Fatalf("text=%q err=%v calls=%d", text, err, client.calls)
+	}
+	if spend := meter.Spend(); spend.ModelCalls != 2 {
+		t.Fatalf("both attempts must be metered: %#v", spend)
+	}
+}
+
+func TestModelRetriesPolicyRejectionOnlyOnce(t *testing.T) {
+	client := &flaggedThenOK{failN: 5, detail: flaggedDetail}
+	_, err := policyModel(client, NewMeter(policyBudget(), time.Now(), nil)).Call(context.Background(), "g", "sub-agent", Prompt{System: "s", User: "u"})
+	if err == nil || client.calls != 2 {
+		t.Fatalf("err=%v calls=%d: want a failure after exactly two attempts", err, client.calls)
+	}
+}
+
+func TestModelDoesNotRetryOtherBadRequests(t *testing.T) {
+	client := &flaggedThenOK{failN: 5, detail: "The model `nope` does not exist"}
+	_, err := policyModel(client, NewMeter(policyBudget(), time.Now(), nil)).Call(context.Background(), "g", "sub-agent", Prompt{System: "s", User: "u"})
+	if err == nil || client.calls != 1 {
+		t.Fatalf("err=%v calls=%d: a real 400 must not be retried", err, client.calls)
+	}
+}
