@@ -78,11 +78,26 @@ runs:
         "$bin" agentic-review "${args[@]:1}" | tee "$out.log"
         if [[ "$PX1_POST" == "true" ]]; then
           cost="$(grep -m1 '^Spent about' "$out.log" || true)"
-          "$bin" post-github --findings "$out/findings.json" --pr "$PX1_PR" --head "$PX1_HEAD" --footer "$cost"
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          "$bin" post-github --findings "$out/findings.json" --pr "$PX1_PR" --head "$PX1_HEAD" \
+            --footer "$cost Full report and trace: download the px1-review artifact from [this run]($run_url) and open report/index.html."
         fi
+        echo "PX1_OUT=$out" >> "$GITHUB_ENV"
         {
           echo "### px1 review"
           echo '```'
           sed -n '/=== Result ===/,/^Report:/p' "$out.log" | sed '$d'
           echo '```'
         } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+
+    - name: Upload the report
+      if: always() && env.PX1_OUT != ''
+      uses: actions/upload-artifact@v4
+      with:
+        name: px1-review
+        path: |
+          ${{ env.PX1_OUT }}/report
+          ${{ env.PX1_OUT }}/findings.json
+          ${{ env.PX1_OUT }}/trace.json
+        retention-days: 14
+        if-no-files-found: ignore

@@ -14,6 +14,10 @@
 - **Inline comments** on the changed lines for findings that fall inside the diff, at most 20 per run. A finding already commented on an earlier push is not posted again.
 - Findings outside the diff stay in the summary, with their evidence.
 
+## The report
+
+Each run uploads a `px1-review` artifact (the HTML report, `findings.json`, `trace.json`; kept 14 days) and the summary comment links to the run. Download it and open `report/index.html`. It contains your code and is visible to anyone who can read the repository's Actions runs. The `private/` folder with raw model transcripts is never uploaded.
+
 ## Safety
 
 - Runs on `pull_request`, never `pull_request_target`. Pull requests from forks are skipped: they get no secrets and a read-only token.
