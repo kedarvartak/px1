@@ -1,0 +1,2673 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "3671d4f76d418f6c8ff92b8641c33419093dabcc",
+  "head": "884c8a12c784f12e4bc270f5c113de67266fed90",
+  "generatedAt": "2026-11-10T22:39:14.967005332Z",
+  "files": [
+    {
+      "path": ".github/workflows/px1-review-report.yml",
+      "status": "M",
+      "diff": "diff --git a/.github/workflows/px1-review-report.yml b/.github/workflows/px1-review-report.yml\nindex 3e3c07e..bbab599 100644\n--- a/.github/workflows/px1-review-report.yml\n+++ b/.github/workflows/px1-review-report.yml\n@@ -124,6 +124,44 @@ jobs:\n           mode: publish\n           site: site\n \n+      # The documentation site and the impact report are built by the trusted\n+      # base checkout. The pull request's files are checked out only as data:\n+      # px1 docs reads Markdown and parses source, and never builds or runs it.\n+      # This step runs after the report history is validated, and it must\n+      # never stop the report from being published.\n+      - name: Build the documentation site\n+        id: docs\n+        continue-on-error: true\n+        shell: bash\n+        env:\n+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}\n+          DOCS_COMMENT_FILE: ${{ runner.temp }}/px1-docs-impact.md\n+        run: |\n+          set -euo pipefail\n+          # Until the base commit has the docs command there is nothing to run.\n+          if ! grep -q 'os.Args\\[1\\] == \"docs\"' main.go; then\n+            echo \"::notice title=px1 docs skipped::the base commit has no docs command yet\"\n+            exit 0\n+          fi\n+          head_tree=\"${RUNNER_TEMP}/px1-docs-head\"\n+          build=\"${RUNNER_TEMP}/px1-docs-build\"\n+          impact=\"${RUNNER_TEMP}/px1-docs-impact.json\"\n+          git worktree add --detach \"$head_tree\" \"$HEAD_SHA\" \u003e/dev/null\n+          merge_base=\"$(git merge-base \"$BASE_SHA\" \"$HEAD_SHA\")\"\n+          go build -o \"${RUNNER_TEMP}/px1-docs-tool\" .\n+          tool=\"${RUNNER_TEMP}/px1-docs-tool\"\n+          \"$tool\" docs impact --root \"$head_tree\" --base \"$merge_base\" --head \"$HEAD_SHA\" --out \"$DOCS_COMMENT_FILE\"\n+          \"$tool\" docs impact --root \"$head_tree\" --base \"$merge_base\" --head \"$HEAD_SHA\" --json --out \"$impact\"\n+          \"$tool\" docs site --root . --out \"${build}/docs\" \\\n+            --source-url \"${REPO_URL}/blob/${BASE_SHA}\" --commit \"${BASE_SHA:0:7}\"\n+          \"$tool\" docs site --root \"$head_tree\" --out \"${build}/preview\" --impact \"$impact\" \\\n+            --source-url \"${REPO_URL}/blob/${HEAD_SHA}\" --commit \"${HEAD_SHA:0:7}\"\n+          # Move into the site only when everything was built.\n+          mkdir -p site/docs-preview\n+          mv \"${build}/docs\" site/docs\n+          mv \"${build}/preview\" \"site/docs-preview/${HEAD_SHA}\"\n+          echo \"built=true\" \u003e\u003e \"$GITHUB_OUTPUT\"\n+\n       - name: Configure GitHub Pages\n         uses: actions/configure-pages@v5\n \n@@ -188,3 +226,44 @@ jobs:\n                 body,\n               });\n             }\n+\n+      - name: Update the documentation impact comment\n+        if: steps.docs.outputs.built == 'true'\n+        continue-on-error: true\n+        uses: actions/github-script@v7\n+        env:\n+          COMMENT_FILE: ${{ runner.temp }}/px1-docs-impact.md\n+          PAGES_URL: ${{ steps.deployment.outputs.page_url }}\n+        with:\n+          script: |\n+            const fs = require('fs');\n+            const marker = '\u003c!-- px1-docs-impact --\u003e';\n+            let body = fs.readFileSync(process.env.COMMENT_FILE, 'utf8');\n+            if (!body.startsWith(marker)) {\n+              core.setFailed('px1 docs impact comment is missing its marker');\n+              return;\n+            }\n+            const pages = (process.env.PAGES_URL || '').replace(/\\/$/, '');\n+            if (pages) {\n+              body += `\\n[Preview the documentation for this pull request](${pages}/docs-preview/${process.env.HEAD_SHA}/). The preview is replaced when another pull request is published.\\n`;\n+            }\n+            const params = {\n+              owner: context.repo.owner,\n+              repo: context.repo.repo,\n+              issue_number: context.issue.number,\n+              per_page: 100,\n+            };\n+            const comments = await github.paginate(github.rest.issues.listComments, params);\n+            const existing = comments.find(\n+              (comment) =\u003e comment.user?.type === 'Bot' \u0026\u0026 comment.body?.includes(marker),\n+            );\n+            if (existing) {\n+              await github.rest.issues.updateComment({\n+                owner: params.owner,\n+                repo: params.repo,\n+                comment_id: existing.id,\n+                body,\n+              });\n+            } else {\n+              await github.rest.issues.createComment({ ...params, body });\n+            }\n",
+      "hunks": [
+        {
+          "id": "diff-96fcf93d9b0b5888",
+          "header": "@@ -124,6 +124,44 @@ jobs:",
+          "lines": [
+            {
+              "oldLine": 124,
+              "newLine": 124,
+              "kind": "context",
+              "text": "          mode: publish"
+            },
+            {
+              "oldLine": 125,
+              "newLine": 125,
+              "kind": "context",
+              "text": "          site: site"
+            },
+            {
+              "oldLine": 126,
+              "newLine": 126,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "      # The documentation site and the impact report are built by the trusted"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "      # base checkout. The pull request's files are checked out only as data:"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "      # px1 docs reads Markdown and parses source, and never builds or runs it."
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "      # This step runs after the report history is validated, and it must"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "      # never stop the report from being published."
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "      - name: Build the documentation site"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "        id: docs"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "        continue-on-error: true"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "        shell: bash"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "        env:"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "          REPO_URL: ${{ github.server_url }}/${{ github.repository }}"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "          DOCS_COMMENT_FILE: ${{ runner.temp }}/px1-docs-impact.md"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "        run: |"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "          set -euo pipefail"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "          # Until the base commit has the docs command there is nothing to run."
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "          if ! grep -q 'os.Args\\[1\\] == \"docs\"' main.go; then"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "            echo \"::notice title=px1 docs skipped::the base commit has no docs command yet\""
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "            exit 0"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "          fi"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "          head_tree=\"${RUNNER_TEMP}/px1-docs-head\""
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "          build=\"${RUNNER_TEMP}/px1-docs-build\""
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "          impact=\"${RUNNER_TEMP}/px1-docs-impact.json\""
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "          git worktree add --detach \"$head_tree\" \"$HEAD_SHA\" \u003e/dev/null"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "          merge_base=\"$(git merge-base \"$BASE_SHA\" \"$HEAD_SHA\")\""
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "          go build -o \"${RUNNER_TEMP}/px1-docs-tool\" ."
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "          tool=\"${RUNNER_TEMP}/px1-docs-tool\""
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "          \"$tool\" docs impact --root \"$head_tree\" --base \"$merge_base\" --head \"$HEAD_SHA\" --out \"$DOCS_COMMENT_FILE\""
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "          \"$tool\" docs impact --root \"$head_tree\" --base \"$merge_base\" --head \"$HEAD_SHA\" --json --out \"$impact\""
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "          \"$tool\" docs site --root . --out \"${build}/docs\" \\"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "            --source-url \"${REPO_URL}/blob/${BASE_SHA}\" --commit \"${BASE_SHA:0:7}\""
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "          \"$tool\" docs site --root \"$head_tree\" --out \"${build}/preview\" --impact \"$impact\" \\"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "            --source-url \"${REPO_URL}/blob/${HEAD_SHA}\" --commit \"${HEAD_SHA:0:7}\""
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "          # Move into the site only when everything was built."
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "          mkdir -p site/docs-preview"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "          mv \"${build}/docs\" site/docs"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "          mv \"${build}/preview\" \"site/docs-preview/${HEAD_SHA}\""
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "          echo \"built=true\" \u003e\u003e \"$GITHUB_OUTPUT\""
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 127,
+              "newLine": 165,
+              "kind": "context",
+              "text": "      - name: Configure GitHub Pages"
+            },
+            {
+              "oldLine": 128,
+              "newLine": 166,
+              "kind": "context",
+              "text": "        uses: actions/configure-pages@v5"
+            },
+            {
+              "oldLine": 129,
+              "newLine": 167,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        },
+        {
+          "id": "diff-2cb482b3a6f5332f",
+          "header": "@@ -188,3 +226,44 @@ jobs:",
+          "lines": [
+            {
+              "oldLine": 188,
+              "newLine": 226,
+              "kind": "context",
+              "text": "                body,"
+            },
+            {
+              "oldLine": 189,
+              "newLine": 227,
+              "kind": "context",
+              "text": "              });"
+            },
+            {
+              "oldLine": 190,
+              "newLine": 228,
+              "kind": "context",
+              "text": "            }"
+            },
+            {
+              "newLine": 229,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 230,
+              "kind": "added",
+              "text": "      - name: Update the documentation impact comment"
+            },
+            {
+              "newLine": 231,
+              "kind": "added",
+              "text": "        if: steps.docs.outputs.built == 'true'"
+            },
+            {
+              "newLine": 232,
+              "kind": "added",
+              "text": "        continue-on-error: true"
+            },
+            {
+              "newLine": 233,
+              "kind": "added",
+              "text": "        uses: actions/github-script@v7"
+            },
+            {
+              "newLine": 234,
+              "kind": "added",
+              "text": "        env:"
+            },
+            {
+              "newLine": 235,
+              "kind": "added",
+              "text": "          COMMENT_FILE: ${{ runner.temp }}/px1-docs-impact.md"
+            },
+            {
+              "newLine": 236,
+              "kind": "added",
+              "text": "          PAGES_URL: ${{ steps.deployment.outputs.page_url }}"
+            },
+            {
+              "newLine": 237,
+              "kind": "added",
+              "text": "        with:"
+            },
+            {
+              "newLine": 238,
+              "kind": "added",
+              "text": "          script: |"
+            },
+            {
+              "newLine": 239,
+              "kind": "added",
+              "text": "            const fs = require('fs');"
+            },
+            {
+              "newLine": 240,
+              "kind": "added",
+              "text": "            const marker = '\u003c!-- px1-docs-impact --\u003e';"
+            },
+            {
+              "newLine": 241,
+              "kind": "added",
+              "text": "            let body = fs.readFileSync(process.env.COMMENT_FILE, 'utf8');"
+            },
+            {
+              "newLine": 242,
+              "kind": "added",
+              "text": "            if (!body.startsWith(marker)) {"
+            },
+            {
+              "newLine": 243,
+              "kind": "added",
+              "text": "              core.setFailed('px1 docs impact comment is missing its marker');"
+            },
+            {
+              "newLine": 244,
+              "kind": "added",
+              "text": "              return;"
+            },
+            {
+              "newLine": 245,
+              "kind": "added",
+              "text": "            }"
+            },
+            {
+              "newLine": 246,
+              "kind": "added",
+              "text": "            const pages = (process.env.PAGES_URL || '').replace(/\\/$/, '');"
+            },
+            {
+              "newLine": 247,
+              "kind": "added",
+              "text": "            if (pages) {"
+            },
+            {
+              "newLine": 248,
+              "kind": "added",
+              "text": "              body += `\\n[Preview the documentation for this pull request](${pages}/docs-preview/${process.env.HEAD_SHA}/). The preview is replaced when another pull request is published.\\n`;"
+            },
+            {
+              "newLine": 249,
+              "kind": "added",
+              "text": "            }"
+            },
+            {
+              "newLine": 250,
+              "kind": "added",
+              "text": "            const params = {"
+            },
+            {
+              "newLine": 251,
+              "kind": "added",
+              "text": "              owner: context.repo.owner,"
+            },
+            {
+              "newLine": 252,
+              "kind": "added",
+              "text": "              repo: context.repo.repo,"
+            },
+            {
+              "newLine": 253,
+              "kind": "added",
+              "text": "              issue_number: context.issue.number,"
+            },
+            {
+              "newLine": 254,
+              "kind": "added",
+              "text": "              per_page: 100,"
+            },
+            {
+              "newLine": 255,
+              "kind": "added",
+              "text": "            };"
+            },
+            {
+              "newLine": 256,
+              "kind": "added",
+              "text": "            const comments = await github.paginate(github.rest.issues.listComments, params);"
+            },
+            {
+              "newLine": 257,
+              "kind": "added",
+              "text": "            const existing = comments.find("
+            },
+            {
+              "newLine": 258,
+              "kind": "added",
+              "text": "              (comment) =\u003e comment.user?.type === 'Bot' \u0026\u0026 comment.body?.includes(marker),"
+            },
+            {
+              "newLine": 259,
+              "kind": "added",
+              "text": "            );"
+            },
+            {
+              "newLine": 260,
+              "kind": "added",
+              "text": "            if (existing) {"
+            },
+            {
+              "newLine": 261,
+              "kind": "added",
+              "text": "              await github.rest.issues.updateComment({"
+            },
+            {
+              "newLine": 262,
+              "kind": "added",
+              "text": "                owner: params.owner,"
+            },
+            {
+              "newLine": 263,
+              "kind": "added",
+              "text": "                repo: params.repo,"
+            },
+            {
+              "newLine": 264,
+              "kind": "added",
+              "text": "                comment_id: existing.id,"
+            },
+            {
+              "newLine": 265,
+              "kind": "added",
+              "text": "                body,"
+            },
+            {
+              "newLine": 266,
+              "kind": "added",
+              "text": "              });"
+            },
+            {
+              "newLine": 267,
+              "kind": "added",
+              "text": "            } else {"
+            },
+            {
+              "newLine": 268,
+              "kind": "added",
+              "text": "              await github.rest.issues.createComment({ ...params, body });"
+            },
+            {
+              "newLine": 269,
+              "kind": "added",
+              "text": "            }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/ROADMAP.md b/ROADMAP.md\nindex bd9ae97..482f3e7 100644\n--- a/ROADMAP.md\n+++ b/ROADMAP.md\n@@ -244,6 +244,9 @@ backend-foundation tasks are:\n 96. [x] **Detect documentation drift.** `px1 docs impact` lists the pages\n     whose covered code a diff touches and whether each was updated; the site\n     marks them.\n+97. [x] **Publish the documentation and its impact per pull request.** The\n+    review-report workflow publishes the site and a per-pull-request preview\n+    on Pages and posts the impact report as a sticky comment.\n \n The v1 review pipeline, indexing, report hosting, evaluation, and launch gates\n follow these foundations. AI findings must remain auditable: evidence,\n",
+      "hunks": [
+        {
+          "id": "diff-835621909c2a6106",
+          "header": "@@ -244,6 +244,9 @@ backend-foundation tasks are:",
+          "lines": [
+            {
+              "oldLine": 244,
+              "newLine": 244,
+              "kind": "context",
+              "text": "96. [x] **Detect documentation drift.** `px1 docs impact` lists the pages"
+            },
+            {
+              "oldLine": 245,
+              "newLine": 245,
+              "kind": "context",
+              "text": "    whose covered code a diff touches and whether each was updated; the site"
+            },
+            {
+              "oldLine": 246,
+              "newLine": 246,
+              "kind": "context",
+              "text": "    marks them."
+            },
+            {
+              "newLine": 247,
+              "kind": "added",
+              "text": "97. [x] **Publish the documentation and its impact per pull request.** The"
+            },
+            {
+              "newLine": 248,
+              "kind": "added",
+              "text": "    review-report workflow publishes the site and a per-pull-request preview"
+            },
+            {
+              "newLine": 249,
+              "kind": "added",
+              "text": "    on Pages and posts the impact report as a sticky comment."
+            },
+            {
+              "oldLine": 247,
+              "newLine": 250,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 248,
+              "newLine": 251,
+              "kind": "context",
+              "text": "The v1 review pipeline, indexing, report hosting, evaluation, and launch gates"
+            },
+            {
+              "oldLine": 249,
+              "newLine": 252,
+              "kind": "context",
+              "text": "follow these foundations. AI findings must remain auditable: evidence,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/DOCS_ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/docs/DOCS_ROADMAP.md b/docs/DOCS_ROADMAP.md\nindex 0e740e9..443d528 100644\n--- a/docs/DOCS_ROADMAP.md\n+++ b/docs/DOCS_ROADMAP.md\n@@ -161,5 +161,22 @@ The report is a map, not a judgment. \"Updated\" means the page file changed,\n not that the change is the right one, and \"needs review\" does not mean the\n page is wrong. Deciding that is phase 5.\n \n-Not built yet: the workflow that posts the comment and publishes the site on\n-Pages with a preview per pull request.\n+## In CI\n+\n+The review-report workflow builds the documentation with the trusted base\n+checkout, after the report history is validated:\n+\n+- the site for the base commit is published at `docs/` on Pages;\n+- a preview for the pull request, with the affected pages marked, is\n+  published at `docs-preview/\u003chead sha\u003e/`;\n+- the impact report is posted as one pull-request comment that is updated on\n+  every push, with a link to the preview.\n+\n+The pull request's files are checked out as data. `px1 docs` reads Markdown\n+and parses source; it builds and runs nothing from them, and it refuses any\n+symbolic link that leaves the repository, so a pull request cannot get a file\n+from the runner published. The step cannot fail the workflow.\n+\n+Limits: Pages holds one deployment, so a preview is replaced when another\n+pull request is published. Previews run for pull requests from forks too,\n+since nothing from them is executed and no secret is involved.\n",
+      "hunks": [
+        {
+          "id": "diff-a4a56530a9ab7519",
+          "header": "@@ -161,5 +161,22 @@ The report is a map, not a judgment. \"Updated\" means the page file changed,",
+          "lines": [
+            {
+              "oldLine": 161,
+              "newLine": 161,
+              "kind": "context",
+              "text": "not that the change is the right one, and \"needs review\" does not mean the"
+            },
+            {
+              "oldLine": 162,
+              "newLine": 162,
+              "kind": "context",
+              "text": "page is wrong. Deciding that is phase 5."
+            },
+            {
+              "oldLine": 163,
+              "newLine": 163,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 164,
+              "kind": "removed",
+              "text": "Not built yet: the workflow that posts the comment and publishes the site on"
+            },
+            {
+              "oldLine": 165,
+              "kind": "removed",
+              "text": "Pages with a preview per pull request."
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "## In CI"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "The review-report workflow builds the documentation with the trusted base"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": "checkout, after the report history is validated:"
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "- the site for the base commit is published at `docs/` on Pages;"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "- a preview for the pull request, with the affected pages marked, is"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "  published at `docs-preview/\u003chead sha\u003e/`;"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "- the impact report is posted as one pull-request comment that is updated on"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "  every push, with a link to the preview."
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "The pull request's files are checked out as data. `px1 docs` reads Markdown"
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "and parses source; it builds and runs nothing from them, and it refuses any"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": "symbolic link that leaves the repository, so a pull request cannot get a file"
+            },
+            {
+              "newLine": 178,
+              "kind": "added",
+              "text": "from the runner published. The step cannot fail the workflow."
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 180,
+              "kind": "added",
+              "text": "Limits: Pages holds one deployment, so a preview is replaced when another"
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": "pull request is published. Previews run for pull requests from forks too,"
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": "since nothing from them is executed and no secret is involved."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs_check_test.go",
+      "status": "M",
+      "diff": "diff --git a/docs_check_test.go b/docs_check_test.go\nindex a099501..02327bd 100644\n--- a/docs_check_test.go\n+++ b/docs_check_test.go\n@@ -116,3 +116,48 @@ func TestDocsImpactCommand(t *testing.T) {\n \t\tt.Fatal(\"an unknown base was accepted\")\n \t}\n }\n+\n+// The Pages workflow runs with write access on pull_request_target. Its docs\n+// step must use the base checkout as the tool, read the pull request only as\n+// files, and never be able to stop the review report from publishing.\n+func TestReviewWorkflowBuildsDocsFromTheTrustedBase(t *testing.T) {\n+\tbody, err := os.ReadFile(\".github/workflows/px1-review-report.yml\")\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\ttext := string(body)\n+\tstart := strings.Index(text, \"- name: Build the documentation site\")\n+\tend := strings.Index(text, \"- name: Configure GitHub Pages\")\n+\tif start \u003c 0 || end \u003c start {\n+\t\tt.Fatal(\"the docs step must come before the Pages upload\")\n+\t}\n+\tif strings.Index(text, \"- name: Preserve historical review reports\") \u003e start {\n+\t\tt.Fatal(\"the docs step must come after the report history is validated\")\n+\t}\n+\tstep := text[start:end]\n+\tfor _, want := range []string{\n+\t\t\"continue-on-error: true\",\n+\t\t`git worktree add --detach \"$head_tree\" \"$HEAD_SHA\"`,\n+\t\t`git merge-base \"$BASE_SHA\" \"$HEAD_SHA\"`,\n+\t\t`go build -o \"${RUNNER_TEMP}/px1-docs-tool\" .`,\n+\t\t`docs site --root . --out \"${build}/docs\"`,\n+\t\t`docs site --root \"$head_tree\" --out \"${build}/preview\" --impact \"$impact\"`,\n+\t\t`mv \"${build}/preview\" \"site/docs-preview/${HEAD_SHA}\"`,\n+\t} {\n+\t\tif !strings.Contains(step, want) {\n+\t\t\tt.Errorf(\"docs step missing %q\", want)\n+\t\t}\n+\t}\n+\t// Nothing may be built or run from the pull request's tree.\n+\tfor _, banned := range []string{`cd \"$head_tree\"`, `-C \"$head_tree\"`, \"go run\", \"npm \", \"make \"} {\n+\t\tif strings.Contains(step, banned) {\n+\t\t\tt.Errorf(\"docs step contains %q\", banned)\n+\t\t}\n+\t}\n+\tcomment := text[strings.Index(text, \"- name: Update the documentation impact comment\"):]\n+\tfor _, want := range []string{\"steps.docs.outputs.built == 'true'\", \"continue-on-error: true\", \"'\u003c!-- px1-docs-impact --\u003e'\", \"body.startsWith(marker)\"} {\n+\t\tif !strings.Contains(comment, want) {\n+\t\t\tt.Errorf(\"comment step missing %q\", want)\n+\t\t}\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-477d5b0ecb513ae9",
+          "header": "@@ -116,3 +116,48 @@ func TestDocsImpactCommand(t *testing.T) {",
+          "lines": [
+            {
+              "oldLine": 116,
+              "newLine": 116,
+              "kind": "context",
+              "text": "\t\tt.Fatal(\"an unknown base was accepted\")"
+            },
+            {
+              "oldLine": 117,
+              "newLine": 117,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 118,
+              "newLine": 118,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "// The Pages workflow runs with write access on pull_request_target. Its docs"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "// step must use the base checkout as the tool, read the pull request only as"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "// files, and never be able to stop the review report from publishing."
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "func TestReviewWorkflowBuildsDocsFromTheTrustedBase(t *testing.T) {"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\tbody, err := os.ReadFile(\".github/workflows/px1-review-report.yml\")"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\ttext := string(body)"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\tstart := strings.Index(text, \"- name: Build the documentation site\")"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\tend := strings.Index(text, \"- name: Configure GitHub Pages\")"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\tif start \u003c 0 || end \u003c start {"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"the docs step must come before the Pages upload\")"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\tif strings.Index(text, \"- name: Preserve historical review reports\") \u003e start {"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"the docs step must come after the report history is validated\")"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\tstep := text[start:end]"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\tfor _, want := range []string{"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\t\t\"continue-on-error: true\","
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "\t\t`git worktree add --detach \"$head_tree\" \"$HEAD_SHA\"`,"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "\t\t`git merge-base \"$BASE_SHA\" \"$HEAD_SHA\"`,"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "\t\t`go build -o \"${RUNNER_TEMP}/px1-docs-tool\" .`,"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "\t\t`docs site --root . --out \"${build}/docs\"`,"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\t\t`docs site --root \"$head_tree\" --out \"${build}/preview\" --impact \"$impact\"`,"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\t\t`mv \"${build}/preview\" \"site/docs-preview/${HEAD_SHA}\"`,"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\t} {"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "\t\tif !strings.Contains(step, want) {"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"docs step missing %q\", want)"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "\t// Nothing may be built or run from the pull request's tree."
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "\tfor _, banned := range []string{`cd \"$head_tree\"`, `-C \"$head_tree\"`, \"go run\", \"npm \", \"make \"} {"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "\t\tif strings.Contains(step, banned) {"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"docs step contains %q\", banned)"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "\tcomment := text[strings.Index(text, \"- name: Update the documentation impact comment\"):]"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "\tfor _, want := range []string{\"steps.docs.outputs.built == 'true'\", \"continue-on-error: true\", \"'\u003c!-- px1-docs-impact --\u003e'\", \"body.startsWith(marker)\"} {"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "\t\tif !strings.Contains(comment, want) {"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"comment step missing %q\", want)"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/docs/check.go",
+      "status": "M",
+      "diff": "diff --git a/internal/docs/check.go b/internal/docs/check.go\nindex ec78f91..d626ebe 100644\n--- a/internal/docs/check.go\n+++ b/internal/docs/check.go\n@@ -34,7 +34,7 @@ type Config struct {\n // LoadConfig reads the config. A missing file is an empty config.\n func LoadConfig(root string) (Config, error) {\n \tvar cfg Config\n-\tdata, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(ConfigFile)))\n+\tdata, err := readRepo(root, filepath.Join(root, filepath.FromSlash(ConfigFile)))\n \tif errors.Is(err, fs.ErrNotExist) {\n \t\treturn cfg, nil\n \t}\n@@ -265,7 +265,7 @@ func checkGenerated(root string, pages []Page) ([]Problem, error) {\n \tvar problems []Problem\n \tfor _, files := range []map[string]string{reference, Generated(pages)} {\n \t\tfor rel, want := range files {\n-\t\t\tgot, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))\n+\t\t\tgot, err := readRepo(root, filepath.Join(root, filepath.FromSlash(rel)))\n \t\t\tif err != nil || string(got) != want {\n \t\t\t\tproblems = append(problems, Problem{rel, 0, \"out of date: run px1 docs gen\"})\n \t\t\t}\n",
+      "hunks": [
+        {
+          "id": "diff-b5e5f352603b34f8",
+          "header": "@@ -34,7 +34,7 @@ type Config struct {",
+          "lines": [
+            {
+              "oldLine": 34,
+              "newLine": 34,
+              "kind": "context",
+              "text": "// LoadConfig reads the config. A missing file is an empty config."
+            },
+            {
+              "oldLine": 35,
+              "newLine": 35,
+              "kind": "context",
+              "text": "func LoadConfig(root string) (Config, error) {"
+            },
+            {
+              "oldLine": 36,
+              "newLine": 36,
+              "kind": "context",
+              "text": "\tvar cfg Config"
+            },
+            {
+              "oldLine": 37,
+              "kind": "removed",
+              "text": "\tdata, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(ConfigFile)))"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\tdata, err := readRepo(root, filepath.Join(root, filepath.FromSlash(ConfigFile)))"
+            },
+            {
+              "oldLine": 38,
+              "newLine": 38,
+              "kind": "context",
+              "text": "\tif errors.Is(err, fs.ErrNotExist) {"
+            },
+            {
+              "oldLine": 39,
+              "newLine": 39,
+              "kind": "context",
+              "text": "\t\treturn cfg, nil"
+            },
+            {
+              "oldLine": 40,
+              "newLine": 40,
+              "kind": "context",
+              "text": "\t}"
+            }
+          ]
+        },
+        {
+          "id": "diff-69ff6e1c89c53f58",
+          "header": "@@ -265,7 +265,7 @@ func checkGenerated(root string, pages []Page) ([]Problem, error) {",
+          "lines": [
+            {
+              "oldLine": 265,
+              "newLine": 265,
+              "kind": "context",
+              "text": "\tvar problems []Problem"
+            },
+            {
+              "oldLine": 266,
+              "newLine": 266,
+              "kind": "context",
+              "text": "\tfor _, files := range []map[string]string{reference, Generated(pages)} {"
+            },
+            {
+              "oldLine": 267,
+              "newLine": 267,
+              "kind": "context",
+              "text": "\t\tfor rel, want := range files {"
+            },
+            {
+              "oldLine": 268,
+              "kind": "removed",
+              "text": "\t\t\tgot, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))"
+            },
+            {
+              "newLine": 268,
+              "kind": "added",
+              "text": "\t\t\tgot, err := readRepo(root, filepath.Join(root, filepath.FromSlash(rel)))"
+            },
+            {
+              "oldLine": 269,
+              "newLine": 269,
+              "kind": "context",
+              "text": "\t\t\tif err != nil || string(got) != want {"
+            },
+            {
+              "oldLine": 270,
+              "newLine": 270,
+              "kind": "context",
+              "text": "\t\t\t\tproblems = append(problems, Problem{rel, 0, \"out of date: run px1 docs gen\"})"
+            },
+            {
+              "oldLine": 271,
+              "newLine": 271,
+              "kind": "context",
+              "text": "\t\t\t}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/docs/docs_test.go",
+      "status": "M",
+      "diff": "diff --git a/internal/docs/docs_test.go b/internal/docs/docs_test.go\nindex a38fc2f..eb3284b 100644\n--- a/internal/docs/docs_test.go\n+++ b/internal/docs/docs_test.go\n@@ -610,3 +610,69 @@ func TestSiteMarksAffectedPages(t *testing.T) {\n \t\tt.Error(\"a normal build shows pull-request marks\")\n \t}\n }\n+\n+// A pull request's tree is read as data and its pages are published. A link\n+// that leaves the repository must never be followed.\n+func TestLinksOutOfTheRepositoryAreRefused(t *testing.T) {\n+\tsecret := filepath.Join(t.TempDir(), \"credential\")\n+\tif err := os.WriteFile(secret, []byte(goodFront+\"\\nTOKEN=hunter2\\n\"), 0o600); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tlink := func(t *testing.T, root, rel, target string) {\n+\t\tt.Helper()\n+\t\tfull := filepath.Join(root, filepath.FromSlash(rel))\n+\t\tif err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {\n+\t\t\tt.Fatal(err)\n+\t\t}\n+\t\t_ = os.Remove(full)\n+\t\tif err := os.Symlink(target, full); err != nil {\n+\t\t\tt.Skip(\"symbolic links are not available:\", err)\n+\t\t}\n+\t}\n+\n+\tt.Run(\"page\", func(t *testing.T) {\n+\t\troot := repo(t)\n+\t\tlink(t, root, \"docs/LEAK.md\", secret)\n+\t\tif _, _, err := LoadPages(root); err == nil || !strings.Contains(err.Error(), \"outside the repository\") {\n+\t\t\tt.Fatalf(\"LoadPages: %v\", err)\n+\t\t}\n+\t\tfiles, err := BuildSite(root, SiteOptions{})\n+\t\tif err == nil {\n+\t\t\tt.Fatalf(\"the site was built; md/LEAK.md = %q\", files[\"md/LEAK.md\"])\n+\t\t}\n+\t\tif _, err := Check(root); err == nil {\n+\t\t\tt.Fatal(\"Check followed the link\")\n+\t\t}\n+\t})\n+\tt.Run(\"docs directory\", func(t *testing.T) {\n+\t\troot := t.TempDir()\n+\t\tlink(t, root, \"docs\", filepath.Dir(secret))\n+\t\tif _, _, err := LoadPages(root); err == nil {\n+\t\t\tt.Fatal(\"LoadPages followed a linked docs directory\")\n+\t\t}\n+\t})\n+\tt.Run(\"source and action files\", func(t *testing.T) {\n+\t\troot := repo(t)\n+\t\tlink(t, root, \"main.go\", secret)\n+\t\tif _, err := Commands(root); err == nil {\n+\t\t\tt.Error(\"Commands followed the link\")\n+\t\t}\n+\t\troot = repo(t)\n+\t\tlink(t, root, \"sub/action.yml\", secret)\n+\t\tif _, err := Actions(root); err == nil {\n+\t\t\tt.Error(\"Actions followed the link\")\n+\t\t}\n+\t\troot = repo(t)\n+\t\tlink(t, root, findingSchemaFile, secret)\n+\t\tif _, err := Reference(root); err == nil {\n+\t\t\tt.Error(\"Reference followed the link\")\n+\t\t}\n+\t})\n+\tt.Run(\"a link that stays inside is allowed\", func(t *testing.T) {\n+\t\troot := repo(t)\n+\t\tlink(t, root, \"docs/ALIAS.md\", \"OTHER.md\")\n+\t\tif _, _, err := LoadPages(root); err != nil {\n+\t\t\tt.Fatalf(\"LoadPages: %v\", err)\n+\t\t}\n+\t})\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-a6e7850bcbe83a65",
+          "header": "@@ -610,3 +610,69 @@ func TestSiteMarksAffectedPages(t *testing.T) {",
+          "lines": [
+            {
+              "oldLine": 610,
+              "newLine": 610,
+              "kind": "context",
+              "text": "\t\tt.Error(\"a normal build shows pull-request marks\")"
+            },
+            {
+              "oldLine": 611,
+              "newLine": 611,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 612,
+              "newLine": 612,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "newLine": 613,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 614,
+              "kind": "added",
+              "text": "// A pull request's tree is read as data and its pages are published. A link"
+            },
+            {
+              "newLine": 615,
+              "kind": "added",
+              "text": "// that leaves the repository must never be followed."
+            },
+            {
+              "newLine": 616,
+              "kind": "added",
+              "text": "func TestLinksOutOfTheRepositoryAreRefused(t *testing.T) {"
+            },
+            {
+              "newLine": 617,
+              "kind": "added",
+              "text": "\tsecret := filepath.Join(t.TempDir(), \"credential\")"
+            },
+            {
+              "newLine": 618,
+              "kind": "added",
+              "text": "\tif err := os.WriteFile(secret, []byte(goodFront+\"\\nTOKEN=hunter2\\n\"), 0o600); err != nil {"
+            },
+            {
+              "newLine": 619,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 620,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 621,
+              "kind": "added",
+              "text": "\tlink := func(t *testing.T, root, rel, target string) {"
+            },
+            {
+              "newLine": 622,
+              "kind": "added",
+              "text": "\t\tt.Helper()"
+            },
+            {
+              "newLine": 623,
+              "kind": "added",
+              "text": "\t\tfull := filepath.Join(root, filepath.FromSlash(rel))"
+            },
+            {
+              "newLine": 624,
+              "kind": "added",
+              "text": "\t\tif err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {"
+            },
+            {
+              "newLine": 625,
+              "kind": "added",
+              "text": "\t\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 626,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 627,
+              "kind": "added",
+              "text": "\t\t_ = os.Remove(full)"
+            },
+            {
+              "newLine": 628,
+              "kind": "added",
+              "text": "\t\tif err := os.Symlink(target, full); err != nil {"
+            },
+            {
+              "newLine": 629,
+              "kind": "added",
+              "text": "\t\t\tt.Skip(\"symbolic links are not available:\", err)"
+            },
+            {
+              "newLine": 630,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 631,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 632,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 633,
+              "kind": "added",
+              "text": "\tt.Run(\"page\", func(t *testing.T) {"
+            },
+            {
+              "newLine": 634,
+              "kind": "added",
+              "text": "\t\troot := repo(t)"
+            },
+            {
+              "newLine": 635,
+              "kind": "added",
+              "text": "\t\tlink(t, root, \"docs/LEAK.md\", secret)"
+            },
+            {
+              "newLine": 636,
+              "kind": "added",
+              "text": "\t\tif _, _, err := LoadPages(root); err == nil || !strings.Contains(err.Error(), \"outside the repository\") {"
+            },
+            {
+              "newLine": 637,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"LoadPages: %v\", err)"
+            },
+            {
+              "newLine": 638,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 639,
+              "kind": "added",
+              "text": "\t\tfiles, err := BuildSite(root, SiteOptions{})"
+            },
+            {
+              "newLine": 640,
+              "kind": "added",
+              "text": "\t\tif err == nil {"
+            },
+            {
+              "newLine": 641,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"the site was built; md/LEAK.md = %q\", files[\"md/LEAK.md\"])"
+            },
+            {
+              "newLine": 642,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 643,
+              "kind": "added",
+              "text": "\t\tif _, err := Check(root); err == nil {"
+            },
+            {
+              "newLine": 644,
+              "kind": "added",
+              "text": "\t\t\tt.Fatal(\"Check followed the link\")"
+            },
+            {
+              "newLine": 645,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 646,
+              "kind": "added",
+              "text": "\t})"
+            },
+            {
+              "newLine": 647,
+              "kind": "added",
+              "text": "\tt.Run(\"docs directory\", func(t *testing.T) {"
+            },
+            {
+              "newLine": 648,
+              "kind": "added",
+              "text": "\t\troot := t.TempDir()"
+            },
+            {
+              "newLine": 649,
+              "kind": "added",
+              "text": "\t\tlink(t, root, \"docs\", filepath.Dir(secret))"
+            },
+            {
+              "newLine": 650,
+              "kind": "added",
+              "text": "\t\tif _, _, err := LoadPages(root); err == nil {"
+            },
+            {
+              "newLine": 651,
+              "kind": "added",
+              "text": "\t\t\tt.Fatal(\"LoadPages followed a linked docs directory\")"
+            },
+            {
+              "newLine": 652,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 653,
+              "kind": "added",
+              "text": "\t})"
+            },
+            {
+              "newLine": 654,
+              "kind": "added",
+              "text": "\tt.Run(\"source and action files\", func(t *testing.T) {"
+            },
+            {
+              "newLine": 655,
+              "kind": "added",
+              "text": "\t\troot := repo(t)"
+            },
+            {
+              "newLine": 656,
+              "kind": "added",
+              "text": "\t\tlink(t, root, \"main.go\", secret)"
+            },
+            {
+              "newLine": 657,
+              "kind": "added",
+              "text": "\t\tif _, err := Commands(root); err == nil {"
+            },
+            {
+              "newLine": 658,
+              "kind": "added",
+              "text": "\t\t\tt.Error(\"Commands followed the link\")"
+            },
+            {
+              "newLine": 659,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 660,
+              "kind": "added",
+              "text": "\t\troot = repo(t)"
+            },
+            {
+              "newLine": 661,
+              "kind": "added",
+              "text": "\t\tlink(t, root, \"sub/action.yml\", secret)"
+            },
+            {
+              "newLine": 662,
+              "kind": "added",
+              "text": "\t\tif _, err := Actions(root); err == nil {"
+            },
+            {
+              "newLine": 663,
+              "kind": "added",
+              "text": "\t\t\tt.Error(\"Actions followed the link\")"
+            },
+            {
+              "newLine": 664,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 665,
+              "kind": "added",
+              "text": "\t\troot = repo(t)"
+            },
+            {
+              "newLine": 666,
+              "kind": "added",
+              "text": "\t\tlink(t, root, findingSchemaFile, secret)"
+            },
+            {
+              "newLine": 667,
+              "kind": "added",
+              "text": "\t\tif _, err := Reference(root); err == nil {"
+            },
+            {
+              "newLine": 668,
+              "kind": "added",
+              "text": "\t\t\tt.Error(\"Reference followed the link\")"
+            },
+            {
+              "newLine": 669,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 670,
+              "kind": "added",
+              "text": "\t})"
+            },
+            {
+              "newLine": 671,
+              "kind": "added",
+              "text": "\tt.Run(\"a link that stays inside is allowed\", func(t *testing.T) {"
+            },
+            {
+              "newLine": 672,
+              "kind": "added",
+              "text": "\t\troot := repo(t)"
+            },
+            {
+              "newLine": 673,
+              "kind": "added",
+              "text": "\t\tlink(t, root, \"docs/ALIAS.md\", \"OTHER.md\")"
+            },
+            {
+              "newLine": 674,
+              "kind": "added",
+              "text": "\t\tif _, _, err := LoadPages(root); err != nil {"
+            },
+            {
+              "newLine": 675,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"LoadPages: %v\", err)"
+            },
+            {
+              "newLine": 676,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 677,
+              "kind": "added",
+              "text": "\t})"
+            },
+            {
+              "newLine": 678,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/docs/manifest.go",
+      "status": "M",
+      "diff": "diff --git a/internal/docs/manifest.go b/internal/docs/manifest.go\nindex 437504e..056b86c 100644\n--- a/internal/docs/manifest.go\n+++ b/internal/docs/manifest.go\n@@ -74,7 +74,7 @@ func WriteGenerated(root string) ([]string, error) {\n \tvar changed []string\n \tput := func(rel, want string) error {\n \t\tfull := filepath.Join(root, filepath.FromSlash(rel))\n-\t\tif got, err := os.ReadFile(full); err == nil \u0026\u0026 string(got) == want {\n+\t\tif got, err := readRepo(root, full); err == nil \u0026\u0026 string(got) == want {\n \t\t\treturn nil\n \t\t}\n \t\tchanged = append(changed, rel)\n",
+      "hunks": [
+        {
+          "id": "diff-c5721503e89779a9",
+          "header": "@@ -74,7 +74,7 @@ func WriteGenerated(root string) ([]string, error) {",
+          "lines": [
+            {
+              "oldLine": 74,
+              "newLine": 74,
+              "kind": "context",
+              "text": "\tvar changed []string"
+            },
+            {
+              "oldLine": 75,
+              "newLine": 75,
+              "kind": "context",
+              "text": "\tput := func(rel, want string) error {"
+            },
+            {
+              "oldLine": 76,
+              "newLine": 76,
+              "kind": "context",
+              "text": "\t\tfull := filepath.Join(root, filepath.FromSlash(rel))"
+            },
+            {
+              "oldLine": 77,
+              "kind": "removed",
+              "text": "\t\tif got, err := os.ReadFile(full); err == nil \u0026\u0026 string(got) == want {"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t\tif got, err := readRepo(root, full); err == nil \u0026\u0026 string(got) == want {"
+            },
+            {
+              "oldLine": 78,
+              "newLine": 78,
+              "kind": "context",
+              "text": "\t\t\treturn nil"
+            },
+            {
+              "oldLine": 79,
+              "newLine": 79,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 80,
+              "newLine": 80,
+              "kind": "context",
+              "text": "\t\tchanged = append(changed, rel)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/docs/page.go",
+      "status": "M",
+      "diff": "diff --git a/internal/docs/page.go b/internal/docs/page.go\nindex d72e03c..6941b8a 100644\n--- a/internal/docs/page.go\n+++ b/internal/docs/page.go\n@@ -5,7 +5,6 @@ package docs\n \n import (\n \t\"fmt\"\n-\t\"os\"\n \t\"path/filepath\"\n \t\"regexp\"\n \t\"sort\"\n@@ -66,7 +65,7 @@ func (p Problem) String() string {\n // LoadPages reads every page under docs/. Problems are front matter errors;\n // a page with problems is still returned so later checks can run on it.\n func LoadPages(root string) ([]Page, []Problem, error) {\n-\tentries, err := os.ReadDir(filepath.Join(root, Dir))\n+\tentries, err := readRepoDir(root, filepath.Join(root, Dir))\n \tif err != nil {\n \t\treturn nil, nil, err\n \t}\n@@ -78,7 +77,7 @@ func LoadPages(root string) ([]Page, []Problem, error) {\n \t\t\tcontinue\n \t\t}\n \t\trel := Dir + \"/\" + name\n-\t\tdata, err := os.ReadFile(filepath.Join(root, Dir, name))\n+\t\tdata, err := readRepo(root, filepath.Join(root, Dir, name))\n \t\tif err != nil {\n \t\t\treturn nil, nil, err\n \t\t}\n",
+      "hunks": [
+        {
+          "id": "diff-ad70ccfc42607dcd",
+          "header": "@@ -5,7 +5,6 @@ package docs",
+          "lines": [
+            {
+              "oldLine": 5,
+              "newLine": 5,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 6,
+              "newLine": 6,
+              "kind": "context",
+              "text": "import ("
+            },
+            {
+              "oldLine": 7,
+              "newLine": 7,
+              "kind": "context",
+              "text": "\t\"fmt\""
+            },
+            {
+              "oldLine": 8,
+              "kind": "removed",
+              "text": "\t\"os\""
+            },
+            {
+              "oldLine": 9,
+              "newLine": 8,
+              "kind": "context",
+              "text": "\t\"path/filepath\""
+            },
+            {
+              "oldLine": 10,
+              "newLine": 9,
+              "kind": "context",
+              "text": "\t\"regexp\""
+            },
+            {
+              "oldLine": 11,
+              "newLine": 10,
+              "kind": "context",
+              "text": "\t\"sort\""
+            }
+          ]
+        },
+        {
+          "id": "diff-2a1f42182896e9e0",
+          "header": "@@ -66,7 +65,7 @@ func (p Problem) String() string {",
+          "lines": [
+            {
+              "oldLine": 66,
+              "newLine": 65,
+              "kind": "context",
+              "text": "// LoadPages reads every page under docs/. Problems are front matter errors;"
+            },
+            {
+              "oldLine": 67,
+              "newLine": 66,
+              "kind": "context",
+              "text": "// a page with problems is still returned so later checks can run on it."
+            },
+            {
+              "oldLine": 68,
+              "newLine": 67,
+              "kind": "context",
+              "text": "func LoadPages(root string) ([]Page, []Problem, error) {"
+            },
+            {
+              "oldLine": 69,
+              "kind": "removed",
+              "text": "\tentries, err := os.ReadDir(filepath.Join(root, Dir))"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\tentries, err := readRepoDir(root, filepath.Join(root, Dir))"
+            },
+            {
+              "oldLine": 70,
+              "newLine": 69,
+              "kind": "context",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 71,
+              "newLine": 70,
+              "kind": "context",
+              "text": "\t\treturn nil, nil, err"
+            },
+            {
+              "oldLine": 72,
+              "newLine": 71,
+              "kind": "context",
+              "text": "\t}"
+            }
+          ]
+        },
+        {
+          "id": "diff-517156e6ff8cb78e",
+          "header": "@@ -78,7 +77,7 @@ func LoadPages(root string) ([]Page, []Problem, error) {",
+          "lines": [
+            {
+              "oldLine": 78,
+              "newLine": 77,
+              "kind": "context",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "oldLine": 79,
+              "newLine": 78,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 80,
+              "newLine": 79,
+              "kind": "context",
+              "text": "\t\trel := Dir + \"/\" + name"
+            },
+            {
+              "oldLine": 81,
+              "kind": "removed",
+              "text": "\t\tdata, err := os.ReadFile(filepath.Join(root, Dir, name))"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t\tdata, err := readRepo(root, filepath.Join(root, Dir, name))"
+            },
+            {
+              "oldLine": 82,
+              "newLine": 81,
+              "kind": "context",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "oldLine": 83,
+              "newLine": 82,
+              "kind": "context",
+              "text": "\t\t\treturn nil, nil, err"
+            },
+            {
+              "oldLine": 84,
+              "newLine": 83,
+              "kind": "context",
+              "text": "\t\t}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/docs/reference.go",
+      "status": "M",
+      "diff": "diff --git a/internal/docs/reference.go b/internal/docs/reference.go\nindex eaedce0..8d117c9 100644\n--- a/internal/docs/reference.go\n+++ b/internal/docs/reference.go\n@@ -4,7 +4,6 @@ import (\n \t\"errors\"\n \t\"fmt\"\n \t\"io/fs\"\n-\t\"os\"\n \t\"path/filepath\"\n \t\"sort\"\n \t\"strings\"\n@@ -21,8 +20,8 @@ const (\n \n const generatedNote = \"\u003c!-- Generated by `px1 docs gen` from the source files in `covers`. Do not edit. --\u003e\"\n \n-func readFile(path string) (string, error) {\n-\tdata, err := os.ReadFile(path)\n+func readFile(root, path string) (string, error) {\n+\tdata, err := readRepo(root, path)\n \treturn string(data), err\n }\n \n@@ -48,7 +47,7 @@ func Reference(root string) (map[string]string, error) {\n \t\tout[ActionInputsFile] = renderActions(actions)\n \t}\n \n-\tschema, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(findingSchemaFile)))\n+\tschema, err := readRepo(root, filepath.Join(root, filepath.FromSlash(findingSchemaFile)))\n \tif err == nil {\n \t\tfields, err := SchemaFields(schema)\n \t\tif err != nil {\n@@ -77,7 +76,7 @@ func Reference(root string) (map[string]string, error) {\n // does not exist is skipped; a page without the markers is an error, because\n // the facts would otherwise be silently missing from it.\n func fillRegion(root string, out map[string]string, rel, name, content string) error {\n-\ttext, err := readFile(filepath.Join(root, filepath.FromSlash(rel)))\n+\ttext, err := readFile(root, filepath.Join(root, filepath.FromSlash(rel)))\n \tif errors.Is(err, fs.ErrNotExist) {\n \t\treturn nil\n \t}\n",
+      "hunks": [
+        {
+          "id": "diff-9991c21cc3efbb31",
+          "header": "@@ -4,7 +4,6 @@ import (",
+          "lines": [
+            {
+              "oldLine": 4,
+              "newLine": 4,
+              "kind": "context",
+              "text": "\t\"errors\""
+            },
+            {
+              "oldLine": 5,
+              "newLine": 5,
+              "kind": "context",
+              "text": "\t\"fmt\""
+            },
+            {
+              "oldLine": 6,
+              "newLine": 6,
+              "kind": "context",
+              "text": "\t\"io/fs\""
+            },
+            {
+              "oldLine": 7,
+              "kind": "removed",
+              "text": "\t\"os\""
+            },
+            {
+              "oldLine": 8,
+              "newLine": 7,
+              "kind": "context",
+              "text": "\t\"path/filepath\""
+            },
+            {
+              "oldLine": 9,
+              "newLine": 8,
+              "kind": "context",
+              "text": "\t\"sort\""
+            },
+            {
+              "oldLine": 10,
+              "newLine": 9,
+              "kind": "context",
+              "text": "\t\"strings\""
+            }
+          ]
+        },
+        {
+          "id": "diff-c8f8372029115f0f",
+          "header": "@@ -21,8 +20,8 @@ const (",
+          "lines": [
+            {
+              "oldLine": 21,
+              "newLine": 20,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 22,
+              "newLine": 21,
+              "kind": "context",
+              "text": "const generatedNote = \"\u003c!-- Generated by `px1 docs gen` from the source files in `covers`. Do not edit. --\u003e\""
+            },
+            {
+              "oldLine": 23,
+              "newLine": 22,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 24,
+              "kind": "removed",
+              "text": "func readFile(path string) (string, error) {"
+            },
+            {
+              "oldLine": 25,
+              "kind": "removed",
+              "text": "\tdata, err := os.ReadFile(path)"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "func readFile(root, path string) (string, error) {"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tdata, err := readRepo(root, path)"
+            },
+            {
+              "oldLine": 26,
+              "newLine": 25,
+              "kind": "context",
+              "text": "\treturn string(data), err"
+            },
+            {
+              "oldLine": 27,
+              "newLine": 26,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 28,
+              "newLine": 27,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        },
+        {
+          "id": "diff-341804364ac4ff48",
+          "header": "@@ -48,7 +47,7 @@ func Reference(root string) (map[string]string, error) {",
+          "lines": [
+            {
+              "oldLine": 48,
+              "newLine": 47,
+              "kind": "context",
+              "text": "\t\tout[ActionInputsFile] = renderActions(actions)"
+            },
+            {
+              "oldLine": 49,
+              "newLine": 48,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 50,
+              "newLine": 49,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 51,
+              "kind": "removed",
+              "text": "\tschema, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(findingSchemaFile)))"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\tschema, err := readRepo(root, filepath.Join(root, filepath.FromSlash(findingSchemaFile)))"
+            },
+            {
+              "oldLine": 52,
+              "newLine": 51,
+              "kind": "context",
+              "text": "\tif err == nil {"
+            },
+            {
+              "oldLine": 53,
+              "newLine": 52,
+              "kind": "context",
+              "text": "\t\tfields, err := SchemaFields(schema)"
+            },
+            {
+              "oldLine": 54,
+              "newLine": 53,
+              "kind": "context",
+              "text": "\t\tif err != nil {"
+            }
+          ]
+        },
+        {
+          "id": "diff-52d827b2e8a3a5b9",
+          "header": "@@ -77,7 +76,7 @@ func Reference(root string) (map[string]string, error) {",
+          "lines": [
+            {
+              "oldLine": 77,
+              "newLine": 76,
+              "kind": "context",
+              "text": "// does not exist is skipped; a page without the markers is an error, because"
+            },
+            {
+              "oldLine": 78,
+              "newLine": 77,
+              "kind": "context",
+              "text": "// the facts would otherwise be silently missing from it."
+            },
+            {
+              "oldLine": 79,
+              "newLine": 78,
+              "kind": "context",
+              "text": "func fillRegion(root string, out map[string]string, rel, name, content string) error {"
+            },
+            {
+              "oldLine": 80,
+              "kind": "removed",
+              "text": "\ttext, err := readFile(filepath.Join(root, filepath.FromSlash(rel)))"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\ttext, err := readFile(root, filepath.Join(root, filepath.FromSlash(rel)))"
+            },
+            {
+              "oldLine": 81,
+              "newLine": 80,
+              "kind": "context",
+              "text": "\tif errors.Is(err, fs.ErrNotExist) {"
+            },
+            {
+              "oldLine": 82,
+              "newLine": 81,
+              "kind": "context",
+              "text": "\t\treturn nil"
+            },
+            {
+              "oldLine": 83,
+              "newLine": 82,
+              "kind": "context",
+              "text": "\t}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/docs/safe.go",
+      "status": "A",
+      "diff": "diff --git a/internal/docs/safe.go b/internal/docs/safe.go\nnew file mode 100644\nindex 0000000..5596346\n--- /dev/null\n+++ b/internal/docs/safe.go\n@@ -0,0 +1,59 @@\n+package docs\n+\n+import (\n+\t\"fmt\"\n+\t\"os\"\n+\t\"path/filepath\"\n+\t\"strings\"\n+)\n+\n+// The repository being documented can be a pull request's files, checked out\n+// as data by a workflow that publishes what px1 writes. A symbolic link in\n+// that tree could point at a file on the machine (a credential, say) and get\n+// it copied into a public site. So every read resolves links first and\n+// refuses a path that ends up outside the repository.\n+\n+// inside returns an error when path, with links resolved, is not within root.\n+func inside(root, path string) error {\n+\trealRoot, err := resolve(root)\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\treal, err := resolve(path)\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\tif real != realRoot \u0026\u0026 !strings.HasPrefix(real, realRoot+string(filepath.Separator)) {\n+\t\trel, relErr := filepath.Rel(root, path)\n+\t\tif relErr != nil {\n+\t\t\trel = filepath.Base(path)\n+\t\t}\n+\t\treturn fmt.Errorf(\"%s is a link to a path outside the repository\", filepath.ToSlash(rel))\n+\t}\n+\treturn nil\n+}\n+\n+// readRepo reads a file of the repository.\n+func readRepo(root, path string) ([]byte, error) {\n+\tif err := inside(root, path); err != nil {\n+\t\treturn nil, err\n+\t}\n+\treturn os.ReadFile(path)\n+}\n+\n+// readRepoDir lists a directory of the repository.\n+func readRepoDir(root, path string) ([]os.DirEntry, error) {\n+\tif err := inside(root, path); err != nil {\n+\t\treturn nil, err\n+\t}\n+\treturn os.ReadDir(path)\n+}\n+\n+// resolve makes a path absolute and follows every link in it.\n+func resolve(path string) (string, error) {\n+\tabs, err := filepath.Abs(path)\n+\tif err != nil {\n+\t\treturn \"\", err\n+\t}\n+\treturn filepath.EvalSymlinks(abs)\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-c077ca67bcb45762",
+          "header": "@@ -0,0 +1,59 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package docs"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"path/filepath\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "// The repository being documented can be a pull request's files, checked out"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "// as data by a workflow that publishes what px1 writes. A symbolic link in"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "// that tree could point at a file on the machine (a credential, say) and get"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "// it copied into a public site. So every read resolves links first and"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "// refuses a path that ends up outside the repository."
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "// inside returns an error when path, with links resolved, is not within root."
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "func inside(root, path string) error {"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\trealRoot, err := resolve(root)"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\treal, err := resolve(path)"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tif real != realRoot \u0026\u0026 !strings.HasPrefix(real, realRoot+string(filepath.Separator)) {"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t\trel, relErr := filepath.Rel(root, path)"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t\tif relErr != nil {"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t\t\trel = filepath.Base(path)"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t\treturn fmt.Errorf(\"%s is a link to a path outside the repository\", filepath.ToSlash(rel))"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "// readRepo reads a file of the repository."
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "func readRepo(root, path string) ([]byte, error) {"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tif err := inside(root, path); err != nil {"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\treturn os.ReadFile(path)"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "// readRepoDir lists a directory of the repository."
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "func readRepoDir(root, path string) ([]os.DirEntry, error) {"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\tif err := inside(root, path); err != nil {"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\treturn os.ReadDir(path)"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "// resolve makes a path absolute and follows every link in it."
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "func resolve(path string) (string, error) {"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\tabs, err := filepath.Abs(path)"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t\treturn \"\", err"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\treturn filepath.EvalSymlinks(abs)"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/docs/schema.go",
+      "status": "M",
+      "diff": "diff --git a/internal/docs/schema.go b/internal/docs/schema.go\nindex 8301372..aed6ad6 100644\n--- a/internal/docs/schema.go\n+++ b/internal/docs/schema.go\n@@ -120,7 +120,7 @@ func Actions(root string) ([]Action, error) {\n \t\t\treturn nil\n \t\t}\n \t\trel, _ := filepath.Rel(root, p)\n-\t\tdata, err := readFile(p)\n+\t\tdata, err := readFile(root, p)\n \t\tif err != nil {\n \t\t\treturn err\n \t\t}\n",
+      "hunks": [
+        {
+          "id": "diff-b11049f641d9f9f5",
+          "header": "@@ -120,7 +120,7 @@ func Actions(root string) ([]Action, error) {",
+          "lines": [
+            {
+              "oldLine": 120,
+              "newLine": 120,
+              "kind": "context",
+              "text": "\t\t\treturn nil"
+            },
+            {
+              "oldLine": 121,
+              "newLine": 121,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 122,
+              "newLine": 122,
+              "kind": "context",
+              "text": "\t\trel, _ := filepath.Rel(root, p)"
+            },
+            {
+              "oldLine": 123,
+              "kind": "removed",
+              "text": "\t\tdata, err := readFile(p)"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "\t\tdata, err := readFile(root, p)"
+            },
+            {
+              "oldLine": 124,
+              "newLine": 124,
+              "kind": "context",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "oldLine": 125,
+              "newLine": 125,
+              "kind": "context",
+              "text": "\t\t\treturn err"
+            },
+            {
+              "oldLine": 126,
+              "newLine": 126,
+              "kind": "context",
+              "text": "\t\t}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/docs/site.go",
+      "status": "M",
+      "diff": "diff --git a/internal/docs/site.go b/internal/docs/site.go\nindex 0aa0ac1..3081422 100644\n--- a/internal/docs/site.go\n+++ b/internal/docs/site.go\n@@ -243,7 +243,7 @@ func BuildSite(root string, opts SiteOptions) (map[string][]byte, error) {\n \n \t\t// The Markdown is published next to the HTML, front matter included,\n \t\t// so the site is also a copy of the source.\n-\t\traw, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(p.Path)))\n+\t\traw, err := readRepo(root, filepath.Join(root, filepath.FromSlash(p.Path)))\n \t\tif err != nil {\n \t\t\treturn nil, err\n \t\t}\n",
+      "hunks": [
+        {
+          "id": "diff-ff1031ceecfe9d9d",
+          "header": "@@ -243,7 +243,7 @@ func BuildSite(root string, opts SiteOptions) (map[string][]byte, error) {",
+          "lines": [
+            {
+              "oldLine": 243,
+              "newLine": 243,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 244,
+              "newLine": 244,
+              "kind": "context",
+              "text": "\t\t// The Markdown is published next to the HTML, front matter included,"
+            },
+            {
+              "oldLine": 245,
+              "newLine": 245,
+              "kind": "context",
+              "text": "\t\t// so the site is also a copy of the source."
+            },
+            {
+              "oldLine": 246,
+              "kind": "removed",
+              "text": "\t\traw, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(p.Path)))"
+            },
+            {
+              "newLine": 246,
+              "kind": "added",
+              "text": "\t\traw, err := readRepo(root, filepath.Join(root, filepath.FromSlash(p.Path)))"
+            },
+            {
+              "oldLine": 247,
+              "newLine": 247,
+              "kind": "context",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "oldLine": 248,
+              "newLine": 248,
+              "kind": "context",
+              "text": "\t\t\treturn nil, err"
+            },
+            {
+              "oldLine": 249,
+              "newLine": 249,
+              "kind": "context",
+              "text": "\t\t}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/docs/source.go",
+      "status": "M",
+      "diff": "diff --git a/internal/docs/source.go b/internal/docs/source.go\nindex 9746666..c613e71 100644\n--- a/internal/docs/source.go\n+++ b/internal/docs/source.go\n@@ -43,9 +43,9 @@ type goPackage struct {\n \tconsts map[string]string    // top-level constants with literal values\n }\n \n-func parseGoDir(dir string) (*goPackage, error) {\n+func parseGoDir(root, dir string) (*goPackage, error) {\n \tpkg := \u0026goPackage{fset: token.NewFileSet(), files: map[string]*ast.File{}, consts: map[string]string{}}\n-\tentries, err := os.ReadDir(dir)\n+\tentries, err := readRepoDir(root, dir)\n \tif err != nil {\n \t\treturn nil, err\n \t}\n@@ -54,7 +54,11 @@ func parseGoDir(dir string) (*goPackage, error) {\n \t\tif entry.IsDir() || !strings.HasSuffix(name, \".go\") || strings.HasSuffix(name, \"_test.go\") {\n \t\t\tcontinue\n \t\t}\n-\t\tfile, err := parser.ParseFile(pkg.fset, filepath.Join(dir, name), nil, parser.ParseComments)\n+\t\tsrc, err := readRepo(root, filepath.Join(dir, name))\n+\t\tif err != nil {\n+\t\t\treturn nil, err\n+\t\t}\n+\t\tfile, err := parser.ParseFile(pkg.fset, filepath.Join(dir, name), src, parser.ParseComments)\n \t\tif err != nil {\n \t\t\treturn nil, err\n \t\t}\n@@ -130,7 +134,7 @@ func Commands(root string) ([]Command, error) {\n \tif _, err := os.Stat(filepath.Join(root, \"main.go\")); errors.Is(err, fs.ErrNotExist) {\n \t\treturn nil, nil\n \t}\n-\tpkg, err := parseGoDir(root)\n+\tpkg, err := parseGoDir(root, root)\n \tif err != nil {\n \t\treturn nil, err\n \t}\n@@ -353,7 +357,7 @@ func Tools(root string) ([]Tool, error) {\n \tif _, err := os.Stat(filepath.Join(root, filepath.FromSlash(toolsFile))); errors.Is(err, fs.ErrNotExist) {\n \t\treturn nil, nil\n \t}\n-\tpkg, err := parseGoDir(filepath.Join(root, filepath.FromSlash(filepath.Dir(toolsFile))))\n+\tpkg, err := parseGoDir(root, filepath.Join(root, filepath.FromSlash(filepath.Dir(toolsFile))))\n \tif err != nil {\n \t\treturn nil, err\n \t}\n",
+      "hunks": [
+        {
+          "id": "diff-8dfc9c839e7130a4",
+          "header": "@@ -43,9 +43,9 @@ type goPackage struct {",
+          "lines": [
+            {
+              "oldLine": 43,
+              "newLine": 43,
+              "kind": "context",
+              "text": "\tconsts map[string]string    // top-level constants with literal values"
+            },
+            {
+              "oldLine": 44,
+              "newLine": 44,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 45,
+              "newLine": 45,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 46,
+              "kind": "removed",
+              "text": "func parseGoDir(dir string) (*goPackage, error) {"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "func parseGoDir(root, dir string) (*goPackage, error) {"
+            },
+            {
+              "oldLine": 47,
+              "newLine": 47,
+              "kind": "context",
+              "text": "\tpkg := \u0026goPackage{fset: token.NewFileSet(), files: map[string]*ast.File{}, consts: map[string]string{}}"
+            },
+            {
+              "oldLine": 48,
+              "kind": "removed",
+              "text": "\tentries, err := os.ReadDir(dir)"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\tentries, err := readRepoDir(root, dir)"
+            },
+            {
+              "oldLine": 49,
+              "newLine": 49,
+              "kind": "context",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 50,
+              "newLine": 50,
+              "kind": "context",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "oldLine": 51,
+              "newLine": 51,
+              "kind": "context",
+              "text": "\t}"
+            }
+          ]
+        },
+        {
+          "id": "diff-641ff2a7dc2bf326",
+          "header": "@@ -54,7 +54,11 @@ func parseGoDir(dir string) (*goPackage, error) {",
+          "lines": [
+            {
+              "oldLine": 54,
+              "newLine": 54,
+              "kind": "context",
+              "text": "\t\tif entry.IsDir() || !strings.HasSuffix(name, \".go\") || strings.HasSuffix(name, \"_test.go\") {"
+            },
+            {
+              "oldLine": 55,
+              "newLine": 55,
+              "kind": "context",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "oldLine": 56,
+              "newLine": 56,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 57,
+              "kind": "removed",
+              "text": "\t\tfile, err := parser.ParseFile(pkg.fset, filepath.Join(dir, name), nil, parser.ParseComments)"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\tsrc, err := readRepo(root, filepath.Join(dir, name))"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t\t\treturn nil, err"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t\tfile, err := parser.ParseFile(pkg.fset, filepath.Join(dir, name), src, parser.ParseComments)"
+            },
+            {
+              "oldLine": 58,
+              "newLine": 62,
+              "kind": "context",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "oldLine": 59,
+              "newLine": 63,
+              "kind": "context",
+              "text": "\t\t\treturn nil, err"
+            },
+            {
+              "oldLine": 60,
+              "newLine": 64,
+              "kind": "context",
+              "text": "\t\t}"
+            }
+          ]
+        },
+        {
+          "id": "diff-f492d4055655a611",
+          "header": "@@ -130,7 +134,7 @@ func Commands(root string) ([]Command, error) {",
+          "lines": [
+            {
+              "oldLine": 130,
+              "newLine": 134,
+              "kind": "context",
+              "text": "\tif _, err := os.Stat(filepath.Join(root, \"main.go\")); errors.Is(err, fs.ErrNotExist) {"
+            },
+            {
+              "oldLine": 131,
+              "newLine": 135,
+              "kind": "context",
+              "text": "\t\treturn nil, nil"
+            },
+            {
+              "oldLine": 132,
+              "newLine": 136,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 133,
+              "kind": "removed",
+              "text": "\tpkg, err := parseGoDir(root)"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\tpkg, err := parseGoDir(root, root)"
+            },
+            {
+              "oldLine": 134,
+              "newLine": 138,
+              "kind": "context",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 135,
+              "newLine": 139,
+              "kind": "context",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "oldLine": 136,
+              "newLine": 140,
+              "kind": "context",
+              "text": "\t}"
+            }
+          ]
+        },
+        {
+          "id": "diff-2ec288a3ba49f133",
+          "header": "@@ -353,7 +357,7 @@ func Tools(root string) ([]Tool, error) {",
+          "lines": [
+            {
+              "oldLine": 353,
+              "newLine": 357,
+              "kind": "context",
+              "text": "\tif _, err := os.Stat(filepath.Join(root, filepath.FromSlash(toolsFile))); errors.Is(err, fs.ErrNotExist) {"
+            },
+            {
+              "oldLine": 354,
+              "newLine": 358,
+              "kind": "context",
+              "text": "\t\treturn nil, nil"
+            },
+            {
+              "oldLine": 355,
+              "newLine": 359,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 356,
+              "kind": "removed",
+              "text": "\tpkg, err := parseGoDir(filepath.Join(root, filepath.FromSlash(filepath.Dir(toolsFile))))"
+            },
+            {
+              "newLine": 360,
+              "kind": "added",
+              "text": "\tpkg, err := parseGoDir(root, filepath.Join(root, filepath.FromSlash(filepath.Dir(toolsFile))))"
+            },
+            {
+              "oldLine": 357,
+              "newLine": 361,
+              "kind": "context",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 358,
+              "newLine": 362,
+              "kind": "context",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "oldLine": 359,
+              "newLine": 363,
+              "kind": "context",
+              "text": "\t}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-bdf98306b571aae5",
+      "title": "Root changes",
+      "summary": "13 related files share the \"root\" change signal.",
+      "paths": [
+        ".github/workflows/px1-review-report.yml",
+        "ROADMAP.md",
+        "docs/DOCS_ROADMAP.md",
+        "docs_check_test.go",
+        "internal/docs/check.go",
+        "internal/docs/docs_test.go",
+        "internal/docs/manifest.go",
+        "internal/docs/page.go",
+        "internal/docs/reference.go",
+        "internal/docs/safe.go",
+        "internal/docs/schema.go",
+        "internal/docs/site.go",
+        "internal/docs/source.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-3260221d9a90c398",
+      "path": "internal/docs/schema.go",
+      "kind": "schema",
+      "observation": "The changed path is migration, schema, or SQL-related: internal/docs/schema.go.",
+      "question": "What happens to existing data during deploy, rollback, and mixed-version operation?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 13,
+    "filesAnalyzed": 13,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "docs-publish",
+      "path": ".github/workflows/px1-review-report.yml",
+      "lineStart": 132,
+      "lineEnd": 161,
+      "title": "Publish documentation and pull-request previews",
+      "summary": "The workflow now builds the base documentation site and a pull-request preview, marking pages affected by the change. It uses the trusted checkout to build the tool and reads the pull-request checkout as data. If the docs build fails, it does not stop the review report from being published."
+    },
+    {
+      "id": "docs-comment",
+      "path": ".github/workflows/px1-review-report.yml",
+      "lineStart": 229,
+      "lineEnd": 269,
+      "title": "Keep the impact report comment updated",
+      "summary": "After a successful docs build, the workflow creates or updates a single bot comment with the impact report and preview link. Commenting is best-effort, so a comment failure does not fail the workflow."
+    },
+    {
+      "id": "symlink-safety",
+      "path": "internal/docs/safe.go",
+      "lineStart": 12,
+      "lineEnd": 59,
+      "title": "Refuse links outside the repository",
+      "summary": "Documentation reads now resolve symbolic links and reject paths that lead outside the repository. This prevents a pull-request file from pointing at runner data and having that data included in a published site or documentation reference."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "3671d4f76d418f6c8ff92b8641c33419093dabcc",
+      "revision": "884c8a12c784f12e4bc270f5c113de67266fed90",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "3671d4f76d418f6c8ff92b8641c33419093dabcc",
+      "revision": "884c8a12c784f12e4bc270f5c113de67266fed90",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "884c8a12c784f12e4bc270f5c113de67266fed90",
+      "detail": "3 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "884c8a12c784f12e4bc270f5c113de67266fed90",
+      "detail": "3 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-6b915d511ddb92e1",
+      "rule": "schema",
+      "title": "Schema or migration",
+      "reason": "Schema and migration changes can affect stored data and deployment order.",
+      "path": "internal/docs/schema.go",
+      "evidence": "internal/docs/schema.go"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "884c8a12c784f12e4bc270f5c113de67266fed90",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42916370511",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42916370511/job/130179749351",
+        "startedAt": "2026-11-10T22:38:15Z"
+      },
+      {
+        "name": "review",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42916370643/job/130179745364",
+        "startedAt": "2026-11-10T22:38:12Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42916370560/job/130179744280",
+        "startedAt": "2026-11-10T22:38:12Z"
+      }
+    ]
+  }
+}
