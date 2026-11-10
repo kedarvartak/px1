@@ -227,6 +227,9 @@ backend-foundation tasks are:
     `px1 post-github` posts a sticky summary and inline comments; the
     `agentic-action` and an example workflow run it per pull request. A
     large-pull-request fallback and a provider retry follow.
+92. [x] **Plan self-evolving documentation.** `docs/DOCS_ROADMAP.md` sets the
+    design and phases; `docs/DOCS_INVENTORY.md` audits the current pages and
+    assigns each one a section, status and action.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,
