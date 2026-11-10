@@ -1,0 +1,1407 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "2fbb072eccfc099a8d91e2cb32b9692f8be1989d",
+  "head": "971f78ce2215cce62488236c7b67ae32e229bac8",
+  "generatedAt": "2026-11-10T13:52:38.073705649Z",
+  "files": [
+    {
+      "path": "docs/AGENTIC_CI.md",
+      "status": "M",
+      "diff": "diff --git a/docs/AGENTIC_CI.md b/docs/AGENTIC_CI.md\nindex 87c900a..bfc6327 100644\n--- a/docs/AGENTIC_CI.md\n+++ b/docs/AGENTIC_CI.md\n@@ -12,7 +12,7 @@\n ## What it posts\n \n - One **sticky summary comment**, found by a hidden marker and edited on every push instead of adding a new one. With no findings it says so, and that this is not evidence the change is correct.\n-- **Inline comments** on the changed lines for findings that fall inside the diff, at most 20 per run. A finding already commented on an earlier push is not posted again.\n+- **Inline comments** on the changed lines for findings that fall inside the diff, at most 20 per run. A finding already commented on an earlier push is not posted again: two comments on the same file within 3 lines count as the same finding, because the model words a title differently on every run. A comment that a push moved (GitHub reports no current line) is matched by its original line.\n - Findings outside the diff stay in the summary, with their evidence.\n \n ## The report\n",
+      "hunks": [
+        {
+          "id": "diff-1962097b8f9b3eb3",
+          "header": "@@ -12,7 +12,7 @@",
+          "lines": [
+            {
+              "oldLine": 12,
+              "newLine": 12,
+              "kind": "context",
+              "text": "## What it posts"
+            },
+            {
+              "oldLine": 13,
+              "newLine": 13,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 14,
+              "newLine": 14,
+              "kind": "context",
+              "text": "- One **sticky summary comment**, found by a hidden marker and edited on every push instead of adding a new one. With no findings it says so, and that this is not evidence the change is correct."
+            },
+            {
+              "oldLine": 15,
+              "kind": "removed",
+              "text": "- **Inline comments** on the changed lines for findings that fall inside the diff, at most 20 per run. A finding already commented on an earlier push is not posted again."
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "- **Inline comments** on the changed lines for findings that fall inside the diff, at most 20 per run. A finding already commented on an earlier push is not posted again: two comments on the same file within 3 lines count as the same finding, because the model words a title differently on every run. A comment that a push moved (GitHub reports no current line) is matched by its original line."
+            },
+            {
+              "oldLine": 16,
+              "newLine": 16,
+              "kind": "context",
+              "text": "- Findings outside the diff stay in the summary, with their evidence."
+            },
+            {
+              "oldLine": 17,
+              "newLine": 17,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 18,
+              "newLine": 18,
+              "kind": "context",
+              "text": "## The report"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "post_github.go",
+      "status": "M",
+      "diff": "diff --git a/post_github.go b/post_github.go\nindex 0d63c57..c073758 100644\n--- a/post_github.go\n+++ b/post_github.go\n@@ -82,12 +82,12 @@ func runPostGitHub(args []string, stdout io.Writer) error {\n \tctx := context.Background()\n \n \tvar commentable map[string]map[int]bool\n-\tvar posted map[string]bool\n+\tvar posted []postedComment\n \tif !o.dryRun {\n \t\tif commentable, err = gh.commentableLines(ctx, o.repo, o.pr); err != nil {\n \t\t\treturn err\n \t\t}\n-\t\tif posted, err = gh.postedFindingKeys(ctx, o.repo, o.pr); err != nil {\n+\t\tif posted, err = gh.postedFindings(ctx, o.repo, o.pr); err != nil {\n \t\t\treturn err\n \t\t}\n \t} else {\n@@ -95,7 +95,7 @@ func runPostGitHub(args []string, stdout io.Writer) error {\n \t\tfor _, f := range envelope.Findings {\n \t\t\tcommentable[f.Path] = map[int]bool{f.EndLine: true, f.StartLine: true}\n \t\t}\n-\t\tposted = map[string]bool{}\n+\t\tposted = nil\n \t}\n \tplan := planPost(envelope.Findings, commentable, posted)\n \tscopeNote, err := readScopeNote(o.scope)\n@@ -141,7 +141,7 @@ func findingKey(f hostedreview.Finding) string {\n \treturn hex.EncodeToString(sum[:6])\n }\n \n-func planPost(findings []hostedreview.Finding, commentable map[string]map[int]bool, posted map[string]bool) postPlan {\n+func planPost(findings []hostedreview.Finding, commentable map[string]map[int]bool, posted []postedComment) postPlan {\n \tplan := postPlan{inlined: map[string]bool{}}\n \tplan.all = append(plan.all, findings...)\n \tsort.SliceStable(plan.all, func(i, j int) bool { return plan.all[i].Severity \u003c plan.all[j].Severity })\n@@ -152,7 +152,7 @@ func planPost(findings []hostedreview.Finding, commentable map[string]map[int]bo\n \t\t\tplan.outside = append(plan.outside, f)\n \t\t\tcontinue\n \t\t}\n-\t\tif posted[key] {\n+\t\tif alreadyPosted(posted, key, f) {\n \t\t\tplan.inlined[key] = true // already commented on an earlier push\n \t\t\tcontinue\n \t\t}\n@@ -306,25 +306,76 @@ func (g githubClient) commentableLines(ctx context.Context, repo string, pr int)\n \n var findingMarker = regexp.MustCompile(`\u003c!-- px1-finding:([0-9a-f]{12}) --\u003e`)\n \n-func (g githubClient) postedFindingKeys(ctx context.Context, repo string, pr int) (map[string]bool, error) {\n-\tkeys := map[string]bool{}\n+// postedComment is a px1 inline comment already on the pull request.\n+type postedComment struct {\n+\tKey, Path string\n+\tLine      int\n+}\n+\n+// dedupeLineSlack is how far apart two comments on one file can be and still\n+// be the same finding. A model words a title differently on every run, so the\n+// title cannot identify a finding; its location can.\n+const dedupeLineSlack = 3\n+\n+func alreadyPosted(posted []postedComment, key string, f hostedreview.Finding) bool {\n+\tfor _, p := range posted {\n+\t\t// Location identifies a finding. The title key is only a fallback for a\n+\t\t// comment whose line is unknown: matching it elsewhere would hide a\n+\t\t// second problem that happens to share a title with the first.\n+\t\tif p.Line \u003e 0 {\n+\t\t\tif p.Path == f.Path \u0026\u0026 abs(p.Line-f.EndLine) \u003c= dedupeLineSlack {\n+\t\t\t\treturn true\n+\t\t\t}\n+\t\t\tcontinue\n+\t\t}\n+\t\tif p.Key == key {\n+\t\t\treturn true\n+\t\t}\n+\t}\n+\treturn false\n+}\n+\n+func abs(n int) int {\n+\tif n \u003c 0 {\n+\t\treturn -n\n+\t}\n+\treturn n\n+}\n+\n+func (g githubClient) postedFindings(ctx context.Context, repo string, pr int) ([]postedComment, error) {\n+\tvar posted []postedComment\n \tfor page := 1; page \u003c= maxFilePages; page++ {\n \t\tvar comments []struct {\n-\t\t\tBody string `json:\"body\"`\n+\t\t\tBody         string `json:\"body\"`\n+\t\t\tPath         string `json:\"path\"`\n+\t\t\tLine         *int   `json:\"line\"`\n+\t\t\tOriginalLine *int   `json:\"original_line\"`\n+\t\t\tInReplyTo    int64  `json:\"in_reply_to_id\"`\n \t\t}\n \t\tif err := g.do(ctx, http.MethodGet, fmt.Sprintf(\"%s/pulls/%d/comments?per_page=100\u0026page=%d\", repoPath(repo), pr, page), nil, \u0026comments); err != nil {\n \t\t\treturn nil, err\n \t\t}\n \t\tfor _, c := range comments {\n-\t\t\tif m := findingMarker.FindStringSubmatch(c.Body); m != nil {\n-\t\t\t\tkeys[m[1]] = true\n+\t\t\tm := findingMarker.FindStringSubmatch(c.Body)\n+\t\t\tif m == nil || c.InReplyTo != 0 {\n+\t\t\t\tcontinue\n+\t\t\t}\n+\t\t\tp := postedComment{Key: m[1], Path: c.Path}\n+\t\t\t// Line is null once a later push moves the code; the original line\n+\t\t\t// still says where the finding was made.\n+\t\t\tswitch {\n+\t\t\tcase c.Line != nil:\n+\t\t\t\tp.Line = *c.Line\n+\t\t\tcase c.OriginalLine != nil:\n+\t\t\t\tp.Line = *c.OriginalLine\n \t\t\t}\n+\t\t\tposted = append(posted, p)\n \t\t}\n \t\tif len(comments) \u003c 100 {\n \t\t\tbreak\n \t\t}\n \t}\n-\treturn keys, nil\n+\treturn posted, nil\n }\n \n func (g githubClient) createReview(ctx context.Context, repo string, pr int, head string, comments []inlineComment) error {\n",
+      "hunks": [
+        {
+          "id": "diff-77b2324d4d05697f",
+          "header": "@@ -82,12 +82,12 @@ func runPostGitHub(args []string, stdout io.Writer) error {",
+          "lines": [
+            {
+              "oldLine": 82,
+              "newLine": 82,
+              "kind": "context",
+              "text": "\tctx := context.Background()"
+            },
+            {
+              "oldLine": 83,
+              "newLine": 83,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 84,
+              "newLine": 84,
+              "kind": "context",
+              "text": "\tvar commentable map[string]map[int]bool"
+            },
+            {
+              "oldLine": 85,
+              "kind": "removed",
+              "text": "\tvar posted map[string]bool"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\tvar posted []postedComment"
+            },
+            {
+              "oldLine": 86,
+              "newLine": 86,
+              "kind": "context",
+              "text": "\tif !o.dryRun {"
+            },
+            {
+              "oldLine": 87,
+              "newLine": 87,
+              "kind": "context",
+              "text": "\t\tif commentable, err = gh.commentableLines(ctx, o.repo, o.pr); err != nil {"
+            },
+            {
+              "oldLine": 88,
+              "newLine": 88,
+              "kind": "context",
+              "text": "\t\t\treturn err"
+            },
+            {
+              "oldLine": 89,
+              "newLine": 89,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 90,
+              "kind": "removed",
+              "text": "\t\tif posted, err = gh.postedFindingKeys(ctx, o.repo, o.pr); err != nil {"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t\tif posted, err = gh.postedFindings(ctx, o.repo, o.pr); err != nil {"
+            },
+            {
+              "oldLine": 91,
+              "newLine": 91,
+              "kind": "context",
+              "text": "\t\t\treturn err"
+            },
+            {
+              "oldLine": 92,
+              "newLine": 92,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 93,
+              "newLine": 93,
+              "kind": "context",
+              "text": "\t} else {"
+            }
+          ]
+        },
+        {
+          "id": "diff-f6db8671005ce1e5",
+          "header": "@@ -95,7 +95,7 @@ func runPostGitHub(args []string, stdout io.Writer) error {",
+          "lines": [
+            {
+              "oldLine": 95,
+              "newLine": 95,
+              "kind": "context",
+              "text": "\t\tfor _, f := range envelope.Findings {"
+            },
+            {
+              "oldLine": 96,
+              "newLine": 96,
+              "kind": "context",
+              "text": "\t\t\tcommentable[f.Path] = map[int]bool{f.EndLine: true, f.StartLine: true}"
+            },
+            {
+              "oldLine": 97,
+              "newLine": 97,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 98,
+              "kind": "removed",
+              "text": "\t\tposted = map[string]bool{}"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t\tposted = nil"
+            },
+            {
+              "oldLine": 99,
+              "newLine": 99,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 100,
+              "newLine": 100,
+              "kind": "context",
+              "text": "\tplan := planPost(envelope.Findings, commentable, posted)"
+            },
+            {
+              "oldLine": 101,
+              "newLine": 101,
+              "kind": "context",
+              "text": "\tscopeNote, err := readScopeNote(o.scope)"
+            }
+          ]
+        },
+        {
+          "id": "diff-a2c0d1a55197cbd1",
+          "header": "@@ -141,7 +141,7 @@ func findingKey(f hostedreview.Finding) string {",
+          "lines": [
+            {
+              "oldLine": 141,
+              "newLine": 141,
+              "kind": "context",
+              "text": "\treturn hex.EncodeToString(sum[:6])"
+            },
+            {
+              "oldLine": 142,
+              "newLine": 142,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 143,
+              "newLine": 143,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 144,
+              "kind": "removed",
+              "text": "func planPost(findings []hostedreview.Finding, commentable map[string]map[int]bool, posted map[string]bool) postPlan {"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "func planPost(findings []hostedreview.Finding, commentable map[string]map[int]bool, posted []postedComment) postPlan {"
+            },
+            {
+              "oldLine": 145,
+              "newLine": 145,
+              "kind": "context",
+              "text": "\tplan := postPlan{inlined: map[string]bool{}}"
+            },
+            {
+              "oldLine": 146,
+              "newLine": 146,
+              "kind": "context",
+              "text": "\tplan.all = append(plan.all, findings...)"
+            },
+            {
+              "oldLine": 147,
+              "newLine": 147,
+              "kind": "context",
+              "text": "\tsort.SliceStable(plan.all, func(i, j int) bool { return plan.all[i].Severity \u003c plan.all[j].Severity })"
+            }
+          ]
+        },
+        {
+          "id": "diff-13fa01d647b3fbae",
+          "header": "@@ -152,7 +152,7 @@ func planPost(findings []hostedreview.Finding, commentable map[string]map[int]bo",
+          "lines": [
+            {
+              "oldLine": 152,
+              "newLine": 152,
+              "kind": "context",
+              "text": "\t\t\tplan.outside = append(plan.outside, f)"
+            },
+            {
+              "oldLine": 153,
+              "newLine": 153,
+              "kind": "context",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "oldLine": 154,
+              "newLine": 154,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 155,
+              "kind": "removed",
+              "text": "\t\tif posted[key] {"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "\t\tif alreadyPosted(posted, key, f) {"
+            },
+            {
+              "oldLine": 156,
+              "newLine": 156,
+              "kind": "context",
+              "text": "\t\t\tplan.inlined[key] = true // already commented on an earlier push"
+            },
+            {
+              "oldLine": 157,
+              "newLine": 157,
+              "kind": "context",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "oldLine": 158,
+              "newLine": 158,
+              "kind": "context",
+              "text": "\t\t}"
+            }
+          ]
+        },
+        {
+          "id": "diff-27ed0a8823d4ad4f",
+          "header": "@@ -306,25 +306,76 @@ func (g githubClient) commentableLines(ctx context.Context, repo string, pr int)",
+          "lines": [
+            {
+              "oldLine": 306,
+              "newLine": 306,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 307,
+              "newLine": 307,
+              "kind": "context",
+              "text": "var findingMarker = regexp.MustCompile(`\u003c!-- px1-finding:([0-9a-f]{12}) --\u003e`)"
+            },
+            {
+              "oldLine": 308,
+              "newLine": 308,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 309,
+              "kind": "removed",
+              "text": "func (g githubClient) postedFindingKeys(ctx context.Context, repo string, pr int) (map[string]bool, error) {"
+            },
+            {
+              "oldLine": 310,
+              "kind": "removed",
+              "text": "\tkeys := map[string]bool{}"
+            },
+            {
+              "newLine": 309,
+              "kind": "added",
+              "text": "// postedComment is a px1 inline comment already on the pull request."
+            },
+            {
+              "newLine": 310,
+              "kind": "added",
+              "text": "type postedComment struct {"
+            },
+            {
+              "newLine": 311,
+              "kind": "added",
+              "text": "\tKey, Path string"
+            },
+            {
+              "newLine": 312,
+              "kind": "added",
+              "text": "\tLine      int"
+            },
+            {
+              "newLine": 313,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 314,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 315,
+              "kind": "added",
+              "text": "// dedupeLineSlack is how far apart two comments on one file can be and still"
+            },
+            {
+              "newLine": 316,
+              "kind": "added",
+              "text": "// be the same finding. A model words a title differently on every run, so the"
+            },
+            {
+              "newLine": 317,
+              "kind": "added",
+              "text": "// title cannot identify a finding; its location can."
+            },
+            {
+              "newLine": 318,
+              "kind": "added",
+              "text": "const dedupeLineSlack = 3"
+            },
+            {
+              "newLine": 319,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 320,
+              "kind": "added",
+              "text": "func alreadyPosted(posted []postedComment, key string, f hostedreview.Finding) bool {"
+            },
+            {
+              "newLine": 321,
+              "kind": "added",
+              "text": "\tfor _, p := range posted {"
+            },
+            {
+              "newLine": 322,
+              "kind": "added",
+              "text": "\t\t// Location identifies a finding. The title key is only a fallback for a"
+            },
+            {
+              "newLine": 323,
+              "kind": "added",
+              "text": "\t\t// comment whose line is unknown: matching it elsewhere would hide a"
+            },
+            {
+              "newLine": 324,
+              "kind": "added",
+              "text": "\t\t// second problem that happens to share a title with the first."
+            },
+            {
+              "newLine": 325,
+              "kind": "added",
+              "text": "\t\tif p.Line \u003e 0 {"
+            },
+            {
+              "newLine": 326,
+              "kind": "added",
+              "text": "\t\t\tif p.Path == f.Path \u0026\u0026 abs(p.Line-f.EndLine) \u003c= dedupeLineSlack {"
+            },
+            {
+              "newLine": 327,
+              "kind": "added",
+              "text": "\t\t\t\treturn true"
+            },
+            {
+              "newLine": 328,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 329,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 330,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 331,
+              "kind": "added",
+              "text": "\t\tif p.Key == key {"
+            },
+            {
+              "newLine": 332,
+              "kind": "added",
+              "text": "\t\t\treturn true"
+            },
+            {
+              "newLine": 333,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 334,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 335,
+              "kind": "added",
+              "text": "\treturn false"
+            },
+            {
+              "newLine": 336,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 337,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 338,
+              "kind": "added",
+              "text": "func abs(n int) int {"
+            },
+            {
+              "newLine": 339,
+              "kind": "added",
+              "text": "\tif n \u003c 0 {"
+            },
+            {
+              "newLine": 340,
+              "kind": "added",
+              "text": "\t\treturn -n"
+            },
+            {
+              "newLine": 341,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 342,
+              "kind": "added",
+              "text": "\treturn n"
+            },
+            {
+              "newLine": 343,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 344,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 345,
+              "kind": "added",
+              "text": "func (g githubClient) postedFindings(ctx context.Context, repo string, pr int) ([]postedComment, error) {"
+            },
+            {
+              "newLine": 346,
+              "kind": "added",
+              "text": "\tvar posted []postedComment"
+            },
+            {
+              "oldLine": 311,
+              "newLine": 347,
+              "kind": "context",
+              "text": "\tfor page := 1; page \u003c= maxFilePages; page++ {"
+            },
+            {
+              "oldLine": 312,
+              "newLine": 348,
+              "kind": "context",
+              "text": "\t\tvar comments []struct {"
+            },
+            {
+              "oldLine": 313,
+              "kind": "removed",
+              "text": "\t\t\tBody string `json:\"body\"`"
+            },
+            {
+              "newLine": 349,
+              "kind": "added",
+              "text": "\t\t\tBody         string `json:\"body\"`"
+            },
+            {
+              "newLine": 350,
+              "kind": "added",
+              "text": "\t\t\tPath         string `json:\"path\"`"
+            },
+            {
+              "newLine": 351,
+              "kind": "added",
+              "text": "\t\t\tLine         *int   `json:\"line\"`"
+            },
+            {
+              "newLine": 352,
+              "kind": "added",
+              "text": "\t\t\tOriginalLine *int   `json:\"original_line\"`"
+            },
+            {
+              "newLine": 353,
+              "kind": "added",
+              "text": "\t\t\tInReplyTo    int64  `json:\"in_reply_to_id\"`"
+            },
+            {
+              "oldLine": 314,
+              "newLine": 354,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 315,
+              "newLine": 355,
+              "kind": "context",
+              "text": "\t\tif err := g.do(ctx, http.MethodGet, fmt.Sprintf(\"%s/pulls/%d/comments?per_page=100\u0026page=%d\", repoPath(repo), pr, page), nil, \u0026comments); err != nil {"
+            },
+            {
+              "oldLine": 316,
+              "newLine": 356,
+              "kind": "context",
+              "text": "\t\t\treturn nil, err"
+            },
+            {
+              "oldLine": 317,
+              "newLine": 357,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 318,
+              "newLine": 358,
+              "kind": "context",
+              "text": "\t\tfor _, c := range comments {"
+            },
+            {
+              "oldLine": 319,
+              "kind": "removed",
+              "text": "\t\t\tif m := findingMarker.FindStringSubmatch(c.Body); m != nil {"
+            },
+            {
+              "oldLine": 320,
+              "kind": "removed",
+              "text": "\t\t\t\tkeys[m[1]] = true"
+            },
+            {
+              "newLine": 359,
+              "kind": "added",
+              "text": "\t\t\tm := findingMarker.FindStringSubmatch(c.Body)"
+            },
+            {
+              "newLine": 360,
+              "kind": "added",
+              "text": "\t\t\tif m == nil || c.InReplyTo != 0 {"
+            },
+            {
+              "newLine": 361,
+              "kind": "added",
+              "text": "\t\t\t\tcontinue"
+            },
+            {
+              "newLine": 362,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 363,
+              "kind": "added",
+              "text": "\t\t\tp := postedComment{Key: m[1], Path: c.Path}"
+            },
+            {
+              "newLine": 364,
+              "kind": "added",
+              "text": "\t\t\t// Line is null once a later push moves the code; the original line"
+            },
+            {
+              "newLine": 365,
+              "kind": "added",
+              "text": "\t\t\t// still says where the finding was made."
+            },
+            {
+              "newLine": 366,
+              "kind": "added",
+              "text": "\t\t\tswitch {"
+            },
+            {
+              "newLine": 367,
+              "kind": "added",
+              "text": "\t\t\tcase c.Line != nil:"
+            },
+            {
+              "newLine": 368,
+              "kind": "added",
+              "text": "\t\t\t\tp.Line = *c.Line"
+            },
+            {
+              "newLine": 369,
+              "kind": "added",
+              "text": "\t\t\tcase c.OriginalLine != nil:"
+            },
+            {
+              "newLine": 370,
+              "kind": "added",
+              "text": "\t\t\t\tp.Line = *c.OriginalLine"
+            },
+            {
+              "oldLine": 321,
+              "newLine": 371,
+              "kind": "context",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 372,
+              "kind": "added",
+              "text": "\t\t\tposted = append(posted, p)"
+            },
+            {
+              "oldLine": 322,
+              "newLine": 373,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 323,
+              "newLine": 374,
+              "kind": "context",
+              "text": "\t\tif len(comments) \u003c 100 {"
+            },
+            {
+              "oldLine": 324,
+              "newLine": 375,
+              "kind": "context",
+              "text": "\t\t\tbreak"
+            },
+            {
+              "oldLine": 325,
+              "newLine": 376,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 326,
+              "newLine": 377,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 327,
+              "kind": "removed",
+              "text": "\treturn keys, nil"
+            },
+            {
+              "newLine": 378,
+              "kind": "added",
+              "text": "\treturn posted, nil"
+            },
+            {
+              "oldLine": 328,
+              "newLine": 379,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 329,
+              "newLine": 380,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 330,
+              "newLine": 381,
+              "kind": "context",
+              "text": "func (g githubClient) createReview(ctx context.Context, repo string, pr int, head string, comments []inlineComment) error {"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "post_github_test.go",
+      "status": "M",
+      "diff": "diff --git a/post_github_test.go b/post_github_test.go\nindex b2845da..0d98033 100644\n--- a/post_github_test.go\n+++ b/post_github_test.go\n@@ -11,6 +11,8 @@ import (\n \t\"strings\"\n \t\"sync\"\n \t\"testing\"\n+\n+\thostedreview \"px1/internal/hosted/review\"\n )\n \n const testHead = \"32b2cee1c0b7a7aa98d4f1cda08f7d5dbbc374f3\"\n@@ -18,7 +20,7 @@ const testHead = \"32b2cee1c0b7a7aa98d4f1cda08f7d5dbbc374f3\"\n type fakeGitHub struct {\n \tmu          sync.Mutex\n \tissueBodies map[int64]string\n-\tprComments  []string\n+\tprComments  []map[string]any\n \treviews     []map[string]any\n \tpatches     map[string]string\n \trequests    []string\n@@ -42,17 +44,14 @@ func (f *fakeGitHub) handler() http.Handler {\n \t\t\t}\n \t\t\tjson.NewEncoder(w).Encode(files)\n \t\tcase r.Method == \"GET\" \u0026\u0026 strings.HasSuffix(r.URL.Path, \"/pulls/7/comments\"):\n-\t\t\tvar out []map[string]string\n-\t\t\tfor _, b := range f.prComments {\n-\t\t\t\tout = append(out, map[string]string{\"body\": b})\n-\t\t\t}\n-\t\t\tjson.NewEncoder(w).Encode(out)\n+\t\t\tjson.NewEncoder(w).Encode(f.prComments)\n \t\tcase r.Method == \"POST\" \u0026\u0026 strings.HasSuffix(r.URL.Path, \"/pulls/7/reviews\"):\n \t\t\tvar payload map[string]any\n \t\t\tjson.Unmarshal(body, \u0026payload)\n \t\t\tf.reviews = append(f.reviews, payload)\n \t\t\tfor _, c := range payload[\"comments\"].([]any) {\n-\t\t\t\tf.prComments = append(f.prComments, c.(map[string]any)[\"body\"].(string))\n+\t\t\t\tcomment := c.(map[string]any)\n+\t\t\t\tf.prComments = append(f.prComments, map[string]any{\"body\": comment[\"body\"], \"path\": comment[\"path\"], \"line\": comment[\"line\"]})\n \t\t\t}\n \t\t\tw.WriteHeader(http.StatusOK)\n \t\t\tw.Write([]byte(\"{}\"))\n@@ -214,3 +213,57 @@ func TestPostGitHubCapsInlineCommentsAndKeepsTheRest(t *testing.T) {\n \t\tt.Fatalf(\"summary dropped findings:\\n%s\", fake.issueBodies[1])\n \t}\n }\n+\n+func TestPostGitHubDoesNotRepostAFindingWhoseTitleWasReworded(t *testing.T) {\n+\tfake := \u0026fakeGitHub{issueBodies: map[int64]string{}, patches: map[string]string{\"src/a.ts\": samplePatch}}\n+\tserver := httptest.NewServer(fake.handler())\n+\tdefer server.Close()\n+\tif _, err := runPost(t, server, writeFindings(t, finding(\"src/a.ts\", 11, \"Prefix matching treats names as equal\")), \"--head\", testHead); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\t// Same bug, found again on the next push with different wording and a line or two off.\n+\treworded := finding(\"src/a.ts\", 12, \"Prefix names are treated as the same exercise\")\n+\tif _, err := runPost(t, server, writeFindings(t, reworded)); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif len(fake.reviews) != 1 {\n+\t\tt.Fatalf(\"a reworded finding at the same place was posted again: %d reviews\", len(fake.reviews))\n+\t}\n+\tif !strings.Contains(fake.issueBodies[1], \"Prefix names are treated\") || !strings.Contains(fake.issueBodies[1], \"inline\") {\n+\t\tt.Fatalf(\"the summary should still list the current finding:\\n%s\", fake.issueBodies[1])\n+\t}\n+\t// A different problem in the same file, far away, is still posted.\n+\tfar := finding(\"src/a.ts\", 13, \"A different problem\")\n+\tfake.prComments[0][\"line\"] = float64(2) // pretend the first comment was elsewhere\n+\tif _, err := runPost(t, server, writeFindings(t, far)); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif len(fake.reviews) != 2 {\n+\t\tt.Fatalf(\"a finding well away from existing comments must be posted: %d reviews\", len(fake.reviews))\n+\t}\n+}\n+\n+func TestAlreadyPostedUsesTheOriginalLineWhenTheCommentIsOutdated(t *testing.T) {\n+\tf := finding(\"src/a.ts\", 20, \"x\")\n+\thf := hostedFinding(f)\n+\tposted := []postedComment{{Key: \"000000000000\", Path: \"src/a.ts\", Line: 21}, {Key: \"111111111111\", Path: \"other.ts\", Line: 20}}\n+\tif !alreadyPosted(posted, \"abc\", hf) {\n+\t\tt.Fatal(\"a comment one line away on the same file is the same finding\")\n+\t}\n+\tif alreadyPosted(posted[1:], \"abc\", hf) {\n+\t\tt.Fatal(\"a comment on a different file is not\")\n+\t}\n+\tif alreadyPosted([]postedComment{{Key: \"z\", Path: \"src/a.ts\", Line: 0}}, \"abc\", hf) {\n+\t\tt.Fatal(\"a comment with an unknown line cannot match by location\")\n+\t}\n+\tif !alreadyPosted([]postedComment{{Key: \"abc\", Path: \"gone.ts\", Line: 0}}, \"abc\", hf) {\n+\t\tt.Fatal(\"with no known line, an identical key still matches\")\n+\t}\n+\tif alreadyPosted([]postedComment{{Key: \"abc\", Path: \"src/a.ts\", Line: 90}}, \"abc\", hf) {\n+\t\tt.Fatal(\"an identical title far away is a different problem, not a repeat\")\n+\t}\n+}\n+\n+func hostedFinding(m map[string]any) hostedreview.Finding {\n+\treturn hostedreview.Finding{Path: m[\"path\"].(string), StartLine: m[\"start_line\"].(int), EndLine: m[\"end_line\"].(int), Title: m[\"title\"].(string)}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-c8d72f0a2abb044e",
+          "header": "@@ -11,6 +11,8 @@ import (",
+          "lines": [
+            {
+              "oldLine": 11,
+              "newLine": 11,
+              "kind": "context",
+              "text": "\t\"strings\""
+            },
+            {
+              "oldLine": 12,
+              "newLine": 12,
+              "kind": "context",
+              "text": "\t\"sync\""
+            },
+            {
+              "oldLine": 13,
+              "newLine": 13,
+              "kind": "context",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\thostedreview \"px1/internal/hosted/review\""
+            },
+            {
+              "oldLine": 14,
+              "newLine": 16,
+              "kind": "context",
+              "text": ")"
+            },
+            {
+              "oldLine": 15,
+              "newLine": 17,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 16,
+              "newLine": 18,
+              "kind": "context",
+              "text": "const testHead = \"32b2cee1c0b7a7aa98d4f1cda08f7d5dbbc374f3\""
+            }
+          ]
+        },
+        {
+          "id": "diff-b12ab545a69e89d1",
+          "header": "@@ -18,7 +20,7 @@ const testHead = \"32b2cee1c0b7a7aa98d4f1cda08f7d5dbbc374f3\"",
+          "lines": [
+            {
+              "oldLine": 18,
+              "newLine": 20,
+              "kind": "context",
+              "text": "type fakeGitHub struct {"
+            },
+            {
+              "oldLine": 19,
+              "newLine": 21,
+              "kind": "context",
+              "text": "\tmu          sync.Mutex"
+            },
+            {
+              "oldLine": 20,
+              "newLine": 22,
+              "kind": "context",
+              "text": "\tissueBodies map[int64]string"
+            },
+            {
+              "oldLine": 21,
+              "kind": "removed",
+              "text": "\tprComments  []string"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tprComments  []map[string]any"
+            },
+            {
+              "oldLine": 22,
+              "newLine": 24,
+              "kind": "context",
+              "text": "\treviews     []map[string]any"
+            },
+            {
+              "oldLine": 23,
+              "newLine": 25,
+              "kind": "context",
+              "text": "\tpatches     map[string]string"
+            },
+            {
+              "oldLine": 24,
+              "newLine": 26,
+              "kind": "context",
+              "text": "\trequests    []string"
+            }
+          ]
+        },
+        {
+          "id": "diff-63e8a57b60019681",
+          "header": "@@ -42,17 +44,14 @@ func (f *fakeGitHub) handler() http.Handler {",
+          "lines": [
+            {
+              "oldLine": 42,
+              "newLine": 44,
+              "kind": "context",
+              "text": "\t\t\t}"
+            },
+            {
+              "oldLine": 43,
+              "newLine": 45,
+              "kind": "context",
+              "text": "\t\t\tjson.NewEncoder(w).Encode(files)"
+            },
+            {
+              "oldLine": 44,
+              "newLine": 46,
+              "kind": "context",
+              "text": "\t\tcase r.Method == \"GET\" \u0026\u0026 strings.HasSuffix(r.URL.Path, \"/pulls/7/comments\"):"
+            },
+            {
+              "oldLine": 45,
+              "kind": "removed",
+              "text": "\t\t\tvar out []map[string]string"
+            },
+            {
+              "oldLine": 46,
+              "kind": "removed",
+              "text": "\t\t\tfor _, b := range f.prComments {"
+            },
+            {
+              "oldLine": 47,
+              "kind": "removed",
+              "text": "\t\t\t\tout = append(out, map[string]string{\"body\": b})"
+            },
+            {
+              "oldLine": 48,
+              "kind": "removed",
+              "text": "\t\t\t}"
+            },
+            {
+              "oldLine": 49,
+              "kind": "removed",
+              "text": "\t\t\tjson.NewEncoder(w).Encode(out)"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\t\tjson.NewEncoder(w).Encode(f.prComments)"
+            },
+            {
+              "oldLine": 50,
+              "newLine": 48,
+              "kind": "context",
+              "text": "\t\tcase r.Method == \"POST\" \u0026\u0026 strings.HasSuffix(r.URL.Path, \"/pulls/7/reviews\"):"
+            },
+            {
+              "oldLine": 51,
+              "newLine": 49,
+              "kind": "context",
+              "text": "\t\t\tvar payload map[string]any"
+            },
+            {
+              "oldLine": 52,
+              "newLine": 50,
+              "kind": "context",
+              "text": "\t\t\tjson.Unmarshal(body, \u0026payload)"
+            },
+            {
+              "oldLine": 53,
+              "newLine": 51,
+              "kind": "context",
+              "text": "\t\t\tf.reviews = append(f.reviews, payload)"
+            },
+            {
+              "oldLine": 54,
+              "newLine": 52,
+              "kind": "context",
+              "text": "\t\t\tfor _, c := range payload[\"comments\"].([]any) {"
+            },
+            {
+              "oldLine": 55,
+              "kind": "removed",
+              "text": "\t\t\t\tf.prComments = append(f.prComments, c.(map[string]any)[\"body\"].(string))"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t\t\t\tcomment := c.(map[string]any)"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\t\t\tf.prComments = append(f.prComments, map[string]any{\"body\": comment[\"body\"], \"path\": comment[\"path\"], \"line\": comment[\"line\"]})"
+            },
+            {
+              "oldLine": 56,
+              "newLine": 55,
+              "kind": "context",
+              "text": "\t\t\t}"
+            },
+            {
+              "oldLine": 57,
+              "newLine": 56,
+              "kind": "context",
+              "text": "\t\t\tw.WriteHeader(http.StatusOK)"
+            },
+            {
+              "oldLine": 58,
+              "newLine": 57,
+              "kind": "context",
+              "text": "\t\t\tw.Write([]byte(\"{}\"))"
+            }
+          ]
+        },
+        {
+          "id": "diff-01d6615fe3b47990",
+          "header": "@@ -214,3 +213,57 @@ func TestPostGitHubCapsInlineCommentsAndKeepsTheRest(t *testing.T) {",
+          "lines": [
+            {
+              "oldLine": 214,
+              "newLine": 213,
+              "kind": "context",
+              "text": "\t\tt.Fatalf(\"summary dropped findings:\\n%s\", fake.issueBodies[1])"
+            },
+            {
+              "oldLine": 215,
+              "newLine": 214,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 216,
+              "newLine": 215,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "newLine": 216,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 217,
+              "kind": "added",
+              "text": "func TestPostGitHubDoesNotRepostAFindingWhoseTitleWasReworded(t *testing.T) {"
+            },
+            {
+              "newLine": 218,
+              "kind": "added",
+              "text": "\tfake := \u0026fakeGitHub{issueBodies: map[int64]string{}, patches: map[string]string{\"src/a.ts\": samplePatch}}"
+            },
+            {
+              "newLine": 219,
+              "kind": "added",
+              "text": "\tserver := httptest.NewServer(fake.handler())"
+            },
+            {
+              "newLine": 220,
+              "kind": "added",
+              "text": "\tdefer server.Close()"
+            },
+            {
+              "newLine": 221,
+              "kind": "added",
+              "text": "\tif _, err := runPost(t, server, writeFindings(t, finding(\"src/a.ts\", 11, \"Prefix matching treats names as equal\")), \"--head\", testHead); err != nil {"
+            },
+            {
+              "newLine": 222,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 223,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 224,
+              "kind": "added",
+              "text": "\t// Same bug, found again on the next push with different wording and a line or two off."
+            },
+            {
+              "newLine": 225,
+              "kind": "added",
+              "text": "\treworded := finding(\"src/a.ts\", 12, \"Prefix names are treated as the same exercise\")"
+            },
+            {
+              "newLine": 226,
+              "kind": "added",
+              "text": "\tif _, err := runPost(t, server, writeFindings(t, reworded)); err != nil {"
+            },
+            {
+              "newLine": 227,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 228,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 229,
+              "kind": "added",
+              "text": "\tif len(fake.reviews) != 1 {"
+            },
+            {
+              "newLine": 230,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"a reworded finding at the same place was posted again: %d reviews\", len(fake.reviews))"
+            },
+            {
+              "newLine": 231,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 232,
+              "kind": "added",
+              "text": "\tif !strings.Contains(fake.issueBodies[1], \"Prefix names are treated\") || !strings.Contains(fake.issueBodies[1], \"inline\") {"
+            },
+            {
+              "newLine": 233,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"the summary should still list the current finding:\\n%s\", fake.issueBodies[1])"
+            },
+            {
+              "newLine": 234,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 235,
+              "kind": "added",
+              "text": "\t// A different problem in the same file, far away, is still posted."
+            },
+            {
+              "newLine": 236,
+              "kind": "added",
+              "text": "\tfar := finding(\"src/a.ts\", 13, \"A different problem\")"
+            },
+            {
+              "newLine": 237,
+              "kind": "added",
+              "text": "\tfake.prComments[0][\"line\"] = float64(2) // pretend the first comment was elsewhere"
+            },
+            {
+              "newLine": 238,
+              "kind": "added",
+              "text": "\tif _, err := runPost(t, server, writeFindings(t, far)); err != nil {"
+            },
+            {
+              "newLine": 239,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 240,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 241,
+              "kind": "added",
+              "text": "\tif len(fake.reviews) != 2 {"
+            },
+            {
+              "newLine": 242,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"a finding well away from existing comments must be posted: %d reviews\", len(fake.reviews))"
+            },
+            {
+              "newLine": 243,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 244,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 245,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 246,
+              "kind": "added",
+              "text": "func TestAlreadyPostedUsesTheOriginalLineWhenTheCommentIsOutdated(t *testing.T) {"
+            },
+            {
+              "newLine": 247,
+              "kind": "added",
+              "text": "\tf := finding(\"src/a.ts\", 20, \"x\")"
+            },
+            {
+              "newLine": 248,
+              "kind": "added",
+              "text": "\thf := hostedFinding(f)"
+            },
+            {
+              "newLine": 249,
+              "kind": "added",
+              "text": "\tposted := []postedComment{{Key: \"000000000000\", Path: \"src/a.ts\", Line: 21}, {Key: \"111111111111\", Path: \"other.ts\", Line: 20}}"
+            },
+            {
+              "newLine": 250,
+              "kind": "added",
+              "text": "\tif !alreadyPosted(posted, \"abc\", hf) {"
+            },
+            {
+              "newLine": 251,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"a comment one line away on the same file is the same finding\")"
+            },
+            {
+              "newLine": 252,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 253,
+              "kind": "added",
+              "text": "\tif alreadyPosted(posted[1:], \"abc\", hf) {"
+            },
+            {
+              "newLine": 254,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"a comment on a different file is not\")"
+            },
+            {
+              "newLine": 255,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 256,
+              "kind": "added",
+              "text": "\tif alreadyPosted([]postedComment{{Key: \"z\", Path: \"src/a.ts\", Line: 0}}, \"abc\", hf) {"
+            },
+            {
+              "newLine": 257,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"a comment with an unknown line cannot match by location\")"
+            },
+            {
+              "newLine": 258,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 259,
+              "kind": "added",
+              "text": "\tif !alreadyPosted([]postedComment{{Key: \"abc\", Path: \"gone.ts\", Line: 0}}, \"abc\", hf) {"
+            },
+            {
+              "newLine": 260,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"with no known line, an identical key still matches\")"
+            },
+            {
+              "newLine": 261,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 262,
+              "kind": "added",
+              "text": "\tif alreadyPosted([]postedComment{{Key: \"abc\", Path: \"src/a.ts\", Line: 90}}, \"abc\", hf) {"
+            },
+            {
+              "newLine": 263,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"an identical title far away is a different problem, not a repeat\")"
+            },
+            {
+              "newLine": 264,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 265,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 266,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 267,
+              "kind": "added",
+              "text": "func hostedFinding(m map[string]any) hostedreview.Finding {"
+            },
+            {
+              "newLine": 268,
+              "kind": "added",
+              "text": "\treturn hostedreview.Finding{Path: m[\"path\"].(string), StartLine: m[\"start_line\"].(int), EndLine: m[\"end_line\"].(int), Title: m[\"title\"].(string)}"
+            },
+            {
+              "newLine": 269,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-68964ad0747021d2",
+      "title": "Comment changes",
+      "summary": "3 related files share the \"comment\" change signal.",
+      "paths": [
+        "docs/AGENTIC_CI.md",
+        "post_github.go",
+        "post_github_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-6aaaaaa4fecf773d",
+      "path": "post_github.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "post_github_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 3,
+    "filesAnalyzed": 3,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "1",
+      "path": "post_github.go",
+      "lineStart": 320,
+      "lineEnd": 334,
+      "title": "Deduplicate findings by location",
+      "summary": "Repeat detection now treats comments on the same file within three lines as the same finding, even if the title changes. A matching title alone no longer suppresses a finding when its known location is elsewhere."
+    },
+    {
+      "id": "2",
+      "path": "post_github.go",
+      "lineStart": 344,
+      "lineEnd": 373,
+      "title": "Handle moved comments when checking repeats",
+      "summary": "When GitHub no longer reports a comment’s current line, its original line is used for repeat detection. If neither line is known, the finding key is the fallback; replies are not treated as posted findings."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "2fbb072eccfc099a8d91e2cb32b9692f8be1989d",
+      "revision": "971f78ce2215cce62488236c7b67ae32e229bac8",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "2fbb072eccfc099a8d91e2cb32b9692f8be1989d",
+      "revision": "971f78ce2215cce62488236c7b67ae32e229bac8",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "971f78ce2215cce62488236c7b67ae32e229bac8",
+      "detail": "2 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "971f78ce2215cce62488236c7b67ae32e229bac8",
+      "detail": "3 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "971f78ce2215cce62488236c7b67ae32e229bac8",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42828354663",
+    "checks": [
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42828359187/job/129871504195",
+        "startedAt": "2026-11-10T13:51:25Z"
+      },
+      {
+        "name": "review",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42828358942/job/129871503988",
+        "startedAt": "2026-11-10T13:51:25Z"
+      },
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42828354663/job/129871494605",
+        "startedAt": "2026-11-10T13:51:28Z"
+      }
+    ]
+  }
+}
