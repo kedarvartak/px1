@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	hostedreview "px1/internal/hosted/review"
 )
 
 const testHead = "32b2cee1c0b7a7aa98d4f1cda08f7d5dbbc374f3"
@@ -18,7 +20,7 @@ const testHead = "32b2cee1c0b7a7aa98d4f1cda08f7d5dbbc374f3"
 type fakeGitHub struct {
 	mu          sync.Mutex
 	issueBodies map[int64]string
-	prComments  []string
+	prComments  []map[string]any
 	reviews     []map[string]any
 	patches     map[string]string
 	requests    []string
@@ -42,17 +44,14 @@ func (f *fakeGitHub) handler() http.Handler {
 			}
 			json.NewEncoder(w).Encode(files)
 		case r.Method == "GET" && strings.HasSuffix(r.URL.Path, "/pulls/7/comments"):
-			var out []map[string]string
-			for _, b := range f.prComments {
-				out = append(out, map[string]string{"body": b})
-			}
-			json.NewEncoder(w).Encode(out)
+			json.NewEncoder(w).Encode(f.prComments)
 		case r.Method == "POST" && strings.HasSuffix(r.URL.Path, "/pulls/7/reviews"):
 			var payload map[string]any
 			json.Unmarshal(body, &payload)
 			f.reviews = append(f.reviews, payload)
 			for _, c := range payload["comments"].([]any) {
-				f.prComments = append(f.prComments, c.(map[string]any)["body"].(string))
+				comment := c.(map[string]any)
+				f.prComments = append(f.prComments, map[string]any{"body": comment["body"], "path": comment["path"], "line": comment["line"]})
 			}
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("{}"))
@@ -213,4 +212,55 @@ func TestPostGitHubCapsInlineCommentsAndKeepsTheRest(t *testing.T) {
 	if !strings.Contains(fake.issueBodies[1], "25 verified finding(s)") {
 		t.Fatalf("summary dropped findings:\n%s", fake.issueBodies[1])
 	}
+}
+
+func TestPostGitHubDoesNotRepostAFindingWhoseTitleWasReworded(t *testing.T) {
+	fake := &fakeGitHub{issueBodies: map[int64]string{}, patches: map[string]string{"src/a.ts": samplePatch}}
+	server := httptest.NewServer(fake.handler())
+	defer server.Close()
+	if _, err := runPost(t, server, writeFindings(t, finding("src/a.ts", 11, "Prefix matching treats names as equal")), "--head", testHead); err != nil {
+		t.Fatal(err)
+	}
+	// Same bug, found again on the next push with different wording and a line or two off.
+	reworded := finding("src/a.ts", 12, "Prefix names are treated as the same exercise")
+	if _, err := runPost(t, server, writeFindings(t, reworded)); err != nil {
+		t.Fatal(err)
+	}
+	if len(fake.reviews) != 1 {
+		t.Fatalf("a reworded finding at the same place was posted again: %d reviews", len(fake.reviews))
+	}
+	if !strings.Contains(fake.issueBodies[1], "Prefix names are treated") || !strings.Contains(fake.issueBodies[1], "inline") {
+		t.Fatalf("the summary should still list the current finding:\n%s", fake.issueBodies[1])
+	}
+	// A different problem in the same file, far away, is still posted.
+	far := finding("src/a.ts", 13, "A different problem")
+	fake.prComments[0]["line"] = float64(2) // pretend the first comment was elsewhere
+	if _, err := runPost(t, server, writeFindings(t, far)); err != nil {
+		t.Fatal(err)
+	}
+	if len(fake.reviews) != 2 {
+		t.Fatalf("a finding well away from existing comments must be posted: %d reviews", len(fake.reviews))
+	}
+}
+
+func TestAlreadyPostedUsesTheOriginalLineWhenTheCommentIsOutdated(t *testing.T) {
+	f := finding("src/a.ts", 20, "x")
+	hf := hostedFinding(f)
+	posted := []postedComment{{Key: "000000000000", Path: "src/a.ts", Line: 21}, {Key: "111111111111", Path: "other.ts", Line: 20}}
+	if !alreadyPosted(posted, "abc", hf) {
+		t.Fatal("a comment one line away on the same file is the same finding")
+	}
+	if alreadyPosted(posted[1:], "abc", hf) {
+		t.Fatal("a comment on a different file is not")
+	}
+	if alreadyPosted([]postedComment{{Key: "z", Path: "src/a.ts", Line: 0}}, "abc", hf) {
+		t.Fatal("a comment with an unknown line cannot match by location")
+	}
+	if !alreadyPosted([]postedComment{{Key: "abc", Path: "gone.ts", Line: 0}}, "abc", hf) {
+		t.Fatal("an identical key still matches")
+	}
+}
+
+func hostedFinding(m map[string]any) hostedreview.Finding {
+	return hostedreview.Finding{Path: m["path"].(string), StartLine: m["start_line"].(int), EndLine: m["end_line"].(int), Title: m["title"].(string)}
 }

@@ -82,12 +82,12 @@ func runPostGitHub(args []string, stdout io.Writer) error {
 	ctx := context.Background()
 
 	var commentable map[string]map[int]bool
-	var posted map[string]bool
+	var posted []postedComment
 	if !o.dryRun {
 		if commentable, err = gh.commentableLines(ctx, o.repo, o.pr); err != nil {
 			return err
 		}
-		if posted, err = gh.postedFindingKeys(ctx, o.repo, o.pr); err != nil {
+		if posted, err = gh.postedFindings(ctx, o.repo, o.pr); err != nil {
 			return err
 		}
 	} else {
@@ -95,7 +95,7 @@ func runPostGitHub(args []string, stdout io.Writer) error {
 		for _, f := range envelope.Findings {
 			commentable[f.Path] = map[int]bool{f.EndLine: true, f.StartLine: true}
 		}
-		posted = map[string]bool{}
+		posted = nil
 	}
 	plan := planPost(envelope.Findings, commentable, posted)
 	scopeNote, err := readScopeNote(o.scope)
@@ -141,7 +141,7 @@ func findingKey(f hostedreview.Finding) string {
 	return hex.EncodeToString(sum[:6])
 }
 
-func planPost(findings []hostedreview.Finding, commentable map[string]map[int]bool, posted map[string]bool) postPlan {
+func planPost(findings []hostedreview.Finding, commentable map[string]map[int]bool, posted []postedComment) postPlan {
 	plan := postPlan{inlined: map[string]bool{}}
 	plan.all = append(plan.all, findings...)
 	sort.SliceStable(plan.all, func(i, j int) bool { return plan.all[i].Severity < plan.all[j].Severity })
@@ -152,7 +152,7 @@ func planPost(findings []hostedreview.Finding, commentable map[string]map[int]bo
 			plan.outside = append(plan.outside, f)
 			continue
 		}
-		if posted[key] {
+		if alreadyPosted(posted, key, f) {
 			plan.inlined[key] = true // already commented on an earlier push
 			continue
 		}
@@ -306,25 +306,67 @@ func (g githubClient) commentableLines(ctx context.Context, repo string, pr int)
 
 var findingMarker = regexp.MustCompile(`<!-- px1-finding:([0-9a-f]{12}) -->`)
 
-func (g githubClient) postedFindingKeys(ctx context.Context, repo string, pr int) (map[string]bool, error) {
-	keys := map[string]bool{}
+// postedComment is a px1 inline comment already on the pull request.
+type postedComment struct {
+	Key, Path string
+	Line      int
+}
+
+// dedupeLineSlack is how far apart two comments on one file can be and still
+// be the same finding. A model words a title differently on every run, so the
+// title cannot identify a finding; its location can.
+const dedupeLineSlack = 3
+
+func alreadyPosted(posted []postedComment, key string, f hostedreview.Finding) bool {
+	for _, p := range posted {
+		if p.Key == key || (p.Path == f.Path && p.Line > 0 && abs(p.Line-f.EndLine) <= dedupeLineSlack) {
+			return true
+		}
+	}
+	return false
+}
+
+func abs(n int) int {
+	if n < 0 {
+		return -n
+	}
+	return n
+}
+
+func (g githubClient) postedFindings(ctx context.Context, repo string, pr int) ([]postedComment, error) {
+	var posted []postedComment
 	for page := 1; page <= maxFilePages; page++ {
 		var comments []struct {
-			Body string `json:"body"`
+			Body         string `json:"body"`
+			Path         string `json:"path"`
+			Line         *int   `json:"line"`
+			OriginalLine *int   `json:"original_line"`
+			InReplyTo    int64  `json:"in_reply_to_id"`
 		}
 		if err := g.do(ctx, http.MethodGet, fmt.Sprintf("%s/pulls/%d/comments?per_page=100&page=%d", repoPath(repo), pr, page), nil, &comments); err != nil {
 			return nil, err
 		}
 		for _, c := range comments {
-			if m := findingMarker.FindStringSubmatch(c.Body); m != nil {
-				keys[m[1]] = true
+			m := findingMarker.FindStringSubmatch(c.Body)
+			if m == nil || c.InReplyTo != 0 {
+				continue
 			}
+			p := postedComment{Key: m[1], Path: c.Path}
+			// Line is null once a later push moves the code; the original line
+			// still says where the finding was made.
+			switch {
+			case c.Line != nil:
+				p.Line = *c.Line
+			case c.OriginalLine != nil:
+				p.Line = *c.OriginalLine
+			}
+			posted = append(posted, p)
 		}
 		if len(comments) < 100 {
 			break
 		}
 	}
-	return keys, nil
+	return posted, nil
 }
 
 func (g githubClient) createReview(ctx context.Context, repo string, pr int, head string, comments []inlineComment) error {

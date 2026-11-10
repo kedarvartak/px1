@@ -12,7 +12,7 @@
 ## What it posts
 
 - One **sticky summary comment**, found by a hidden marker and edited on every push instead of adding a new one. With no findings it says so, and that this is not evidence the change is correct.
-- **Inline comments** on the changed lines for findings that fall inside the diff, at most 20 per run. A finding already commented on an earlier push is not posted again.
+- **Inline comments** on the changed lines for findings that fall inside the diff, at most 20 per run. A finding already commented on an earlier push is not posted again: two comments on the same file within 3 lines count as the same finding, because the model words a title differently on every run. A comment that a push moved (GitHub reports no current line) is matched by its original line.
 - Findings outside the diff stay in the summary, with their evidence.
 
 ## The report
