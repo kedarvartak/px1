@@ -81,3 +81,29 @@ only commit identities and labelled line ranges, never source or model output.
 - A review that failed or did not finish (a sub-agent or the verifier failed, the
   cap stopped it) is recorded with its reason and left out of scoring. It is never
   counted as a missed bug.
+
+### Keeping a real case set private
+
+`eval/example-cases.json` shows the format with placeholder values. A case file
+for a private repository names that repository, its commits and file paths, so it
+does not belong in this public repository: keep it in the repository under test
+(for example on a branch used only for evaluation), next to the commits it refers to.
+
+For seeded cases, make each bug a commit followed by its revert. Then the
+case's base tree equals your main branch, the branch changes nothing net, and
+the case is reproducible from commit identities alone.
+
+    git -C ~/code/repo fetch origin px1-eval
+    px1 eval-run --cases ~/code/repo/eval/px1-cases.json --root ~/code/repo ...
+
+A first run of this kind on a private repo (six small seeded bugs and two clean
+changes, three runs each, gpt-6-luna, about $0.10) found five bugs in every run,
+flagged nothing on the clean changes, and found the sixth, subtler bug in only one
+of three runs. Small hand-seeded single-line bugs are easier than real ones, so
+read that as a baseline for comparing changes, not a recall claim.
+
+A seeded mutation can turn out to change nothing. The first draft of that set had
+a `<` to `<=` change that no reviewer could flag, because the values never reach
+the boundary and the output is identical for every input. Run the changed code
+and compare outputs before trusting a seeded label; an unobservable mutation
+measures nothing.

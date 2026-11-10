@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "example-seeded-bug",
+      "kind": "seeded",
+      "repository": "owner/private-repo",
+      "base_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "head_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "labels": [
+        {
+          "path": "src/example.ts",
+          "bug_class": "logic",
+          "start_line": 28,
+          "end_line": 28
+        }
+      ],
+      "notes": "Describe the seeded bug in one line; the source stays in the repository."
+    },
+    {
+      "id": "example-clean-change",
+      "kind": "clean",
+      "repository": "owner/private-repo",
+      "base_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "head_sha": "cccccccccccccccccccccccccccccccccccccccc",
+      "notes": "A behaviour-preserving change that should draw no findings."
+    }
+  ]
+}
