@@ -107,3 +107,18 @@ a `<` to `<=` change that no reviewer could flag, because the values never reach
 the boundary and the output is identical for every input. Run the changed code
 and compare outputs before trusting a seeded label; an unobservable mutation
 measures nothing.
+
+### Comparing two runs
+
+    px1 eval-compare --cases cases.json --before old/results.json --after new/results.json
+
+Use it after changing a prompt, a tool or a model: run `eval-run` before and
+after with the same cases, then compare. Each labelled bug is tested with
+Fisher's exact test on found versus missed runs, and the pooled result is
+reported too. A difference counts only at p ≤ 0.10. That is loose on purpose: with
+three runs a side the smallest possible p-value is 0.10 (3 of 3 against 0 of 3), so
+a stricter bar would call everything noise. Two found against none, or one extra
+find, is shown as "same". The report warns when the after run flags more on clean
+changes, since more findings can mean more false alarms. Pooling treats runs of
+different bugs as independent, which they are not entirely: read the overall
+verdict as a guide, and prefer more runs over a cleverer statistic.
