@@ -33,6 +33,8 @@ type SiteOptions struct {
 	// Fonts are woff2 files by name, written under fonts/. The stylesheet
 	// falls back to system fonts without them.
 	Fonts map[string][]byte
+	// Impact marks the pages a pull request affects. Nil for a normal build.
+	Impact *Impact
 }
 
 type navSection struct {
@@ -42,6 +44,7 @@ type navSection struct {
 
 type navPage struct {
 	Title, URL, Status string
+	Affected           string // an impact state, or empty
 	Kind               string
 	Current            bool
 }
@@ -60,6 +63,8 @@ type sitePage struct {
 	Verified string
 	Commit   string
 	FontCSS  template.CSS
+	Impact   *PageImpact
+	Affected []navPage // home page: the pages a pull request affects
 }
 
 type coverLink struct{ Path, URL string }
@@ -136,13 +141,25 @@ func BuildSite(root string, opts SiteOptions) (map[string][]byte, error) {
 		fmt.Fprintf(&fontCSS, "@font-face{font-family:'%s';src:url(fonts/%s) format('woff2');font-weight:%s;font-display:swap}", family, name, weight)
 	}
 
+	affected := map[string]*PageImpact{}
+	if opts.Impact != nil {
+		for i := range opts.Impact.Pages {
+			affected[opts.Impact.Pages[i].Path] = &opts.Impact.Pages[i]
+		}
+	}
+	state := func(p Page) string {
+		if hit := affected[p.Path]; hit != nil {
+			return hit.State
+		}
+		return ""
+	}
 	nav := func(current string) []navSection {
 		var sections []navSection
 		for _, section := range Sections {
 			s := navSection{Title: sectionTitles[section]}
 			for _, p := range pages {
 				if p.Section == section {
-					s.Pages = append(s.Pages, navPage{Title: p.Title, URL: pageURL(p), Status: p.Status, Kind: p.Kind, Current: p.Path == current})
+					s.Pages = append(s.Pages, navPage{Title: p.Title, URL: pageURL(p), Status: p.Status, Kind: p.Kind, Current: p.Path == current, Affected: state(p)})
 				}
 			}
 			if len(s.Pages) > 0 {
@@ -217,7 +234,7 @@ func BuildSite(root string, opts SiteOptions) (map[string][]byte, error) {
 		out, err := render(sitePage{
 			Title: p.Title, Nav: nav(p.Path), Page: p, Body: template.HTML(body), TOC: toc,
 			Covers: covers, Markdown: "md/" + name, Verified: verified, Commit: opts.Commit,
-			FontCSS: template.CSS(fontCSS.String()),
+			FontCSS: template.CSS(fontCSS.String()), Impact: affected[p.Path],
 		})
 		if err != nil {
 			return nil, err
@@ -238,7 +255,17 @@ func BuildSite(root string, opts SiteOptions) (map[string][]byte, error) {
 		})
 	}
 
-	home, err := render(sitePage{Title: "px1 documentation", Home: true, Nav: nav(""), Commit: opts.Commit, FontCSS: template.CSS(fontCSS.String())})
+	var affectedPages []navPage
+	if opts.Impact != nil {
+		for _, hit := range opts.Impact.Pages {
+			for _, p := range pages {
+				if p.Path == hit.Path {
+					affectedPages = append(affectedPages, navPage{Title: p.Title, URL: pageURL(p), Status: p.Status, Affected: hit.State})
+				}
+			}
+		}
+	}
+	home, err := render(sitePage{Title: "px1 documentation", Home: true, Nav: nav(""), Commit: opts.Commit, FontCSS: template.CSS(fontCSS.String()), Affected: affectedPages})
 	if err != nil {
 		return nil, err
 	}
@@ -283,7 +310,7 @@ func WriteSite(root, dir string, opts SiteOptions) (int, error) {
 	return len(files), nil
 }
 
-var siteTemplate = template.Must(template.New("page").Parse(`<!doctype html>
+var siteTemplate = template.Must(template.New("page").Parse(`{{define "state"}}{{if eq . "needs-review"}}Needs review: not updated in this pull request{{else if eq . "updated"}}Updated in this pull request{{else}}Generated from the changed code{{end}}{{end}}<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -306,7 +333,7 @@ var siteTemplate = template.Must(template.New("page").Parse(`<!doctype html>
 <div class="shell">
   <nav class="rail" aria-label="Pages">
     {{range .Nav}}<h2>{{.Title}}</h2>
-    {{range .Pages}}<a href="{{.URL}}"{{if .Current}} aria-current="page"{{end}}><span class="dot {{.Status}}" title="{{.Status}}"></span>{{.Title}}</a>
+    {{range .Pages}}<a href="{{.URL}}"{{if .Current}} aria-current="page"{{end}}><span class="dot {{.Status}}" title="{{.Status}}"></span>{{.Title}}{{if .Affected}}<span class="mark {{.Affected}}" title="{{template "state" .Affected}}"></span>{{end}}</a>
     {{end}}{{end}}
     {{if .Commit}}<p class="built-from">Built from <code>{{.Commit}}</code></p>{{end}}
   </nav>
@@ -315,7 +342,12 @@ var siteTemplate = template.Must(template.New("page").Parse(`<!doctype html>
       <h1>px1 documentation</h1>
       <p class="lede">How px1 reviews code, how to run it, and exactly what each command and input does. Every page says whether what it describes can be used today.</p>
       <p class="legend"><span><i class="dot shipped"></i>Shipped: usable now</span><span><i class="dot built"></i>Built: code and tests exist, not deployed</span><span><i class="dot"></i>Planned</span></p>
-      {{range .Nav}}<h2>{{.Title}}</h2>
+      {{if .Affected}}<h2>Affected by this pull request</h2>
+      <ul class="cards">
+        {{range .Affected}}<li><a href="{{.URL}}"><strong><span class="dot {{.Status}}"></span>{{.Title}}</strong><small class="state {{.Affected}}">{{template "state" .Affected}}</small></a></li>
+        {{end}}
+      </ul>
+      {{end}}{{range .Nav}}<h2>{{.Title}}</h2>
       <ul class="cards">
         {{range .Pages}}<li><a href="{{.URL}}"><strong><span class="dot {{.Status}}"></span>{{.Title}}</strong><small>{{.Status}} · {{.Kind}}</small></a></li>
         {{end}}
@@ -329,6 +361,11 @@ var siteTemplate = template.Must(template.New("page").Parse(`<!doctype html>
         <span class="grow"></span>
         <a href="{{.Markdown}}">Markdown</a>
       </div>
+      {{with .Impact}}<aside class="impact {{.State}}">
+        <strong>{{template "state" .State}}.</strong>
+        This pull request changes code this page covers:
+        {{range $i, $f := .Changed}}{{if $i}}, {{end}}<code>{{$f}}</code>{{end}}.
+      </aside>{{end}}
       {{.Body}}
       {{if .Covers}}<section class="covers">
         <h2>Code this page covers</h2>

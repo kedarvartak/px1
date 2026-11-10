@@ -118,3 +118,12 @@ main{min-width:0;padding:32px 40px 80px}
   .doc h1{font-size:25px}
 }
 .built-from{margin:24px 8px 0;font-size:12px;color:var(--faint)}
+.mark{flex:none;margin-left:auto;width:8px;height:8px;border-radius:2px;background:var(--faint)}
+.mark.needs-review{background:var(--attention)}
+.mark.updated{background:var(--ok)}
+.impact{margin:0 0 22px;padding:12px 16px;border:1px solid var(--line);border-left:3px solid var(--faint);border-radius:8px;background:var(--surface);font-size:14px;color:var(--dim)}
+.impact.needs-review{border-left-color:var(--attention)}
+.impact.updated{border-left-color:var(--ok)}
+.impact strong{color:var(--ink)}
+.cards small.state.needs-review{color:var(--attention)}
+.cards small.state.updated{color:var(--ok)}

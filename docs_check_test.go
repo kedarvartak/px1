@@ -75,3 +75,44 @@ func TestDocsSiteCommandWritesTheSite(t *testing.T) {
 		}
 	}
 }
+
+func TestDocsImpactCommand(t *testing.T) {
+	root := t.TempDir()
+	runGitTest(t, root, "init", "-q")
+	runGitTest(t, root, "config", "user.email", "test@example.com")
+	runGitTest(t, root, "config", "user.name", "Test")
+	writeExportTestFile(t, root, "tool.go", "package main\n")
+	writeExportTestFile(t, root, "docs/PAGE.md", "---\ntitle: A page\nsection: guides\nkind: narrative\nstatus: shipped\ncovers:\n  - tool.go\nverified_at:\n---\n\n# A page\n")
+	runGitTest(t, root, "add", "-A")
+	runGitTest(t, root, "commit", "-qm", "base")
+	base := strings.TrimSpace(runGitTest(t, root, "rev-parse", "HEAD"))
+	writeExportTestFile(t, root, "tool.go", "package main\n\nvar changed = true\n")
+	runGitTest(t, root, "commit", "-qam", "change the tool")
+
+	var out bytes.Buffer
+	if err := runDocs([]string{"impact", "--root", root}, &out); err == nil || !strings.Contains(err.Error(), "--base") {
+		t.Fatalf("missing --base: %v", err)
+	}
+	if err := runDocs([]string{"impact", "--root", root, "--base", base}, &out); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "| A page (`docs/PAGE.md`) | Needs review | `tool.go` |") {
+		t.Fatalf("markdown:\n%s", out.String())
+	}
+
+	file := filepath.Join(t.TempDir(), "impact.json")
+	if err := runDocs([]string{"impact", "--root", root, "--base", base, "--json", "--out", file}, &out); err != nil {
+		t.Fatal(err)
+	}
+	site := filepath.Join(t.TempDir(), "site")
+	if err := runDocs([]string{"site", "--root", root, "--out", site, "--impact", file}, &out); err != nil {
+		t.Fatal(err)
+	}
+	page, err := os.ReadFile(filepath.Join(site, "PAGE.html"))
+	if err != nil || !strings.Contains(string(page), `class="impact needs-review"`) {
+		t.Fatalf("err=%v; the site does not mark the affected page", err)
+	}
+	if err := runDocs([]string{"impact", "--root", root, "--base", "no-such-ref"}, &out); err == nil {
+		t.Fatal("an unknown base was accepted")
+	}
+}
