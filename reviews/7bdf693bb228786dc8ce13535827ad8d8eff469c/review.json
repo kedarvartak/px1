@@ -1,0 +1,599 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "1cef1b94349b655e67d2231e3aae679b8693caf1",
+  "head": "7bdf693bb228786dc8ce13535827ad8d8eff469c",
+  "generatedAt": "2026-11-10T11:18:36.54417869Z",
+  "files": [
+    {
+      "path": "explanation_generate.go",
+      "status": "M",
+      "diff": "diff --git a/explanation_generate.go b/explanation_generate.go\nindex bd86e53..41cf82e 100644\n--- a/explanation_generate.go\n+++ b/explanation_generate.go\n@@ -132,7 +132,11 @@ func generateExplanationsWithExclusions(ctx context.Context, root, base, head st\n \tif err != nil {\n \t\treturn staticExplanationFile{}, err\n \t}\n-\tvalidated, err := validateStaticExplanations(payload.Explanations, changed, \"generated explanations\")\n+\tkept, dropped := keepValidExplanations(payload.Explanations, changed)\n+\tif dropped \u003e 0 {\n+\t\tfmt.Fprintf(os.Stderr, \"px1: dropped %d AI explanation(s) that failed validation (bad path, line range or length); kept %d\\n\", dropped, len(kept))\n+\t}\n+\tvalidated, err := validateStaticExplanations(kept, changed, \"generated explanations\")\n \tif err != nil {\n \t\treturn staticExplanationFile{}, err\n \t}\n@@ -140,6 +144,26 @@ func generateExplanationsWithExclusions(ctx context.Context, root, base, head st\n \treturn result, nil\n }\n \n+// keepValidExplanations filters model output one item at a time. A model that\n+// writes one bad line range must not cost the whole report its explanations,\n+// but nothing invalid is ever kept. Hand-supplied explanation files stay\n+// strict: only generated output is filtered.\n+func keepValidExplanations(items []staticExplanation, changed map[string]bool) ([]staticExplanation, int) {\n+\tkept := make([]staticExplanation, 0, len(items))\n+\tseen := map[string]bool{}\n+\tdropped := 0\n+\tfor _, item := range items {\n+\t\tone, err := validateStaticExplanations([]staticExplanation{item}, changed, \"generated explanations\")\n+\t\tif err != nil || seen[one[0].ID] || len(kept) \u003e= explanationMaxItems {\n+\t\t\tdropped++\n+\t\t\tcontinue\n+\t\t}\n+\t\tseen[one[0].ID] = true\n+\t\tkept = append(kept, one[0])\n+\t}\n+\treturn kept, dropped\n+}\n+\n func explanationDiffPaths(diff string) []string {\n \tseen := map[string]bool{}\n \tpaths := []string{}\n",
+      "hunks": [
+        {
+          "id": "diff-b5128aacd3fd9da7",
+          "header": "@@ -132,7 +132,11 @@ func generateExplanationsWithExclusions(ctx context.Context, root, base, head st",
+          "lines": [
+            {
+              "oldLine": 132,
+              "newLine": 132,
+              "kind": "context",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 133,
+              "newLine": 133,
+              "kind": "context",
+              "text": "\t\treturn staticExplanationFile{}, err"
+            },
+            {
+              "oldLine": 134,
+              "newLine": 134,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 135,
+              "kind": "removed",
+              "text": "\tvalidated, err := validateStaticExplanations(payload.Explanations, changed, \"generated explanations\")"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\tkept, dropped := keepValidExplanations(payload.Explanations, changed)"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\tif dropped \u003e 0 {"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\t\tfmt.Fprintf(os.Stderr, \"px1: dropped %d AI explanation(s) that failed validation (bad path, line range or length); kept %d\\n\", dropped, len(kept))"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\tvalidated, err := validateStaticExplanations(kept, changed, \"generated explanations\")"
+            },
+            {
+              "oldLine": 136,
+              "newLine": 140,
+              "kind": "context",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 137,
+              "newLine": 141,
+              "kind": "context",
+              "text": "\t\treturn staticExplanationFile{}, err"
+            },
+            {
+              "oldLine": 138,
+              "newLine": 142,
+              "kind": "context",
+              "text": "\t}"
+            }
+          ]
+        },
+        {
+          "id": "diff-e7c4304502e94500",
+          "header": "@@ -140,6 +144,26 @@ func generateExplanationsWithExclusions(ctx context.Context, root, base, head st",
+          "lines": [
+            {
+              "oldLine": 140,
+              "newLine": 144,
+              "kind": "context",
+              "text": "\treturn result, nil"
+            },
+            {
+              "oldLine": 141,
+              "newLine": 145,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 142,
+              "newLine": 146,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "// keepValidExplanations filters model output one item at a time. A model that"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "// writes one bad line range must not cost the whole report its explanations,"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "// but nothing invalid is ever kept. Hand-supplied explanation files stay"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "// strict: only generated output is filtered."
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "func keepValidExplanations(items []staticExplanation, changed map[string]bool) ([]staticExplanation, int) {"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "\tkept := make([]staticExplanation, 0, len(items))"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "\tseen := map[string]bool{}"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "\tdropped := 0"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "\tfor _, item := range items {"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "\t\tone, err := validateStaticExplanations([]staticExplanation{item}, changed, \"generated explanations\")"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "\t\tif err != nil || seen[one[0].ID] || len(kept) \u003e= explanationMaxItems {"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "\t\t\tdropped++"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "\t\tseen[one[0].ID] = true"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "\t\tkept = append(kept, one[0])"
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "\treturn kept, dropped"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 143,
+              "newLine": 167,
+              "kind": "context",
+              "text": "func explanationDiffPaths(diff string) []string {"
+            },
+            {
+              "oldLine": 144,
+              "newLine": 168,
+              "kind": "context",
+              "text": "\tseen := map[string]bool{}"
+            },
+            {
+              "oldLine": 145,
+              "newLine": 169,
+              "kind": "context",
+              "text": "\tpaths := []string{}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "explanation_generate_test.go",
+      "status": "M",
+      "diff": "diff --git a/explanation_generate_test.go b/explanation_generate_test.go\nindex 7ba3872..14b9c20 100644\n--- a/explanation_generate_test.go\n+++ b/explanation_generate_test.go\n@@ -3,6 +3,7 @@ package main\n import (\n \t\"context\"\n \t\"encoding/json\"\n+\t\"fmt\"\n \t\"net/http\"\n \t\"net/http/httptest\"\n \t\"strings\"\n@@ -105,3 +106,36 @@ func TestFilterExplanationDiffOmitsBinaryAndRenameOnlyFiles(t *testing.T) {\n \t\tt.Fatalf(\"filtered diff retained excluded metadata: %q\", filtered)\n \t}\n }\n+\n+func TestKeepValidExplanationsDropsOnlyTheBadOnes(t *testing.T) {\n+\tchanged := map[string]bool{\"a.go\": true}\n+\tgood := staticExplanation{ID: \"ok\", Path: \"a.go\", LineStart: 1, LineEnd: 3, Title: \"t\", Summary: \"s\"}\n+\tbadRange := staticExplanation{ID: \"range\", Path: \"a.go\", LineStart: 9, LineEnd: 2, Title: \"t\", Summary: \"s\"}\n+\tbadPath := staticExplanation{ID: \"path\", Path: \"other.go\", LineStart: 1, LineEnd: 1, Title: \"t\", Summary: \"s\"}\n+\tdupe := good\n+\tempty := staticExplanation{ID: \"empty\", Path: \"a.go\", LineStart: 1, LineEnd: 1, Title: \"t\"}\n+\tkept, dropped := keepValidExplanations([]staticExplanation{good, badRange, badPath, dupe, empty}, changed)\n+\tif len(kept) != 1 || kept[0].ID != \"ok\" || dropped != 4 {\n+\t\tt.Fatalf(\"kept=%+v dropped=%d\", kept, dropped)\n+\t}\n+}\n+\n+func TestKeepValidExplanationsCapsTheCount(t *testing.T) {\n+\tchanged := map[string]bool{\"a.go\": true}\n+\tvar items []staticExplanation\n+\tfor i := 0; i \u003c explanationMaxItems+3; i++ {\n+\t\titems = append(items, staticExplanation{ID: fmt.Sprintf(\"e%d\", i), Path: \"a.go\", LineStart: 1, LineEnd: 1, Title: \"t\", Summary: \"s\"})\n+\t}\n+\tkept, dropped := keepValidExplanations(items, changed)\n+\tif len(kept) != explanationMaxItems || dropped != 3 {\n+\t\tt.Fatalf(\"kept=%d dropped=%d\", len(kept), dropped)\n+\t}\n+}\n+\n+// Hand-supplied files stay strict: a wrong line range is an error, not a silent drop.\n+func TestSuppliedExplanationFilesStayStrict(t *testing.T) {\n+\tbad := []staticExplanation{{ID: \"x\", Path: \"a.go\", LineStart: 5, LineEnd: 1, Title: \"t\", Summary: \"s\"}}\n+\tif _, err := validateStaticExplanations(bad, map[string]bool{\"a.go\": true}, \"fixture\"); err == nil {\n+\t\tt.Fatal(\"an invalid explanation in a supplied file must be rejected\")\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-5c81babea8567c08",
+          "header": "@@ -3,6 +3,7 @@ package main",
+          "lines": [
+            {
+              "oldLine": 3,
+              "newLine": 3,
+              "kind": "context",
+              "text": "import ("
+            },
+            {
+              "oldLine": 4,
+              "newLine": 4,
+              "kind": "context",
+              "text": "\t\"context\""
+            },
+            {
+              "oldLine": 5,
+              "newLine": 5,
+              "kind": "context",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "oldLine": 6,
+              "newLine": 7,
+              "kind": "context",
+              "text": "\t\"net/http\""
+            },
+            {
+              "oldLine": 7,
+              "newLine": 8,
+              "kind": "context",
+              "text": "\t\"net/http/httptest\""
+            },
+            {
+              "oldLine": 8,
+              "newLine": 9,
+              "kind": "context",
+              "text": "\t\"strings\""
+            }
+          ]
+        },
+        {
+          "id": "diff-44f6d8e8129a0e72",
+          "header": "@@ -105,3 +106,36 @@ func TestFilterExplanationDiffOmitsBinaryAndRenameOnlyFiles(t *testing.T) {",
+          "lines": [
+            {
+              "oldLine": 105,
+              "newLine": 106,
+              "kind": "context",
+              "text": "\t\tt.Fatalf(\"filtered diff retained excluded metadata: %q\", filtered)"
+            },
+            {
+              "oldLine": 106,
+              "newLine": 107,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 107,
+              "newLine": 108,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "func TestKeepValidExplanationsDropsOnlyTheBadOnes(t *testing.T) {"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\tchanged := map[string]bool{\"a.go\": true}"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\tgood := staticExplanation{ID: \"ok\", Path: \"a.go\", LineStart: 1, LineEnd: 3, Title: \"t\", Summary: \"s\"}"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\tbadRange := staticExplanation{ID: \"range\", Path: \"a.go\", LineStart: 9, LineEnd: 2, Title: \"t\", Summary: \"s\"}"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "\tbadPath := staticExplanation{ID: \"path\", Path: \"other.go\", LineStart: 1, LineEnd: 1, Title: \"t\", Summary: \"s\"}"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "\tdupe := good"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "\tempty := staticExplanation{ID: \"empty\", Path: \"a.go\", LineStart: 1, LineEnd: 1, Title: \"t\"}"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\tkept, dropped := keepValidExplanations([]staticExplanation{good, badRange, badPath, dupe, empty}, changed)"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\tif len(kept) != 1 || kept[0].ID != \"ok\" || dropped != 4 {"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"kept=%+v dropped=%d\", kept, dropped)"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "func TestKeepValidExplanationsCapsTheCount(t *testing.T) {"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\tchanged := map[string]bool{\"a.go\": true}"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\tvar items []staticExplanation"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\tfor i := 0; i \u003c explanationMaxItems+3; i++ {"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\t\titems = append(items, staticExplanation{ID: fmt.Sprintf(\"e%d\", i), Path: \"a.go\", LineStart: 1, LineEnd: 1, Title: \"t\", Summary: \"s\"})"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\tkept, dropped := keepValidExplanations(items, changed)"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\tif len(kept) != explanationMaxItems || dropped != 3 {"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"kept=%d dropped=%d\", len(kept), dropped)"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "// Hand-supplied files stay strict: a wrong line range is an error, not a silent drop."
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "func TestSuppliedExplanationFilesStayStrict(t *testing.T) {"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\tbad := []staticExplanation{{ID: \"x\", Path: \"a.go\", LineStart: 5, LineEnd: 1, Title: \"t\", Summary: \"s\"}}"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\tif _, err := validateStaticExplanations(bad, map[string]bool{\"a.go\": true}, \"fixture\"); err == nil {"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"an invalid explanation in a supplied file must be rejected\")"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-e206955ce928fb41",
+      "title": "Append changes",
+      "summary": "2 related files share the \"append\" change signal.",
+      "paths": [
+        "explanation_generate.go",
+        "explanation_generate_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-4c8ecad8df08522a",
+      "path": "explanation_generate.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "explanation_generate_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 2,
+    "filesAnalyzed": 2,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "generated-validation",
+      "path": "explanation_generate.go",
+      "lineStart": 135,
+      "lineEnd": 139,
+      "title": "Validate the retained explanations",
+      "summary": "Only the filtered generated explanations are passed to the final validation step, preventing one malformed model response from failing the entire generated report."
+    },
+    {
+      "id": "generated-item-filtering",
+      "path": "explanation_generate.go",
+      "lineStart": 147,
+      "lineEnd": 164,
+      "title": "Keep valid generated explanations",
+      "summary": "Generated explanations are now checked individually, so invalid entries, duplicate IDs, and entries beyond the maximum are dropped without discarding other valid explanations. The generator reports how many it dropped."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "1cef1b94349b655e67d2231e3aae679b8693caf1",
+      "revision": "7bdf693bb228786dc8ce13535827ad8d8eff469c",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "1cef1b94349b655e67d2231e3aae679b8693caf1",
+      "revision": "7bdf693bb228786dc8ce13535827ad8d8eff469c",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "7bdf693bb228786dc8ce13535827ad8d8eff469c",
+      "detail": "2 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "7bdf693bb228786dc8ce13535827ad8d8eff469c",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "7bdf693bb228786dc8ce13535827ad8d8eff469c",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42806192097",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42806192097/job/129795972724",
+        "startedAt": "2026-11-10T11:17:28Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42806192342/job/129795812691",
+        "startedAt": "2026-11-10T11:17:05Z"
+      }
+    ]
+  }
+}
