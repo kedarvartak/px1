@@ -62,6 +62,12 @@ func main() {
 		}
 		return
 	}
+	if len(os.Args) > 1 && os.Args[1] == "feedback-collect" {
+		if err := runFeedbackCollect(os.Args[2:], os.Stdout); err != nil {
+			fatal(err)
+		}
+		return
+	}
 	if len(os.Args) > 1 && os.Args[1] == "eval-run" {
 		if err := runEvalRun(os.Args[2:], os.Stdout); err != nil {
 			fatal(err)
@@ -85,7 +91,7 @@ func main() {
 		return
 	}
 	fmt.Fprintf(os.Stderr, "px1 %s - understand the code your agent wrote before you merge it\n\n", version)
-	fmt.Fprintln(os.Stderr, "usage: px1 <agentic-review|eval-compare|eval-run|post-github|export-review|generate-explanations|privacy-check|summary-comment|validate-config|validate-rules> [options]")
+	fmt.Fprintln(os.Stderr, "usage: px1 <agentic-review|feedback-collect|eval-compare|eval-run|post-github|export-review|generate-explanations|privacy-check|summary-comment|validate-config|validate-rules> [options]")
 	os.Exit(2)
 }
 

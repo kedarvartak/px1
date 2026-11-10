@@ -33,6 +33,17 @@ Each run uploads the report as one unzipped `px1-review.html` artifact (kept 14 
 
 `GITHUB_TOKEN` is read from the environment only. The workflow needs `pull-requests: write`.
 
+## Measuring real use
+
+    GITHUB_TOKEN=$(gh auth token) px1 feedback-collect --repo owner/name --days 30 [--out feedback.json]
+
+Counts what people did with px1's inline comments: 👍, 👎, replies, and how many
+comments drew any response. Acceptance is 👍 out of all reactions, and is reported as
+unknown until someone has reacted, because silence is not agreement. Only
+comments carrying px1's hidden marker are counted, and replies from bots are ignored.
+It is a rough signal: people react to few comments, and it complements the seeded
+benchmark rather than replacing it.
+
 ## Known limits
 
 - Very large pull requests are reviewed in part: by default at most 40 files and 120,000 diff bytes go to the model, highest-risk first (workflows, migrations, auth and security paths, then source, then tests, then docs). The summary comment opens with a "Partial review" line naming what was left out. Raise `--max-files` and `--max-diff-bytes` to review more, at more cost.
