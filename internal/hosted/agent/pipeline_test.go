@@ -359,3 +359,74 @@ func TestProviderErrorTextNeverReachesNotesOrTheTrace(t *testing.T) {
 		t.Fatalf("a failed verifier should be explained without detail and report nothing: %s", everything)
 	}
 }
+
+func TestDiffContextIncludesRemovedLinesNextToTheFinding(t *testing.T) {
+	diff := "@@ -40,3 +40,3 @@\n40\t ctx\n-\told := a > b\n41\t+new := a >= b\n42\t ctx2\n-\tunrelated removal\n90\t far away\n"
+	got := diffContext(diff, 41, 41)
+	for _, want := range []string{"-\told := a > b", "41\t+new := a >= b", "40\t ctx", "42\t ctx2"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("context lacks %q:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, "far away") {
+		t.Fatalf("lines outside the window must be left out:\n%s", got)
+	}
+	if strings.Contains(got, "unrelated removal") {
+		t.Fatalf("a removal that precedes a line outside the window is not context:\n%s", got)
+	}
+}
+
+func TestDiffContextWithoutRemovalsIsUnchanged(t *testing.T) {
+	diff := "10\t ctx\n11\t+added\n12\t ctx\n"
+	if got := diffContext(diff, 11, 11); got != diff[:len(diff)-1] {
+		t.Fatalf("got %q", got)
+	}
+}
+
+// A long removal run must not push out the line the verifier is judging.
+func TestDiffContextKeepsTheFindingLineWhenARemovalRunIsHuge(t *testing.T) {
+	var diff strings.Builder
+	for i := 0; i < 200; i++ {
+		diff.WriteString("-\t" + strings.Repeat("old code ", 20) + "\n")
+	}
+	diff.WriteString("50\t+const fixed = true\n51\t ctx\n")
+	got := diffContext(diff.String(), 50, 50)
+	if !strings.Contains(got, "50\t+const fixed = true") || !strings.Contains(got, "51\t ctx") {
+		t.Fatalf("the finding's own lines were crowded out:\n%s", got)
+	}
+	if len(got) > diffContextLimit {
+		t.Fatalf("context is %d bytes, limit %d", len(got), diffContextLimit)
+	}
+	if n := strings.Count(got, "old code"); n < 1 || n > maxRemovedRunLines*20 {
+		t.Fatalf("expected a bounded slice of the removed run, got %d repeats", n)
+	}
+}
+
+func TestDiffContextDropsRemovalsBeforeEvidenceWhenTheLimitIsTight(t *testing.T) {
+	var diff strings.Builder
+	for i := 0; i < 13; i++ {
+		diff.WriteString("-\t" + strings.Repeat("r", 150) + "\n")
+		diff.WriteString(strings.Repeat("9", 1) + "\t+" + strings.Repeat("k", 100) + "\n")
+	}
+	got := diffContext(strings.ReplaceAll(diff.String(), "9\t", "10\t"), 10, 10)
+	if strings.Count(got, "k") < 100 {
+		t.Fatalf("kept lines must survive: %d", strings.Count(got, "k"))
+	}
+}
+
+// Long lines are shortened, not allowed to push later lines of the window out.
+func TestDiffContextShortensLongLinesSoTheWholeWindowFits(t *testing.T) {
+	var diff strings.Builder
+	for n := 44; n <= 56; n++ {
+		diff.WriteString(fmt.Sprintf("%d\t+%s\n", n, strings.Repeat("x", 1_000)))
+	}
+	got := diffContext(diff.String(), 50, 50)
+	for n := 44; n <= 56; n++ {
+		if !strings.Contains(got, fmt.Sprintf("%d\t+", n)) {
+			t.Fatalf("line %d of the window was lost:\n%d bytes", n, len(got))
+		}
+	}
+	if len(got) > diffContextLimit {
+		t.Fatalf("context is %d bytes, limit %d", len(got), diffContextLimit)
+	}
+}

@@ -243,7 +243,7 @@ func (p Pipeline) verify(ctx context.Context, findings []review.Finding, files m
 	}
 	model := p.Model
 	model.MaxOutputTokens = max(p.Model.MaxOutputTokens, min(len(findings)*200+500, 6_000))
-	verifier := review.FindingVerifier{Client: cleaningClient{model: model}, Provider: p.Model.Provider, Model: p.Model.Name, PromptVersion: "px1-agentic-1", MinConfidence: p.MinConfidence, MaxOutputTokens: model.MaxOutputTokens}
+	verifier := review.FindingVerifier{Client: cleaningClient{model: model}, Provider: p.Model.Provider, Model: p.Model.Name, PromptVersion: "px1-agentic-2", MinConfidence: p.MinConfidence, MaxOutputTokens: model.MaxOutputTokens}
 	var result review.VerificationResult
 	var err error
 	for attempt := 0; attempt < 2; attempt++ {
@@ -311,25 +311,73 @@ func blockDiff(block review.Block, files map[string]ReviewFile, note func(string
 	return out.String()
 }
 
+const (
+	// The window is at most 13 numbered lines (the finding plus six either
+	// side). Each is shortened so all of them fit, and the limit holds them
+	// with room for some removed lines, so nothing in the window is lost to
+	// the final cut.
+	maxKeptLineBytes    = 200
+	diffContextLimit    = 13*(maxKeptLineBytes+1) + 400
+	maxRemovedRunLines  = 8
+	maxRemovedLineBytes = 160
+)
+
 // diffContext returns the numbered diff lines near a finding, bounded so a
-// verifier request stays small.
+// verifier request stays small. Removed lines ("-") directly before a kept line
+// are included: a finding that a change introduced something cannot be checked
+// without seeing what the change replaced. The numbered lines are the evidence,
+// so they are never crowded out: removed lines are shortened, capped to the
+// last few of each run, and dropped first when the limit is reached.
 func diffContext(diff string, start, end int) string {
-	lines := strings.Split(diff, "\n")
-	var picked []string
-	for _, line := range lines {
+	type entry struct {
+		text    string
+		removed bool
+	}
+	var entries []entry
+	var pending []string
+	for _, line := range strings.Split(diff, "\n") {
 		number, _, ok := strings.Cut(line, "\t")
 		if !ok {
+			pending = nil
+			continue
+		}
+		if number == "-" {
+			pending = append(pending, clip(line, maxRemovedLineBytes))
 			continue
 		}
 		var n int
 		if _, err := fmt.Sscanf(number, "%d", &n); err != nil {
+			pending = nil
 			continue
 		}
 		if n >= start-6 && n <= end+6 {
-			picked = append(picked, line)
+			if len(pending) > maxRemovedRunLines {
+				pending = pending[len(pending)-maxRemovedRunLines:]
+			}
+			for _, r := range pending {
+				entries = append(entries, entry{r, true})
+			}
+			entries = append(entries, entry{clip(line, maxKeptLineBytes), false})
+		}
+		pending = nil
+	}
+	budget := diffContextLimit
+	for _, e := range entries {
+		if !e.removed {
+			budget -= len(e.text) + 1
 		}
 	}
-	return clip(strings.Join(picked, "\n"), 2_000)
+	var picked []string
+	for _, e := range entries {
+		if e.removed {
+			if budget < len(e.text)+1 {
+				continue
+			}
+			budget -= len(e.text) + 1
+		}
+		picked = append(picked, e.text)
+	}
+	return clip(strings.Join(picked, "\n"), diffContextLimit)
 }
 
 // describeError classifies a failure for reports and traces. Provider error
