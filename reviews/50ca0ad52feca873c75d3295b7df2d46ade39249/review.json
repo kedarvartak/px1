@@ -1,0 +1,2730 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "2720dc3f9001e60b70dcd7577f0a8d11b7bd37f2",
+  "head": "50ca0ad52feca873c75d3295b7df2d46ade39249",
+  "generatedAt": "2026-11-10T11:48:20.436474671Z",
+  "files": [
+    {
+      "path": "ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/ROADMAP.md b/ROADMAP.md\nindex fa7662c..a619ecb 100644\n--- a/ROADMAP.md\n+++ b/ROADMAP.md\n@@ -223,7 +223,7 @@ backend-foundation tasks are:\n     previews what leaves the machine, requires consent, enforces a cost cap,\n     blocks secrets and excluded paths, and writes a report, trace, and feedback\n     sheet.\n-91. [ ] **Run the review in CI and comment on the pull request.**\n+91. [x] **Run the review in CI and comment on the pull request.**\n     `px1 post-github` posts a sticky summary and inline comments; the\n     `agentic-action` and an example workflow run it per pull request. A\n     large-pull-request fallback and a provider retry follow.\n",
+      "hunks": [
+        {
+          "id": "diff-91e2ee1d77949178",
+          "header": "@@ -223,7 +223,7 @@ backend-foundation tasks are:",
+          "lines": [
+            {
+              "oldLine": 223,
+              "newLine": 223,
+              "kind": "context",
+              "text": "    previews what leaves the machine, requires consent, enforces a cost cap,"
+            },
+            {
+              "oldLine": 224,
+              "newLine": 224,
+              "kind": "context",
+              "text": "    blocks secrets and excluded paths, and writes a report, trace, and feedback"
+            },
+            {
+              "oldLine": 225,
+              "newLine": 225,
+              "kind": "context",
+              "text": "    sheet."
+            },
+            {
+              "oldLine": 226,
+              "kind": "removed",
+              "text": "91. [ ] **Run the review in CI and comment on the pull request.**"
+            },
+            {
+              "newLine": 226,
+              "kind": "added",
+              "text": "91. [x] **Run the review in CI and comment on the pull request.**"
+            },
+            {
+              "oldLine": 227,
+              "newLine": 227,
+              "kind": "context",
+              "text": "    `px1 post-github` posts a sticky summary and inline comments; the"
+            },
+            {
+              "oldLine": 228,
+              "newLine": 228,
+              "kind": "context",
+              "text": "    `agentic-action` and an example workflow run it per pull request. A"
+            },
+            {
+              "oldLine": 229,
+              "newLine": 229,
+              "kind": "context",
+              "text": "    large-pull-request fallback and a provider retry follow."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/EVALUATION_SET.md",
+      "status": "M",
+      "diff": "diff --git a/docs/EVALUATION_SET.md b/docs/EVALUATION_SET.md\nindex ca1982a..586600a 100644\n--- a/docs/EVALUATION_SET.md\n+++ b/docs/EVALUATION_SET.md\n@@ -34,3 +34,31 @@ could pass on recall by adding findings until some match. The gate fails\n closed: it never passes on a partial benchmark, different case sets, zero Base\n recall, or zero Base cost. Each failed check adds a human-readable reason to\n the result.\n+\n+## Local repeat evaluation\n+\n+The launch dataset above needs public repositories and many cases. To learn\n+how the reviewer behaves on code you can reach today, including private\n+repositories, use a repeat dataset (`eval.RepeatDataset`, version 1). It records\n+only commit identities and labelled line ranges, never source or model output.\n+\n+    {\"version\": 1, \"cases\": [\n+      {\"id\": \"refund-off-by-one\", \"kind\": \"seeded\", \"repository\": \"owner/repo\",\n+       \"base_sha\": \"\u003c40 hex\u003e\", \"head_sha\": \"\u003c40 hex\u003e\",\n+       \"labels\": [{\"path\": \"src/refund.ts\", \"bug_class\": \"logic\", \"start_line\": 40, \"end_line\": 42}]},\n+      {\"id\": \"rename-only\", \"kind\": \"clean\", \"base_sha\": \"\u003c40 hex\u003e\", \"head_sha\": \"\u003c40 hex\u003e\"}\n+    ]}\n+\n+- `seeded` and `historical` cases need at least one label. A `clean` case has\n+  none, so any finding on it is counted as noise.\n+- Every case is meant to be run several times. Models are not deterministic: on\n+  one real pull request the same seeded bug was missed once and found twice.\n+  `ScoreRepeat` reports the share of bugs found per run, the best and worst whole-set\n+  run, labels found in some runs but not all (\"unstable\"), and labels never found.\n+- A finding matches a label when the path is equal and the line ranges overlap\n+  within a small slack (default 3 lines). The bug class is compared only when\n+  `RequireClass` is set, because the reviewer's own classes differ from human labels.\n+- A run that failed (outage, budget) is recorded and left out of every score, so\n+  an outage never looks like a miss.\n+- A score from a few runs is a sketch: the report states how many runs it covers.\n+\n",
+      "hunks": [
+        {
+          "id": "diff-3ae2d254183fed3d",
+          "header": "@@ -34,3 +34,31 @@ could pass on recall by adding findings until some match. The gate fails",
+          "lines": [
+            {
+              "oldLine": 34,
+              "newLine": 34,
+              "kind": "context",
+              "text": "closed: it never passes on a partial benchmark, different case sets, zero Base"
+            },
+            {
+              "oldLine": 35,
+              "newLine": 35,
+              "kind": "context",
+              "text": "recall, or zero Base cost. Each failed check adds a human-readable reason to"
+            },
+            {
+              "oldLine": 36,
+              "newLine": 36,
+              "kind": "context",
+              "text": "the result."
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "## Local repeat evaluation"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "The launch dataset above needs public repositories and many cases. To learn"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "how the reviewer behaves on code you can reach today, including private"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "repositories, use a repeat dataset (`eval.RepeatDataset`, version 1). It records"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "only commit identities and labelled line ranges, never source or model output."
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "    {\"version\": 1, \"cases\": ["
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "      {\"id\": \"refund-off-by-one\", \"kind\": \"seeded\", \"repository\": \"owner/repo\","
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "       \"base_sha\": \"\u003c40 hex\u003e\", \"head_sha\": \"\u003c40 hex\u003e\","
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "       \"labels\": [{\"path\": \"src/refund.ts\", \"bug_class\": \"logic\", \"start_line\": 40, \"end_line\": 42}]},"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "      {\"id\": \"rename-only\", \"kind\": \"clean\", \"base_sha\": \"\u003c40 hex\u003e\", \"head_sha\": \"\u003c40 hex\u003e\"}"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "    ]}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "- `seeded` and `historical` cases need at least one label. A `clean` case has"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "  none, so any finding on it is counted as noise."
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "- Every case is meant to be run several times. Models are not deterministic: on"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "  one real pull request the same seeded bug was missed once and found twice."
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "  `ScoreRepeat` reports the share of bugs found per run, the best and worst whole-set"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "  run, labels found in some runs but not all (\"unstable\"), and labels never found."
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "- A finding matches a label when the path is equal and the line ranges overlap"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "  within a small slack (default 3 lines). The bug class is compared only when"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "  `RequireClass` is set, because the reviewer's own classes differ from human labels."
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "- A run that failed (outage, budget) is recorded and left out of every score, so"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "  an outage never looks like a miss."
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "- A score from a few runs is a sketch: the report states how many runs it covers."
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/eval/repeat.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/eval/repeat.go b/internal/hosted/eval/repeat.go\nnew file mode 100644\nindex 0000000..123061a\n--- /dev/null\n+++ b/internal/hosted/eval/repeat.go\n@@ -0,0 +1,309 @@\n+package eval\n+\n+import (\n+\t\"bytes\"\n+\t\"encoding/json\"\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"io\"\n+\t\"sort\"\n+\t\"strings\"\n+\t\"time\"\n+)\n+\n+// A repeat dataset is the small, local-first benchmark used to learn how a\n+// reviewer behaves on code you have access to, run several times per case.\n+// It differs from Dataset in three ways: the repository may be private (only\n+// commit identities are recorded, never source), a case may be \"clean\" (no\n+// bug; any finding is noise), and the same case is run more than once so\n+// run-to-run variance is measured instead of hidden.\n+type RepeatDataset struct {\n+\tVersion int          `json:\"version\"`\n+\tCases   []RepeatCase `json:\"cases\"`\n+}\n+\n+type RepeatCase struct {\n+\tID         string  `json:\"id\"`\n+\tKind       string  `json:\"kind\"` // seeded, historical, or clean\n+\tRepository string  `json:\"repository,omitempty\"`\n+\tBaseSHA    string  `json:\"base_sha\"`\n+\tHeadSHA    string  `json:\"head_sha\"`\n+\tLabels     []Label `json:\"labels,omitempty\"`\n+\tNotes      string  `json:\"notes,omitempty\"`\n+}\n+\n+func DecodeRepeat(data []byte) (RepeatDataset, error) {\n+\tdecoder := json.NewDecoder(bytes.NewReader(data))\n+\tdecoder.DisallowUnknownFields()\n+\tvar dataset RepeatDataset\n+\tif err := decoder.Decode(\u0026dataset); err != nil {\n+\t\treturn RepeatDataset{}, fmt.Errorf(\"decode eval cases: %w\", err)\n+\t}\n+\tvar extra any\n+\tif err := decoder.Decode(\u0026extra); err != io.EOF {\n+\t\treturn RepeatDataset{}, errors.New(\"eval cases contain trailing data\")\n+\t}\n+\treturn dataset, dataset.Validate()\n+}\n+\n+func (d RepeatDataset) Validate() error {\n+\tif d.Version != 1 {\n+\t\treturn errors.New(\"eval cases version must be 1\")\n+\t}\n+\tif len(d.Cases) == 0 {\n+\t\treturn errors.New(\"eval cases need at least one case\")\n+\t}\n+\tseen := map[string]bool{}\n+\tfor i, c := range d.Cases {\n+\t\tif c.ID == \"\" || seen[c.ID] {\n+\t\t\treturn fmt.Errorf(\"case %d has a missing or duplicate ID\", i)\n+\t\t}\n+\t\tseen[c.ID] = true\n+\t\tif !sha(c.BaseSHA) || !sha(c.HeadSHA) || c.BaseSHA == c.HeadSHA {\n+\t\t\treturn fmt.Errorf(\"case %s needs distinct full base and head SHAs\", c.ID)\n+\t\t}\n+\t\tswitch c.Kind {\n+\t\tcase \"seeded\", \"historical\":\n+\t\t\tif len(c.Labels) == 0 {\n+\t\t\t\treturn fmt.Errorf(\"%s case %s needs at least one bug label\", c.Kind, c.ID)\n+\t\t\t}\n+\t\tcase \"clean\":\n+\t\t\tif len(c.Labels) != 0 {\n+\t\t\t\treturn fmt.Errorf(\"clean case %s must have no labels\", c.ID)\n+\t\t\t}\n+\t\tdefault:\n+\t\t\treturn fmt.Errorf(\"case %s has unsupported kind %q\", c.ID, c.Kind)\n+\t\t}\n+\t\tfor _, label := range c.Labels {\n+\t\t\tif label.Path == \"\" || label.StartLine \u003c= 0 || label.EndLine \u003c label.StartLine {\n+\t\t\t\treturn fmt.Errorf(\"case %s has an invalid label\", c.ID)\n+\t\t\t}\n+\t\t}\n+\t}\n+\treturn nil\n+}\n+\n+// RunResult is one review of one case. A run that failed is recorded with its\n+// error and left out of every score, so an outage never looks like a miss.\n+type RunResult struct {\n+\tCaseID       string\n+\tRun          int\n+\tFindings     []Finding\n+\tCostMicrousd int64\n+\tLatency      time.Duration\n+\tError        string\n+}\n+\n+// MatchOptions decides when a finding counts as the labelled bug. Models\n+// rarely land on the exact lines a human labelled, so a small slack is allowed;\n+// the bug class is ignored unless a dataset uses the reviewer's own classes.\n+type MatchOptions struct {\n+\tLineSlack    int\n+\tRequireClass bool\n+}\n+\n+func (o MatchOptions) matches(f Finding, l Label) bool {\n+\tslack := o.LineSlack\n+\tif slack \u003c 0 {\n+\t\tslack = 0\n+\t}\n+\tif f.Path != l.Path || f.StartLine \u003e l.EndLine+slack || l.StartLine \u003e f.EndLine+slack {\n+\t\treturn false\n+\t}\n+\treturn !o.RequireClass || f.BugClass == l.BugClass\n+}\n+\n+type LabelScore struct {\n+\tLabel  Label\n+\tCaught int // runs in which a finding matched\n+}\n+\n+type CaseScore struct {\n+\tID, Kind string\n+\tRuns     int // scored runs\n+\tFailed   int\n+\tLabels   []LabelScore\n+\tFindings int // across scored runs\n+\tNoise    int // findings matching no label, across scored runs\n+}\n+\n+// Flaky reports labels found in some scored runs but not all of them.\n+func (c CaseScore) Flaky() int {\n+\tn := 0\n+\tfor _, l := range c.Labels {\n+\t\tif l.Caught \u003e 0 \u0026\u0026 l.Caught \u003c c.Runs {\n+\t\t\tn++\n+\t\t}\n+\t}\n+\treturn n\n+}\n+\n+type RepeatReport struct {\n+\tCases                        []CaseScore\n+\tScoredRuns, FailedRuns       int\n+\tRecall, RecallMin, RecallMax float64 // over runs; Min and Max are across whole-set runs\n+\tPrecision                    float64\n+\tNoisePerCleanRun             float64\n+\tFlakyLabels, MissedLabels    int\n+\tLabels                       int\n+\tCostMicrousd                 int64\n+\tMedianLatency                time.Duration\n+}\n+\n+// ScoreRepeat scores every run against the dataset. Recall is the share of\n+// labelled bugs found, averaged over scored runs, and RecallMin/RecallMax show\n+// the spread between whole-set runs. Precision is the share of findings on\n+// labelled cases that matched a label; findings on clean cases are noise.\n+func ScoreRepeat(dataset RepeatDataset, results []RunResult, options MatchOptions) (RepeatReport, error) {\n+\tif err := dataset.Validate(); err != nil {\n+\t\treturn RepeatReport{}, err\n+\t}\n+\tbyID := map[string]RepeatCase{}\n+\tfor _, c := range dataset.Cases {\n+\t\tbyID[c.ID] = c\n+\t}\n+\tscores := map[string]*CaseScore{}\n+\tfor _, c := range dataset.Cases {\n+\t\tcs := \u0026CaseScore{ID: c.ID, Kind: c.Kind}\n+\t\tfor _, l := range c.Labels {\n+\t\t\tcs.Labels = append(cs.Labels, LabelScore{Label: l})\n+\t\t}\n+\t\tscores[c.ID] = cs\n+\t}\n+\ttype tally struct{ caught, labels int }\n+\tperRun := map[int]*tally{}\n+\tvar report RepeatReport\n+\tvar matched, findings, cleanRuns, cleanNoise int\n+\tvar latencies []time.Duration\n+\tfor _, r := range results {\n+\t\tc, ok := byID[r.CaseID]\n+\t\tif !ok {\n+\t\t\treturn RepeatReport{}, fmt.Errorf(\"result for unknown case %q\", r.CaseID)\n+\t\t}\n+\t\tcs := scores[r.CaseID]\n+\t\treport.CostMicrousd += r.CostMicrousd\n+\t\tif r.Error != \"\" {\n+\t\t\tcs.Failed++\n+\t\t\treport.FailedRuns++\n+\t\t\tcontinue\n+\t\t}\n+\t\tcs.Runs++\n+\t\treport.ScoredRuns++\n+\t\tlatencies = append(latencies, r.Latency)\n+\t\tt := perRun[r.Run]\n+\t\tif t == nil {\n+\t\t\tt = \u0026tally{}\n+\t\t\tperRun[r.Run] = t\n+\t\t}\n+\t\tfor i, l := range c.Labels {\n+\t\t\tt.labels++\n+\t\t\tfor _, f := range r.Findings {\n+\t\t\t\tif options.matches(f, l) {\n+\t\t\t\t\tcs.Labels[i].Caught++\n+\t\t\t\t\tt.caught++\n+\t\t\t\t\tbreak\n+\t\t\t\t}\n+\t\t\t}\n+\t\t}\n+\t\tfor _, f := range r.Findings {\n+\t\t\thit := false\n+\t\t\tfor _, l := range c.Labels {\n+\t\t\t\tif options.matches(f, l) {\n+\t\t\t\t\thit = true\n+\t\t\t\t\tbreak\n+\t\t\t\t}\n+\t\t\t}\n+\t\t\tcs.Findings++\n+\t\t\tif !hit {\n+\t\t\t\tcs.Noise++\n+\t\t\t}\n+\t\t\tif c.Kind == \"clean\" {\n+\t\t\t\tcleanNoise++\n+\t\t\t} else {\n+\t\t\t\tfindings++\n+\t\t\t\tif hit {\n+\t\t\t\t\tmatched++\n+\t\t\t\t}\n+\t\t\t}\n+\t\t}\n+\t\tif c.Kind == \"clean\" {\n+\t\t\tcleanRuns++\n+\t\t}\n+\t}\n+\tvar caught, labelRuns int\n+\tfirst := true\n+\tfor _, t := range perRun {\n+\t\tcaught += t.caught\n+\t\tlabelRuns += t.labels\n+\t\tif t.labels == 0 {\n+\t\t\tcontinue\n+\t\t}\n+\t\trate := float64(t.caught) / float64(t.labels)\n+\t\tif first || rate \u003c report.RecallMin {\n+\t\t\treport.RecallMin = rate\n+\t\t}\n+\t\tif first || rate \u003e report.RecallMax {\n+\t\t\treport.RecallMax = rate\n+\t\t}\n+\t\tfirst = false\n+\t}\n+\tif labelRuns \u003e 0 {\n+\t\treport.Recall = float64(caught) / float64(labelRuns)\n+\t}\n+\tif findings \u003e 0 {\n+\t\treport.Precision = float64(matched) / float64(findings)\n+\t}\n+\tif cleanRuns \u003e 0 {\n+\t\treport.NoisePerCleanRun = float64(cleanNoise) / float64(cleanRuns)\n+\t}\n+\tfor _, c := range dataset.Cases {\n+\t\tcs := scores[c.ID]\n+\t\tfor _, l := range cs.Labels {\n+\t\t\treport.Labels++\n+\t\t\tswitch {\n+\t\t\tcase cs.Runs \u003e 0 \u0026\u0026 l.Caught == 0:\n+\t\t\t\treport.MissedLabels++\n+\t\t\tcase l.Caught \u003e 0 \u0026\u0026 l.Caught \u003c cs.Runs:\n+\t\t\t\treport.FlakyLabels++\n+\t\t\t}\n+\t\t}\n+\t\treport.Cases = append(report.Cases, *cs)\n+\t}\n+\tsort.Slice(latencies, func(i, j int) bool { return latencies[i] \u003c latencies[j] })\n+\tif n := len(latencies); n \u003e 0 {\n+\t\treport.MedianLatency = latencies[n/2]\n+\t\tif n%2 == 0 {\n+\t\t\treport.MedianLatency = (latencies[n/2-1] + latencies[n/2]) / 2\n+\t\t}\n+\t}\n+\treturn report, nil\n+}\n+\n+// Markdown renders the report for a person to read. It states the sample size\n+// because a score from a handful of runs is a sketch, not a measurement.\n+func (r RepeatReport) Markdown() string {\n+\tvar b strings.Builder\n+\tfmt.Fprintf(\u0026b, \"# Review evaluation\\n\\n%d scored runs over %d cases (%d failed runs not scored). Cost $%.4f.\\n\\n\", r.ScoredRuns, len(r.Cases), r.FailedRuns, float64(r.CostMicrousd)/1e6)\n+\tif r.ScoredRuns == 0 {\n+\t\tb.WriteString(\"Nothing was scored.\\n\")\n+\t\treturn b.String()\n+\t}\n+\tfmt.Fprintf(\u0026b, \"- **Recall** %.0f%% of labelled bugs found per run (best run %.0f%%, worst run %.0f%%)\\n\", r.Recall*100, r.RecallMax*100, r.RecallMin*100)\n+\tfmt.Fprintf(\u0026b, \"- **Precision** %.0f%% of findings on bug cases matched a label\\n\", r.Precision*100)\n+\tfmt.Fprintf(\u0026b, \"- **Noise on clean changes** %.2f findings per clean run\\n\", r.NoisePerCleanRun)\n+\tfmt.Fprintf(\u0026b, \"- **Unstable bugs** %d of %d labels were found in some runs but not all; **never found** %d\\n\", r.FlakyLabels, r.Labels, r.MissedLabels)\n+\tfmt.Fprintf(\u0026b, \"- Median review time %s\\n\\n\", r.MedianLatency.Round(time.Second))\n+\tb.WriteString(\"| Case | Kind | Found in runs | Findings | Noise |\\n| --- | --- | --- | --- | --- |\\n\")\n+\tfor _, c := range r.Cases {\n+\t\tfound := \"-\"\n+\t\tif len(c.Labels) \u003e 0 {\n+\t\t\tparts := make([]string, len(c.Labels))\n+\t\t\tfor i, l := range c.Labels {\n+\t\t\t\tparts[i] = fmt.Sprintf(\"%d/%d\", l.Caught, c.Runs)\n+\t\t\t}\n+\t\t\tfound = strings.Join(parts, \", \")\n+\t\t}\n+\t\tfmt.Fprintf(\u0026b, \"| %s | %s | %s | %d | %d |\\n\", c.ID, c.Kind, found, c.Findings, c.Noise)\n+\t}\n+\treturn b.String()\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-136904b7c6e09f59",
+          "header": "@@ -0,0 +1,309 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package eval"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"bytes\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"io\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"sort\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "// A repeat dataset is the small, local-first benchmark used to learn how a"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "// reviewer behaves on code you have access to, run several times per case."
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "// It differs from Dataset in three ways: the repository may be private (only"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "// commit identities are recorded, never source), a case may be \"clean\" (no"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "// bug; any finding is noise), and the same case is run more than once so"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "// run-to-run variance is measured instead of hidden."
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "type RepeatDataset struct {"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tVersion int          `json:\"version\"`"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tCases   []RepeatCase `json:\"cases\"`"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "type RepeatCase struct {"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tID         string  `json:\"id\"`"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tKind       string  `json:\"kind\"` // seeded, historical, or clean"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tRepository string  `json:\"repository,omitempty\"`"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tBaseSHA    string  `json:\"base_sha\"`"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tHeadSHA    string  `json:\"head_sha\"`"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tLabels     []Label `json:\"labels,omitempty\"`"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tNotes      string  `json:\"notes,omitempty\"`"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "func DecodeRepeat(data []byte) (RepeatDataset, error) {"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tdecoder := json.NewDecoder(bytes.NewReader(data))"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\tdecoder.DisallowUnknownFields()"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tvar dataset RepeatDataset"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tif err := decoder.Decode(\u0026dataset); err != nil {"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t\treturn RepeatDataset{}, fmt.Errorf(\"decode eval cases: %w\", err)"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tvar extra any"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tif err := decoder.Decode(\u0026extra); err != io.EOF {"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t\treturn RepeatDataset{}, errors.New(\"eval cases contain trailing data\")"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\treturn dataset, dataset.Validate()"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "func (d RepeatDataset) Validate() error {"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\tif d.Version != 1 {"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"eval cases version must be 1\")"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\tif len(d.Cases) == 0 {"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"eval cases need at least one case\")"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\tseen := map[string]bool{}"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\tfor i, c := range d.Cases {"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t\tif c.ID == \"\" || seen[c.ID] {"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t\t\treturn fmt.Errorf(\"case %d has a missing or duplicate ID\", i)"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t\tseen[c.ID] = true"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t\tif !sha(c.BaseSHA) || !sha(c.HeadSHA) || c.BaseSHA == c.HeadSHA {"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t\t\treturn fmt.Errorf(\"case %s needs distinct full base and head SHAs\", c.ID)"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t\tswitch c.Kind {"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\tcase \"seeded\", \"historical\":"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\t\tif len(c.Labels) == 0 {"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\t\t\treturn fmt.Errorf(\"%s case %s needs at least one bug label\", c.Kind, c.ID)"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\tcase \"clean\":"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\t\tif len(c.Labels) != 0 {"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t\t\t\treturn fmt.Errorf(\"clean case %s must have no labels\", c.ID)"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t\tdefault:"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\t\t\treturn fmt.Errorf(\"case %s has unsupported kind %q\", c.ID, c.Kind)"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t\tfor _, label := range c.Labels {"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t\t\tif label.Path == \"\" || label.StartLine \u003c= 0 || label.EndLine \u003c label.StartLine {"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\t\t\t\treturn fmt.Errorf(\"case %s has an invalid label\", c.ID)"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\treturn nil"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "// RunResult is one review of one case. A run that failed is recorded with its"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "// error and left out of every score, so an outage never looks like a miss."
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "type RunResult struct {"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\tCaseID       string"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\tRun          int"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\tFindings     []Finding"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\tCostMicrousd int64"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\tLatency      time.Duration"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\tError        string"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "// MatchOptions decides when a finding counts as the labelled bug. Models"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "// rarely land on the exact lines a human labelled, so a small slack is allowed;"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "// the bug class is ignored unless a dataset uses the reviewer's own classes."
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "type MatchOptions struct {"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\tLineSlack    int"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\tRequireClass bool"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "func (o MatchOptions) matches(f Finding, l Label) bool {"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\tslack := o.LineSlack"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\tif slack \u003c 0 {"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\t\tslack = 0"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\tif f.Path != l.Path || f.StartLine \u003e l.EndLine+slack || l.StartLine \u003e f.EndLine+slack {"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\t\treturn false"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\treturn !o.RequireClass || f.BugClass == l.BugClass"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "type LabelScore struct {"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\tLabel  Label"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\tCaught int // runs in which a finding matched"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "type CaseScore struct {"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\tID, Kind string"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "\tRuns     int // scored runs"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\tFailed   int"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\tLabels   []LabelScore"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\tFindings int // across scored runs"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\tNoise    int // findings matching no label, across scored runs"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "// Flaky reports labels found in some scored runs but not all of them."
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "func (c CaseScore) Flaky() int {"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\tn := 0"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\tfor _, l := range c.Labels {"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\t\tif l.Caught \u003e 0 \u0026\u0026 l.Caught \u003c c.Runs {"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\t\t\tn++"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\treturn n"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "type RepeatReport struct {"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "\tCases                        []CaseScore"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "\tScoredRuns, FailedRuns       int"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\tRecall, RecallMin, RecallMax float64 // over runs; Min and Max are across whole-set runs"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\tPrecision                    float64"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\tNoisePerCleanRun             float64"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "\tFlakyLabels, MissedLabels    int"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "\tLabels                       int"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "\tCostMicrousd                 int64"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "\tMedianLatency                time.Duration"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "// ScoreRepeat scores every run against the dataset. Recall is the share of"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "// labelled bugs found, averaged over scored runs, and RecallMin/RecallMax show"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "// the spread between whole-set runs. Precision is the share of findings on"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "// labelled cases that matched a label; findings on clean cases are noise."
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "func ScoreRepeat(dataset RepeatDataset, results []RunResult, options MatchOptions) (RepeatReport, error) {"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "\tif err := dataset.Validate(); err != nil {"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "\t\treturn RepeatReport{}, err"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "\tbyID := map[string]RepeatCase{}"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "\tfor _, c := range dataset.Cases {"
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "\t\tbyID[c.ID] = c"
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": "\tscores := map[string]*CaseScore{}"
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "\tfor _, c := range dataset.Cases {"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": "\t\tcs := \u0026CaseScore{ID: c.ID, Kind: c.Kind}"
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": "\t\tfor _, l := range c.Labels {"
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "\t\t\tcs.Labels = append(cs.Labels, LabelScore{Label: l})"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "\t\tscores[c.ID] = cs"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "\ttype tally struct{ caught, labels int }"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "\tperRun := map[int]*tally{}"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "\tvar report RepeatReport"
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "\tvar matched, findings, cleanRuns, cleanNoise int"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": "\tvar latencies []time.Duration"
+            },
+            {
+              "newLine": 178,
+              "kind": "added",
+              "text": "\tfor _, r := range results {"
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": "\t\tc, ok := byID[r.CaseID]"
+            },
+            {
+              "newLine": 180,
+              "kind": "added",
+              "text": "\t\tif !ok {"
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": "\t\t\treturn RepeatReport{}, fmt.Errorf(\"result for unknown case %q\", r.CaseID)"
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": "\t\tcs := scores[r.CaseID]"
+            },
+            {
+              "newLine": 184,
+              "kind": "added",
+              "text": "\t\treport.CostMicrousd += r.CostMicrousd"
+            },
+            {
+              "newLine": 185,
+              "kind": "added",
+              "text": "\t\tif r.Error != \"\" {"
+            },
+            {
+              "newLine": 186,
+              "kind": "added",
+              "text": "\t\t\tcs.Failed++"
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "\t\t\treport.FailedRuns++"
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 190,
+              "kind": "added",
+              "text": "\t\tcs.Runs++"
+            },
+            {
+              "newLine": 191,
+              "kind": "added",
+              "text": "\t\treport.ScoredRuns++"
+            },
+            {
+              "newLine": 192,
+              "kind": "added",
+              "text": "\t\tlatencies = append(latencies, r.Latency)"
+            },
+            {
+              "newLine": 193,
+              "kind": "added",
+              "text": "\t\tt := perRun[r.Run]"
+            },
+            {
+              "newLine": 194,
+              "kind": "added",
+              "text": "\t\tif t == nil {"
+            },
+            {
+              "newLine": 195,
+              "kind": "added",
+              "text": "\t\t\tt = \u0026tally{}"
+            },
+            {
+              "newLine": 196,
+              "kind": "added",
+              "text": "\t\t\tperRun[r.Run] = t"
+            },
+            {
+              "newLine": 197,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 198,
+              "kind": "added",
+              "text": "\t\tfor i, l := range c.Labels {"
+            },
+            {
+              "newLine": 199,
+              "kind": "added",
+              "text": "\t\t\tt.labels++"
+            },
+            {
+              "newLine": 200,
+              "kind": "added",
+              "text": "\t\t\tfor _, f := range r.Findings {"
+            },
+            {
+              "newLine": 201,
+              "kind": "added",
+              "text": "\t\t\t\tif options.matches(f, l) {"
+            },
+            {
+              "newLine": 202,
+              "kind": "added",
+              "text": "\t\t\t\t\tcs.Labels[i].Caught++"
+            },
+            {
+              "newLine": 203,
+              "kind": "added",
+              "text": "\t\t\t\t\tt.caught++"
+            },
+            {
+              "newLine": 204,
+              "kind": "added",
+              "text": "\t\t\t\t\tbreak"
+            },
+            {
+              "newLine": 205,
+              "kind": "added",
+              "text": "\t\t\t\t}"
+            },
+            {
+              "newLine": 206,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 207,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 208,
+              "kind": "added",
+              "text": "\t\tfor _, f := range r.Findings {"
+            },
+            {
+              "newLine": 209,
+              "kind": "added",
+              "text": "\t\t\thit := false"
+            },
+            {
+              "newLine": 210,
+              "kind": "added",
+              "text": "\t\t\tfor _, l := range c.Labels {"
+            },
+            {
+              "newLine": 211,
+              "kind": "added",
+              "text": "\t\t\t\tif options.matches(f, l) {"
+            },
+            {
+              "newLine": 212,
+              "kind": "added",
+              "text": "\t\t\t\t\thit = true"
+            },
+            {
+              "newLine": 213,
+              "kind": "added",
+              "text": "\t\t\t\t\tbreak"
+            },
+            {
+              "newLine": 214,
+              "kind": "added",
+              "text": "\t\t\t\t}"
+            },
+            {
+              "newLine": 215,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 216,
+              "kind": "added",
+              "text": "\t\t\tcs.Findings++"
+            },
+            {
+              "newLine": 217,
+              "kind": "added",
+              "text": "\t\t\tif !hit {"
+            },
+            {
+              "newLine": 218,
+              "kind": "added",
+              "text": "\t\t\t\tcs.Noise++"
+            },
+            {
+              "newLine": 219,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 220,
+              "kind": "added",
+              "text": "\t\t\tif c.Kind == \"clean\" {"
+            },
+            {
+              "newLine": 221,
+              "kind": "added",
+              "text": "\t\t\t\tcleanNoise++"
+            },
+            {
+              "newLine": 222,
+              "kind": "added",
+              "text": "\t\t\t} else {"
+            },
+            {
+              "newLine": 223,
+              "kind": "added",
+              "text": "\t\t\t\tfindings++"
+            },
+            {
+              "newLine": 224,
+              "kind": "added",
+              "text": "\t\t\t\tif hit {"
+            },
+            {
+              "newLine": 225,
+              "kind": "added",
+              "text": "\t\t\t\t\tmatched++"
+            },
+            {
+              "newLine": 226,
+              "kind": "added",
+              "text": "\t\t\t\t}"
+            },
+            {
+              "newLine": 227,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 228,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 229,
+              "kind": "added",
+              "text": "\t\tif c.Kind == \"clean\" {"
+            },
+            {
+              "newLine": 230,
+              "kind": "added",
+              "text": "\t\t\tcleanRuns++"
+            },
+            {
+              "newLine": 231,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 232,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 233,
+              "kind": "added",
+              "text": "\tvar caught, labelRuns int"
+            },
+            {
+              "newLine": 234,
+              "kind": "added",
+              "text": "\tfirst := true"
+            },
+            {
+              "newLine": 235,
+              "kind": "added",
+              "text": "\tfor _, t := range perRun {"
+            },
+            {
+              "newLine": 236,
+              "kind": "added",
+              "text": "\t\tcaught += t.caught"
+            },
+            {
+              "newLine": 237,
+              "kind": "added",
+              "text": "\t\tlabelRuns += t.labels"
+            },
+            {
+              "newLine": 238,
+              "kind": "added",
+              "text": "\t\tif t.labels == 0 {"
+            },
+            {
+              "newLine": 239,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 240,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 241,
+              "kind": "added",
+              "text": "\t\trate := float64(t.caught) / float64(t.labels)"
+            },
+            {
+              "newLine": 242,
+              "kind": "added",
+              "text": "\t\tif first || rate \u003c report.RecallMin {"
+            },
+            {
+              "newLine": 243,
+              "kind": "added",
+              "text": "\t\t\treport.RecallMin = rate"
+            },
+            {
+              "newLine": 244,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 245,
+              "kind": "added",
+              "text": "\t\tif first || rate \u003e report.RecallMax {"
+            },
+            {
+              "newLine": 246,
+              "kind": "added",
+              "text": "\t\t\treport.RecallMax = rate"
+            },
+            {
+              "newLine": 247,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 248,
+              "kind": "added",
+              "text": "\t\tfirst = false"
+            },
+            {
+              "newLine": 249,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 250,
+              "kind": "added",
+              "text": "\tif labelRuns \u003e 0 {"
+            },
+            {
+              "newLine": 251,
+              "kind": "added",
+              "text": "\t\treport.Recall = float64(caught) / float64(labelRuns)"
+            },
+            {
+              "newLine": 252,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 253,
+              "kind": "added",
+              "text": "\tif findings \u003e 0 {"
+            },
+            {
+              "newLine": 254,
+              "kind": "added",
+              "text": "\t\treport.Precision = float64(matched) / float64(findings)"
+            },
+            {
+              "newLine": 255,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 256,
+              "kind": "added",
+              "text": "\tif cleanRuns \u003e 0 {"
+            },
+            {
+              "newLine": 257,
+              "kind": "added",
+              "text": "\t\treport.NoisePerCleanRun = float64(cleanNoise) / float64(cleanRuns)"
+            },
+            {
+              "newLine": 258,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 259,
+              "kind": "added",
+              "text": "\tfor _, c := range dataset.Cases {"
+            },
+            {
+              "newLine": 260,
+              "kind": "added",
+              "text": "\t\tcs := scores[c.ID]"
+            },
+            {
+              "newLine": 261,
+              "kind": "added",
+              "text": "\t\tfor _, l := range cs.Labels {"
+            },
+            {
+              "newLine": 262,
+              "kind": "added",
+              "text": "\t\t\treport.Labels++"
+            },
+            {
+              "newLine": 263,
+              "kind": "added",
+              "text": "\t\t\tswitch {"
+            },
+            {
+              "newLine": 264,
+              "kind": "added",
+              "text": "\t\t\tcase cs.Runs \u003e 0 \u0026\u0026 l.Caught == 0:"
+            },
+            {
+              "newLine": 265,
+              "kind": "added",
+              "text": "\t\t\t\treport.MissedLabels++"
+            },
+            {
+              "newLine": 266,
+              "kind": "added",
+              "text": "\t\t\tcase l.Caught \u003e 0 \u0026\u0026 l.Caught \u003c cs.Runs:"
+            },
+            {
+              "newLine": 267,
+              "kind": "added",
+              "text": "\t\t\t\treport.FlakyLabels++"
+            },
+            {
+              "newLine": 268,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 269,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 270,
+              "kind": "added",
+              "text": "\t\treport.Cases = append(report.Cases, *cs)"
+            },
+            {
+              "newLine": 271,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 272,
+              "kind": "added",
+              "text": "\tsort.Slice(latencies, func(i, j int) bool { return latencies[i] \u003c latencies[j] })"
+            },
+            {
+              "newLine": 273,
+              "kind": "added",
+              "text": "\tif n := len(latencies); n \u003e 0 {"
+            },
+            {
+              "newLine": 274,
+              "kind": "added",
+              "text": "\t\treport.MedianLatency = latencies[n/2]"
+            },
+            {
+              "newLine": 275,
+              "kind": "added",
+              "text": "\t\tif n%2 == 0 {"
+            },
+            {
+              "newLine": 276,
+              "kind": "added",
+              "text": "\t\t\treport.MedianLatency = (latencies[n/2-1] + latencies[n/2]) / 2"
+            },
+            {
+              "newLine": 277,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 278,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 279,
+              "kind": "added",
+              "text": "\treturn report, nil"
+            },
+            {
+              "newLine": 280,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 281,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 282,
+              "kind": "added",
+              "text": "// Markdown renders the report for a person to read. It states the sample size"
+            },
+            {
+              "newLine": 283,
+              "kind": "added",
+              "text": "// because a score from a handful of runs is a sketch, not a measurement."
+            },
+            {
+              "newLine": 284,
+              "kind": "added",
+              "text": "func (r RepeatReport) Markdown() string {"
+            },
+            {
+              "newLine": 285,
+              "kind": "added",
+              "text": "\tvar b strings.Builder"
+            },
+            {
+              "newLine": 286,
+              "kind": "added",
+              "text": "\tfmt.Fprintf(\u0026b, \"# Review evaluation\\n\\n%d scored runs over %d cases (%d failed runs not scored). Cost $%.4f.\\n\\n\", r.ScoredRuns, len(r.Cases), r.FailedRuns, float64(r.CostMicrousd)/1e6)"
+            },
+            {
+              "newLine": 287,
+              "kind": "added",
+              "text": "\tif r.ScoredRuns == 0 {"
+            },
+            {
+              "newLine": 288,
+              "kind": "added",
+              "text": "\t\tb.WriteString(\"Nothing was scored.\\n\")"
+            },
+            {
+              "newLine": 289,
+              "kind": "added",
+              "text": "\t\treturn b.String()"
+            },
+            {
+              "newLine": 290,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 291,
+              "kind": "added",
+              "text": "\tfmt.Fprintf(\u0026b, \"- **Recall** %.0f%% of labelled bugs found per run (best run %.0f%%, worst run %.0f%%)\\n\", r.Recall*100, r.RecallMax*100, r.RecallMin*100)"
+            },
+            {
+              "newLine": 292,
+              "kind": "added",
+              "text": "\tfmt.Fprintf(\u0026b, \"- **Precision** %.0f%% of findings on bug cases matched a label\\n\", r.Precision*100)"
+            },
+            {
+              "newLine": 293,
+              "kind": "added",
+              "text": "\tfmt.Fprintf(\u0026b, \"- **Noise on clean changes** %.2f findings per clean run\\n\", r.NoisePerCleanRun)"
+            },
+            {
+              "newLine": 294,
+              "kind": "added",
+              "text": "\tfmt.Fprintf(\u0026b, \"- **Unstable bugs** %d of %d labels were found in some runs but not all; **never found** %d\\n\", r.FlakyLabels, r.Labels, r.MissedLabels)"
+            },
+            {
+              "newLine": 295,
+              "kind": "added",
+              "text": "\tfmt.Fprintf(\u0026b, \"- Median review time %s\\n\\n\", r.MedianLatency.Round(time.Second))"
+            },
+            {
+              "newLine": 296,
+              "kind": "added",
+              "text": "\tb.WriteString(\"| Case | Kind | Found in runs | Findings | Noise |\\n| --- | --- | --- | --- | --- |\\n\")"
+            },
+            {
+              "newLine": 297,
+              "kind": "added",
+              "text": "\tfor _, c := range r.Cases {"
+            },
+            {
+              "newLine": 298,
+              "kind": "added",
+              "text": "\t\tfound := \"-\""
+            },
+            {
+              "newLine": 299,
+              "kind": "added",
+              "text": "\t\tif len(c.Labels) \u003e 0 {"
+            },
+            {
+              "newLine": 300,
+              "kind": "added",
+              "text": "\t\t\tparts := make([]string, len(c.Labels))"
+            },
+            {
+              "newLine": 301,
+              "kind": "added",
+              "text": "\t\t\tfor i, l := range c.Labels {"
+            },
+            {
+              "newLine": 302,
+              "kind": "added",
+              "text": "\t\t\t\tparts[i] = fmt.Sprintf(\"%d/%d\", l.Caught, c.Runs)"
+            },
+            {
+              "newLine": 303,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 304,
+              "kind": "added",
+              "text": "\t\t\tfound = strings.Join(parts, \", \")"
+            },
+            {
+              "newLine": 305,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 306,
+              "kind": "added",
+              "text": "\t\tfmt.Fprintf(\u0026b, \"| %s | %s | %s | %d | %d |\\n\", c.ID, c.Kind, found, c.Findings, c.Noise)"
+            },
+            {
+              "newLine": 307,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 308,
+              "kind": "added",
+              "text": "\treturn b.String()"
+            },
+            {
+              "newLine": 309,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/hosted/eval/repeat_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/hosted/eval/repeat_test.go b/internal/hosted/eval/repeat_test.go\nnew file mode 100644\nindex 0000000..9454b01\n--- /dev/null\n+++ b/internal/hosted/eval/repeat_test.go\n@@ -0,0 +1,153 @@\n+package eval\n+\n+import (\n+\t\"strings\"\n+\t\"testing\"\n+\t\"time\"\n+)\n+\n+var (\n+\tshaA = strings.Repeat(\"a\", 40)\n+\tshaB = strings.Repeat(\"b\", 40)\n+)\n+\n+func testRepeatDataset() RepeatDataset {\n+\treturn RepeatDataset{Version: 1, Cases: []RepeatCase{\n+\t\t{ID: \"seed-1\", Kind: \"seeded\", BaseSHA: shaA, HeadSHA: shaB, Labels: []Label{{Path: \"a.ts\", BugClass: \"logic\", StartLine: 10, EndLine: 12}}},\n+\t\t{ID: \"seed-2\", Kind: \"seeded\", BaseSHA: shaA, HeadSHA: shaB, Labels: []Label{{Path: \"b.ts\", BugClass: \"logic\", StartLine: 5, EndLine: 5}}},\n+\t\t{ID: \"clean-1\", Kind: \"clean\", BaseSHA: shaA, HeadSHA: shaB},\n+\t}}\n+}\n+\n+func find(path string, start, end int) Finding {\n+\treturn Finding{Path: path, StartLine: start, EndLine: end}\n+}\n+\n+func TestScoreRepeatMeasuresRecallPrecisionNoiseAndVariance(t *testing.T) {\n+\tresults := []RunResult{\n+\t\t// run 1: finds both bugs, one extra finding on seed-1, noise on the clean case\n+\t\t{CaseID: \"seed-1\", Run: 1, Findings: []Finding{find(\"a.ts\", 11, 11), find(\"a.ts\", 90, 90)}, CostMicrousd: 1000, Latency: 10 * time.Second},\n+\t\t{CaseID: \"seed-2\", Run: 1, Findings: []Finding{find(\"b.ts\", 5, 5)}, CostMicrousd: 1000, Latency: 20 * time.Second},\n+\t\t{CaseID: \"clean-1\", Run: 1, Findings: []Finding{find(\"c.ts\", 1, 1)}, CostMicrousd: 1000, Latency: 30 * time.Second},\n+\t\t// run 2: misses seed-2 entirely\n+\t\t{CaseID: \"seed-1\", Run: 2, Findings: []Finding{find(\"a.ts\", 10, 10)}, CostMicrousd: 1000, Latency: 10 * time.Second},\n+\t\t{CaseID: \"seed-2\", Run: 2, CostMicrousd: 1000, Latency: 20 * time.Second},\n+\t\t{CaseID: \"clean-1\", Run: 2, CostMicrousd: 1000, Latency: 30 * time.Second},\n+\t}\n+\treport, err := ScoreRepeat(testRepeatDataset(), results, MatchOptions{LineSlack: 0})\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif report.ScoredRuns != 6 || report.Recall != 0.75 || report.RecallMax != 1 || report.RecallMin != 0.5 {\n+\t\tt.Fatalf(\"recall=%v min=%v max=%v runs=%d\", report.Recall, report.RecallMin, report.RecallMax, report.ScoredRuns)\n+\t}\n+\t// bug-case findings: 4 (a.ts:11, a.ts:90, b.ts:5, a.ts:10); 3 matched.\n+\tif report.Precision != 0.75 {\n+\t\tt.Fatalf(\"precision=%v\", report.Precision)\n+\t}\n+\tif report.NoisePerCleanRun != 0.5 {\n+\t\tt.Fatalf(\"clean noise=%v\", report.NoisePerCleanRun)\n+\t}\n+\tif report.FlakyLabels != 1 || report.MissedLabels != 0 || report.Labels != 2 {\n+\t\tt.Fatalf(\"flaky=%d missed=%d labels=%d\", report.FlakyLabels, report.MissedLabels, report.Labels)\n+\t}\n+\tif report.CostMicrousd != 6000 || report.MedianLatency != 20*time.Second {\n+\t\tt.Fatalf(\"cost=%d latency=%v\", report.CostMicrousd, report.MedianLatency)\n+\t}\n+\tif got := report.Cases[1].Labels[0]; got.Caught != 1 {\n+\t\tt.Fatalf(\"seed-2 caught %d of 2 runs\", got.Caught)\n+\t}\n+\tif report.Cases[0].Flaky() != 0 || report.Cases[1].Flaky() != 1 {\n+\t\tt.Fatal(\"seed-1 is stable, seed-2 is flaky\")\n+\t}\n+}\n+\n+func TestScoreRepeatLeavesFailedRunsOutOfEveryScore(t *testing.T) {\n+\tresults := []RunResult{\n+\t\t{CaseID: \"seed-1\", Run: 1, Findings: []Finding{find(\"a.ts\", 10, 10)}},\n+\t\t{CaseID: \"seed-1\", Run: 2, Error: \"provider outage\"},\n+\t\t{CaseID: \"seed-2\", Run: 1, Error: \"provider outage\"},\n+\t}\n+\treport, err := ScoreRepeat(testRepeatDataset(), results, MatchOptions{})\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif report.FailedRuns != 2 || report.ScoredRuns != 1 {\n+\t\tt.Fatalf(\"failed=%d scored=%d\", report.FailedRuns, report.ScoredRuns)\n+\t}\n+\t// seed-2 had no scored run, so it is neither missed nor flaky.\n+\tif report.MissedLabels != 0 || report.FlakyLabels != 0 || report.Recall != 1 {\n+\t\tt.Fatalf(\"an outage must not look like a miss: %+v\", report)\n+\t}\n+}\n+\n+func TestMatchOptionsLineSlackAndBugClass(t *testing.T) {\n+\tlabel := Label{Path: \"a.ts\", BugClass: \"logic\", StartLine: 10, EndLine: 12}\n+\tif (MatchOptions{}).matches(find(\"a.ts\", 14, 14), label) {\n+\t\tt.Fatal(\"no slack: line 14 is outside 10-12\")\n+\t}\n+\tif !(MatchOptions{LineSlack: 3}).matches(find(\"a.ts\", 14, 14), label) {\n+\t\tt.Fatal(\"slack 3 should reach line 14\")\n+\t}\n+\tif (MatchOptions{LineSlack: 3}).matches(find(\"a.ts\", 16, 16), label) {\n+\t\tt.Fatal(\"slack 3 must not reach line 16\")\n+\t}\n+\tif (MatchOptions{LineSlack: 3}).matches(find(\"other.ts\", 11, 11), label) {\n+\t\tt.Fatal(\"a different file never matches\")\n+\t}\n+\tf := Finding{Path: \"a.ts\", BugClass: \"security\", StartLine: 11, EndLine: 11}\n+\tif (MatchOptions{RequireClass: true}).matches(f, label) || !(MatchOptions{}).matches(f, label) {\n+\t\tt.Fatal(\"class is checked only when required\")\n+\t}\n+}\n+\n+func TestScoreRepeatReportsNeverFoundBugs(t *testing.T) {\n+\treport, err := ScoreRepeat(testRepeatDataset(), []RunResult{\n+\t\t{CaseID: \"seed-1\", Run: 1}, {CaseID: \"seed-1\", Run: 2},\n+\t}, MatchOptions{})\n+\tif err != nil || report.MissedLabels != 1 || report.Recall != 0 {\n+\t\tt.Fatalf(\"report=%+v err=%v\", report, err)\n+\t}\n+\tif _, err := ScoreRepeat(testRepeatDataset(), []RunResult{{CaseID: \"nope\", Run: 1}}, MatchOptions{}); err == nil {\n+\t\tt.Fatal(\"a result for an unknown case must be rejected\")\n+\t}\n+}\n+\n+func TestRepeatDatasetValidation(t *testing.T) {\n+\tgood := `{\"version\":1,\"cases\":[{\"id\":\"c\",\"kind\":\"clean\",\"base_sha\":\"` + shaA + `\",\"head_sha\":\"` + shaB + `\"}]}`\n+\tif _, err := DecodeRepeat([]byte(good)); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tbad := map[string]string{\n+\t\t\"clean with labels\": `{\"version\":1,\"cases\":[{\"id\":\"c\",\"kind\":\"clean\",\"base_sha\":\"` + shaA + `\",\"head_sha\":\"` + shaB + `\",\"labels\":[{\"path\":\"a\",\"bug_class\":\"x\",\"start_line\":1,\"end_line\":1}]}]}`,\n+\t\t\"seeded no labels\":  `{\"version\":1,\"cases\":[{\"id\":\"c\",\"kind\":\"seeded\",\"base_sha\":\"` + shaA + `\",\"head_sha\":\"` + shaB + `\"}]}`,\n+\t\t\"short sha\":         `{\"version\":1,\"cases\":[{\"id\":\"c\",\"kind\":\"clean\",\"base_sha\":\"abc\",\"head_sha\":\"` + shaB + `\"}]}`,\n+\t\t\"same sha\":          `{\"version\":1,\"cases\":[{\"id\":\"c\",\"kind\":\"clean\",\"base_sha\":\"` + shaA + `\",\"head_sha\":\"` + shaA + `\"}]}`,\n+\t\t\"unknown kind\":      `{\"version\":1,\"cases\":[{\"id\":\"c\",\"kind\":\"weird\",\"base_sha\":\"` + shaA + `\",\"head_sha\":\"` + shaB + `\"}]}`,\n+\t\t\"unknown field\":     `{\"version\":1,\"cases\":[{\"id\":\"c\",\"kind\":\"clean\",\"base_sha\":\"` + shaA + `\",\"head_sha\":\"` + shaB + `\",\"source\":\"code\"}]}`,\n+\t\t\"no cases\":          `{\"version\":1,\"cases\":[]}`,\n+\t\t\"duplicate id\":      `{\"version\":1,\"cases\":[{\"id\":\"c\",\"kind\":\"clean\",\"base_sha\":\"` + shaA + `\",\"head_sha\":\"` + shaB + `\"},{\"id\":\"c\",\"kind\":\"clean\",\"base_sha\":\"` + shaA + `\",\"head_sha\":\"` + shaB + `\"}]}`,\n+\t\t\"bad label range\":   `{\"version\":1,\"cases\":[{\"id\":\"c\",\"kind\":\"seeded\",\"base_sha\":\"` + shaA + `\",\"head_sha\":\"` + shaB + `\",\"labels\":[{\"path\":\"a\",\"bug_class\":\"x\",\"start_line\":5,\"end_line\":2}]}]}`,\n+\t}\n+\tfor name, input := range bad {\n+\t\tif _, err := DecodeRepeat([]byte(input)); err == nil {\n+\t\t\tt.Errorf(\"%s was accepted\", name)\n+\t\t}\n+\t}\n+}\n+\n+func TestRepeatMarkdownStatesSampleSizeAndFlakiness(t *testing.T) {\n+\treport, _ := ScoreRepeat(testRepeatDataset(), []RunResult{\n+\t\t{CaseID: \"seed-1\", Run: 1, Findings: []Finding{find(\"a.ts\", 10, 10)}},\n+\t\t{CaseID: \"seed-1\", Run: 2},\n+\t}, MatchOptions{})\n+\tmd := report.Markdown()\n+\tfor _, want := range []string{\"2 scored runs\", \"1/2\", \"Unstable bugs\", \"Recall\"} {\n+\t\tif !strings.Contains(md, want) {\n+\t\t\tt.Fatalf(\"markdown lacks %q:\\n%s\", want, md)\n+\t\t}\n+\t}\n+\tif empty := (RepeatReport{}).Markdown(); !strings.Contains(empty, \"Nothing was scored\") {\n+\t\tt.Fatal(empty)\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-f866b915ec85f2d8",
+          "header": "@@ -0,0 +1,153 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package eval"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "var ("
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\tshaA = strings.Repeat(\"a\", 40)"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\tshaB = strings.Repeat(\"b\", 40)"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "func testRepeatDataset() RepeatDataset {"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\treturn RepeatDataset{Version: 1, Cases: []RepeatCase{"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\t\t{ID: \"seed-1\", Kind: \"seeded\", BaseSHA: shaA, HeadSHA: shaB, Labels: []Label{{Path: \"a.ts\", BugClass: \"logic\", StartLine: 10, EndLine: 12}}},"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t\t{ID: \"seed-2\", Kind: \"seeded\", BaseSHA: shaA, HeadSHA: shaB, Labels: []Label{{Path: \"b.ts\", BugClass: \"logic\", StartLine: 5, EndLine: 5}}},"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t\t{ID: \"clean-1\", Kind: \"clean\", BaseSHA: shaA, HeadSHA: shaB},"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t}}"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "func find(path string, start, end int) Finding {"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\treturn Finding{Path: path, StartLine: start, EndLine: end}"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "func TestScoreRepeatMeasuresRecallPrecisionNoiseAndVariance(t *testing.T) {"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tresults := []RunResult{"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t\t// run 1: finds both bugs, one extra finding on seed-1, noise on the clean case"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t\t{CaseID: \"seed-1\", Run: 1, Findings: []Finding{find(\"a.ts\", 11, 11), find(\"a.ts\", 90, 90)}, CostMicrousd: 1000, Latency: 10 * time.Second},"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t\t{CaseID: \"seed-2\", Run: 1, Findings: []Finding{find(\"b.ts\", 5, 5)}, CostMicrousd: 1000, Latency: 20 * time.Second},"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t\t{CaseID: \"clean-1\", Run: 1, Findings: []Finding{find(\"c.ts\", 1, 1)}, CostMicrousd: 1000, Latency: 30 * time.Second},"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t\t// run 2: misses seed-2 entirely"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t\t{CaseID: \"seed-1\", Run: 2, Findings: []Finding{find(\"a.ts\", 10, 10)}, CostMicrousd: 1000, Latency: 10 * time.Second},"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t\t{CaseID: \"seed-2\", Run: 2, CostMicrousd: 1000, Latency: 20 * time.Second},"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t\t{CaseID: \"clean-1\", Run: 2, CostMicrousd: 1000, Latency: 30 * time.Second},"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\treport, err := ScoreRepeat(testRepeatDataset(), results, MatchOptions{LineSlack: 0})"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\tif report.ScoredRuns != 6 || report.Recall != 0.75 || report.RecallMax != 1 || report.RecallMin != 0.5 {"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"recall=%v min=%v max=%v runs=%d\", report.Recall, report.RecallMin, report.RecallMax, report.ScoredRuns)"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t// bug-case findings: 4 (a.ts:11, a.ts:90, b.ts:5, a.ts:10); 3 matched."
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\tif report.Precision != 0.75 {"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"precision=%v\", report.Precision)"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\tif report.NoisePerCleanRun != 0.5 {"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"clean noise=%v\", report.NoisePerCleanRun)"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\tif report.FlakyLabels != 1 || report.MissedLabels != 0 || report.Labels != 2 {"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"flaky=%d missed=%d labels=%d\", report.FlakyLabels, report.MissedLabels, report.Labels)"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\tif report.CostMicrousd != 6000 || report.MedianLatency != 20*time.Second {"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"cost=%d latency=%v\", report.CostMicrousd, report.MedianLatency)"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\tif got := report.Cases[1].Labels[0]; got.Caught != 1 {"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"seed-2 caught %d of 2 runs\", got.Caught)"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\tif report.Cases[0].Flaky() != 0 || report.Cases[1].Flaky() != 1 {"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"seed-1 is stable, seed-2 is flaky\")"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "func TestScoreRepeatLeavesFailedRunsOutOfEveryScore(t *testing.T) {"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\tresults := []RunResult{"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\t{CaseID: \"seed-1\", Run: 1, Findings: []Finding{find(\"a.ts\", 10, 10)}},"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\t{CaseID: \"seed-1\", Run: 2, Error: \"provider outage\"},"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\t{CaseID: \"seed-2\", Run: 1, Error: \"provider outage\"},"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\treport, err := ScoreRepeat(testRepeatDataset(), results, MatchOptions{})"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\tif report.FailedRuns != 2 || report.ScoredRuns != 1 {"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"failed=%d scored=%d\", report.FailedRuns, report.ScoredRuns)"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t// seed-2 had no scored run, so it is neither missed nor flaky."
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\tif report.MissedLabels != 0 || report.FlakyLabels != 0 || report.Recall != 1 {"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"an outage must not look like a miss: %+v\", report)"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "func TestMatchOptionsLineSlackAndBugClass(t *testing.T) {"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\tlabel := Label{Path: \"a.ts\", BugClass: \"logic\", StartLine: 10, EndLine: 12}"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\tif (MatchOptions{}).matches(find(\"a.ts\", 14, 14), label) {"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"no slack: line 14 is outside 10-12\")"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\tif !(MatchOptions{LineSlack: 3}).matches(find(\"a.ts\", 14, 14), label) {"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"slack 3 should reach line 14\")"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\tif (MatchOptions{LineSlack: 3}).matches(find(\"a.ts\", 16, 16), label) {"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"slack 3 must not reach line 16\")"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\tif (MatchOptions{LineSlack: 3}).matches(find(\"other.ts\", 11, 11), label) {"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"a different file never matches\")"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\tf := Finding{Path: \"a.ts\", BugClass: \"security\", StartLine: 11, EndLine: 11}"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\tif (MatchOptions{RequireClass: true}).matches(f, label) || !(MatchOptions{}).matches(f, label) {"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"class is checked only when required\")"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "func TestScoreRepeatReportsNeverFoundBugs(t *testing.T) {"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\treport, err := ScoreRepeat(testRepeatDataset(), []RunResult{"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\t\t{CaseID: \"seed-1\", Run: 1}, {CaseID: \"seed-1\", Run: 2},"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\t}, MatchOptions{})"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\tif err != nil || report.MissedLabels != 1 || report.Recall != 0 {"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"report=%+v err=%v\", report, err)"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\tif _, err := ScoreRepeat(testRepeatDataset(), []RunResult{{CaseID: \"nope\", Run: 1}}, MatchOptions{}); err == nil {"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"a result for an unknown case must be rejected\")"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "func TestRepeatDatasetValidation(t *testing.T) {"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\tgood := `{\"version\":1,\"cases\":[{\"id\":\"c\",\"kind\":\"clean\",\"base_sha\":\"` + shaA + `\",\"head_sha\":\"` + shaB + `\"}]}`"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\tif _, err := DecodeRepeat([]byte(good)); err != nil {"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\tbad := map[string]string{"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\t\t\"clean with labels\": `{\"version\":1,\"cases\":[{\"id\":\"c\",\"kind\":\"clean\",\"base_sha\":\"` + shaA + `\",\"head_sha\":\"` + shaB + `\",\"labels\":[{\"path\":\"a\",\"bug_class\":\"x\",\"start_line\":1,\"end_line\":1}]}]}`,"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "\t\t\"seeded no labels\":  `{\"version\":1,\"cases\":[{\"id\":\"c\",\"kind\":\"seeded\",\"base_sha\":\"` + shaA + `\",\"head_sha\":\"` + shaB + `\"}]}`,"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\t\t\"short sha\":         `{\"version\":1,\"cases\":[{\"id\":\"c\",\"kind\":\"clean\",\"base_sha\":\"abc\",\"head_sha\":\"` + shaB + `\"}]}`,"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\t\t\"same sha\":          `{\"version\":1,\"cases\":[{\"id\":\"c\",\"kind\":\"clean\",\"base_sha\":\"` + shaA + `\",\"head_sha\":\"` + shaA + `\"}]}`,"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\t\t\"unknown kind\":      `{\"version\":1,\"cases\":[{\"id\":\"c\",\"kind\":\"weird\",\"base_sha\":\"` + shaA + `\",\"head_sha\":\"` + shaB + `\"}]}`,"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\t\t\"unknown field\":     `{\"version\":1,\"cases\":[{\"id\":\"c\",\"kind\":\"clean\",\"base_sha\":\"` + shaA + `\",\"head_sha\":\"` + shaB + `\",\"source\":\"code\"}]}`,"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\t\t\"no cases\":          `{\"version\":1,\"cases\":[]}`,"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\t\t\"duplicate id\":      `{\"version\":1,\"cases\":[{\"id\":\"c\",\"kind\":\"clean\",\"base_sha\":\"` + shaA + `\",\"head_sha\":\"` + shaB + `\"},{\"id\":\"c\",\"kind\":\"clean\",\"base_sha\":\"` + shaA + `\",\"head_sha\":\"` + shaB + `\"}]}`,"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\t\t\"bad label range\":   `{\"version\":1,\"cases\":[{\"id\":\"c\",\"kind\":\"seeded\",\"base_sha\":\"` + shaA + `\",\"head_sha\":\"` + shaB + `\",\"labels\":[{\"path\":\"a\",\"bug_class\":\"x\",\"start_line\":5,\"end_line\":2}]}]}`,"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\tfor name, input := range bad {"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\t\tif _, err := DecodeRepeat([]byte(input)); err == nil {"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"%s was accepted\", name)"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "func TestRepeatMarkdownStatesSampleSizeAndFlakiness(t *testing.T) {"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "\treport, _ := ScoreRepeat(testRepeatDataset(), []RunResult{"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "\t\t{CaseID: \"seed-1\", Run: 1, Findings: []Finding{find(\"a.ts\", 10, 10)}},"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "\t\t{CaseID: \"seed-1\", Run: 2},"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "\t}, MatchOptions{})"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\tmd := report.Markdown()"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\tfor _, want := range []string{\"2 scored runs\", \"1/2\", \"Unstable bugs\", \"Recall\"} {"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\t\tif !strings.Contains(md, want) {"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"markdown lacks %q:\\n%s\", want, md)"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "\tif empty := (RepeatReport{}).Markdown(); !strings.Contains(empty, \"Nothing was scored\") {"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "\t\tt.Fatal(empty)"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-faf023c6575632c7",
+      "title": "Repeat changes",
+      "summary": "4 related files share the \"repeat\" change signal.",
+      "paths": [
+        "ROADMAP.md",
+        "docs/EVALUATION_SET.md",
+        "internal/hosted/eval/repeat.go",
+        "internal/hosted/eval/repeat_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-11ba17e468f60095",
+      "path": "internal/hosted/eval/repeat.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/hosted/eval/repeat_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-9ed284141ff58d0d",
+      "path": "internal/hosted/eval/repeat.go",
+      "line": 35,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func DecodeRepeat(data []byte) (RepeatDataset, error) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 4,
+    "filesAnalyzed": 4,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "repeat-dataset-validation",
+      "path": "internal/hosted/eval/repeat.go",
+      "lineStart": 36,
+      "lineEnd": 95,
+      "title": "Validate repeat-evaluation datasets",
+      "summary": "Adds decoding and validation for version-1 repeat datasets. Seeded and historical cases must have labels, clean cases must not, and case IDs, commit SHAs, kinds, and label ranges are checked before scoring."
+    },
+    {
+      "id": "repeat-scoring",
+      "path": "internal/hosted/eval/repeat.go",
+      "lineStart": 108,
+      "lineEnd": 255,
+      "title": "Score repeated reviews and variability",
+      "summary": "Adds matching and scoring across repeated reviews: line overlap can use configurable slack, and bug classes are checked only when requested. The report measures recall and its run-to-run spread, precision, clean-case noise, unstable or missed labels, cost, and latency; failed runs are excluded from performance scores."
+    },
+    {
+      "id": "repeat-report",
+      "path": "internal/hosted/eval/repeat.go",
+      "lineStart": 270,
+      "lineEnd": 309,
+      "title": "Render a sample-size-aware report",
+      "summary": "Adds a Markdown summary with the number of scored and failed runs, aggregate metrics, and per-case results. When no runs were scored, it says so rather than presenting empty metrics as a result."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "2720dc3f9001e60b70dcd7577f0a8d11b7bd37f2",
+      "revision": "50ca0ad52feca873c75d3295b7df2d46ade39249",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "2720dc3f9001e60b70dcd7577f0a8d11b7bd37f2",
+      "revision": "50ca0ad52feca873c75d3295b7df2d46ade39249",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "50ca0ad52feca873c75d3295b7df2d46ade39249",
+      "detail": "3 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "50ca0ad52feca873c75d3295b7df2d46ade39249",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-daaa4dabcfc2fe0b",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/hosted/eval/repeat.go",
+      "line": 35,
+      "evidence": "func DecodeRepeat(data []byte) (RepeatDataset, error) {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "50ca0ad52feca873c75d3295b7df2d46ade39249",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42810243836",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42810243836/job/129809555486",
+        "startedAt": "2026-11-10T11:46:57Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42810243947/job/129809552200",
+        "startedAt": "2026-11-10T11:46:53Z"
+      }
+    ]
+  }
+}
