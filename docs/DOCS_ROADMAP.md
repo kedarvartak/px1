@@ -161,5 +161,22 @@ The report is a map, not a judgment. "Updated" means the page file changed,
 not that the change is the right one, and "needs review" does not mean the
 page is wrong. Deciding that is phase 5.
 
-Not built yet: the workflow that posts the comment and publishes the site on
-Pages with a preview per pull request.
+## In CI
+
+The review-report workflow builds the documentation with the trusted base
+checkout, after the report history is validated:
+
+- the site for the base commit is published at `docs/` on Pages;
+- a preview for the pull request, with the affected pages marked, is
+  published at `docs-preview/<head sha>/`;
+- the impact report is posted as one pull-request comment that is updated on
+  every push, with a link to the preview.
+
+The pull request's files are checked out as data. `px1 docs` reads Markdown
+and parses source; it builds and runs nothing from them, and it refuses any
+symbolic link that leaves the repository, so a pull request cannot get a file
+from the runner published. The step cannot fail the workflow.
+
+Limits: Pages holds one deployment, so a preview is replaced when another
+pull request is published. Previews run for pull requests from forks too,
+since nothing from them is executed and no secret is involved.

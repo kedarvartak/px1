@@ -5,7 +5,6 @@ package docs
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -66,7 +65,7 @@ func (p Problem) String() string {
 // LoadPages reads every page under docs/. Problems are front matter errors;
 // a page with problems is still returned so later checks can run on it.
 func LoadPages(root string) ([]Page, []Problem, error) {
-	entries, err := os.ReadDir(filepath.Join(root, Dir))
+	entries, err := readRepoDir(root, filepath.Join(root, Dir))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -78,7 +77,7 @@ func LoadPages(root string) ([]Page, []Problem, error) {
 			continue
 		}
 		rel := Dir + "/" + name
-		data, err := os.ReadFile(filepath.Join(root, Dir, name))
+		data, err := readRepo(root, filepath.Join(root, Dir, name))
 		if err != nil {
 			return nil, nil, err
 		}

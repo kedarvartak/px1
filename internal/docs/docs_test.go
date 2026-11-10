@@ -610,3 +610,69 @@ func TestSiteMarksAffectedPages(t *testing.T) {
 		t.Error("a normal build shows pull-request marks")
 	}
 }
+
+// A pull request's tree is read as data and its pages are published. A link
+// that leaves the repository must never be followed.
+func TestLinksOutOfTheRepositoryAreRefused(t *testing.T) {
+	secret := filepath.Join(t.TempDir(), "credential")
+	if err := os.WriteFile(secret, []byte(goodFront+"\nTOKEN=hunter2\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	link := func(t *testing.T, root, rel, target string) {
+		t.Helper()
+		full := filepath.Join(root, filepath.FromSlash(rel))
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		_ = os.Remove(full)
+		if err := os.Symlink(target, full); err != nil {
+			t.Skip("symbolic links are not available:", err)
+		}
+	}
+
+	t.Run("page", func(t *testing.T) {
+		root := repo(t)
+		link(t, root, "docs/LEAK.md", secret)
+		if _, _, err := LoadPages(root); err == nil || !strings.Contains(err.Error(), "outside the repository") {
+			t.Fatalf("LoadPages: %v", err)
+		}
+		files, err := BuildSite(root, SiteOptions{})
+		if err == nil {
+			t.Fatalf("the site was built; md/LEAK.md = %q", files["md/LEAK.md"])
+		}
+		if _, err := Check(root); err == nil {
+			t.Fatal("Check followed the link")
+		}
+	})
+	t.Run("docs directory", func(t *testing.T) {
+		root := t.TempDir()
+		link(t, root, "docs", filepath.Dir(secret))
+		if _, _, err := LoadPages(root); err == nil {
+			t.Fatal("LoadPages followed a linked docs directory")
+		}
+	})
+	t.Run("source and action files", func(t *testing.T) {
+		root := repo(t)
+		link(t, root, "main.go", secret)
+		if _, err := Commands(root); err == nil {
+			t.Error("Commands followed the link")
+		}
+		root = repo(t)
+		link(t, root, "sub/action.yml", secret)
+		if _, err := Actions(root); err == nil {
+			t.Error("Actions followed the link")
+		}
+		root = repo(t)
+		link(t, root, findingSchemaFile, secret)
+		if _, err := Reference(root); err == nil {
+			t.Error("Reference followed the link")
+		}
+	})
+	t.Run("a link that stays inside is allowed", func(t *testing.T) {
+		root := repo(t)
+		link(t, root, "docs/ALIAS.md", "OTHER.md")
+		if _, _, err := LoadPages(root); err != nil {
+			t.Fatalf("LoadPages: %v", err)
+		}
+	})
+}
