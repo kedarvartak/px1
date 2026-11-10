@@ -85,3 +85,7 @@ Fill in `private/feedback.md` for each finding (real, false alarm, or unclear),
 whether you already knew, whether you would have caught it in a normal review,
 and what it missed. That is the data the roadmap's pilot needs; time to read the
 report and whether the trace helped you decide what to trust are asked too.
+
+## Large changes
+
+`--max-files` (default 40) and `--max-diff-bytes` (default 120000) bound what is sent as the diff. A larger change is reviewed in part, highest-risk files first, and the dry run lists what was left out. Left-out files are not blocked: the model may still read them with its tools. `scope.json` in the output directory records reviewed and skipped files; `post-github --scope` turns it into a "Partial review" note on the pull request.
