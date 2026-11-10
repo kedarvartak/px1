@@ -1,0 +1,224 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "fbf05fc8fcf8df363f7f942477f5dbe70eb77f0a",
+  "head": "fd18dee6d8c3e54b90ba9fba006629e14cd0398f",
+  "generatedAt": "2026-11-10T09:49:32.801782163Z",
+  "files": [
+    {
+      "path": "docs/AGENTIC_CI.md",
+      "status": "M",
+      "diff": "diff --git a/docs/AGENTIC_CI.md b/docs/AGENTIC_CI.md\nindex 90a6be7..291b3ac 100644\n--- a/docs/AGENTIC_CI.md\n+++ b/docs/AGENTIC_CI.md\n@@ -6,8 +6,7 @@\n \n 1. Copy `examples/px1-agentic-review.yml` to `.github/workflows/` in the repository.\n 2. Add a repository secret `OPENAI_API_KEY` (Settings, Secrets and variables, Actions). Never put the key in the workflow file.\n-3. While px1 is private, also add `PX1_TOOL_TOKEN`, a read-only token for the px1 repository, or make the action available to the repository under px1's Actions settings.\n-4. Open a pull request.\n+3. Open a pull request.\n \n ## What it posts\n \n",
+      "hunks": [
+        {
+          "id": "diff-14cd71d7218768d5",
+          "header": "@@ -6,8 +6,7 @@",
+          "lines": [
+            {
+              "oldLine": 6,
+              "newLine": 6,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 7,
+              "newLine": 7,
+              "kind": "context",
+              "text": "1. Copy `examples/px1-agentic-review.yml` to `.github/workflows/` in the repository."
+            },
+            {
+              "oldLine": 8,
+              "newLine": 8,
+              "kind": "context",
+              "text": "2. Add a repository secret `OPENAI_API_KEY` (Settings, Secrets and variables, Actions). Never put the key in the workflow file."
+            },
+            {
+              "oldLine": 9,
+              "kind": "removed",
+              "text": "3. While px1 is private, also add `PX1_TOOL_TOKEN`, a read-only token for the px1 repository, or make the action available to the repository under px1's Actions settings."
+            },
+            {
+              "oldLine": 10,
+              "kind": "removed",
+              "text": "4. Open a pull request."
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "3. Open a pull request."
+            },
+            {
+              "oldLine": 11,
+              "newLine": 10,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 12,
+              "newLine": 11,
+              "kind": "context",
+              "text": "## What it posts"
+            },
+            {
+              "oldLine": 13,
+              "newLine": 12,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "examples/px1-agentic-review.yml",
+      "status": "M",
+      "diff": "diff --git a/examples/px1-agentic-review.yml b/examples/px1-agentic-review.yml\nindex 108e721..e8c88db 100644\n--- a/examples/px1-agentic-review.yml\n+++ b/examples/px1-agentic-review.yml\n@@ -29,7 +29,6 @@ jobs:\n           repository: kedarvartak/px1\n           ref: master # pin to a commit SHA once you trust a version\n           path: .px1-tool\n-          token: ${{ secrets.PX1_TOOL_TOKEN }} # only needed while px1 is private\n           persist-credentials: false\n       - uses: ./.px1-tool/agentic-action\n         env:\n",
+      "hunks": [
+        {
+          "id": "diff-d2b4d4c6e8b29401",
+          "header": "@@ -29,7 +29,6 @@ jobs:",
+          "lines": [
+            {
+              "oldLine": 29,
+              "newLine": 29,
+              "kind": "context",
+              "text": "          repository: kedarvartak/px1"
+            },
+            {
+              "oldLine": 30,
+              "newLine": 30,
+              "kind": "context",
+              "text": "          ref: master # pin to a commit SHA once you trust a version"
+            },
+            {
+              "oldLine": 31,
+              "newLine": 31,
+              "kind": "context",
+              "text": "          path: .px1-tool"
+            },
+            {
+              "oldLine": 32,
+              "kind": "removed",
+              "text": "          token: ${{ secrets.PX1_TOOL_TOKEN }} # only needed while px1 is private"
+            },
+            {
+              "oldLine": 33,
+              "newLine": 32,
+              "kind": "context",
+              "text": "          persist-credentials: false"
+            },
+            {
+              "oldLine": 34,
+              "newLine": 33,
+              "kind": "context",
+              "text": "      - uses: ./.px1-tool/agentic-action"
+            },
+            {
+              "oldLine": 35,
+              "newLine": 34,
+              "kind": "context",
+              "text": "        env:"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-43f4aa26a1ea47c1",
+      "title": "Agentic changes",
+      "summary": "2 related files share the \"agentic\" change signal.",
+      "paths": [
+        "docs/AGENTIC_CI.md",
+        "examples/px1-agentic-review.yml"
+      ]
+    }
+  ],
+  "inspectionQuestions": [],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 2,
+    "filesAnalyzed": 2,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "1",
+      "path": "examples/px1-agentic-review.yml",
+      "lineStart": 29,
+      "lineEnd": 32,
+      "title": "Remove the extra checkout-token requirement",
+      "summary": "The px1 checkout no longer requires a separately configured `PX1_TOOL_TOKEN`; it uses the checkout action’s default credentials instead."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "fbf05fc8fcf8df363f7f942477f5dbe70eb77f0a",
+      "revision": "fd18dee6d8c3e54b90ba9fba006629e14cd0398f",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "fbf05fc8fcf8df363f7f942477f5dbe70eb77f0a",
+      "revision": "fd18dee6d8c3e54b90ba9fba006629e14cd0398f",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "fd18dee6d8c3e54b90ba9fba006629e14cd0398f",
+      "detail": "1 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "fd18dee6d8c3e54b90ba9fba006629e14cd0398f",
+      "detail": "1 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "fd18dee6d8c3e54b90ba9fba006629e14cd0398f",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42793771450",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42793771450/job/129753555402",
+        "startedAt": "2026-11-10T09:48:26Z"
+      }
+    ]
+  }
+}
