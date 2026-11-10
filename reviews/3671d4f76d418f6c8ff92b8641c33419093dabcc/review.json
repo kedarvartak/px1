@@ -1,0 +1,3521 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "f61986965d35e1ac6a48ad59aae053539eb342d5",
+  "head": "3671d4f76d418f6c8ff92b8641c33419093dabcc",
+  "generatedAt": "2026-11-10T22:29:25.667021374Z",
+  "files": [
+    {
+      "path": "ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/ROADMAP.md b/ROADMAP.md\nindex 06fbb54..bd9ae97 100644\n--- a/ROADMAP.md\n+++ b/ROADMAP.md\n@@ -241,6 +241,9 @@ backend-foundation tasks are:\n 95. [x] **Render the documentation as a website.** `px1 docs site` builds a\n     static site from the pages: sidebar, search, status, outline, the code\n     each page covers, and a copy of the Markdown.\n+96. [x] **Detect documentation drift.** `px1 docs impact` lists the pages\n+    whose covered code a diff touches and whether each was updated; the site\n+    marks them.\n \n The v1 review pipeline, indexing, report hosting, evaluation, and launch gates\n follow these foundations. AI findings must remain auditable: evidence,\n",
+      "hunks": [
+        {
+          "id": "diff-e99ac820b3d9ce85",
+          "header": "@@ -241,6 +241,9 @@ backend-foundation tasks are:",
+          "lines": [
+            {
+              "oldLine": 241,
+              "newLine": 241,
+              "kind": "context",
+              "text": "95. [x] **Render the documentation as a website.** `px1 docs site` builds a"
+            },
+            {
+              "oldLine": 242,
+              "newLine": 242,
+              "kind": "context",
+              "text": "    static site from the pages: sidebar, search, status, outline, the code"
+            },
+            {
+              "oldLine": 243,
+              "newLine": 243,
+              "kind": "context",
+              "text": "    each page covers, and a copy of the Markdown."
+            },
+            {
+              "newLine": 244,
+              "kind": "added",
+              "text": "96. [x] **Detect documentation drift.** `px1 docs impact` lists the pages"
+            },
+            {
+              "newLine": 245,
+              "kind": "added",
+              "text": "    whose covered code a diff touches and whether each was updated; the site"
+            },
+            {
+              "newLine": 246,
+              "kind": "added",
+              "text": "    marks them."
+            },
+            {
+              "oldLine": 244,
+              "newLine": 247,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 245,
+              "newLine": 248,
+              "kind": "context",
+              "text": "The v1 review pipeline, indexing, report hosting, evaluation, and launch gates"
+            },
+            {
+              "oldLine": 246,
+              "newLine": 249,
+              "kind": "context",
+              "text": "follow these foundations. AI findings must remain auditable: evidence,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/CLI_REFERENCE.md",
+      "status": "M",
+      "diff": "diff --git a/docs/CLI_REFERENCE.md b/docs/CLI_REFERENCE.md\nindex b18cfb0..448577b 100644\n--- a/docs/CLI_REFERENCE.md\n+++ b/docs/CLI_REFERENCE.md\n@@ -72,13 +72,17 @@ Reviews two commits of a local clone with the agentic pipeline and writes a comm\n \n ## px1 docs\n \n-Maintains the documentation under docs/. \"px1 docs gen\" writes the reference pages, the manifest and the index from the code and the pages; \"px1 docs check\" fails when they are out of date, a link is broken, or code has no page; \"px1 docs site\" renders the pages as a static website. It reads repository files only and runs nothing from them.\n+Maintains the documentation under docs/. \"px1 docs gen\" writes the reference pages, the manifest and the index from the code and the pages; \"px1 docs check\" fails when they are out of date, a link is broken, or code has no page; \"px1 docs impact\" lists the pages whose covered code a diff touches; \"px1 docs site\" renders the pages as a static website. It reads repository files only and runs nothing from them.\n \n | Flag | Type | Default | Description |\n | --- | --- | --- | --- |\n | `--root` | string | `.` | repository root |\n-| `--out` | string |  | site: directory to write the site to; it must be empty or not exist (required) |\n+| `--out` | string |  | site: directory to write the site to, which must be empty or not exist (required); impact: optional file to write instead of stdout |\n | `--source-url` | string |  | site: web address of the repository tree at one commit (on GitHub, the blob address); links to code point there |\n+| `--base` | string |  | impact: base commit or ref (required) |\n+| `--head` | string | `HEAD` | impact: head commit or ref; the pages are read from the working tree, which must be at this commit |\n+| `--json` | boolean |  | impact: write JSON instead of Markdown |\n+| `--impact` | string |  | site: impact JSON written by docs impact --json; marks the pages a pull request affects |\n | `--commit` | string |  | site: the commit the site is built from, shown on each page |\n \n ## px1 eval-compare\n",
+      "hunks": [
+        {
+          "id": "diff-e48362d7caa35868",
+          "header": "@@ -72,13 +72,17 @@ Reviews two commits of a local clone with the agentic pipeline and writes a comm",
+          "lines": [
+            {
+              "oldLine": 72,
+              "newLine": 72,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 73,
+              "newLine": 73,
+              "kind": "context",
+              "text": "## px1 docs"
+            },
+            {
+              "oldLine": 74,
+              "newLine": 74,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 75,
+              "kind": "removed",
+              "text": "Maintains the documentation under docs/. \"px1 docs gen\" writes the reference pages, the manifest and the index from the code and the pages; \"px1 docs check\" fails when they are out of date, a link is broken, or code has no page; \"px1 docs site\" renders the pages as a static website. It reads repository files only and runs nothing from them."
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "Maintains the documentation under docs/. \"px1 docs gen\" writes the reference pages, the manifest and the index from the code and the pages; \"px1 docs check\" fails when they are out of date, a link is broken, or code has no page; \"px1 docs impact\" lists the pages whose covered code a diff touches; \"px1 docs site\" renders the pages as a static website. It reads repository files only and runs nothing from them."
+            },
+            {
+              "oldLine": 76,
+              "newLine": 76,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 77,
+              "newLine": 77,
+              "kind": "context",
+              "text": "| Flag | Type | Default | Description |"
+            },
+            {
+              "oldLine": 78,
+              "newLine": 78,
+              "kind": "context",
+              "text": "| --- | --- | --- | --- |"
+            },
+            {
+              "oldLine": 79,
+              "newLine": 79,
+              "kind": "context",
+              "text": "| `--root` | string | `.` | repository root |"
+            },
+            {
+              "oldLine": 80,
+              "kind": "removed",
+              "text": "| `--out` | string |  | site: directory to write the site to; it must be empty or not exist (required) |"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "| `--out` | string |  | site: directory to write the site to, which must be empty or not exist (required); impact: optional file to write instead of stdout |"
+            },
+            {
+              "oldLine": 81,
+              "newLine": 81,
+              "kind": "context",
+              "text": "| `--source-url` | string |  | site: web address of the repository tree at one commit (on GitHub, the blob address); links to code point there |"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "| `--base` | string |  | impact: base commit or ref (required) |"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "| `--head` | string | `HEAD` | impact: head commit or ref; the pages are read from the working tree, which must be at this commit |"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "| `--json` | boolean |  | impact: write JSON instead of Markdown |"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "| `--impact` | string |  | site: impact JSON written by docs impact --json; marks the pages a pull request affects |"
+            },
+            {
+              "oldLine": 82,
+              "newLine": 86,
+              "kind": "context",
+              "text": "| `--commit` | string |  | site: the commit the site is built from, shown on each page |"
+            },
+            {
+              "oldLine": 83,
+              "newLine": 87,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 84,
+              "newLine": 88,
+              "kind": "context",
+              "text": "## px1 eval-compare"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/DOCS_ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/docs/DOCS_ROADMAP.md b/docs/DOCS_ROADMAP.md\nindex a52ad71..0e740e9 100644\n--- a/docs/DOCS_ROADMAP.md\n+++ b/docs/DOCS_ROADMAP.md\n@@ -140,5 +140,26 @@ dropped, so a page cannot inject script. The site has no build step and no\n network dependency: fonts and scripts are files in the output, and every page\n works with JavaScript off (only search and the theme switch need it).\n \n-Not built yet: publishing the site on Pages with a preview per pull request,\n-and the \"changed in this pull request\" view, which needs phase 4.\n+## Drift detection (phase 4)\n+\n+`px1 docs impact --base BASE` lists the pages whose `covers` include a file\n+that differs between BASE and HEAD. Each page is in one of three states:\n+\n+- **needs review**: the code it covers changed and the page did not;\n+- **updated**: the page changed in the same diff;\n+- **generated**: a generated reference page, which the check keeps current.\n+\n+It also lists changed Go files that no page covers. Test files never count.\n+The output is Markdown for a pull-request comment (it starts with a marker so\n+the comment can be updated in place), or JSON with `--json`.\n+\n+`px1 docs site --impact FILE` takes that JSON and marks the affected pages:\n+a banner on each page naming the changed files, a marker in the sidebar, and\n+an \"Affected by this pull request\" list on the home page.\n+\n+The report is a map, not a judgment. \"Updated\" means the page file changed,\n+not that the change is the right one, and \"needs review\" does not mean the\n+page is wrong. Deciding that is phase 5.\n+\n+Not built yet: the workflow that posts the comment and publishes the site on\n+Pages with a preview per pull request.\n",
+      "hunks": [
+        {
+          "id": "diff-1eaa3050cc717c7d",
+          "header": "@@ -140,5 +140,26 @@ dropped, so a page cannot inject script. The site has no build step and no",
+          "lines": [
+            {
+              "oldLine": 140,
+              "newLine": 140,
+              "kind": "context",
+              "text": "network dependency: fonts and scripts are files in the output, and every page"
+            },
+            {
+              "oldLine": 141,
+              "newLine": 141,
+              "kind": "context",
+              "text": "works with JavaScript off (only search and the theme switch need it)."
+            },
+            {
+              "oldLine": 142,
+              "newLine": 142,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 143,
+              "kind": "removed",
+              "text": "Not built yet: publishing the site on Pages with a preview per pull request,"
+            },
+            {
+              "oldLine": 144,
+              "kind": "removed",
+              "text": "and the \"changed in this pull request\" view, which needs phase 4."
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "## Drift detection (phase 4)"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "`px1 docs impact --base BASE` lists the pages whose `covers` include a file"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "that differs between BASE and HEAD. Each page is in one of three states:"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "- **needs review**: the code it covers changed and the page did not;"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "- **updated**: the page changed in the same diff;"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "- **generated**: a generated reference page, which the check keeps current."
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "It also lists changed Go files that no page covers. Test files never count."
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "The output is Markdown for a pull-request comment (it starts with a marker so"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "the comment can be updated in place), or JSON with `--json`."
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "`px1 docs site --impact FILE` takes that JSON and marks the affected pages:"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "a banner on each page naming the changed files, a marker in the sidebar, and"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "an \"Affected by this pull request\" list on the home page."
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "The report is a map, not a judgment. \"Updated\" means the page file changed,"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "not that the change is the right one, and \"needs review\" does not mean the"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "page is wrong. Deciding that is phase 5."
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "Not built yet: the workflow that posts the comment and publishes the site on"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": "Pages with a preview per pull request."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs_check_test.go",
+      "status": "M",
+      "diff": "diff --git a/docs_check_test.go b/docs_check_test.go\nindex a3df091..a099501 100644\n--- a/docs_check_test.go\n+++ b/docs_check_test.go\n@@ -75,3 +75,44 @@ func TestDocsSiteCommandWritesTheSite(t *testing.T) {\n \t\t}\n \t}\n }\n+\n+func TestDocsImpactCommand(t *testing.T) {\n+\troot := t.TempDir()\n+\trunGitTest(t, root, \"init\", \"-q\")\n+\trunGitTest(t, root, \"config\", \"user.email\", \"test@example.com\")\n+\trunGitTest(t, root, \"config\", \"user.name\", \"Test\")\n+\twriteExportTestFile(t, root, \"tool.go\", \"package main\\n\")\n+\twriteExportTestFile(t, root, \"docs/PAGE.md\", \"---\\ntitle: A page\\nsection: guides\\nkind: narrative\\nstatus: shipped\\ncovers:\\n  - tool.go\\nverified_at:\\n---\\n\\n# A page\\n\")\n+\trunGitTest(t, root, \"add\", \"-A\")\n+\trunGitTest(t, root, \"commit\", \"-qm\", \"base\")\n+\tbase := strings.TrimSpace(runGitTest(t, root, \"rev-parse\", \"HEAD\"))\n+\twriteExportTestFile(t, root, \"tool.go\", \"package main\\n\\nvar changed = true\\n\")\n+\trunGitTest(t, root, \"commit\", \"-qam\", \"change the tool\")\n+\n+\tvar out bytes.Buffer\n+\tif err := runDocs([]string{\"impact\", \"--root\", root}, \u0026out); err == nil || !strings.Contains(err.Error(), \"--base\") {\n+\t\tt.Fatalf(\"missing --base: %v\", err)\n+\t}\n+\tif err := runDocs([]string{\"impact\", \"--root\", root, \"--base\", base}, \u0026out); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif !strings.Contains(out.String(), \"| A page (`docs/PAGE.md`) | Needs review | `tool.go` |\") {\n+\t\tt.Fatalf(\"markdown:\\n%s\", out.String())\n+\t}\n+\n+\tfile := filepath.Join(t.TempDir(), \"impact.json\")\n+\tif err := runDocs([]string{\"impact\", \"--root\", root, \"--base\", base, \"--json\", \"--out\", file}, \u0026out); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tsite := filepath.Join(t.TempDir(), \"site\")\n+\tif err := runDocs([]string{\"site\", \"--root\", root, \"--out\", site, \"--impact\", file}, \u0026out); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tpage, err := os.ReadFile(filepath.Join(site, \"PAGE.html\"))\n+\tif err != nil || !strings.Contains(string(page), `class=\"impact needs-review\"`) {\n+\t\tt.Fatalf(\"err=%v; the site does not mark the affected page\", err)\n+\t}\n+\tif err := runDocs([]string{\"impact\", \"--root\", root, \"--base\", \"no-such-ref\"}, \u0026out); err == nil {\n+\t\tt.Fatal(\"an unknown base was accepted\")\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-1a117ac90e360249",
+          "header": "@@ -75,3 +75,44 @@ func TestDocsSiteCommandWritesTheSite(t *testing.T) {",
+          "lines": [
+            {
+              "oldLine": 75,
+              "newLine": 75,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 76,
+              "newLine": 76,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 77,
+              "newLine": 77,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "func TestDocsImpactCommand(t *testing.T) {"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\troot := t.TempDir()"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"init\", \"-q\")"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"config\", \"user.email\", \"test@example.com\")"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"config\", \"user.name\", \"Test\")"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\twriteExportTestFile(t, root, \"tool.go\", \"package main\\n\")"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\twriteExportTestFile(t, root, \"docs/PAGE.md\", \"---\\ntitle: A page\\nsection: guides\\nkind: narrative\\nstatus: shipped\\ncovers:\\n  - tool.go\\nverified_at:\\n---\\n\\n# A page\\n\")"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"add\", \"-A\")"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"commit\", \"-qm\", \"base\")"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\tbase := strings.TrimSpace(runGitTest(t, root, \"rev-parse\", \"HEAD\"))"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\twriteExportTestFile(t, root, \"tool.go\", \"package main\\n\\nvar changed = true\\n\")"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"commit\", \"-qam\", \"change the tool\")"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\tvar out bytes.Buffer"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\tif err := runDocs([]string{\"impact\", \"--root\", root}, \u0026out); err == nil || !strings.Contains(err.Error(), \"--base\") {"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"missing --base: %v\", err)"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\tif err := runDocs([]string{\"impact\", \"--root\", root, \"--base\", base}, \u0026out); err != nil {"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\tif !strings.Contains(out.String(), \"| A page (`docs/PAGE.md`) | Needs review | `tool.go` |\") {"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"markdown:\\n%s\", out.String())"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\tfile := filepath.Join(t.TempDir(), \"impact.json\")"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\tif err := runDocs([]string{\"impact\", \"--root\", root, \"--base\", base, \"--json\", \"--out\", file}, \u0026out); err != nil {"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\tsite := filepath.Join(t.TempDir(), \"site\")"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\tif err := runDocs([]string{\"site\", \"--root\", root, \"--out\", site, \"--impact\", file}, \u0026out); err != nil {"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\tpage, err := os.ReadFile(filepath.Join(site, \"PAGE.html\"))"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\tif err != nil || !strings.Contains(string(page), `class=\"impact needs-review\"`) {"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"err=%v; the site does not mark the affected page\", err)"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "\tif err := runDocs([]string{\"impact\", \"--root\", root, \"--base\", \"no-such-ref\"}, \u0026out); err == nil {"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"an unknown base was accepted\")"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs_cmd.go",
+      "status": "M",
+      "diff": "diff --git a/docs_cmd.go b/docs_cmd.go\nindex 686c08e..36a0321 100644\n--- a/docs_cmd.go\n+++ b/docs_cmd.go\n@@ -1,11 +1,14 @@\n package main\n \n import (\n+\t\"encoding/json\"\n \t\"errors\"\n \t\"flag\"\n \t\"fmt\"\n \t\"io\"\n \t\"os\"\n+\t\"os/exec\"\n+\t\"strings\"\n \n \t\"px1/internal/docs\"\n )\n@@ -13,17 +16,22 @@ import (\n // runDocs maintains the documentation under docs/. \"px1 docs gen\" writes the\n // reference pages, the manifest and the index from the code and the pages;\n // \"px1 docs check\" fails when they are out of date, a link is broken, or code\n-// has no page; \"px1 docs site\" renders the pages as a static website. It reads\n+// has no page; \"px1 docs impact\" lists the pages whose covered code a diff\n+// touches; \"px1 docs site\" renders the pages as a static website. It reads\n // repository files only and runs nothing from them.\n func runDocs(args []string, stdout io.Writer) error {\n \tif len(args) == 0 {\n-\t\treturn errors.New(\"usage: px1 docs \u003ccheck|gen|site\u003e [--root dir]\")\n+\t\treturn errors.New(\"usage: px1 docs \u003ccheck|gen|impact|site\u003e [--root dir]\")\n \t}\n \tfs := flag.NewFlagSet(\"docs \"+args[0], flag.ContinueOnError)\n \tfs.SetOutput(os.Stderr)\n \troot := fs.String(\"root\", \".\", \"repository root\")\n-\tout := fs.String(\"out\", \"\", \"site: directory to write the site to; it must be empty or not exist (required)\")\n+\tout := fs.String(\"out\", \"\", \"site: directory to write the site to, which must be empty or not exist (required); impact: optional file to write instead of stdout\")\n \tsourceURL := fs.String(\"source-url\", \"\", \"site: web address of the repository tree at one commit (on GitHub, the blob address); links to code point there\")\n+\tbase := fs.String(\"base\", \"\", \"impact: base commit or ref (required)\")\n+\thead := fs.String(\"head\", \"HEAD\", \"impact: head commit or ref; the pages are read from the working tree, which must be at this commit\")\n+\tasJSON := fs.Bool(\"json\", false, \"impact: write JSON instead of Markdown\")\n+\timpactFile := fs.String(\"impact\", \"\", \"site: impact JSON written by docs impact --json; marks the pages a pull request affects\")\n \tcommit := fs.String(\"commit\", \"\", \"site: the commit the site is built from, shown on each page\")\n \tif err := fs.Parse(args[1:]); err != nil {\n \t\treturn err\n@@ -54,6 +62,24 @@ func runDocs(args []string, stdout io.Writer) error {\n \t\t\tfmt.Fprintln(stdout, \"docs gen: up to date\")\n \t\t}\n \t\treturn nil\n+\tcase \"impact\":\n+\t\timpact, err := docsImpact(*root, *base, *head)\n+\t\tif err != nil {\n+\t\t\treturn err\n+\t\t}\n+\t\ttext := impact.Markdown()\n+\t\tif *asJSON {\n+\t\t\tencoded, err := json.MarshalIndent(impact, \"\", \"  \")\n+\t\t\tif err != nil {\n+\t\t\t\treturn err\n+\t\t\t}\n+\t\t\ttext = string(encoded) + \"\\n\"\n+\t\t}\n+\t\tif *out != \"\" {\n+\t\t\treturn os.WriteFile(*out, []byte(text), 0o644)\n+\t\t}\n+\t\t_, err = io.WriteString(stdout, text)\n+\t\treturn err\n \tcase \"site\":\n \t\tif *out == \"\" {\n \t\t\treturn errors.New(\"docs site requires --out\")\n@@ -70,12 +96,60 @@ func runDocs(args []string, stdout io.Writer) error {\n \t\t\t}\n \t\t\tfonts[entry.Name()] = data\n \t\t}\n-\t\tn, err := docs.WriteSite(*root, *out, docs.SiteOptions{SourceURL: *sourceURL, Commit: *commit, Fonts: fonts})\n+\t\topts := docs.SiteOptions{SourceURL: *sourceURL, Commit: *commit, Fonts: fonts}\n+\t\tif *impactFile != \"\" {\n+\t\t\tdata, err := os.ReadFile(*impactFile)\n+\t\t\tif err != nil {\n+\t\t\t\treturn err\n+\t\t\t}\n+\t\t\topts.Impact = \u0026docs.Impact{}\n+\t\t\tif err := json.Unmarshal(data, opts.Impact); err != nil {\n+\t\t\t\treturn fmt.Errorf(\"%s: %w\", *impactFile, err)\n+\t\t\t}\n+\t\t}\n+\t\tn, err := docs.WriteSite(*root, *out, opts)\n \t\tif err != nil {\n \t\t\treturn err\n \t\t}\n \t\tfmt.Fprintf(stdout, \"wrote %d files to %s\\n\", n, *out)\n \t\treturn nil\n \t}\n-\treturn fmt.Errorf(\"unknown docs command %q: use check, gen or site\", args[0])\n+\treturn fmt.Errorf(\"unknown docs command %q: use check, gen, impact or site\", args[0])\n+}\n+\n+// docsImpact asks git which files differ between two commits and maps them to\n+// the pages in the working tree. Git only reads: no hooks, filters or\n+// external diff programs run for a name-only diff with these settings.\n+func docsImpact(root, base, head string) (docs.Impact, error) {\n+\tif base == \"\" {\n+\t\treturn docs.Impact{}, errors.New(\"docs impact requires --base\")\n+\t}\n+\tbaseSHA, err := resolveCommit(root, base)\n+\tif err != nil {\n+\t\treturn docs.Impact{}, err\n+\t}\n+\theadSHA, err := resolveCommit(root, head)\n+\tif err != nil {\n+\t\treturn docs.Impact{}, err\n+\t}\n+\tout, err := exec.Command(\"git\", \"-C\", root, \"-c\", \"core.fsmonitor=false\", \"diff\", \"--name-only\", \"--no-renames\", \"--no-ext-diff\", \"-z\", baseSHA, headSHA, \"--\").Output()\n+\tif err != nil {\n+\t\treturn docs.Impact{}, fmt.Errorf(\"git diff failed: %w\", err)\n+\t}\n+\tvar changed []string\n+\tfor _, file := range strings.Split(string(out), \"\\x00\") {\n+\t\tif file != \"\" {\n+\t\t\tchanged = append(changed, file)\n+\t\t}\n+\t}\n+\tpages, problems, err := docs.LoadPages(root)\n+\tif err != nil {\n+\t\treturn docs.Impact{}, err\n+\t}\n+\tif len(problems) \u003e 0 {\n+\t\treturn docs.Impact{}, fmt.Errorf(\"%s (and %d more): run px1 docs check\", problems[0], len(problems)-1)\n+\t}\n+\timpact := docs.ComputeImpact(pages, changed)\n+\timpact.Base, impact.Head = baseSHA, headSHA\n+\treturn impact, nil\n }\n",
+      "hunks": [
+        {
+          "id": "diff-1f6f956a80cbc8fe",
+          "header": "@@ -1,11 +1,14 @@",
+          "lines": [
+            {
+              "oldLine": 1,
+              "newLine": 1,
+              "kind": "context",
+              "text": "package main"
+            },
+            {
+              "oldLine": 2,
+              "newLine": 2,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 3,
+              "newLine": 3,
+              "kind": "context",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "oldLine": 4,
+              "newLine": 5,
+              "kind": "context",
+              "text": "\t\"errors\""
+            },
+            {
+              "oldLine": 5,
+              "newLine": 6,
+              "kind": "context",
+              "text": "\t\"flag\""
+            },
+            {
+              "oldLine": 6,
+              "newLine": 7,
+              "kind": "context",
+              "text": "\t\"fmt\""
+            },
+            {
+              "oldLine": 7,
+              "newLine": 8,
+              "kind": "context",
+              "text": "\t\"io\""
+            },
+            {
+              "oldLine": 8,
+              "newLine": 9,
+              "kind": "context",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"os/exec\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "oldLine": 9,
+              "newLine": 12,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 10,
+              "newLine": 13,
+              "kind": "context",
+              "text": "\t\"px1/internal/docs\""
+            },
+            {
+              "oldLine": 11,
+              "newLine": 14,
+              "kind": "context",
+              "text": ")"
+            }
+          ]
+        },
+        {
+          "id": "diff-aa0b066968d4cfca",
+          "header": "@@ -13,17 +16,22 @@ import (",
+          "lines": [
+            {
+              "oldLine": 13,
+              "newLine": 16,
+              "kind": "context",
+              "text": "// runDocs maintains the documentation under docs/. \"px1 docs gen\" writes the"
+            },
+            {
+              "oldLine": 14,
+              "newLine": 17,
+              "kind": "context",
+              "text": "// reference pages, the manifest and the index from the code and the pages;"
+            },
+            {
+              "oldLine": 15,
+              "newLine": 18,
+              "kind": "context",
+              "text": "// \"px1 docs check\" fails when they are out of date, a link is broken, or code"
+            },
+            {
+              "oldLine": 16,
+              "kind": "removed",
+              "text": "// has no page; \"px1 docs site\" renders the pages as a static website. It reads"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "// has no page; \"px1 docs impact\" lists the pages whose covered code a diff"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "// touches; \"px1 docs site\" renders the pages as a static website. It reads"
+            },
+            {
+              "oldLine": 17,
+              "newLine": 21,
+              "kind": "context",
+              "text": "// repository files only and runs nothing from them."
+            },
+            {
+              "oldLine": 18,
+              "newLine": 22,
+              "kind": "context",
+              "text": "func runDocs(args []string, stdout io.Writer) error {"
+            },
+            {
+              "oldLine": 19,
+              "newLine": 23,
+              "kind": "context",
+              "text": "\tif len(args) == 0 {"
+            },
+            {
+              "oldLine": 20,
+              "kind": "removed",
+              "text": "\t\treturn errors.New(\"usage: px1 docs \u003ccheck|gen|site\u003e [--root dir]\")"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"usage: px1 docs \u003ccheck|gen|impact|site\u003e [--root dir]\")"
+            },
+            {
+              "oldLine": 21,
+              "newLine": 25,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 22,
+              "newLine": 26,
+              "kind": "context",
+              "text": "\tfs := flag.NewFlagSet(\"docs \"+args[0], flag.ContinueOnError)"
+            },
+            {
+              "oldLine": 23,
+              "newLine": 27,
+              "kind": "context",
+              "text": "\tfs.SetOutput(os.Stderr)"
+            },
+            {
+              "oldLine": 24,
+              "newLine": 28,
+              "kind": "context",
+              "text": "\troot := fs.String(\"root\", \".\", \"repository root\")"
+            },
+            {
+              "oldLine": 25,
+              "kind": "removed",
+              "text": "\tout := fs.String(\"out\", \"\", \"site: directory to write the site to; it must be empty or not exist (required)\")"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tout := fs.String(\"out\", \"\", \"site: directory to write the site to, which must be empty or not exist (required); impact: optional file to write instead of stdout\")"
+            },
+            {
+              "oldLine": 26,
+              "newLine": 30,
+              "kind": "context",
+              "text": "\tsourceURL := fs.String(\"source-url\", \"\", \"site: web address of the repository tree at one commit (on GitHub, the blob address); links to code point there\")"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tbase := fs.String(\"base\", \"\", \"impact: base commit or ref (required)\")"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\thead := fs.String(\"head\", \"HEAD\", \"impact: head commit or ref; the pages are read from the working tree, which must be at this commit\")"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tasJSON := fs.Bool(\"json\", false, \"impact: write JSON instead of Markdown\")"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\timpactFile := fs.String(\"impact\", \"\", \"site: impact JSON written by docs impact --json; marks the pages a pull request affects\")"
+            },
+            {
+              "oldLine": 27,
+              "newLine": 35,
+              "kind": "context",
+              "text": "\tcommit := fs.String(\"commit\", \"\", \"site: the commit the site is built from, shown on each page\")"
+            },
+            {
+              "oldLine": 28,
+              "newLine": 36,
+              "kind": "context",
+              "text": "\tif err := fs.Parse(args[1:]); err != nil {"
+            },
+            {
+              "oldLine": 29,
+              "newLine": 37,
+              "kind": "context",
+              "text": "\t\treturn err"
+            }
+          ]
+        },
+        {
+          "id": "diff-2ec2f4a0f73a5ca8",
+          "header": "@@ -54,6 +62,24 @@ func runDocs(args []string, stdout io.Writer) error {",
+          "lines": [
+            {
+              "oldLine": 54,
+              "newLine": 62,
+              "kind": "context",
+              "text": "\t\t\tfmt.Fprintln(stdout, \"docs gen: up to date\")"
+            },
+            {
+              "oldLine": 55,
+              "newLine": 63,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 56,
+              "newLine": 64,
+              "kind": "context",
+              "text": "\t\treturn nil"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\tcase \"impact\":"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\timpact, err := docsImpact(*root, *base, *head)"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\t\treturn err"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\ttext := impact.Markdown()"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\tif *asJSON {"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t\t\tencoded, err := json.MarshalIndent(impact, \"\", \"  \")"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\t\tif err != nil {"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t\t\t\treturn err"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t\t\ttext = string(encoded) + \"\\n\""
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t\tif *out != \"\" {"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\t\t\treturn os.WriteFile(*out, []byte(text), 0o644)"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\t\t_, err = io.WriteString(stdout, text)"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "oldLine": 57,
+              "newLine": 83,
+              "kind": "context",
+              "text": "\tcase \"site\":"
+            },
+            {
+              "oldLine": 58,
+              "newLine": 84,
+              "kind": "context",
+              "text": "\t\tif *out == \"\" {"
+            },
+            {
+              "oldLine": 59,
+              "newLine": 85,
+              "kind": "context",
+              "text": "\t\t\treturn errors.New(\"docs site requires --out\")"
+            }
+          ]
+        },
+        {
+          "id": "diff-aa6f28d98ab12795",
+          "header": "@@ -70,12 +96,60 @@ func runDocs(args []string, stdout io.Writer) error {",
+          "lines": [
+            {
+              "oldLine": 70,
+              "newLine": 96,
+              "kind": "context",
+              "text": "\t\t\t}"
+            },
+            {
+              "oldLine": 71,
+              "newLine": 97,
+              "kind": "context",
+              "text": "\t\t\tfonts[entry.Name()] = data"
+            },
+            {
+              "oldLine": 72,
+              "newLine": 98,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 73,
+              "kind": "removed",
+              "text": "\t\tn, err := docs.WriteSite(*root, *out, docs.SiteOptions{SourceURL: *sourceURL, Commit: *commit, Fonts: fonts})"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\t\topts := docs.SiteOptions{SourceURL: *sourceURL, Commit: *commit, Fonts: fonts}"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\t\tif *impactFile != \"\" {"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\t\t\tdata, err := os.ReadFile(*impactFile)"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\t\t\tif err != nil {"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t\t\t\treturn err"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\t\t\topts.Impact = \u0026docs.Impact{}"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\t\t\tif err := json.Unmarshal(data, opts.Impact); err != nil {"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\t\t\t\treturn fmt.Errorf(\"%s: %w\", *impactFile, err)"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\t\tn, err := docs.WriteSite(*root, *out, opts)"
+            },
+            {
+              "oldLine": 74,
+              "newLine": 111,
+              "kind": "context",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "oldLine": 75,
+              "newLine": 112,
+              "kind": "context",
+              "text": "\t\t\treturn err"
+            },
+            {
+              "oldLine": 76,
+              "newLine": 113,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 77,
+              "newLine": 114,
+              "kind": "context",
+              "text": "\t\tfmt.Fprintf(stdout, \"wrote %d files to %s\\n\", n, *out)"
+            },
+            {
+              "oldLine": 78,
+              "newLine": 115,
+              "kind": "context",
+              "text": "\t\treturn nil"
+            },
+            {
+              "oldLine": 79,
+              "newLine": 116,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 80,
+              "kind": "removed",
+              "text": "\treturn fmt.Errorf(\"unknown docs command %q: use check, gen or site\", args[0])"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\treturn fmt.Errorf(\"unknown docs command %q: use check, gen, impact or site\", args[0])"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "// docsImpact asks git which files differ between two commits and maps them to"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "// the pages in the working tree. Git only reads: no hooks, filters or"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "// external diff programs run for a name-only diff with these settings."
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "func docsImpact(root, base, head string) (docs.Impact, error) {"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\tif base == \"\" {"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\t\treturn docs.Impact{}, errors.New(\"docs impact requires --base\")"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\tbaseSHA, err := resolveCommit(root, base)"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\t\treturn docs.Impact{}, err"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\theadSHA, err := resolveCommit(root, head)"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\t\treturn docs.Impact{}, err"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\tout, err := exec.Command(\"git\", \"-C\", root, \"-c\", \"core.fsmonitor=false\", \"diff\", \"--name-only\", \"--no-renames\", \"--no-ext-diff\", \"-z\", baseSHA, headSHA, \"--\").Output()"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\t\treturn docs.Impact{}, fmt.Errorf(\"git diff failed: %w\", err)"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\tvar changed []string"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "\tfor _, file := range strings.Split(string(out), \"\\x00\") {"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "\t\tif file != \"\" {"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "\t\t\tchanged = append(changed, file)"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\tpages, problems, err := docs.LoadPages(root)"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "\t\treturn docs.Impact{}, err"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "\tif len(problems) \u003e 0 {"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "\t\treturn docs.Impact{}, fmt.Errorf(\"%s (and %d more): run px1 docs check\", problems[0], len(problems)-1)"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "\timpact := docs.ComputeImpact(pages, changed)"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "\timpact.Base, impact.Head = baseSHA, headSHA"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "\treturn impact, nil"
+            },
+            {
+              "oldLine": 81,
+              "newLine": 155,
+              "kind": "context",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/docs/docs_test.go",
+      "status": "M",
+      "diff": "diff --git a/internal/docs/docs_test.go b/internal/docs/docs_test.go\nindex 894dc71..a38fc2f 100644\n--- a/internal/docs/docs_test.go\n+++ b/internal/docs/docs_test.go\n@@ -513,3 +513,100 @@ func TestWriteSiteRefusesANonEmptyDirectoryAndBadPages(t *testing.T) {\n \t\tt.Fatalf(\"bad page: %v\", err)\n \t}\n }\n+\n+func impactPages(t *testing.T) []Page {\n+\tt.Helper()\n+\tguide, _ := parsePage(\"docs/GUIDE.md\", strings.Replace(goodFront, \"  - tool.go\\n  - pkg/\\n\", \"  - tool.go\\n  - pkg/\\n  - eval_*.go\\n\", 1)+\"# Guide\\n\")\n+\tother, _ := parsePage(\"docs/OTHER.md\", strings.Replace(goodFront, \"  - tool.go\\n  - pkg/\\n\", \"  - pkg/a.go\\n\", 1)+\"# Other\\n\")\n+\tref, _ := parsePage(\"docs/REF.md\", strings.Replace(goodFront, \"narrative\", \"reference\", 1)+generatedNote+\"\\n# Ref\\n\")\n+\tquiet, _ := parsePage(\"docs/QUIET.md\", strings.Replace(goodFront, \"  - tool.go\\n  - pkg/\\n\", \"  - elsewhere/\\n\", 1)+\"# Quiet\\n\")\n+\treturn []Page{guide, other, quiet, ref}\n+}\n+\n+func TestComputeImpact(t *testing.T) {\n+\timpact := ComputeImpact(impactPages(t), []string{\n+\t\t\"pkg/a.go\", \"eval_run.go\", \"pkg/a_test.go\", \"docs/OTHER.md\", \"docs/UNRELATED.md\", \"new.go\", \"new_test.go\", \"pkgs/x.txt\",\n+\t})\n+\tif len(impact.Pages) != 3 {\n+\t\tt.Fatalf(\"pages = %+v\", impact.Pages)\n+\t}\n+\tguide, other, ref := impact.Pages[0], impact.Pages[1], impact.Pages[2]\n+\tif guide.Path != \"docs/GUIDE.md\" || guide.State != NeedsReview || strings.Join(guide.Changed, \",\") != \"eval_run.go,pkg/a.go\" {\n+\t\tt.Errorf(\"guide = %+v\", guide)\n+\t}\n+\tif other.Path != \"docs/OTHER.md\" || other.State != Updated || len(other.Changed) != 1 {\n+\t\tt.Errorf(\"other = %+v\", other)\n+\t}\n+\tif ref.Path != \"docs/REF.md\" || ref.State != Regenerated {\n+\t\tt.Errorf(\"ref = %+v\", ref)\n+\t}\n+\tif strings.Join(impact.Uncovered, \",\") != \"new.go\" {\n+\t\tt.Errorf(\"uncovered = %v\", impact.Uncovered)\n+\t}\n+\n+\ttext := impact.Markdown()\n+\tfor _, want := range []string{\n+\t\tImpactMarker,\n+\t\t\"**1 page covers code this change touches and was not updated.**\",\n+\t\t\"| A page (`docs/GUIDE.md`) | Needs review | `eval_run.go`, `pkg/a.go` |\",\n+\t\t\"| Updated in this change |\",\n+\t\t\"| Generated |\",\n+\t\t\"Changed Go files that no page covers: `new.go`.\",\n+\t} {\n+\t\tif !strings.Contains(text, want) {\n+\t\t\tt.Errorf(\"want %q in:\\n%s\", want, text)\n+\t\t}\n+\t}\n+}\n+\n+func TestImpactWithNothingToSay(t *testing.T) {\n+\t// Only tests and docs changed: no page is affected.\n+\tquiet := ComputeImpact(impactPages(t), []string{\"pkg/a_test.go\", \"docs/GUIDE.md\", \"README.md\"})\n+\tif len(quiet.Pages) != 0 || len(quiet.Uncovered) != 0 {\n+\t\tt.Fatalf(\"impact = %+v\", quiet)\n+\t}\n+\tif text := quiet.Markdown(); !strings.Contains(text, \"touches no code that a documentation page covers\") || strings.Contains(text, \"| Page |\") {\n+\t\tt.Errorf(\"markdown:\\n%s\", text)\n+\t}\n+\tif encoded, _ := json.Marshal(quiet); !strings.Contains(string(encoded), `\"pages\":[]`) {\n+\t\tt.Errorf(\"empty lists must encode as [], got %s\", encoded)\n+\t}\n+\tdone := ComputeImpact(impactPages(t), []string{\"pkg/a.go\", \"docs/GUIDE.md\", \"docs/OTHER.md\"})\n+\tif text := done.Markdown(); !strings.Contains(text, \"No page needs review\") {\n+\t\tt.Errorf(\"markdown:\\n%s\", text)\n+\t}\n+\tmany := ComputeImpact(impactPages(t), []string{\"pkg/a.go\"})\n+\tif text := many.Markdown(); !strings.Contains(text, \"**2 pages cover code\") {\n+\t\tt.Errorf(\"markdown:\\n%s\", text)\n+\t}\n+}\n+\n+func TestSiteMarksAffectedPages(t *testing.T) {\n+\troot := repo(t)\n+\timpact := \u0026Impact{Pages: []PageImpact{{Path: \"docs/PAGE.md\", Title: \"A page\", State: NeedsReview, Changed: []string{\"tool.go\", \"pkg/\u003ca\u003e.go\"}}}}\n+\tfiles, err := BuildSite(root, SiteOptions{Impact: impact})\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tpage := string(files[\"PAGE.html\"])\n+\tfor _, want := range []string{\n+\t\t`\u003caside class=\"impact needs-review\"\u003e`,\n+\t\t\"Needs review: not updated in this pull request\",\n+\t\t\"\u003ccode\u003etool.go\u003c/code\u003e, \u003ccode\u003epkg/\u0026lt;a\u0026gt;.go\u003c/code\u003e\",\n+\t\t`\u003cspan class=\"mark needs-review\"`,\n+\t} {\n+\t\tif !strings.Contains(page, want) {\n+\t\t\tt.Errorf(\"want %q in page\", want)\n+\t\t}\n+\t}\n+\tif other := string(files[\"OTHER.html\"]); strings.Contains(other, `class=\"impact`) {\n+\t\tt.Error(\"an unaffected page carries the banner\")\n+\t}\n+\tif home := string(files[\"index.html\"]); !strings.Contains(home, \"Affected by this pull request\") {\n+\t\tt.Error(\"home page does not list affected pages\")\n+\t}\n+\tplainFiles, _ := BuildSite(root, SiteOptions{})\n+\tif home := string(plainFiles[\"index.html\"]); strings.Contains(home, \"Affected by this pull request\") || strings.Contains(home, `class=\"mark`) {\n+\t\tt.Error(\"a normal build shows pull-request marks\")\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-e5769fa12c1f0987",
+          "header": "@@ -513,3 +513,100 @@ func TestWriteSiteRefusesANonEmptyDirectoryAndBadPages(t *testing.T) {",
+          "lines": [
+            {
+              "oldLine": 513,
+              "newLine": 513,
+              "kind": "context",
+              "text": "\t\tt.Fatalf(\"bad page: %v\", err)"
+            },
+            {
+              "oldLine": 514,
+              "newLine": 514,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 515,
+              "newLine": 515,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "newLine": 516,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 517,
+              "kind": "added",
+              "text": "func impactPages(t *testing.T) []Page {"
+            },
+            {
+              "newLine": 518,
+              "kind": "added",
+              "text": "\tt.Helper()"
+            },
+            {
+              "newLine": 519,
+              "kind": "added",
+              "text": "\tguide, _ := parsePage(\"docs/GUIDE.md\", strings.Replace(goodFront, \"  - tool.go\\n  - pkg/\\n\", \"  - tool.go\\n  - pkg/\\n  - eval_*.go\\n\", 1)+\"# Guide\\n\")"
+            },
+            {
+              "newLine": 520,
+              "kind": "added",
+              "text": "\tother, _ := parsePage(\"docs/OTHER.md\", strings.Replace(goodFront, \"  - tool.go\\n  - pkg/\\n\", \"  - pkg/a.go\\n\", 1)+\"# Other\\n\")"
+            },
+            {
+              "newLine": 521,
+              "kind": "added",
+              "text": "\tref, _ := parsePage(\"docs/REF.md\", strings.Replace(goodFront, \"narrative\", \"reference\", 1)+generatedNote+\"\\n# Ref\\n\")"
+            },
+            {
+              "newLine": 522,
+              "kind": "added",
+              "text": "\tquiet, _ := parsePage(\"docs/QUIET.md\", strings.Replace(goodFront, \"  - tool.go\\n  - pkg/\\n\", \"  - elsewhere/\\n\", 1)+\"# Quiet\\n\")"
+            },
+            {
+              "newLine": 523,
+              "kind": "added",
+              "text": "\treturn []Page{guide, other, quiet, ref}"
+            },
+            {
+              "newLine": 524,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 525,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 526,
+              "kind": "added",
+              "text": "func TestComputeImpact(t *testing.T) {"
+            },
+            {
+              "newLine": 527,
+              "kind": "added",
+              "text": "\timpact := ComputeImpact(impactPages(t), []string{"
+            },
+            {
+              "newLine": 528,
+              "kind": "added",
+              "text": "\t\t\"pkg/a.go\", \"eval_run.go\", \"pkg/a_test.go\", \"docs/OTHER.md\", \"docs/UNRELATED.md\", \"new.go\", \"new_test.go\", \"pkgs/x.txt\","
+            },
+            {
+              "newLine": 529,
+              "kind": "added",
+              "text": "\t})"
+            },
+            {
+              "newLine": 530,
+              "kind": "added",
+              "text": "\tif len(impact.Pages) != 3 {"
+            },
+            {
+              "newLine": 531,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"pages = %+v\", impact.Pages)"
+            },
+            {
+              "newLine": 532,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 533,
+              "kind": "added",
+              "text": "\tguide, other, ref := impact.Pages[0], impact.Pages[1], impact.Pages[2]"
+            },
+            {
+              "newLine": 534,
+              "kind": "added",
+              "text": "\tif guide.Path != \"docs/GUIDE.md\" || guide.State != NeedsReview || strings.Join(guide.Changed, \",\") != \"eval_run.go,pkg/a.go\" {"
+            },
+            {
+              "newLine": 535,
+              "kind": "added",
+              "text": "\t\tt.Errorf(\"guide = %+v\", guide)"
+            },
+            {
+              "newLine": 536,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 537,
+              "kind": "added",
+              "text": "\tif other.Path != \"docs/OTHER.md\" || other.State != Updated || len(other.Changed) != 1 {"
+            },
+            {
+              "newLine": 538,
+              "kind": "added",
+              "text": "\t\tt.Errorf(\"other = %+v\", other)"
+            },
+            {
+              "newLine": 539,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 540,
+              "kind": "added",
+              "text": "\tif ref.Path != \"docs/REF.md\" || ref.State != Regenerated {"
+            },
+            {
+              "newLine": 541,
+              "kind": "added",
+              "text": "\t\tt.Errorf(\"ref = %+v\", ref)"
+            },
+            {
+              "newLine": 542,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 543,
+              "kind": "added",
+              "text": "\tif strings.Join(impact.Uncovered, \",\") != \"new.go\" {"
+            },
+            {
+              "newLine": 544,
+              "kind": "added",
+              "text": "\t\tt.Errorf(\"uncovered = %v\", impact.Uncovered)"
+            },
+            {
+              "newLine": 545,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 546,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 547,
+              "kind": "added",
+              "text": "\ttext := impact.Markdown()"
+            },
+            {
+              "newLine": 548,
+              "kind": "added",
+              "text": "\tfor _, want := range []string{"
+            },
+            {
+              "newLine": 549,
+              "kind": "added",
+              "text": "\t\tImpactMarker,"
+            },
+            {
+              "newLine": 550,
+              "kind": "added",
+              "text": "\t\t\"**1 page covers code this change touches and was not updated.**\","
+            },
+            {
+              "newLine": 551,
+              "kind": "added",
+              "text": "\t\t\"| A page (`docs/GUIDE.md`) | Needs review | `eval_run.go`, `pkg/a.go` |\","
+            },
+            {
+              "newLine": 552,
+              "kind": "added",
+              "text": "\t\t\"| Updated in this change |\","
+            },
+            {
+              "newLine": 553,
+              "kind": "added",
+              "text": "\t\t\"| Generated |\","
+            },
+            {
+              "newLine": 554,
+              "kind": "added",
+              "text": "\t\t\"Changed Go files that no page covers: `new.go`.\","
+            },
+            {
+              "newLine": 555,
+              "kind": "added",
+              "text": "\t} {"
+            },
+            {
+              "newLine": 556,
+              "kind": "added",
+              "text": "\t\tif !strings.Contains(text, want) {"
+            },
+            {
+              "newLine": 557,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"want %q in:\\n%s\", want, text)"
+            },
+            {
+              "newLine": 558,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 559,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 560,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 561,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 562,
+              "kind": "added",
+              "text": "func TestImpactWithNothingToSay(t *testing.T) {"
+            },
+            {
+              "newLine": 563,
+              "kind": "added",
+              "text": "\t// Only tests and docs changed: no page is affected."
+            },
+            {
+              "newLine": 564,
+              "kind": "added",
+              "text": "\tquiet := ComputeImpact(impactPages(t), []string{\"pkg/a_test.go\", \"docs/GUIDE.md\", \"README.md\"})"
+            },
+            {
+              "newLine": 565,
+              "kind": "added",
+              "text": "\tif len(quiet.Pages) != 0 || len(quiet.Uncovered) != 0 {"
+            },
+            {
+              "newLine": 566,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"impact = %+v\", quiet)"
+            },
+            {
+              "newLine": 567,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 568,
+              "kind": "added",
+              "text": "\tif text := quiet.Markdown(); !strings.Contains(text, \"touches no code that a documentation page covers\") || strings.Contains(text, \"| Page |\") {"
+            },
+            {
+              "newLine": 569,
+              "kind": "added",
+              "text": "\t\tt.Errorf(\"markdown:\\n%s\", text)"
+            },
+            {
+              "newLine": 570,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 571,
+              "kind": "added",
+              "text": "\tif encoded, _ := json.Marshal(quiet); !strings.Contains(string(encoded), `\"pages\":[]`) {"
+            },
+            {
+              "newLine": 572,
+              "kind": "added",
+              "text": "\t\tt.Errorf(\"empty lists must encode as [], got %s\", encoded)"
+            },
+            {
+              "newLine": 573,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 574,
+              "kind": "added",
+              "text": "\tdone := ComputeImpact(impactPages(t), []string{\"pkg/a.go\", \"docs/GUIDE.md\", \"docs/OTHER.md\"})"
+            },
+            {
+              "newLine": 575,
+              "kind": "added",
+              "text": "\tif text := done.Markdown(); !strings.Contains(text, \"No page needs review\") {"
+            },
+            {
+              "newLine": 576,
+              "kind": "added",
+              "text": "\t\tt.Errorf(\"markdown:\\n%s\", text)"
+            },
+            {
+              "newLine": 577,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 578,
+              "kind": "added",
+              "text": "\tmany := ComputeImpact(impactPages(t), []string{\"pkg/a.go\"})"
+            },
+            {
+              "newLine": 579,
+              "kind": "added",
+              "text": "\tif text := many.Markdown(); !strings.Contains(text, \"**2 pages cover code\") {"
+            },
+            {
+              "newLine": 580,
+              "kind": "added",
+              "text": "\t\tt.Errorf(\"markdown:\\n%s\", text)"
+            },
+            {
+              "newLine": 581,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 582,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 583,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 584,
+              "kind": "added",
+              "text": "func TestSiteMarksAffectedPages(t *testing.T) {"
+            },
+            {
+              "newLine": 585,
+              "kind": "added",
+              "text": "\troot := repo(t)"
+            },
+            {
+              "newLine": 586,
+              "kind": "added",
+              "text": "\timpact := \u0026Impact{Pages: []PageImpact{{Path: \"docs/PAGE.md\", Title: \"A page\", State: NeedsReview, Changed: []string{\"tool.go\", \"pkg/\u003ca\u003e.go\"}}}}"
+            },
+            {
+              "newLine": 587,
+              "kind": "added",
+              "text": "\tfiles, err := BuildSite(root, SiteOptions{Impact: impact})"
+            },
+            {
+              "newLine": 588,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 589,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 590,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 591,
+              "kind": "added",
+              "text": "\tpage := string(files[\"PAGE.html\"])"
+            },
+            {
+              "newLine": 592,
+              "kind": "added",
+              "text": "\tfor _, want := range []string{"
+            },
+            {
+              "newLine": 593,
+              "kind": "added",
+              "text": "\t\t`\u003caside class=\"impact needs-review\"\u003e`,"
+            },
+            {
+              "newLine": 594,
+              "kind": "added",
+              "text": "\t\t\"Needs review: not updated in this pull request\","
+            },
+            {
+              "newLine": 595,
+              "kind": "added",
+              "text": "\t\t\"\u003ccode\u003etool.go\u003c/code\u003e, \u003ccode\u003epkg/\u0026lt;a\u0026gt;.go\u003c/code\u003e\","
+            },
+            {
+              "newLine": 596,
+              "kind": "added",
+              "text": "\t\t`\u003cspan class=\"mark needs-review\"`,"
+            },
+            {
+              "newLine": 597,
+              "kind": "added",
+              "text": "\t} {"
+            },
+            {
+              "newLine": 598,
+              "kind": "added",
+              "text": "\t\tif !strings.Contains(page, want) {"
+            },
+            {
+              "newLine": 599,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"want %q in page\", want)"
+            },
+            {
+              "newLine": 600,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 601,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 602,
+              "kind": "added",
+              "text": "\tif other := string(files[\"OTHER.html\"]); strings.Contains(other, `class=\"impact`) {"
+            },
+            {
+              "newLine": 603,
+              "kind": "added",
+              "text": "\t\tt.Error(\"an unaffected page carries the banner\")"
+            },
+            {
+              "newLine": 604,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 605,
+              "kind": "added",
+              "text": "\tif home := string(files[\"index.html\"]); !strings.Contains(home, \"Affected by this pull request\") {"
+            },
+            {
+              "newLine": 606,
+              "kind": "added",
+              "text": "\t\tt.Error(\"home page does not list affected pages\")"
+            },
+            {
+              "newLine": 607,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 608,
+              "kind": "added",
+              "text": "\tplainFiles, _ := BuildSite(root, SiteOptions{})"
+            },
+            {
+              "newLine": 609,
+              "kind": "added",
+              "text": "\tif home := string(plainFiles[\"index.html\"]); strings.Contains(home, \"Affected by this pull request\") || strings.Contains(home, `class=\"mark`) {"
+            },
+            {
+              "newLine": 610,
+              "kind": "added",
+              "text": "\t\tt.Error(\"a normal build shows pull-request marks\")"
+            },
+            {
+              "newLine": 611,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 612,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/docs/impact.go",
+      "status": "A",
+      "diff": "diff --git a/internal/docs/impact.go b/internal/docs/impact.go\nnew file mode 100644\nindex 0000000..5dd5df6\n--- /dev/null\n+++ b/internal/docs/impact.go\n@@ -0,0 +1,155 @@\n+package docs\n+\n+import (\n+\t\"fmt\"\n+\t\"path\"\n+\t\"sort\"\n+\t\"strings\"\n+)\n+\n+// ImpactMarker identifies the pull-request comment so it is updated, not\n+// repeated.\n+const ImpactMarker = \"\u003c!-- px1-docs-impact --\u003e\"\n+\n+// Page states in an impact report.\n+const (\n+\tNeedsReview = \"needs-review\" // covered code changed, the page did not\n+\tUpdated     = \"updated\"      // covered code changed and so did the page\n+\tRegenerated = \"generated\"    // a generated page; the check keeps it current\n+)\n+\n+// PageImpact is one page whose covered code a diff touches.\n+type PageImpact struct {\n+\tPath    string   `json:\"path\"`\n+\tTitle   string   `json:\"title\"`\n+\tState   string   `json:\"state\"`\n+\tChanged []string `json:\"changed\"`\n+}\n+\n+// Impact is what a diff means for the documentation.\n+type Impact struct {\n+\tBase  string       `json:\"base\"`\n+\tHead  string       `json:\"head\"`\n+\tPages []PageImpact `json:\"pages\"`\n+\t// Uncovered are changed Go files that no page covers.\n+\tUncovered []string `json:\"uncovered\"`\n+}\n+\n+// touches reports whether a changed file falls under a covers entry.\n+func touches(file, entry string) bool {\n+\tif file == entry {\n+\t\treturn true\n+\t}\n+\tif strings.HasSuffix(entry, \"/\") {\n+\t\treturn strings.HasPrefix(file, entry)\n+\t}\n+\tif strings.ContainsAny(entry, \"*?[\") {\n+\t\tok, _ := path.Match(entry, file)\n+\t\treturn ok\n+\t}\n+\treturn false\n+}\n+\n+// ComputeImpact maps changed files to the pages that cover them. Test files\n+// never count: they change without the documented behaviour changing.\n+func ComputeImpact(pages []Page, changed []string) Impact {\n+\timpact := Impact{Pages: []PageImpact{}, Uncovered: []string{}}\n+\tchangedSet := map[string]bool{}\n+\tvar code []string\n+\tfor _, file := range changed {\n+\t\tchangedSet[file] = true\n+\t\tif strings.HasPrefix(file, Dir+\"/\") || strings.HasSuffix(file, \"_test.go\") {\n+\t\t\tcontinue\n+\t\t}\n+\t\tcode = append(code, file)\n+\t}\n+\tsort.Strings(code)\n+\tisCovered := map[string]bool{}\n+\tfor _, page := range pages {\n+\t\tvar hit []string\n+\t\tfor _, file := range code {\n+\t\t\tfor _, entry := range page.Covers {\n+\t\t\t\tif touches(file, entry) {\n+\t\t\t\t\thit = append(hit, file)\n+\t\t\t\t\tisCovered[file] = true\n+\t\t\t\t\tbreak\n+\t\t\t\t}\n+\t\t\t}\n+\t\t}\n+\t\tif len(hit) == 0 {\n+\t\t\tcontinue\n+\t\t}\n+\t\tstate := NeedsReview\n+\t\tswitch {\n+\t\tcase page.Kind == \"reference\" \u0026\u0026 strings.Contains(page.body, generatedNote):\n+\t\t\tstate = Regenerated\n+\t\tcase changedSet[page.Path]:\n+\t\t\tstate = Updated\n+\t\t}\n+\t\timpact.Pages = append(impact.Pages, PageImpact{Path: page.Path, Title: page.Title, State: state, Changed: hit})\n+\t}\n+\torder := map[string]int{NeedsReview: 0, Updated: 1, Regenerated: 2}\n+\tsort.SliceStable(impact.Pages, func(i, j int) bool {\n+\t\treturn order[impact.Pages[i].State] \u003c order[impact.Pages[j].State]\n+\t})\n+\tfor _, file := range code {\n+\t\tif strings.HasSuffix(file, \".go\") \u0026\u0026 !isCovered[file] {\n+\t\t\timpact.Uncovered = append(impact.Uncovered, file)\n+\t\t}\n+\t}\n+\treturn impact\n+}\n+\n+// Count returns how many pages are in a state.\n+func (i Impact) Count(state string) int {\n+\tn := 0\n+\tfor _, page := range i.Pages {\n+\t\tif page.State == state {\n+\t\t\tn++\n+\t\t}\n+\t}\n+\treturn n\n+}\n+\n+func fileList(files []string) string {\n+\tconst most = 6\n+\tvar parts []string\n+\tfor n, file := range files {\n+\t\tif n == most {\n+\t\t\tparts = append(parts, fmt.Sprintf(\"and %d more\", len(files)-most))\n+\t\t\tbreak\n+\t\t}\n+\t\tparts = append(parts, \"`\"+file+\"`\")\n+\t}\n+\treturn strings.Join(parts, \", \")\n+}\n+\n+// Markdown renders the report as a pull-request comment.\n+func (i Impact) Markdown() string {\n+\tvar b strings.Builder\n+\tb.WriteString(ImpactMarker + \"\\n## Documentation impact\\n\\n\")\n+\treview := i.Count(NeedsReview)\n+\tswitch {\n+\tcase len(i.Pages) == 0 \u0026\u0026 len(i.Uncovered) == 0:\n+\t\tb.WriteString(\"This change touches no code that a documentation page covers.\\n\")\n+\t\treturn b.String()\n+\tcase review == 0:\n+\t\tb.WriteString(\"No page needs review: every page that covers the changed code was updated or is generated.\\n\")\n+\tcase review == 1:\n+\t\tb.WriteString(\"**1 page covers code this change touches and was not updated.** Check that it is still true.\\n\")\n+\tdefault:\n+\t\tfmt.Fprintf(\u0026b, \"**%d pages cover code this change touches and were not updated.** Check that they are still true.\\n\", review)\n+\t}\n+\tlabels := map[string]string{NeedsReview: \"Needs review\", Updated: \"Updated in this change\", Regenerated: \"Generated\"}\n+\tif len(i.Pages) \u003e 0 {\n+\t\tb.WriteString(\"\\n| Page | State | Changed code it covers |\\n| --- | --- | --- |\\n\")\n+\t\tfor _, page := range i.Pages {\n+\t\t\tfmt.Fprintf(\u0026b, \"| %s (`%s`) | %s | %s |\\n\", cell(page.Title), page.Path, labels[page.State], fileList(page.Changed))\n+\t\t}\n+\t}\n+\tif len(i.Uncovered) \u003e 0 {\n+\t\tfmt.Fprintf(\u0026b, \"\\nChanged Go files that no page covers: %s.\\n\", fileList(i.Uncovered))\n+\t}\n+\tb.WriteString(\"\\nThis is a map from `covers` in each page's front matter, not a judgment that a page is wrong.\\n\")\n+\treturn b.String()\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-e4fa194bd8301051",
+          "header": "@@ -0,0 +1,155 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package docs"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"path\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"sort\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "// ImpactMarker identifies the pull-request comment so it is updated, not"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "// repeated."
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "const ImpactMarker = \"\u003c!-- px1-docs-impact --\u003e\""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "// Page states in an impact report."
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "const ("
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tNeedsReview = \"needs-review\" // covered code changed, the page did not"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\tUpdated     = \"updated\"      // covered code changed and so did the page"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tRegenerated = \"generated\"    // a generated page; the check keeps it current"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "// PageImpact is one page whose covered code a diff touches."
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "type PageImpact struct {"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tPath    string   `json:\"path\"`"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tTitle   string   `json:\"title\"`"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tState   string   `json:\"state\"`"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tChanged []string `json:\"changed\"`"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "// Impact is what a diff means for the documentation."
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "type Impact struct {"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tBase  string       `json:\"base\"`"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tHead  string       `json:\"head\"`"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tPages []PageImpact `json:\"pages\"`"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t// Uncovered are changed Go files that no page covers."
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tUncovered []string `json:\"uncovered\"`"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "// touches reports whether a changed file falls under a covers entry."
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "func touches(file, entry string) bool {"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\tif file == entry {"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t\treturn true"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tif strings.HasSuffix(entry, \"/\") {"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t\treturn strings.HasPrefix(file, entry)"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\tif strings.ContainsAny(entry, \"*?[\") {"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\tok, _ := path.Match(entry, file)"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\treturn ok"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\treturn false"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "// ComputeImpact maps changed files to the pages that cover them. Test files"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "// never count: they change without the documented behaviour changing."
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "func ComputeImpact(pages []Page, changed []string) Impact {"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\timpact := Impact{Pages: []PageImpact{}, Uncovered: []string{}}"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\tchangedSet := map[string]bool{}"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\tvar code []string"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\tfor _, file := range changed {"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t\tchangedSet[file] = true"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t\tif strings.HasPrefix(file, Dir+\"/\") || strings.HasSuffix(file, \"_test.go\") {"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t\tcode = append(code, file)"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\tsort.Strings(code)"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\tisCovered := map[string]bool{}"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\tfor _, page := range pages {"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\tvar hit []string"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\tfor _, file := range code {"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\t\tfor _, entry := range page.Covers {"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t\t\t\tif touches(file, entry) {"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\t\t\t\thit = append(hit, file)"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t\t\t\t\tisCovered[file] = true"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\t\t\t\t\tbreak"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t\t\t\t}"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\t\tif len(hit) == 0 {"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\t\tstate := NeedsReview"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t\tswitch {"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\t\tcase page.Kind == \"reference\" \u0026\u0026 strings.Contains(page.body, generatedNote):"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\t\t\tstate = Regenerated"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\t\tcase changedSet[page.Path]:"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\t\t\tstate = Updated"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\t\timpact.Pages = append(impact.Pages, PageImpact{Path: page.Path, Title: page.Title, State: state, Changed: hit})"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\torder := map[string]int{NeedsReview: 0, Updated: 1, Regenerated: 2}"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\tsort.SliceStable(impact.Pages, func(i, j int) bool {"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\t\treturn order[impact.Pages[i].State] \u003c order[impact.Pages[j].State]"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t})"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\tfor _, file := range code {"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\t\tif strings.HasSuffix(file, \".go\") \u0026\u0026 !isCovered[file] {"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t\t\timpact.Uncovered = append(impact.Uncovered, file)"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\treturn impact"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "// Count returns how many pages are in a state."
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "func (i Impact) Count(state string) int {"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\tn := 0"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\tfor _, page := range i.Pages {"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\t\tif page.State == state {"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\t\t\tn++"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\treturn n"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "func fileList(files []string) string {"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "\tconst most = 6"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "\tvar parts []string"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\tfor n, file := range files {"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\t\tif n == most {"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\t\t\tparts = append(parts, fmt.Sprintf(\"and %d more\", len(files)-most))"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\t\t\tbreak"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\t\tparts = append(parts, \"`\"+file+\"`\")"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\treturn strings.Join(parts, \", \")"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "// Markdown renders the report as a pull-request comment."
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "func (i Impact) Markdown() string {"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\tvar b strings.Builder"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\tb.WriteString(ImpactMarker + \"\\n## Documentation impact\\n\\n\")"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\treview := i.Count(NeedsReview)"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\tswitch {"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\tcase len(i.Pages) == 0 \u0026\u0026 len(i.Uncovered) == 0:"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\t\tb.WriteString(\"This change touches no code that a documentation page covers.\\n\")"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\t\treturn b.String()"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\tcase review == 0:"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\t\tb.WriteString(\"No page needs review: every page that covers the changed code was updated or is generated.\\n\")"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\tcase review == 1:"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\t\tb.WriteString(\"**1 page covers code this change touches and was not updated.** Check that it is still true.\\n\")"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "\tdefault:"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "\t\tfmt.Fprintf(\u0026b, \"**%d pages cover code this change touches and were not updated.** Check that they are still true.\\n\", review)"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "\tlabels := map[string]string{NeedsReview: \"Needs review\", Updated: \"Updated in this change\", Regenerated: \"Generated\"}"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\tif len(i.Pages) \u003e 0 {"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\t\tb.WriteString(\"\\n| Page | State | Changed code it covers |\\n| --- | --- | --- |\\n\")"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\t\tfor _, page := range i.Pages {"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "\t\t\tfmt.Fprintf(\u0026b, \"| %s (`%s`) | %s | %s |\\n\", cell(page.Title), page.Path, labels[page.State], fileList(page.Changed))"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "\tif len(i.Uncovered) \u003e 0 {"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "\t\tfmt.Fprintf(\u0026b, \"\\nChanged Go files that no page covers: %s.\\n\", fileList(i.Uncovered))"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "\tb.WriteString(\"\\nThis is a map from `covers` in each page's front matter, not a judgment that a page is wrong.\\n\")"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "\treturn b.String()"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/docs/site.go",
+      "status": "M",
+      "diff": "diff --git a/internal/docs/site.go b/internal/docs/site.go\nindex ab07904..0aa0ac1 100644\n--- a/internal/docs/site.go\n+++ b/internal/docs/site.go\n@@ -33,6 +33,8 @@ type SiteOptions struct {\n \t// Fonts are woff2 files by name, written under fonts/. The stylesheet\n \t// falls back to system fonts without them.\n \tFonts map[string][]byte\n+\t// Impact marks the pages a pull request affects. Nil for a normal build.\n+\tImpact *Impact\n }\n \n type navSection struct {\n@@ -42,6 +44,7 @@ type navSection struct {\n \n type navPage struct {\n \tTitle, URL, Status string\n+\tAffected           string // an impact state, or empty\n \tKind               string\n \tCurrent            bool\n }\n@@ -60,6 +63,8 @@ type sitePage struct {\n \tVerified string\n \tCommit   string\n \tFontCSS  template.CSS\n+\tImpact   *PageImpact\n+\tAffected []navPage // home page: the pages a pull request affects\n }\n \n type coverLink struct{ Path, URL string }\n@@ -136,13 +141,25 @@ func BuildSite(root string, opts SiteOptions) (map[string][]byte, error) {\n \t\tfmt.Fprintf(\u0026fontCSS, \"@font-face{font-family:'%s';src:url(fonts/%s) format('woff2');font-weight:%s;font-display:swap}\", family, name, weight)\n \t}\n \n+\taffected := map[string]*PageImpact{}\n+\tif opts.Impact != nil {\n+\t\tfor i := range opts.Impact.Pages {\n+\t\t\taffected[opts.Impact.Pages[i].Path] = \u0026opts.Impact.Pages[i]\n+\t\t}\n+\t}\n+\tstate := func(p Page) string {\n+\t\tif hit := affected[p.Path]; hit != nil {\n+\t\t\treturn hit.State\n+\t\t}\n+\t\treturn \"\"\n+\t}\n \tnav := func(current string) []navSection {\n \t\tvar sections []navSection\n \t\tfor _, section := range Sections {\n \t\t\ts := navSection{Title: sectionTitles[section]}\n \t\t\tfor _, p := range pages {\n \t\t\t\tif p.Section == section {\n-\t\t\t\t\ts.Pages = append(s.Pages, navPage{Title: p.Title, URL: pageURL(p), Status: p.Status, Kind: p.Kind, Current: p.Path == current})\n+\t\t\t\t\ts.Pages = append(s.Pages, navPage{Title: p.Title, URL: pageURL(p), Status: p.Status, Kind: p.Kind, Current: p.Path == current, Affected: state(p)})\n \t\t\t\t}\n \t\t\t}\n \t\t\tif len(s.Pages) \u003e 0 {\n@@ -217,7 +234,7 @@ func BuildSite(root string, opts SiteOptions) (map[string][]byte, error) {\n \t\tout, err := render(sitePage{\n \t\t\tTitle: p.Title, Nav: nav(p.Path), Page: p, Body: template.HTML(body), TOC: toc,\n \t\t\tCovers: covers, Markdown: \"md/\" + name, Verified: verified, Commit: opts.Commit,\n-\t\t\tFontCSS: template.CSS(fontCSS.String()),\n+\t\t\tFontCSS: template.CSS(fontCSS.String()), Impact: affected[p.Path],\n \t\t})\n \t\tif err != nil {\n \t\t\treturn nil, err\n@@ -238,7 +255,17 @@ func BuildSite(root string, opts SiteOptions) (map[string][]byte, error) {\n \t\t})\n \t}\n \n-\thome, err := render(sitePage{Title: \"px1 documentation\", Home: true, Nav: nav(\"\"), Commit: opts.Commit, FontCSS: template.CSS(fontCSS.String())})\n+\tvar affectedPages []navPage\n+\tif opts.Impact != nil {\n+\t\tfor _, hit := range opts.Impact.Pages {\n+\t\t\tfor _, p := range pages {\n+\t\t\t\tif p.Path == hit.Path {\n+\t\t\t\t\taffectedPages = append(affectedPages, navPage{Title: p.Title, URL: pageURL(p), Status: p.Status, Affected: hit.State})\n+\t\t\t\t}\n+\t\t\t}\n+\t\t}\n+\t}\n+\thome, err := render(sitePage{Title: \"px1 documentation\", Home: true, Nav: nav(\"\"), Commit: opts.Commit, FontCSS: template.CSS(fontCSS.String()), Affected: affectedPages})\n \tif err != nil {\n \t\treturn nil, err\n \t}\n@@ -283,7 +310,7 @@ func WriteSite(root, dir string, opts SiteOptions) (int, error) {\n \treturn len(files), nil\n }\n \n-var siteTemplate = template.Must(template.New(\"page\").Parse(`\u003c!doctype html\u003e\n+var siteTemplate = template.Must(template.New(\"page\").Parse(`{{define \"state\"}}{{if eq . \"needs-review\"}}Needs review: not updated in this pull request{{else if eq . \"updated\"}}Updated in this pull request{{else}}Generated from the changed code{{end}}{{end}}\u003c!doctype html\u003e\n \u003chtml lang=\"en\"\u003e\n \u003chead\u003e\n \u003cmeta charset=\"utf-8\"\u003e\n@@ -306,7 +333,7 @@ var siteTemplate = template.Must(template.New(\"page\").Parse(`\u003c!doctype html\u003e\n \u003cdiv class=\"shell\"\u003e\n   \u003cnav class=\"rail\" aria-label=\"Pages\"\u003e\n     {{range .Nav}}\u003ch2\u003e{{.Title}}\u003c/h2\u003e\n-    {{range .Pages}}\u003ca href=\"{{.URL}}\"{{if .Current}} aria-current=\"page\"{{end}}\u003e\u003cspan class=\"dot {{.Status}}\" title=\"{{.Status}}\"\u003e\u003c/span\u003e{{.Title}}\u003c/a\u003e\n+    {{range .Pages}}\u003ca href=\"{{.URL}}\"{{if .Current}} aria-current=\"page\"{{end}}\u003e\u003cspan class=\"dot {{.Status}}\" title=\"{{.Status}}\"\u003e\u003c/span\u003e{{.Title}}{{if .Affected}}\u003cspan class=\"mark {{.Affected}}\" title=\"{{template \"state\" .Affected}}\"\u003e\u003c/span\u003e{{end}}\u003c/a\u003e\n     {{end}}{{end}}\n     {{if .Commit}}\u003cp class=\"built-from\"\u003eBuilt from \u003ccode\u003e{{.Commit}}\u003c/code\u003e\u003c/p\u003e{{end}}\n   \u003c/nav\u003e\n@@ -315,7 +342,12 @@ var siteTemplate = template.Must(template.New(\"page\").Parse(`\u003c!doctype html\u003e\n       \u003ch1\u003epx1 documentation\u003c/h1\u003e\n       \u003cp class=\"lede\"\u003eHow px1 reviews code, how to run it, and exactly what each command and input does. Every page says whether what it describes can be used today.\u003c/p\u003e\n       \u003cp class=\"legend\"\u003e\u003cspan\u003e\u003ci class=\"dot shipped\"\u003e\u003c/i\u003eShipped: usable now\u003c/span\u003e\u003cspan\u003e\u003ci class=\"dot built\"\u003e\u003c/i\u003eBuilt: code and tests exist, not deployed\u003c/span\u003e\u003cspan\u003e\u003ci class=\"dot\"\u003e\u003c/i\u003ePlanned\u003c/span\u003e\u003c/p\u003e\n-      {{range .Nav}}\u003ch2\u003e{{.Title}}\u003c/h2\u003e\n+      {{if .Affected}}\u003ch2\u003eAffected by this pull request\u003c/h2\u003e\n+      \u003cul class=\"cards\"\u003e\n+        {{range .Affected}}\u003cli\u003e\u003ca href=\"{{.URL}}\"\u003e\u003cstrong\u003e\u003cspan class=\"dot {{.Status}}\"\u003e\u003c/span\u003e{{.Title}}\u003c/strong\u003e\u003csmall class=\"state {{.Affected}}\"\u003e{{template \"state\" .Affected}}\u003c/small\u003e\u003c/a\u003e\u003c/li\u003e\n+        {{end}}\n+      \u003c/ul\u003e\n+      {{end}}{{range .Nav}}\u003ch2\u003e{{.Title}}\u003c/h2\u003e\n       \u003cul class=\"cards\"\u003e\n         {{range .Pages}}\u003cli\u003e\u003ca href=\"{{.URL}}\"\u003e\u003cstrong\u003e\u003cspan class=\"dot {{.Status}}\"\u003e\u003c/span\u003e{{.Title}}\u003c/strong\u003e\u003csmall\u003e{{.Status}} · {{.Kind}}\u003c/small\u003e\u003c/a\u003e\u003c/li\u003e\n         {{end}}\n@@ -329,6 +361,11 @@ var siteTemplate = template.Must(template.New(\"page\").Parse(`\u003c!doctype html\u003e\n         \u003cspan class=\"grow\"\u003e\u003c/span\u003e\n         \u003ca href=\"{{.Markdown}}\"\u003eMarkdown\u003c/a\u003e\n       \u003c/div\u003e\n+      {{with .Impact}}\u003caside class=\"impact {{.State}}\"\u003e\n+        \u003cstrong\u003e{{template \"state\" .State}}.\u003c/strong\u003e\n+        This pull request changes code this page covers:\n+        {{range $i, $f := .Changed}}{{if $i}}, {{end}}\u003ccode\u003e{{$f}}\u003c/code\u003e{{end}}.\n+      \u003c/aside\u003e{{end}}\n       {{.Body}}\n       {{if .Covers}}\u003csection class=\"covers\"\u003e\n         \u003ch2\u003eCode this page covers\u003c/h2\u003e\n",
+      "hunks": [
+        {
+          "id": "diff-d7f6841c14156bba",
+          "header": "@@ -33,6 +33,8 @@ type SiteOptions struct {",
+          "lines": [
+            {
+              "oldLine": 33,
+              "newLine": 33,
+              "kind": "context",
+              "text": "\t// Fonts are woff2 files by name, written under fonts/. The stylesheet"
+            },
+            {
+              "oldLine": 34,
+              "newLine": 34,
+              "kind": "context",
+              "text": "\t// falls back to system fonts without them."
+            },
+            {
+              "oldLine": 35,
+              "newLine": 35,
+              "kind": "context",
+              "text": "\tFonts map[string][]byte"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t// Impact marks the pages a pull request affects. Nil for a normal build."
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\tImpact *Impact"
+            },
+            {
+              "oldLine": 36,
+              "newLine": 38,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 37,
+              "newLine": 39,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 38,
+              "newLine": 40,
+              "kind": "context",
+              "text": "type navSection struct {"
+            }
+          ]
+        },
+        {
+          "id": "diff-4566b79b2b000d7c",
+          "header": "@@ -42,6 +44,7 @@ type navSection struct {",
+          "lines": [
+            {
+              "oldLine": 42,
+              "newLine": 44,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 43,
+              "newLine": 45,
+              "kind": "context",
+              "text": "type navPage struct {"
+            },
+            {
+              "oldLine": 44,
+              "newLine": 46,
+              "kind": "context",
+              "text": "\tTitle, URL, Status string"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\tAffected           string // an impact state, or empty"
+            },
+            {
+              "oldLine": 45,
+              "newLine": 48,
+              "kind": "context",
+              "text": "\tKind               string"
+            },
+            {
+              "oldLine": 46,
+              "newLine": 49,
+              "kind": "context",
+              "text": "\tCurrent            bool"
+            },
+            {
+              "oldLine": 47,
+              "newLine": 50,
+              "kind": "context",
+              "text": "}"
+            }
+          ]
+        },
+        {
+          "id": "diff-a045807be1ff97e4",
+          "header": "@@ -60,6 +63,8 @@ type sitePage struct {",
+          "lines": [
+            {
+              "oldLine": 60,
+              "newLine": 63,
+              "kind": "context",
+              "text": "\tVerified string"
+            },
+            {
+              "oldLine": 61,
+              "newLine": 64,
+              "kind": "context",
+              "text": "\tCommit   string"
+            },
+            {
+              "oldLine": 62,
+              "newLine": 65,
+              "kind": "context",
+              "text": "\tFontCSS  template.CSS"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\tImpact   *PageImpact"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\tAffected []navPage // home page: the pages a pull request affects"
+            },
+            {
+              "oldLine": 63,
+              "newLine": 68,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 64,
+              "newLine": 69,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 65,
+              "newLine": 70,
+              "kind": "context",
+              "text": "type coverLink struct{ Path, URL string }"
+            }
+          ]
+        },
+        {
+          "id": "diff-67aedeedb51afa51",
+          "header": "@@ -136,13 +141,25 @@ func BuildSite(root string, opts SiteOptions) (map[string][]byte, error) {",
+          "lines": [
+            {
+              "oldLine": 136,
+              "newLine": 141,
+              "kind": "context",
+              "text": "\t\tfmt.Fprintf(\u0026fontCSS, \"@font-face{font-family:'%s';src:url(fonts/%s) format('woff2');font-weight:%s;font-display:swap}\", family, name, weight)"
+            },
+            {
+              "oldLine": 137,
+              "newLine": 142,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 138,
+              "newLine": 143,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\taffected := map[string]*PageImpact{}"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\tif opts.Impact != nil {"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\t\tfor i := range opts.Impact.Pages {"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "\t\t\taffected[opts.Impact.Pages[i].Path] = \u0026opts.Impact.Pages[i]"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "\tstate := func(p Page) string {"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "\t\tif hit := affected[p.Path]; hit != nil {"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "\t\t\treturn hit.State"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "\t\treturn \"\""
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 139,
+              "newLine": 156,
+              "kind": "context",
+              "text": "\tnav := func(current string) []navSection {"
+            },
+            {
+              "oldLine": 140,
+              "newLine": 157,
+              "kind": "context",
+              "text": "\t\tvar sections []navSection"
+            },
+            {
+              "oldLine": 141,
+              "newLine": 158,
+              "kind": "context",
+              "text": "\t\tfor _, section := range Sections {"
+            },
+            {
+              "oldLine": 142,
+              "newLine": 159,
+              "kind": "context",
+              "text": "\t\t\ts := navSection{Title: sectionTitles[section]}"
+            },
+            {
+              "oldLine": 143,
+              "newLine": 160,
+              "kind": "context",
+              "text": "\t\t\tfor _, p := range pages {"
+            },
+            {
+              "oldLine": 144,
+              "newLine": 161,
+              "kind": "context",
+              "text": "\t\t\t\tif p.Section == section {"
+            },
+            {
+              "oldLine": 145,
+              "kind": "removed",
+              "text": "\t\t\t\t\ts.Pages = append(s.Pages, navPage{Title: p.Title, URL: pageURL(p), Status: p.Status, Kind: p.Kind, Current: p.Path == current})"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "\t\t\t\t\ts.Pages = append(s.Pages, navPage{Title: p.Title, URL: pageURL(p), Status: p.Status, Kind: p.Kind, Current: p.Path == current, Affected: state(p)})"
+            },
+            {
+              "oldLine": 146,
+              "newLine": 163,
+              "kind": "context",
+              "text": "\t\t\t\t}"
+            },
+            {
+              "oldLine": 147,
+              "newLine": 164,
+              "kind": "context",
+              "text": "\t\t\t}"
+            },
+            {
+              "oldLine": 148,
+              "newLine": 165,
+              "kind": "context",
+              "text": "\t\t\tif len(s.Pages) \u003e 0 {"
+            }
+          ]
+        },
+        {
+          "id": "diff-1b4464d350ed527d",
+          "header": "@@ -217,7 +234,7 @@ func BuildSite(root string, opts SiteOptions) (map[string][]byte, error) {",
+          "lines": [
+            {
+              "oldLine": 217,
+              "newLine": 234,
+              "kind": "context",
+              "text": "\t\tout, err := render(sitePage{"
+            },
+            {
+              "oldLine": 218,
+              "newLine": 235,
+              "kind": "context",
+              "text": "\t\t\tTitle: p.Title, Nav: nav(p.Path), Page: p, Body: template.HTML(body), TOC: toc,"
+            },
+            {
+              "oldLine": 219,
+              "newLine": 236,
+              "kind": "context",
+              "text": "\t\t\tCovers: covers, Markdown: \"md/\" + name, Verified: verified, Commit: opts.Commit,"
+            },
+            {
+              "oldLine": 220,
+              "kind": "removed",
+              "text": "\t\t\tFontCSS: template.CSS(fontCSS.String()),"
+            },
+            {
+              "newLine": 237,
+              "kind": "added",
+              "text": "\t\t\tFontCSS: template.CSS(fontCSS.String()), Impact: affected[p.Path],"
+            },
+            {
+              "oldLine": 221,
+              "newLine": 238,
+              "kind": "context",
+              "text": "\t\t})"
+            },
+            {
+              "oldLine": 222,
+              "newLine": 239,
+              "kind": "context",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "oldLine": 223,
+              "newLine": 240,
+              "kind": "context",
+              "text": "\t\t\treturn nil, err"
+            }
+          ]
+        },
+        {
+          "id": "diff-302434463c601eed",
+          "header": "@@ -238,7 +255,17 @@ func BuildSite(root string, opts SiteOptions) (map[string][]byte, error) {",
+          "lines": [
+            {
+              "oldLine": 238,
+              "newLine": 255,
+              "kind": "context",
+              "text": "\t\t})"
+            },
+            {
+              "oldLine": 239,
+              "newLine": 256,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 240,
+              "newLine": 257,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 241,
+              "kind": "removed",
+              "text": "\thome, err := render(sitePage{Title: \"px1 documentation\", Home: true, Nav: nav(\"\"), Commit: opts.Commit, FontCSS: template.CSS(fontCSS.String())})"
+            },
+            {
+              "newLine": 258,
+              "kind": "added",
+              "text": "\tvar affectedPages []navPage"
+            },
+            {
+              "newLine": 259,
+              "kind": "added",
+              "text": "\tif opts.Impact != nil {"
+            },
+            {
+              "newLine": 260,
+              "kind": "added",
+              "text": "\t\tfor _, hit := range opts.Impact.Pages {"
+            },
+            {
+              "newLine": 261,
+              "kind": "added",
+              "text": "\t\t\tfor _, p := range pages {"
+            },
+            {
+              "newLine": 262,
+              "kind": "added",
+              "text": "\t\t\t\tif p.Path == hit.Path {"
+            },
+            {
+              "newLine": 263,
+              "kind": "added",
+              "text": "\t\t\t\t\taffectedPages = append(affectedPages, navPage{Title: p.Title, URL: pageURL(p), Status: p.Status, Affected: hit.State})"
+            },
+            {
+              "newLine": 264,
+              "kind": "added",
+              "text": "\t\t\t\t}"
+            },
+            {
+              "newLine": 265,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 266,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 267,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 268,
+              "kind": "added",
+              "text": "\thome, err := render(sitePage{Title: \"px1 documentation\", Home: true, Nav: nav(\"\"), Commit: opts.Commit, FontCSS: template.CSS(fontCSS.String()), Affected: affectedPages})"
+            },
+            {
+              "oldLine": 242,
+              "newLine": 269,
+              "kind": "context",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 243,
+              "newLine": 270,
+              "kind": "context",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "oldLine": 244,
+              "newLine": 271,
+              "kind": "context",
+              "text": "\t}"
+            }
+          ]
+        },
+        {
+          "id": "diff-539668178a3d162a",
+          "header": "@@ -283,7 +310,7 @@ func WriteSite(root, dir string, opts SiteOptions) (int, error) {",
+          "lines": [
+            {
+              "oldLine": 283,
+              "newLine": 310,
+              "kind": "context",
+              "text": "\treturn len(files), nil"
+            },
+            {
+              "oldLine": 284,
+              "newLine": 311,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 285,
+              "newLine": 312,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 286,
+              "kind": "removed",
+              "text": "var siteTemplate = template.Must(template.New(\"page\").Parse(`\u003c!doctype html\u003e"
+            },
+            {
+              "newLine": 313,
+              "kind": "added",
+              "text": "var siteTemplate = template.Must(template.New(\"page\").Parse(`{{define \"state\"}}{{if eq . \"needs-review\"}}Needs review: not updated in this pull request{{else if eq . \"updated\"}}Updated in this pull request{{else}}Generated from the changed code{{end}}{{end}}\u003c!doctype html\u003e"
+            },
+            {
+              "oldLine": 287,
+              "newLine": 314,
+              "kind": "context",
+              "text": "\u003chtml lang=\"en\"\u003e"
+            },
+            {
+              "oldLine": 288,
+              "newLine": 315,
+              "kind": "context",
+              "text": "\u003chead\u003e"
+            },
+            {
+              "oldLine": 289,
+              "newLine": 316,
+              "kind": "context",
+              "text": "\u003cmeta charset=\"utf-8\"\u003e"
+            }
+          ]
+        },
+        {
+          "id": "diff-c6d39d18945975d7",
+          "header": "@@ -306,7 +333,7 @@ var siteTemplate = template.Must(template.New(\"page\").Parse(`\u003c!doctype html\u003e",
+          "lines": [
+            {
+              "oldLine": 306,
+              "newLine": 333,
+              "kind": "context",
+              "text": "\u003cdiv class=\"shell\"\u003e"
+            },
+            {
+              "oldLine": 307,
+              "newLine": 334,
+              "kind": "context",
+              "text": "  \u003cnav class=\"rail\" aria-label=\"Pages\"\u003e"
+            },
+            {
+              "oldLine": 308,
+              "newLine": 335,
+              "kind": "context",
+              "text": "    {{range .Nav}}\u003ch2\u003e{{.Title}}\u003c/h2\u003e"
+            },
+            {
+              "oldLine": 309,
+              "kind": "removed",
+              "text": "    {{range .Pages}}\u003ca href=\"{{.URL}}\"{{if .Current}} aria-current=\"page\"{{end}}\u003e\u003cspan class=\"dot {{.Status}}\" title=\"{{.Status}}\"\u003e\u003c/span\u003e{{.Title}}\u003c/a\u003e"
+            },
+            {
+              "newLine": 336,
+              "kind": "added",
+              "text": "    {{range .Pages}}\u003ca href=\"{{.URL}}\"{{if .Current}} aria-current=\"page\"{{end}}\u003e\u003cspan class=\"dot {{.Status}}\" title=\"{{.Status}}\"\u003e\u003c/span\u003e{{.Title}}{{if .Affected}}\u003cspan class=\"mark {{.Affected}}\" title=\"{{template \"state\" .Affected}}\"\u003e\u003c/span\u003e{{end}}\u003c/a\u003e"
+            },
+            {
+              "oldLine": 310,
+              "newLine": 337,
+              "kind": "context",
+              "text": "    {{end}}{{end}}"
+            },
+            {
+              "oldLine": 311,
+              "newLine": 338,
+              "kind": "context",
+              "text": "    {{if .Commit}}\u003cp class=\"built-from\"\u003eBuilt from \u003ccode\u003e{{.Commit}}\u003c/code\u003e\u003c/p\u003e{{end}}"
+            },
+            {
+              "oldLine": 312,
+              "newLine": 339,
+              "kind": "context",
+              "text": "  \u003c/nav\u003e"
+            }
+          ]
+        },
+        {
+          "id": "diff-ee4a93dfc9f774b2",
+          "header": "@@ -315,7 +342,12 @@ var siteTemplate = template.Must(template.New(\"page\").Parse(`\u003c!doctype html\u003e",
+          "lines": [
+            {
+              "oldLine": 315,
+              "newLine": 342,
+              "kind": "context",
+              "text": "      \u003ch1\u003epx1 documentation\u003c/h1\u003e"
+            },
+            {
+              "oldLine": 316,
+              "newLine": 343,
+              "kind": "context",
+              "text": "      \u003cp class=\"lede\"\u003eHow px1 reviews code, how to run it, and exactly what each command and input does. Every page says whether what it describes can be used today.\u003c/p\u003e"
+            },
+            {
+              "oldLine": 317,
+              "newLine": 344,
+              "kind": "context",
+              "text": "      \u003cp class=\"legend\"\u003e\u003cspan\u003e\u003ci class=\"dot shipped\"\u003e\u003c/i\u003eShipped: usable now\u003c/span\u003e\u003cspan\u003e\u003ci class=\"dot built\"\u003e\u003c/i\u003eBuilt: code and tests exist, not deployed\u003c/span\u003e\u003cspan\u003e\u003ci class=\"dot\"\u003e\u003c/i\u003ePlanned\u003c/span\u003e\u003c/p\u003e"
+            },
+            {
+              "oldLine": 318,
+              "kind": "removed",
+              "text": "      {{range .Nav}}\u003ch2\u003e{{.Title}}\u003c/h2\u003e"
+            },
+            {
+              "newLine": 345,
+              "kind": "added",
+              "text": "      {{if .Affected}}\u003ch2\u003eAffected by this pull request\u003c/h2\u003e"
+            },
+            {
+              "newLine": 346,
+              "kind": "added",
+              "text": "      \u003cul class=\"cards\"\u003e"
+            },
+            {
+              "newLine": 347,
+              "kind": "added",
+              "text": "        {{range .Affected}}\u003cli\u003e\u003ca href=\"{{.URL}}\"\u003e\u003cstrong\u003e\u003cspan class=\"dot {{.Status}}\"\u003e\u003c/span\u003e{{.Title}}\u003c/strong\u003e\u003csmall class=\"state {{.Affected}}\"\u003e{{template \"state\" .Affected}}\u003c/small\u003e\u003c/a\u003e\u003c/li\u003e"
+            },
+            {
+              "newLine": 348,
+              "kind": "added",
+              "text": "        {{end}}"
+            },
+            {
+              "newLine": 349,
+              "kind": "added",
+              "text": "      \u003c/ul\u003e"
+            },
+            {
+              "newLine": 350,
+              "kind": "added",
+              "text": "      {{end}}{{range .Nav}}\u003ch2\u003e{{.Title}}\u003c/h2\u003e"
+            },
+            {
+              "oldLine": 319,
+              "newLine": 351,
+              "kind": "context",
+              "text": "      \u003cul class=\"cards\"\u003e"
+            },
+            {
+              "oldLine": 320,
+              "newLine": 352,
+              "kind": "context",
+              "text": "        {{range .Pages}}\u003cli\u003e\u003ca href=\"{{.URL}}\"\u003e\u003cstrong\u003e\u003cspan class=\"dot {{.Status}}\"\u003e\u003c/span\u003e{{.Title}}\u003c/strong\u003e\u003csmall\u003e{{.Status}} · {{.Kind}}\u003c/small\u003e\u003c/a\u003e\u003c/li\u003e"
+            },
+            {
+              "oldLine": 321,
+              "newLine": 353,
+              "kind": "context",
+              "text": "        {{end}}"
+            }
+          ]
+        },
+        {
+          "id": "diff-b0e36060d4149a96",
+          "header": "@@ -329,6 +361,11 @@ var siteTemplate = template.Must(template.New(\"page\").Parse(`\u003c!doctype html\u003e",
+          "lines": [
+            {
+              "oldLine": 329,
+              "newLine": 361,
+              "kind": "context",
+              "text": "        \u003cspan class=\"grow\"\u003e\u003c/span\u003e"
+            },
+            {
+              "oldLine": 330,
+              "newLine": 362,
+              "kind": "context",
+              "text": "        \u003ca href=\"{{.Markdown}}\"\u003eMarkdown\u003c/a\u003e"
+            },
+            {
+              "oldLine": 331,
+              "newLine": 363,
+              "kind": "context",
+              "text": "      \u003c/div\u003e"
+            },
+            {
+              "newLine": 364,
+              "kind": "added",
+              "text": "      {{with .Impact}}\u003caside class=\"impact {{.State}}\"\u003e"
+            },
+            {
+              "newLine": 365,
+              "kind": "added",
+              "text": "        \u003cstrong\u003e{{template \"state\" .State}}.\u003c/strong\u003e"
+            },
+            {
+              "newLine": 366,
+              "kind": "added",
+              "text": "        This pull request changes code this page covers:"
+            },
+            {
+              "newLine": 367,
+              "kind": "added",
+              "text": "        {{range $i, $f := .Changed}}{{if $i}}, {{end}}\u003ccode\u003e{{$f}}\u003c/code\u003e{{end}}."
+            },
+            {
+              "newLine": 368,
+              "kind": "added",
+              "text": "      \u003c/aside\u003e{{end}}"
+            },
+            {
+              "oldLine": 332,
+              "newLine": 369,
+              "kind": "context",
+              "text": "      {{.Body}}"
+            },
+            {
+              "oldLine": 333,
+              "newLine": 370,
+              "kind": "context",
+              "text": "      {{if .Covers}}\u003csection class=\"covers\"\u003e"
+            },
+            {
+              "oldLine": 334,
+              "newLine": 371,
+              "kind": "context",
+              "text": "        \u003ch2\u003eCode this page covers\u003c/h2\u003e"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/docs/webassets/docs.css",
+      "status": "M",
+      "diff": "diff --git a/internal/docs/webassets/docs.css b/internal/docs/webassets/docs.css\nindex 38ffdf2..92427b5 100644\n--- a/internal/docs/webassets/docs.css\n+++ b/internal/docs/webassets/docs.css\n@@ -118,3 +118,12 @@ main{min-width:0;padding:32px 40px 80px}\n   .doc h1{font-size:25px}\n }\n .built-from{margin:24px 8px 0;font-size:12px;color:var(--faint)}\n+.mark{flex:none;margin-left:auto;width:8px;height:8px;border-radius:2px;background:var(--faint)}\n+.mark.needs-review{background:var(--attention)}\n+.mark.updated{background:var(--ok)}\n+.impact{margin:0 0 22px;padding:12px 16px;border:1px solid var(--line);border-left:3px solid var(--faint);border-radius:8px;background:var(--surface);font-size:14px;color:var(--dim)}\n+.impact.needs-review{border-left-color:var(--attention)}\n+.impact.updated{border-left-color:var(--ok)}\n+.impact strong{color:var(--ink)}\n+.cards small.state.needs-review{color:var(--attention)}\n+.cards small.state.updated{color:var(--ok)}\n",
+      "hunks": [
+        {
+          "id": "diff-1b01c32c2b6ac961",
+          "header": "@@ -118,3 +118,12 @@ main{min-width:0;padding:32px 40px 80px}",
+          "lines": [
+            {
+              "oldLine": 118,
+              "newLine": 118,
+              "kind": "context",
+              "text": "  .doc h1{font-size:25px}"
+            },
+            {
+              "oldLine": 119,
+              "newLine": 119,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 120,
+              "newLine": 120,
+              "kind": "context",
+              "text": ".built-from{margin:24px 8px 0;font-size:12px;color:var(--faint)}"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": ".mark{flex:none;margin-left:auto;width:8px;height:8px;border-radius:2px;background:var(--faint)}"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": ".mark.needs-review{background:var(--attention)}"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": ".mark.updated{background:var(--ok)}"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": ".impact{margin:0 0 22px;padding:12px 16px;border:1px solid var(--line);border-left:3px solid var(--faint);border-radius:8px;background:var(--surface);font-size:14px;color:var(--dim)}"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": ".impact.needs-review{border-left-color:var(--attention)}"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": ".impact.updated{border-left-color:var(--ok)}"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": ".impact strong{color:var(--ink)}"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": ".cards small.state.needs-review{color:var(--attention)}"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": ".cards small.state.updated{color:var(--ok)}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-4073a54befa069b8",
+      "title": "Impact changes",
+      "summary": "9 related files share the \"impact\" change signal.",
+      "paths": [
+        "ROADMAP.md",
+        "docs/CLI_REFERENCE.md",
+        "docs/DOCS_ROADMAP.md",
+        "docs_check_test.go",
+        "docs_cmd.go",
+        "internal/docs/docs_test.go",
+        "internal/docs/impact.go",
+        "internal/docs/site.go",
+        "internal/docs/webassets/docs.css"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-e06f3bc36f846c84",
+      "path": "internal/docs/impact.go",
+      "line": 55,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func ComputeImpact(pages []Page, changed []string) Impact {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 9,
+    "filesAnalyzed": 9,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "impact-command",
+      "path": "docs_cmd.go",
+      "lineStart": 62,
+      "lineEnd": 85,
+      "title": "Adds documentation impact reports",
+      "summary": "Adds `px1 docs impact`, requiring a base ref and comparing it with the head ref. The command reads documentation pages from the working tree and can write the report to a file."
+    },
+    {
+      "id": "impact-mapping",
+      "path": "internal/docs/impact.go",
+      "lineStart": 55,
+      "lineEnd": 103,
+      "title": "Classifies affected pages and uncovered Go files",
+      "summary": "Maps changed files to pages using their `covers` entries, ignoring test files and documentation files. Matching pages are marked as needing review, updated, or generated; changed Go files with no covering page are reported separately."
+    },
+    {
+      "id": "impact-formats",
+      "path": "internal/docs/impact.go",
+      "lineStart": 121,
+      "lineEnd": 155,
+      "title": "Provides reusable Markdown and JSON output",
+      "summary": "Renders a pull-request-comment report with a stable marker and a concise summary, including a no-impact message when appropriate. The CLI also supports JSON output for use by the site builder."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "f61986965d35e1ac6a48ad59aae053539eb342d5",
+      "revision": "3671d4f76d418f6c8ff92b8641c33419093dabcc",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "f61986965d35e1ac6a48ad59aae053539eb342d5",
+      "revision": "3671d4f76d418f6c8ff92b8641c33419093dabcc",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "3671d4f76d418f6c8ff92b8641c33419093dabcc",
+      "detail": "3 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "3671d4f76d418f6c8ff92b8641c33419093dabcc",
+      "detail": "3 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-07f25d181386191d",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/docs/impact.go",
+      "line": 55,
+      "evidence": "func ComputeImpact(pages []Page, changed []string) Impact {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "3671d4f76d418f6c8ff92b8641c33419093dabcc",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42914794167",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42914794167/job/130174343608",
+        "startedAt": "2026-11-10T22:28:01Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42914794221/job/130174338548",
+        "startedAt": "2026-11-10T22:27:57Z"
+      },
+      {
+        "name": "review",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42914793973/job/130174337883",
+        "startedAt": "2026-11-10T22:27:57Z"
+      }
+    ]
+  }
+}
