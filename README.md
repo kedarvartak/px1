@@ -246,6 +246,7 @@ The product boundary and next work are documented in
 Every documentation page is listed in [docs/README.md](docs/README.md). Run
 `go run . docs check` after changing a page, and `go run . docs gen` after
 adding one or editing its front matter.
+`go run . docs site --out ./docs-site` renders them as a website.
 
 ## License
 

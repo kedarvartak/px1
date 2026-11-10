@@ -1,6 +1,7 @@
 package docs
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -225,6 +226,7 @@ func TestConfigRejectsUnknownKeys(t *testing.T) {
 const mainSource = `package main
 
 import (
+	"encoding/json"
 	"flag"
 	"os"
 )
@@ -435,5 +437,79 @@ func TestReferenceFillsRegionsAndCheckCatchesDrift(t *testing.T) {
 	write(t, root, agentToolsPage, front+"\n# Tools\n")
 	if _, err := Check(root); err == nil || !strings.Contains(err.Error(), "missing the") {
 		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestBuildSite(t *testing.T) {
+	root := repo(t)
+	write(t, root, "ROADMAP.md", "# Roadmap\n")
+	write(t, root, "docs/PAGE.md", goodFront+"\n# A page\n\nSee [other](OTHER.md#part), [the index](README.md), [the roadmap](../ROADMAP.md) and [a site](https://example.com).\n\n## First part\n\n| A | B |\n| --- | --- |\n| 1 | `x` |\n\n<script>alert(1)</script>\n\n## Second <part>\n")
+	if _, err := WriteGenerated(root); err != nil {
+		t.Fatal(err)
+	}
+	files, err := BuildSite(root, SiteOptions{SourceURL: "https://example.com/repo/blob/abc/", Commit: "abc1234", Fonts: map[string][]byte{"plex-mono-500.woff2": []byte("font")}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"index.html", "PAGE.html", "OTHER.html", "md/PAGE.md", "docs.css", "docs.js", "search.json", "manifest.json", "fonts/plex-mono-500.woff2"} {
+		if _, ok := files[name]; !ok {
+			t.Errorf("missing %s", name)
+		}
+	}
+	page := string(files["PAGE.html"])
+	for _, want := range []string{
+		`<title>A page · px1 docs</title>`,
+		`href="OTHER.html#part"`,
+		`href="index.html">the index`,
+		`href="https://example.com/repo/blob/abc/ROADMAP.md"`,
+		`href="https://example.com"`,
+		`<div class="table"><table>`,
+		`<span class="chip shipped">shipped</span>`,
+		`Not yet verified against the code`,
+		`<a href="#first-part">First part</a>`,
+		`<a href="https://example.com/repo/blob/abc/pkg/"><code>pkg/</code></a>`,
+		`aria-current="page"`,
+		`Built from <code>abc1234</code>`,
+		`font-family:'Report Mono'`,
+	} {
+		if !strings.Contains(page, want) {
+			t.Errorf("want %q in page", want)
+		}
+	}
+	if strings.Contains(page, "alert(1)") {
+		t.Error("raw HTML from a page reached the site")
+	}
+	if !strings.HasPrefix(string(files["md/PAGE.md"]), "---\ntitle: A page\n") {
+		t.Error("the Markdown copy lost its front matter")
+	}
+	var index []searchEntry
+	if err := json.Unmarshal(files["search.json"], &index); err != nil || len(index) != 2 {
+		t.Fatalf("search index: %v %+v", err, index)
+	}
+	if index[1].URL != "PAGE.html" || len(index[1].Headings) != 2 || index[1].Headings[0] != "First part" || !strings.Contains(index[1].Text, "See other") {
+		t.Errorf("search entry = %+v", index[1])
+	}
+	home := string(files["index.html"])
+	if !strings.Contains(home, `<a href="PAGE.html">`) || strings.Contains(home, "aria-current") {
+		t.Errorf("home page links are wrong")
+	}
+}
+
+func TestWriteSiteRefusesANonEmptyDirectoryAndBadPages(t *testing.T) {
+	root := repo(t)
+	out := filepath.Join(t.TempDir(), "site")
+	n, err := WriteSite(root, out, SiteOptions{})
+	if err != nil || n < 6 {
+		t.Fatalf("n=%d err=%v", n, err)
+	}
+	if _, err := os.Stat(filepath.Join(out, "md", "PAGE.md")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := WriteSite(root, out, SiteOptions{}); err == nil || !strings.Contains(err.Error(), "not empty") {
+		t.Fatalf("second write: %v", err)
+	}
+	write(t, root, "docs/BAD.md", "# no front matter\n")
+	if _, err := WriteSite(root, filepath.Join(t.TempDir(), "x"), SiteOptions{}); err == nil || !strings.Contains(err.Error(), "docs/BAD.md") {
+		t.Fatalf("bad page: %v", err)
 	}
 }
