@@ -382,3 +382,34 @@ func TestDiffContextWithoutRemovalsIsUnchanged(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 }
+
+// A long removal run must not push out the line the verifier is judging.
+func TestDiffContextKeepsTheFindingLineWhenARemovalRunIsHuge(t *testing.T) {
+	var diff strings.Builder
+	for i := 0; i < 200; i++ {
+		diff.WriteString("-\t" + strings.Repeat("old code ", 20) + "\n")
+	}
+	diff.WriteString("50\t+const fixed = true\n51\t ctx\n")
+	got := diffContext(diff.String(), 50, 50)
+	if !strings.Contains(got, "50\t+const fixed = true") || !strings.Contains(got, "51\t ctx") {
+		t.Fatalf("the finding's own lines were crowded out:\n%s", got)
+	}
+	if len(got) > diffContextLimit {
+		t.Fatalf("context is %d bytes, limit %d", len(got), diffContextLimit)
+	}
+	if n := strings.Count(got, "old code"); n < 1 || n > maxRemovedRunLines*20 {
+		t.Fatalf("expected a bounded slice of the removed run, got %d repeats", n)
+	}
+}
+
+func TestDiffContextDropsRemovalsBeforeEvidenceWhenTheLimitIsTight(t *testing.T) {
+	var diff strings.Builder
+	for i := 0; i < 13; i++ {
+		diff.WriteString("-\t" + strings.Repeat("r", 150) + "\n")
+		diff.WriteString(strings.Repeat("9", 1) + "\t+" + strings.Repeat("k", 100) + "\n")
+	}
+	got := diffContext(strings.ReplaceAll(diff.String(), "9\t", "10\t"), 10, 10)
+	if strings.Count(got, "k") < 100 {
+		t.Fatalf("kept lines must survive: %d", strings.Count(got, "k"))
+	}
+}

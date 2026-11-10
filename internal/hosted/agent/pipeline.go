@@ -311,34 +311,68 @@ func blockDiff(block review.Block, files map[string]ReviewFile, note func(string
 	return out.String()
 }
 
+const (
+	diffContextLimit    = 2_000
+	maxRemovedRunLines  = 8
+	maxRemovedLineBytes = 160
+)
+
 // diffContext returns the numbered diff lines near a finding, bounded so a
 // verifier request stays small. Removed lines ("-") directly before a kept line
 // are included: a finding that a change introduced something cannot be checked
-// without seeing what the change replaced.
+// without seeing what the change replaced. The numbered lines are the evidence,
+// so they are never crowded out: removed lines are shortened, capped to the
+// last few of each run, and dropped first when the limit is reached.
 func diffContext(diff string, start, end int) string {
-	var picked, pendingRemoved []string
+	type entry struct {
+		text    string
+		removed bool
+	}
+	var entries []entry
+	var pending []string
 	for _, line := range strings.Split(diff, "\n") {
 		number, _, ok := strings.Cut(line, "\t")
 		if !ok {
-			pendingRemoved = nil
+			pending = nil
 			continue
 		}
 		if number == "-" {
-			pendingRemoved = append(pendingRemoved, line)
+			pending = append(pending, clip(line, maxRemovedLineBytes))
 			continue
 		}
 		var n int
 		if _, err := fmt.Sscanf(number, "%d", &n); err != nil {
-			pendingRemoved = nil
+			pending = nil
 			continue
 		}
 		if n >= start-6 && n <= end+6 {
-			picked = append(picked, pendingRemoved...)
-			picked = append(picked, line)
+			if len(pending) > maxRemovedRunLines {
+				pending = pending[len(pending)-maxRemovedRunLines:]
+			}
+			for _, r := range pending {
+				entries = append(entries, entry{r, true})
+			}
+			entries = append(entries, entry{line, false})
 		}
-		pendingRemoved = nil
+		pending = nil
 	}
-	return clip(strings.Join(picked, "\n"), 2_000)
+	budget := diffContextLimit
+	for _, e := range entries {
+		if !e.removed {
+			budget -= len(e.text) + 1
+		}
+	}
+	var picked []string
+	for _, e := range entries {
+		if e.removed {
+			if budget < len(e.text)+1 {
+				continue
+			}
+			budget -= len(e.text) + 1
+		}
+		picked = append(picked, e.text)
+	}
+	return clip(strings.Join(picked, "\n"), diffContextLimit)
 }
 
 // describeError classifies a failure for reports and traces. Provider error
