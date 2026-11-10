@@ -140,5 +140,26 @@ dropped, so a page cannot inject script. The site has no build step and no
 network dependency: fonts and scripts are files in the output, and every page
 works with JavaScript off (only search and the theme switch need it).
 
-Not built yet: publishing the site on Pages with a preview per pull request,
-and the "changed in this pull request" view, which needs phase 4.
+## Drift detection (phase 4)
+
+`px1 docs impact --base BASE` lists the pages whose `covers` include a file
+that differs between BASE and HEAD. Each page is in one of three states:
+
+- **needs review**: the code it covers changed and the page did not;
+- **updated**: the page changed in the same diff;
+- **generated**: a generated reference page, which the check keeps current.
+
+It also lists changed Go files that no page covers. Test files never count.
+The output is Markdown for a pull-request comment (it starts with a marker so
+the comment can be updated in place), or JSON with `--json`.
+
+`px1 docs site --impact FILE` takes that JSON and marks the affected pages:
+a banner on each page naming the changed files, a marker in the sidebar, and
+an "Affected by this pull request" list on the home page.
+
+The report is a map, not a judgment. "Updated" means the page file changed,
+not that the change is the right one, and "needs review" does not mean the
+page is wrong. Deciding that is phase 5.
+
+Not built yet: the workflow that posts the comment and publishes the site on
+Pages with a preview per pull request.

@@ -241,6 +241,9 @@ backend-foundation tasks are:
 95. [x] **Render the documentation as a website.** `px1 docs site` builds a
     static site from the pages: sidebar, search, status, outline, the code
     each page covers, and a copy of the Markdown.
+96. [x] **Detect documentation drift.** `px1 docs impact` lists the pages
+    whose covered code a diff touches and whether each was updated; the site
+    marks them.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,

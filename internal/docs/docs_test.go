@@ -513,3 +513,100 @@ func TestWriteSiteRefusesANonEmptyDirectoryAndBadPages(t *testing.T) {
 		t.Fatalf("bad page: %v", err)
 	}
 }
+
+func impactPages(t *testing.T) []Page {
+	t.Helper()
+	guide, _ := parsePage("docs/GUIDE.md", strings.Replace(goodFront, "  - tool.go\n  - pkg/\n", "  - tool.go\n  - pkg/\n  - eval_*.go\n", 1)+"# Guide\n")
+	other, _ := parsePage("docs/OTHER.md", strings.Replace(goodFront, "  - tool.go\n  - pkg/\n", "  - pkg/a.go\n", 1)+"# Other\n")
+	ref, _ := parsePage("docs/REF.md", strings.Replace(goodFront, "narrative", "reference", 1)+generatedNote+"\n# Ref\n")
+	quiet, _ := parsePage("docs/QUIET.md", strings.Replace(goodFront, "  - tool.go\n  - pkg/\n", "  - elsewhere/\n", 1)+"# Quiet\n")
+	return []Page{guide, other, quiet, ref}
+}
+
+func TestComputeImpact(t *testing.T) {
+	impact := ComputeImpact(impactPages(t), []string{
+		"pkg/a.go", "eval_run.go", "pkg/a_test.go", "docs/OTHER.md", "docs/UNRELATED.md", "new.go", "new_test.go", "pkgs/x.txt",
+	})
+	if len(impact.Pages) != 3 {
+		t.Fatalf("pages = %+v", impact.Pages)
+	}
+	guide, other, ref := impact.Pages[0], impact.Pages[1], impact.Pages[2]
+	if guide.Path != "docs/GUIDE.md" || guide.State != NeedsReview || strings.Join(guide.Changed, ",") != "eval_run.go,pkg/a.go" {
+		t.Errorf("guide = %+v", guide)
+	}
+	if other.Path != "docs/OTHER.md" || other.State != Updated || len(other.Changed) != 1 {
+		t.Errorf("other = %+v", other)
+	}
+	if ref.Path != "docs/REF.md" || ref.State != Regenerated {
+		t.Errorf("ref = %+v", ref)
+	}
+	if strings.Join(impact.Uncovered, ",") != "new.go" {
+		t.Errorf("uncovered = %v", impact.Uncovered)
+	}
+
+	text := impact.Markdown()
+	for _, want := range []string{
+		ImpactMarker,
+		"**1 page covers code this change touches and was not updated.**",
+		"| A page (`docs/GUIDE.md`) | Needs review | `eval_run.go`, `pkg/a.go` |",
+		"| Updated in this change |",
+		"| Generated |",
+		"Changed Go files that no page covers: `new.go`.",
+	} {
+		if !strings.Contains(text, want) {
+			t.Errorf("want %q in:\n%s", want, text)
+		}
+	}
+}
+
+func TestImpactWithNothingToSay(t *testing.T) {
+	// Only tests and docs changed: no page is affected.
+	quiet := ComputeImpact(impactPages(t), []string{"pkg/a_test.go", "docs/GUIDE.md", "README.md"})
+	if len(quiet.Pages) != 0 || len(quiet.Uncovered) != 0 {
+		t.Fatalf("impact = %+v", quiet)
+	}
+	if text := quiet.Markdown(); !strings.Contains(text, "touches no code that a documentation page covers") || strings.Contains(text, "| Page |") {
+		t.Errorf("markdown:\n%s", text)
+	}
+	if encoded, _ := json.Marshal(quiet); !strings.Contains(string(encoded), `"pages":[]`) {
+		t.Errorf("empty lists must encode as [], got %s", encoded)
+	}
+	done := ComputeImpact(impactPages(t), []string{"pkg/a.go", "docs/GUIDE.md", "docs/OTHER.md"})
+	if text := done.Markdown(); !strings.Contains(text, "No page needs review") {
+		t.Errorf("markdown:\n%s", text)
+	}
+	many := ComputeImpact(impactPages(t), []string{"pkg/a.go"})
+	if text := many.Markdown(); !strings.Contains(text, "**2 pages cover code") {
+		t.Errorf("markdown:\n%s", text)
+	}
+}
+
+func TestSiteMarksAffectedPages(t *testing.T) {
+	root := repo(t)
+	impact := &Impact{Pages: []PageImpact{{Path: "docs/PAGE.md", Title: "A page", State: NeedsReview, Changed: []string{"tool.go", "pkg/<a>.go"}}}}
+	files, err := BuildSite(root, SiteOptions{Impact: impact})
+	if err != nil {
+		t.Fatal(err)
+	}
+	page := string(files["PAGE.html"])
+	for _, want := range []string{
+		`<aside class="impact needs-review">`,
+		"Needs review: not updated in this pull request",
+		"<code>tool.go</code>, <code>pkg/&lt;a&gt;.go</code>",
+		`<span class="mark needs-review"`,
+	} {
+		if !strings.Contains(page, want) {
+			t.Errorf("want %q in page", want)
+		}
+	}
+	if other := string(files["OTHER.html"]); strings.Contains(other, `class="impact`) {
+		t.Error("an unaffected page carries the banner")
+	}
+	if home := string(files["index.html"]); !strings.Contains(home, "Affected by this pull request") {
+		t.Error("home page does not list affected pages")
+	}
+	plainFiles, _ := BuildSite(root, SiteOptions{})
+	if home := string(plainFiles["index.html"]); strings.Contains(home, "Affected by this pull request") || strings.Contains(home, `class="mark`) {
+		t.Error("a normal build shows pull-request marks")
+	}
+}
