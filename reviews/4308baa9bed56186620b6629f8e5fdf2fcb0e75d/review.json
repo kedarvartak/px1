@@ -1,0 +1,349 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "a008902c392f2271452053800b6031599fe530ca",
+  "head": "4308baa9bed56186620b6629f8e5fdf2fcb0e75d",
+  "generatedAt": "2026-11-10T10:12:19.988956434Z",
+  "files": [
+    {
+      "path": "agentic-action/action.yml",
+      "status": "M",
+      "diff": "diff --git a/agentic-action/action.yml b/agentic-action/action.yml\nindex 5765046..3b40548 100644\n--- a/agentic-action/action.yml\n+++ b/agentic-action/action.yml\n@@ -78,11 +78,26 @@ runs:\n         \"$bin\" agentic-review \"${args[@]:1}\" | tee \"$out.log\"\n         if [[ \"$PX1_POST\" == \"true\" ]]; then\n           cost=\"$(grep -m1 '^Spent about' \"$out.log\" || true)\"\n-          \"$bin\" post-github --findings \"$out/findings.json\" --pr \"$PX1_PR\" --head \"$PX1_HEAD\" --footer \"$cost\"\n+          run_url=\"${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\"\n+          \"$bin\" post-github --findings \"$out/findings.json\" --pr \"$PX1_PR\" --head \"$PX1_HEAD\" \\\n+            --footer \"$cost Full report and trace: download the px1-review artifact from [this run]($run_url) and open report/index.html.\"\n         fi\n+        echo \"PX1_OUT=$out\" \u003e\u003e \"$GITHUB_ENV\"\n         {\n           echo \"### px1 review\"\n           echo '```'\n           sed -n '/=== Result ===/,/^Report:/p' \"$out.log\" | sed '$d'\n           echo '```'\n         } \u003e\u003e \"${GITHUB_STEP_SUMMARY:-/dev/null}\"\n+\n+    - name: Upload the report\n+      if: always() \u0026\u0026 env.PX1_OUT != ''\n+      uses: actions/upload-artifact@v4\n+      with:\n+        name: px1-review\n+        path: |\n+          ${{ env.PX1_OUT }}/report\n+          ${{ env.PX1_OUT }}/findings.json\n+          ${{ env.PX1_OUT }}/trace.json\n+        retention-days: 14\n+        if-no-files-found: ignore\n",
+      "hunks": [
+        {
+          "id": "diff-5d688f178ebc1b22",
+          "header": "@@ -78,11 +78,26 @@ runs:",
+          "lines": [
+            {
+              "oldLine": 78,
+              "newLine": 78,
+              "kind": "context",
+              "text": "        \"$bin\" agentic-review \"${args[@]:1}\" | tee \"$out.log\""
+            },
+            {
+              "oldLine": 79,
+              "newLine": 79,
+              "kind": "context",
+              "text": "        if [[ \"$PX1_POST\" == \"true\" ]]; then"
+            },
+            {
+              "oldLine": 80,
+              "newLine": 80,
+              "kind": "context",
+              "text": "          cost=\"$(grep -m1 '^Spent about' \"$out.log\" || true)\""
+            },
+            {
+              "oldLine": 81,
+              "kind": "removed",
+              "text": "          \"$bin\" post-github --findings \"$out/findings.json\" --pr \"$PX1_PR\" --head \"$PX1_HEAD\" --footer \"$cost\""
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "          run_url=\"${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\""
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "          \"$bin\" post-github --findings \"$out/findings.json\" --pr \"$PX1_PR\" --head \"$PX1_HEAD\" \\"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "            --footer \"$cost Full report and trace: download the px1-review artifact from [this run]($run_url) and open report/index.html.\""
+            },
+            {
+              "oldLine": 82,
+              "newLine": 84,
+              "kind": "context",
+              "text": "        fi"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "        echo \"PX1_OUT=$out\" \u003e\u003e \"$GITHUB_ENV\""
+            },
+            {
+              "oldLine": 83,
+              "newLine": 86,
+              "kind": "context",
+              "text": "        {"
+            },
+            {
+              "oldLine": 84,
+              "newLine": 87,
+              "kind": "context",
+              "text": "          echo \"### px1 review\""
+            },
+            {
+              "oldLine": 85,
+              "newLine": 88,
+              "kind": "context",
+              "text": "          echo '```'"
+            },
+            {
+              "oldLine": 86,
+              "newLine": 89,
+              "kind": "context",
+              "text": "          sed -n '/=== Result ===/,/^Report:/p' \"$out.log\" | sed '$d'"
+            },
+            {
+              "oldLine": 87,
+              "newLine": 90,
+              "kind": "context",
+              "text": "          echo '```'"
+            },
+            {
+              "oldLine": 88,
+              "newLine": 91,
+              "kind": "context",
+              "text": "        } \u003e\u003e \"${GITHUB_STEP_SUMMARY:-/dev/null}\""
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "    - name: Upload the report"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "      if: always() \u0026\u0026 env.PX1_OUT != ''"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "      uses: actions/upload-artifact@v4"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "      with:"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "        name: px1-review"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "        path: |"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "          ${{ env.PX1_OUT }}/report"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "          ${{ env.PX1_OUT }}/findings.json"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "          ${{ env.PX1_OUT }}/trace.json"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "        retention-days: 14"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "        if-no-files-found: ignore"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/AGENTIC_CI.md",
+      "status": "M",
+      "diff": "diff --git a/docs/AGENTIC_CI.md b/docs/AGENTIC_CI.md\nindex 291b3ac..3056e30 100644\n--- a/docs/AGENTIC_CI.md\n+++ b/docs/AGENTIC_CI.md\n@@ -14,6 +14,10 @@\n - **Inline comments** on the changed lines for findings that fall inside the diff, at most 20 per run. A finding already commented on an earlier push is not posted again.\n - Findings outside the diff stay in the summary, with their evidence.\n \n+## The report\n+\n+Each run uploads a `px1-review` artifact (the HTML report, `findings.json`, `trace.json`; kept 14 days) and the summary comment links to the run. Download it and open `report/index.html`. It contains your code and is visible to anyone who can read the repository's Actions runs. The `private/` folder with raw model transcripts is never uploaded.\n+\n ## Safety\n \n - Runs on `pull_request`, never `pull_request_target`. Pull requests from forks are skipped: they get no secrets and a read-only token.\n",
+      "hunks": [
+        {
+          "id": "diff-82d270ae43d9db75",
+          "header": "@@ -14,6 +14,10 @@",
+          "lines": [
+            {
+              "oldLine": 14,
+              "newLine": 14,
+              "kind": "context",
+              "text": "- **Inline comments** on the changed lines for findings that fall inside the diff, at most 20 per run. A finding already commented on an earlier push is not posted again."
+            },
+            {
+              "oldLine": 15,
+              "newLine": 15,
+              "kind": "context",
+              "text": "- Findings outside the diff stay in the summary, with their evidence."
+            },
+            {
+              "oldLine": 16,
+              "newLine": 16,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "## The report"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "Each run uploads a `px1-review` artifact (the HTML report, `findings.json`, `trace.json`; kept 14 days) and the summary comment links to the run. Download it and open `report/index.html`. It contains your code and is visible to anyone who can read the repository's Actions runs. The `private/` folder with raw model transcripts is never uploaded."
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 17,
+              "newLine": 21,
+              "kind": "context",
+              "text": "## Safety"
+            },
+            {
+              "oldLine": 18,
+              "newLine": 22,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 19,
+              "newLine": 23,
+              "kind": "context",
+              "text": "- Runs on `pull_request`, never `pull_request_target`. Pull requests from forks are skipped: they get no secrets and a read-only token."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-bb84242ec26cf2b6",
+      "title": "Action changes",
+      "summary": "2 related files share the \"action\" change signal.",
+      "paths": [
+        "agentic-action/action.yml",
+        "docs/AGENTIC_CI.md"
+      ]
+    }
+  ],
+  "inspectionQuestions": [],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 2,
+    "filesAnalyzed": 2,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "1",
+      "path": "agentic-action/action.yml",
+      "lineStart": 81,
+      "lineEnd": 83,
+      "title": "PR comments link to the report",
+      "summary": "When GitHub posting is enabled, the PR comment now links to the workflow run and tells reviewers where to find the full report in its artifact."
+    },
+    {
+      "id": "2",
+      "path": "agentic-action/action.yml",
+      "lineStart": 93,
+      "lineEnd": 103,
+      "title": "Reports are saved as workflow artifacts",
+      "summary": "The action uploads the HTML report, findings, and trace as a `px1-review` artifact when output exists. The artifact is kept for 14 days; missing files are ignored."
+    },
+    {
+      "id": "3",
+      "path": "docs/AGENTIC_CI.md",
+      "lineStart": 16,
+      "lineEnd": 18,
+      "title": "Documents report visibility and exclusions",
+      "summary": "The documentation clarifies that people with access to repository Actions runs can see the uploaded report, and that raw model transcripts in `private/` are not included."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "a008902c392f2271452053800b6031599fe530ca",
+      "revision": "4308baa9bed56186620b6629f8e5fdf2fcb0e75d",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "a008902c392f2271452053800b6031599fe530ca",
+      "revision": "4308baa9bed56186620b6629f8e5fdf2fcb0e75d",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "4308baa9bed56186620b6629f8e5fdf2fcb0e75d",
+      "detail": "3 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "4308baa9bed56186620b6629f8e5fdf2fcb0e75d",
+      "detail": "1 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "4308baa9bed56186620b6629f8e5fdf2fcb0e75d",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42796934008",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42796934008/job/129764387146",
+        "startedAt": "2026-11-10T10:10:57Z"
+      }
+    ]
+  }
+}
