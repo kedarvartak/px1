@@ -1,0 +1,803 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "3ddaf4a425c27aee703b216ce38362779d24feeb",
+  "head": "9321775244a9ae391aa1b4a36216ee5334a0585c",
+  "generatedAt": "2026-11-10T12:58:26.447250988Z",
+  "files": [
+    {
+      "path": ".github/workflows/px1-agentic-review.yml",
+      "status": "A",
+      "diff": "diff --git a/.github/workflows/px1-agentic-review.yml b/.github/workflows/px1-agentic-review.yml\nnew file mode 100644\nindex 0000000..93f95fb\n--- /dev/null\n+++ b/.github/workflows/px1-agentic-review.yml\n@@ -0,0 +1,71 @@\n+name: px1 agentic review\n+\n+# px1 reviews its own pull requests with its own agentic reviewer. The reviewer\n+# that holds OPENAI_API_KEY is built from the BASE commit, never from the pull\n+# request, so a pull request cannot change the code that sees the key. The\n+# pull request is checked out only as data to read.\n+#\n+# The job does nothing until a repository secret named OPENAI_API_KEY exists,\n+# and never runs for pull requests from forks, which get no secrets.\n+on:\n+  pull_request:\n+    types: [opened, synchronize, reopened, ready_for_review]\n+\n+permissions:\n+  contents: read\n+  pull-requests: write\n+\n+concurrency:\n+  group: px1-agentic-${{ github.event.pull_request.number }}\n+  cancel-in-progress: true\n+\n+jobs:\n+  review:\n+    if: github.event.pull_request.draft == false \u0026\u0026 github.event.pull_request.head.repo.full_name == github.repository\n+    runs-on: ubuntu-latest\n+    timeout-minutes: 15\n+    continue-on-error: true # a failed review must never block a merge\n+    env:\n+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}\n+    steps:\n+      - name: Check for the API key\n+        id: key\n+        run: |\n+          if [[ -z \"$OPENAI_API_KEY\" ]]; then\n+            echo \"::notice title=px1 agentic review skipped::add an OPENAI_API_KEY repository secret to enable it\"\n+            echo \"present=false\" \u003e\u003e \"$GITHUB_OUTPUT\"\n+          else\n+            echo \"present=true\" \u003e\u003e \"$GITHUB_OUTPUT\"\n+          fi\n+\n+      - name: Check out the pull request (data only)\n+        if: steps.key.outputs.present == 'true'\n+        uses: actions/checkout@v4\n+        with:\n+          fetch-depth: 0\n+          persist-credentials: false\n+\n+      - name: Check out the reviewer from the base commit\n+        if: steps.key.outputs.present == 'true'\n+        uses: actions/checkout@v4\n+        with:\n+          ref: ${{ github.event.pull_request.base.sha }}\n+          path: .px1-tool\n+          persist-credentials: false\n+\n+      - name: Review\n+        if: steps.key.outputs.present == 'true'\n+        uses: ./.px1-tool/agentic-action\n+        with:\n+          model: gpt-6-luna\n+          price-input: '0.10'\n+          price-output: '0.50'\n+          price-cached-input: '0.01'\n+          max-cost: '0.50'\n+          exclude-globs: |\n+            dist/**\n+            dist-npm/**\n+            launch-film/**\n+            output/**\n+            tmp/**\n+            web/dashboard/**/package-lock.json\n",
+      "hunks": [
+        {
+          "id": "diff-768618c44b1cb1f3",
+          "header": "@@ -0,0 +1,71 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "name: px1 agentic review"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "# px1 reviews its own pull requests with its own agentic reviewer. The reviewer"
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "# that holds OPENAI_API_KEY is built from the BASE commit, never from the pull"
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "# request, so a pull request cannot change the code that sees the key. The"
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "# pull request is checked out only as data to read."
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "#"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "# The job does nothing until a repository secret named OPENAI_API_KEY exists,"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "# and never runs for pull requests from forks, which get no secrets."
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "on:"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "  pull_request:"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "    types: [opened, synchronize, reopened, ready_for_review]"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "permissions:"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "  contents: read"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "  pull-requests: write"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "concurrency:"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "  group: px1-agentic-${{ github.event.pull_request.number }}"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "  cancel-in-progress: true"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "jobs:"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "  review:"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "    if: github.event.pull_request.draft == false \u0026\u0026 github.event.pull_request.head.repo.full_name == github.repository"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "    runs-on: ubuntu-latest"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "    timeout-minutes: 15"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "    continue-on-error: true # a failed review must never block a merge"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "    env:"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "    steps:"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "      - name: Check for the API key"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "        id: key"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "        run: |"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "          if [[ -z \"$OPENAI_API_KEY\" ]]; then"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "            echo \"::notice title=px1 agentic review skipped::add an OPENAI_API_KEY repository secret to enable it\""
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "            echo \"present=false\" \u003e\u003e \"$GITHUB_OUTPUT\""
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "          else"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "            echo \"present=true\" \u003e\u003e \"$GITHUB_OUTPUT\""
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "          fi"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "      - name: Check out the pull request (data only)"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "        if: steps.key.outputs.present == 'true'"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "        uses: actions/checkout@v4"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "        with:"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "          fetch-depth: 0"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "          persist-credentials: false"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "      - name: Check out the reviewer from the base commit"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "        if: steps.key.outputs.present == 'true'"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "        uses: actions/checkout@v4"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "        with:"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "          ref: ${{ github.event.pull_request.base.sha }}"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "          path: .px1-tool"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "          persist-credentials: false"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "      - name: Review"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "        if: steps.key.outputs.present == 'true'"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "        uses: ./.px1-tool/agentic-action"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "        with:"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "          model: gpt-6-luna"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "          price-input: '0.10'"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "          price-output: '0.50'"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "          price-cached-input: '0.01'"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "          max-cost: '0.50'"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "          exclude-globs: |"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "            dist/**"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "            dist-npm/**"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "            launch-film/**"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "            output/**"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "            tmp/**"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "            web/dashboard/**/package-lock.json"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "agentic_workflow_test.go",
+      "status": "A",
+      "diff": "diff --git a/agentic_workflow_test.go b/agentic_workflow_test.go\nnew file mode 100644\nindex 0000000..3cda698\n--- /dev/null\n+++ b/agentic_workflow_test.go\n@@ -0,0 +1,38 @@\n+package main\n+\n+import (\n+\t\"os\"\n+\t\"strings\"\n+\t\"testing\"\n+)\n+\n+// The dogfood workflow gives a pull request's code no path to the API key.\n+func TestAgenticDogfoodWorkflowKeepsTheKeyAwayFromPullRequestCode(t *testing.T) {\n+\tdata, err := os.ReadFile(\".github/workflows/px1-agentic-review.yml\")\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\ttext := string(data)\n+\tfor _, want := range []string{\n+\t\t\"pull_request:\",\n+\t\t\"github.event.pull_request.head.repo.full_name == github.repository\", // never forks\n+\t\t\"ref: ${{ github.event.pull_request.base.sha }}\",                     // reviewer built from the base commit\n+\t\t\"uses: ./.px1-tool/agentic-action\",                                   // and that is the copy that runs\n+\t\t\"persist-credentials: false\",\n+\t\t\"pull-requests: write\",\n+\t\t\"continue-on-error: true\",\n+\t\t\"OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}\",\n+\t} {\n+\t\tif !strings.Contains(text, want) {\n+\t\t\tt.Errorf(\"workflow lacks %q\", want)\n+\t\t}\n+\t}\n+\tfor _, banned := range []string{\"pull_request_target\", \"uses: ./agentic-action\", \"contents: write\", \"OPENAI_API_KEY: sk-\"} {\n+\t\tif strings.Contains(text, banned) {\n+\t\t\tt.Errorf(\"workflow must not contain %q\", banned)\n+\t\t}\n+\t}\n+\tif n := strings.Count(text, \"uses: ./.px1-tool/agentic-action\"); n != 1 {\n+\t\tt.Errorf(\"the reviewer must run exactly once from the base checkout, found %d\", n)\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-1247e6369340ad3f",
+          "header": "@@ -0,0 +1,38 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package main"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "// The dogfood workflow gives a pull request's code no path to the API key."
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "func TestAgenticDogfoodWorkflowKeepsTheKeyAwayFromPullRequestCode(t *testing.T) {"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\tdata, err := os.ReadFile(\".github/workflows/px1-agentic-review.yml\")"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "\ttext := string(data)"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\tfor _, want := range []string{"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t\t\"pull_request:\","
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t\t\"github.event.pull_request.head.repo.full_name == github.repository\", // never forks"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\t\t\"ref: ${{ github.event.pull_request.base.sha }}\",                     // reviewer built from the base commit"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\t\t\"uses: ./.px1-tool/agentic-action\",                                   // and that is the copy that runs"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t\t\"persist-credentials: false\","
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\t\t\"pull-requests: write\","
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t\t\"continue-on-error: true\","
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\t\"OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}\","
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t} {"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t\tif !strings.Contains(text, want) {"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"workflow lacks %q\", want)"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tfor _, banned := range []string{\"pull_request_target\", \"uses: ./agentic-action\", \"contents: write\", \"OPENAI_API_KEY: sk-\"} {"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t\tif strings.Contains(text, banned) {"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"workflow must not contain %q\", banned)"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tif n := strings.Count(text, \"uses: ./.px1-tool/agentic-action\"); n != 1 {"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t\tt.Errorf(\"the reviewer must run exactly once from the base checkout, found %d\", n)"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/AGENTIC_CI.md",
+      "status": "M",
+      "diff": "diff --git a/docs/AGENTIC_CI.md b/docs/AGENTIC_CI.md\nindex 9c74c73..5e8b2cf 100644\n--- a/docs/AGENTIC_CI.md\n+++ b/docs/AGENTIC_CI.md\n@@ -19,6 +19,14 @@\n \n Each run uploads the report as one unzipped `px1-review.html` artifact (kept 14 days), and the summary comment links straight to it. GitHub serves artifacts from its own storage, and only people who can read the repository can open the link; whether the browser shows it or saves it is up to GitHub. The report contains your code. Raw model transcripts (`private/`) are never uploaded.\n \n+## px1 reviewing itself\n+\n+`.github/workflows/px1-agentic-review.yml` runs the reviewer on this repository's\n+own pull requests. It does nothing until a repository secret `OPENAI_API_KEY` exists\n+(add it in Settings, Secrets and variables, Actions). The reviewer is built from the\n+base commit, not the pull request, so a pull request cannot change the code that holds\n+the key; the pull request is checked out only as data. Fork pull requests are skipped.\n+\n ## Safety\n \n - Runs on `pull_request`, never `pull_request_target`. Pull requests from forks are skipped: they get no secrets and a read-only token.\n",
+      "hunks": [
+        {
+          "id": "diff-a42ada94e8f27698",
+          "header": "@@ -19,6 +19,14 @@",
+          "lines": [
+            {
+              "oldLine": 19,
+              "newLine": 19,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 20,
+              "newLine": 20,
+              "kind": "context",
+              "text": "Each run uploads the report as one unzipped `px1-review.html` artifact (kept 14 days), and the summary comment links straight to it. GitHub serves artifacts from its own storage, and only people who can read the repository can open the link; whether the browser shows it or saves it is up to GitHub. The report contains your code. Raw model transcripts (`private/`) are never uploaded."
+            },
+            {
+              "oldLine": 21,
+              "newLine": 21,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "## px1 reviewing itself"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "`.github/workflows/px1-agentic-review.yml` runs the reviewer on this repository's"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "own pull requests. It does nothing until a repository secret `OPENAI_API_KEY` exists"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "(add it in Settings, Secrets and variables, Actions). The reviewer is built from the"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "base commit, not the pull request, so a pull request cannot change the code that holds"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "the key; the pull request is checked out only as data. Fork pull requests are skipped."
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 22,
+              "newLine": 30,
+              "kind": "context",
+              "text": "## Safety"
+            },
+            {
+              "oldLine": 23,
+              "newLine": 31,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 24,
+              "newLine": 32,
+              "kind": "context",
+              "text": "- Runs on `pull_request`, never `pull_request_target`. Pull requests from forks are skipped: they get no secrets and a read-only token."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-be6c17eefebd2d04",
+      "title": "Agentic changes",
+      "summary": "3 related files share the \"agentic\" change signal.",
+      "paths": [
+        ".github/workflows/px1-agentic-review.yml",
+        "agentic_workflow_test.go",
+        "docs/AGENTIC_CI.md"
+      ]
+    }
+  ],
+  "inspectionQuestions": [],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 3,
+    "filesAnalyzed": 3,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "1",
+      "path": ".github/workflows/px1-agentic-review.yml",
+      "lineStart": 13,
+      "lineEnd": 34,
+      "title": "Adds automatic reviews for eligible pull requests",
+      "summary": "The workflow reviews eligible pull requests when they are opened, updated, reopened, or marked ready. It skips drafts, fork pull requests, and runs without an `OPENAI_API_KEY` secret."
+    },
+    {
+      "id": "3",
+      "path": ".github/workflows/px1-agentic-review.yml",
+      "lineStart": 21,
+      "lineEnd": 30,
+      "title": "Keeps reviews bounded and non-blocking",
+      "summary": "A new run for the same pull request cancels an older run, and review failures do not block merging. The job also has a 15-minute timeout."
+    },
+    {
+      "id": "2",
+      "path": ".github/workflows/px1-agentic-review.yml",
+      "lineStart": 37,
+      "lineEnd": 59,
+      "title": "Runs the reviewer from trusted base code",
+      "summary": "The pull request checkout is used as review input, while the action that runs is checked out from the base commit. This prevents pull request changes from replacing the reviewer code that receives the API key."
+    },
+    {
+      "id": "4",
+      "path": ".github/workflows/px1-agentic-review.yml",
+      "lineStart": 61,
+      "lineEnd": 71,
+      "title": "Limits review cost and scope",
+      "summary": "The reviewer is configured with a $0.50 maximum cost and excludes several generated or large directories from review."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "3ddaf4a425c27aee703b216ce38362779d24feeb",
+      "revision": "9321775244a9ae391aa1b4a36216ee5334a0585c",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "3ddaf4a425c27aee703b216ce38362779d24feeb",
+      "revision": "9321775244a9ae391aa1b4a36216ee5334a0585c",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "9321775244a9ae391aa1b4a36216ee5334a0585c",
+      "detail": "4 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "9321775244a9ae391aa1b4a36216ee5334a0585c",
+      "detail": "3 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "9321775244a9ae391aa1b4a36216ee5334a0585c",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42820134593",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42820134593/job/129843268711",
+        "startedAt": "2026-11-10T12:57:22Z"
+      },
+      {
+        "name": "review",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42820134699/job/129843264907",
+        "startedAt": "2026-11-10T12:57:18Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42820134764/job/129843264718",
+        "startedAt": "2026-11-10T12:57:18Z"
+      }
+    ]
+  }
+}
