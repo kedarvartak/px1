@@ -1,3 +1,13 @@
+---
+title: Safe repository cloning
+section: concepts
+kind: narrative
+status: built
+covers:
+  - internal/hosted/repository/
+verified_at:
+---
+
 # Safe repository cloning
 
 The hosted indexer clones only allow-listed HTTPS hosts into disposable

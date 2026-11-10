@@ -1,3 +1,13 @@
+---
+title: Review confidence score
+section: concepts
+kind: narrative
+status: shipped
+covers:
+  - internal/hosted/review/confidence.go
+verified_at:
+---
+
 # Review confidence score
 
 px1's confidence score is a deterministic summary of the evidence available to

@@ -1,3 +1,14 @@
+---
+title: Agentic review tools
+section: reference
+kind: reference
+status: shipped
+covers:
+  - internal/hosted/agent/tools.go
+  - internal/hosted/agent/guard.go
+verified_at:
+---
+
 # Agentic review tools
 
 The agentic engine (Plus and Apex tiers) lets sub-agents explore a repository

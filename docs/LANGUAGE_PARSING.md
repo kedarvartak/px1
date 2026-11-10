@@ -1,3 +1,14 @@
+---
+title: Language parsing boundary
+section: concepts
+kind: narrative
+status: built
+covers:
+  - internal/hosted/indexer/language.go
+  - internal/hosted/indexer/tree_sitter.go
+verified_at:
+---
+
 # Language parsing boundary
 
 The hosted indexer registers native tree-sitter grammars for Go, JavaScript,

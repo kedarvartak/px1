@@ -1,3 +1,17 @@
+---
+title: Agentic review in CI
+section: guides
+kind: narrative
+status: shipped
+covers:
+  - post_github.go
+  - feedback_collect.go
+  - agentic-action/
+  - examples/px1-agentic-review.yml
+  - .github/workflows/px1-agentic-review.yml
+verified_at:
+---
+
 # Agentic review in CI
 
 `px1 post-github` and `agentic-action/` run the agentic reviewer on every pull request and comment on the result, like a hosted reviewer, without a hosted service. Each repository carries a workflow; the key stays in that repository's secrets.

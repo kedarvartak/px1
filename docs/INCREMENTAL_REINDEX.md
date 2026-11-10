@@ -1,3 +1,13 @@
+---
+title: Incremental repository indexing
+section: concepts
+kind: narrative
+status: built
+covers:
+  - internal/hosted/indexer/reindex.go
+verified_at:
+---
+
 # Incremental repository indexing
 
 Default-branch push jobs compare the current path-to-blob-SHA inventory with the

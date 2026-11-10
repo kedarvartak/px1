@@ -1,3 +1,12 @@
+---
+title: Privacy policy
+section: policies
+kind: narrative
+status: shipped
+covers: []
+verified_at:
+---
+
 # Privacy policy
 
 This document describes the intended hosted px1 v1 data practices. It is a

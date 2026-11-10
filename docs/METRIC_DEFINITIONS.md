@@ -1,3 +1,14 @@
+---
+title: Metric definitions
+section: reference
+kind: reference
+status: built
+covers:
+  - web/dashboard/lib/metric-definitions.ts
+  - internal/hosted/analytics/
+verified_at:
+---
+
 # Metric definitions
 
 The customer-visible definitions live in

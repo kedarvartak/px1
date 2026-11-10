@@ -1,3 +1,14 @@
+---
+title: Public pages
+section: reference
+kind: reference
+status: built
+covers:
+  - internal/hosted/publicsite/
+  - web/dashboard/lib/pricing.json
+verified_at:
+---
+
 # Public pages
 
 The dashboard serves four pages without a session, all under `/-/`:

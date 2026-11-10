@@ -1,3 +1,14 @@
+---
+title: Self-evolving documentation: roadmap
+section: operations
+kind: narrative
+status: planned
+covers:
+  - internal/docs/
+  - docs_cmd.go
+verified_at:
+---
+
 # Self-evolving documentation: roadmap
 
 Goal: px1's documentation is detailed, has a UI, and changes in the same pull
@@ -51,3 +62,49 @@ Phases 1 to 4 are useful without any generation and ship first.
 - **Churn.** Edits are limited to pages the diff affects, and clean cases in the
   evaluation set measure needless rewording.
 - **Cost.** About one extra review per pull request, under the same per-run cap.
+
+## Working with the pages (phase 1)
+
+Every page under `docs/` starts with front matter:
+
+```
+---
+title: Agentic review in CI
+section: guides
+kind: narrative
+status: shipped
+covers:
+  - post_github.go
+  - agentic-action/
+verified_at:
+---
+```
+
+- `section` is one of start, guides, concepts, reference, operations, policies.
+- `kind` is narrative or reference.
+- `status` is shipped (usable now), built (code and tests exist, not deployed)
+  or planned.
+- `covers` lists the code the page describes: files, directories ending in
+  `/`, or globs. Drift detection (phase 4) uses it to find the pages a diff
+  affects.
+- `verified_at` is the commit at which the page was last checked against that
+  code. It is empty on every page today, because phase 0 did not read the
+  prose line by line. Fill it in only after doing that check.
+
+`px1 docs manifest` writes `docs/manifest.json` (what the UI is built from) and
+`docs/README.md` (an index of every page). Run it after adding a page or
+changing front matter.
+
+`px1 docs check` fails on:
+
+- missing or invalid front matter;
+- a relative link that does not resolve;
+- a `covers` entry that names nothing;
+- a manifest or index that is out of date;
+- code with no page. Each Go package, each Go file of the root package and each
+  `extra_units` path in `docs/docs.config.json` must be covered by a page or
+  listed in `known_gaps`. A listed gap that gains a page, or disappears, must be
+  removed, so the list only shrinks when the documentation really grows.
+
+The check runs in `go test ./...` (`docs_check_test.go`), so CI fails when a
+pull request adds a package or command without a page.

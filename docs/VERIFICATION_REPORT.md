@@ -1,3 +1,14 @@
+---
+title: GitHub Actions verification input
+section: concepts
+kind: narrative
+status: shipped
+covers:
+  - verification.go
+  - .github/workflows/px1-review-report.yml
+verified_at:
+---
+
 # GitHub Actions verification input
 
 Verification is evidence for a human reviewing agent-written code. Passing CI

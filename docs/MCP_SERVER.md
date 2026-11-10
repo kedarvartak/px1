@@ -1,3 +1,14 @@
+---
+title: MCP server
+section: guides
+kind: narrative
+status: built
+covers:
+  - mcp_proxy.go
+  - internal/hosted/mcpserver/
+verified_at:
+---
+
 # MCP server
 
 px1 exposes reviews to coding agents over the

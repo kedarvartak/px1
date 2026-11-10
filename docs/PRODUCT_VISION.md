@@ -1,3 +1,12 @@
+---
+title: Product vision
+section: start
+kind: narrative
+status: shipped
+covers: []
+verified_at:
+---
+
 # Product vision
 
 Understand the code your agent wrote before you merge it.

@@ -1,3 +1,18 @@
+---
+title: Free Action compatibility contract
+section: guides
+kind: narrative
+status: shipped
+covers:
+  - action.yml
+  - history/action.yml
+  - examples/px1-review.yml
+  - export.go
+  - export_render.go
+  - static_report/
+verified_at:
+---
+
 # Free Action compatibility contract
 
 The released px1 GitHub Action remains an accountless, self-run product mode.

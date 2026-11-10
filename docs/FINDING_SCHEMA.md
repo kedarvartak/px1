@@ -1,3 +1,14 @@
+---
+title: Finding contract
+section: reference
+kind: reference
+status: shipped
+covers:
+  - schemas/finding.schema.json
+  - internal/hosted/review/finding.go
+verified_at:
+---
+
 # Finding contract
 
 Model findings use strict JSON with no unknown fields. Every finding names a

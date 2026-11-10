@@ -1,3 +1,12 @@
+---
+title: Documentation inventory (phase 0)
+section: operations
+kind: narrative
+status: shipped
+covers: []
+verified_at:
+---
+
 # Documentation inventory (phase 0)
 
 An audit of `docs/` at the start of the self-evolving documentation work. It
@@ -31,6 +40,9 @@ check possible page by page.
    `validate-rules` appears only in the README. That is 4 of 12 subcommands.
 6. **Packages with no documentation.** `githubapp`, `integrations`, `learning`,
    `onboarding` and `scm`: 5 of 22 packages under `internal/hosted`.
+   Phase 1's `covers` mapping is stricter than a name search and adds
+   `billing`, `gitlab` and `report`, which pages mention but none describes.
+   The current list is `known_gaps` in `docs.config.json`.
 7. **Stubs.** 12 pages are under 100 words. Six of them, with `SCIP_INDEXING.md`,
    describe parts of indexing and read better as one page.
 8. **Overlap.** Agentic review is spread over four pages with repeated

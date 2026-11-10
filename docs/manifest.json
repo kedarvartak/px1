@@ -1,0 +1,462 @@
+{
+  "version": 1,
+  "sections": [
+    "start",
+    "guides",
+    "concepts",
+    "reference",
+    "operations",
+    "policies"
+  ],
+  "pages": [
+    {
+      "path": "docs/AGENTIC_CI.md",
+      "title": "Agentic review in CI",
+      "section": "guides",
+      "kind": "narrative",
+      "status": "shipped",
+      "covers": [
+        "post_github.go",
+        "feedback_collect.go",
+        "agentic-action/",
+        "examples/px1-agentic-review.yml",
+        ".github/workflows/px1-agentic-review.yml"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/AGENTIC_REVIEW.md",
+      "title": "Agentic review: prompts and budgets",
+      "section": "concepts",
+      "kind": "narrative",
+      "status": "shipped",
+      "covers": [
+        "internal/hosted/agent/pipeline.go",
+        "internal/hosted/agent/prompts.go",
+        "internal/hosted/agent/budget.go",
+        "internal/hosted/agent/loop.go",
+        "internal/hosted/agent/model.go",
+        "internal/hosted/agent/trace.go"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/AGENTIC_REVIEW_CLI.md",
+      "title": "px1 agentic-review",
+      "section": "guides",
+      "kind": "narrative",
+      "status": "shipped",
+      "covers": [
+        "agentic_review.go",
+        "agentic_review_prep.go",
+        "internal/hosted/agent/run.go",
+        "internal/hosted/agent/gitstore.go"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/AGENT_TOOLS.md",
+      "title": "Agentic review tools",
+      "section": "reference",
+      "kind": "reference",
+      "status": "shipped",
+      "covers": [
+        "internal/hosted/agent/tools.go",
+        "internal/hosted/agent/guard.go"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/API_KEYS.md",
+      "title": "API keys",
+      "section": "reference",
+      "kind": "reference",
+      "status": "built",
+      "covers": [
+        "internal/hosted/apikeys/"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/CONFIDENCE_SCORE.md",
+      "title": "Review confidence score",
+      "section": "concepts",
+      "kind": "narrative",
+      "status": "shipped",
+      "covers": [
+        "internal/hosted/review/confidence.go"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/DASHBOARD_FOUNDATION.md",
+      "title": "Hosted dashboard foundation",
+      "section": "operations",
+      "kind": "narrative",
+      "status": "built",
+      "covers": [
+        "web/dashboard/",
+        "internal/hosted/dashboard/"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/DATA_RETENTION.md",
+      "title": "Hosted data retention",
+      "section": "policies",
+      "kind": "narrative",
+      "status": "shipped",
+      "covers": [],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/DOCS_INVENTORY.md",
+      "title": "Documentation inventory (phase 0)",
+      "section": "operations",
+      "kind": "narrative",
+      "status": "shipped",
+      "covers": [],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/DOCS_ROADMAP.md",
+      "title": "Self-evolving documentation: roadmap",
+      "section": "operations",
+      "kind": "narrative",
+      "status": "planned",
+      "covers": [
+        "internal/docs/",
+        "docs_cmd.go"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/DOGFOOD.md",
+      "title": "Hosted v1 dogfood program",
+      "section": "operations",
+      "kind": "narrative",
+      "status": "shipped",
+      "covers": [
+        "internal/hosted/eval/dogfood.go"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/EMBEDDING_INDEX.md",
+      "title": "Embedding batches and versioning",
+      "section": "concepts",
+      "kind": "narrative",
+      "status": "built",
+      "covers": [
+        "internal/hosted/indexer/embed.go"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/EVALUATION_SET.md",
+      "title": "v1 review evaluation set",
+      "section": "guides",
+      "kind": "narrative",
+      "status": "shipped",
+      "covers": [
+        "eval_run.go",
+        "eval_compare.go",
+        "internal/hosted/eval/",
+        "eval/example-cases.json"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/FILE_SUMMARIES.md",
+      "title": "File summaries",
+      "section": "concepts",
+      "kind": "narrative",
+      "status": "built",
+      "covers": [
+        "internal/hosted/indexer/summary.go"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/FINDING_SCHEMA.md",
+      "title": "Finding contract",
+      "section": "reference",
+      "kind": "reference",
+      "status": "shipped",
+      "covers": [
+        "schemas/finding.schema.json",
+        "internal/hosted/review/finding.go"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/FINDING_VERIFIER.md",
+      "title": "Finding verifier",
+      "section": "concepts",
+      "kind": "narrative",
+      "status": "shipped",
+      "covers": [
+        "internal/hosted/review/verifier.go"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/FREE_ACTION.md",
+      "title": "Free Action compatibility contract",
+      "section": "guides",
+      "kind": "narrative",
+      "status": "shipped",
+      "covers": [
+        "action.yml",
+        "history/action.yml",
+        "examples/px1-review.yml",
+        "export.go",
+        "export_render.go",
+        "static_report/"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/GITHUB_APP_REGISTRATION.md",
+      "title": "GitHub App registration",
+      "section": "operations",
+      "kind": "narrative",
+      "status": "planned",
+      "covers": [
+        "deploy/github-app/"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/GITHUB_REVIEW_INTEGRATION_PLAN.md",
+      "title": "GitHub review artifact architecture",
+      "section": "concepts",
+      "kind": "narrative",
+      "status": "shipped",
+      "covers": [
+        "artifact_git.go",
+        "artifact_rules.go",
+        "review_blocks.go",
+        "attention.go",
+        "inspection_questions.go",
+        "summary_comment.go",
+        "scripts/review-report-history.sh"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/HOSTED_ARCHITECTURE.md",
+      "title": "Hosted v1 architecture decision",
+      "section": "concepts",
+      "kind": "narrative",
+      "status": "built",
+      "covers": [
+        "cmd/px1d/",
+        "internal/hosted/runtime/",
+        "internal/hosted/webhook/",
+        "internal/hosted/llm/",
+        "deploy/fly/",
+        "migrations/"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/HOSTED_INSTALL.md",
+      "title": "Install the hosted GitHub App",
+      "section": "guides",
+      "kind": "narrative",
+      "status": "planned",
+      "covers": [],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/INCREMENTAL_REINDEX.md",
+      "title": "Incremental repository indexing",
+      "section": "concepts",
+      "kind": "narrative",
+      "status": "built",
+      "covers": [
+        "internal/hosted/indexer/reindex.go"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/INDEX_CHUNKING.md",
+      "title": "Retrieval chunking",
+      "section": "concepts",
+      "kind": "narrative",
+      "status": "built",
+      "covers": [
+        "internal/hosted/indexer/chunk.go"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/INDEX_LIMITS.md",
+      "title": "Repository indexing limits",
+      "section": "concepts",
+      "kind": "narrative",
+      "status": "built",
+      "covers": [
+        "internal/hosted/indexer/limits.go"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/LANGUAGE_PARSING.md",
+      "title": "Language parsing boundary",
+      "section": "concepts",
+      "kind": "narrative",
+      "status": "built",
+      "covers": [
+        "internal/hosted/indexer/language.go",
+        "internal/hosted/indexer/tree_sitter.go"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/MCP_SERVER.md",
+      "title": "MCP server",
+      "section": "guides",
+      "kind": "narrative",
+      "status": "built",
+      "covers": [
+        "mcp_proxy.go",
+        "internal/hosted/mcpserver/"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/METRIC_DEFINITIONS.md",
+      "title": "Metric definitions",
+      "section": "reference",
+      "kind": "reference",
+      "status": "built",
+      "covers": [
+        "web/dashboard/lib/metric-definitions.ts",
+        "internal/hosted/analytics/"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/PRIVACY_POLICY.md",
+      "title": "Privacy policy",
+      "section": "policies",
+      "kind": "narrative",
+      "status": "shipped",
+      "covers": [],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/PRIVATE_DELIVERY.md",
+      "title": "Private-code delivery",
+      "section": "guides",
+      "kind": "narrative",
+      "status": "shipped",
+      "covers": [
+        "privacy.go",
+        "examples/px1-review-private.yml"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/PRODUCT_VISION.md",
+      "title": "Product vision",
+      "section": "start",
+      "kind": "narrative",
+      "status": "shipped",
+      "covers": [],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/PUBLIC_PAGES.md",
+      "title": "Public pages",
+      "section": "reference",
+      "kind": "reference",
+      "status": "built",
+      "covers": [
+        "internal/hosted/publicsite/",
+        "web/dashboard/lib/pricing.json"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/RELEASING.md",
+      "title": "Releasing the px1 Actions",
+      "section": "operations",
+      "kind": "narrative",
+      "status": "shipped",
+      "covers": [
+        ".github/workflows/release-actions.yml",
+        "VERSION"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/REVIEW_CONTEXT.md",
+      "title": "Review context assembly",
+      "section": "concepts",
+      "kind": "narrative",
+      "status": "built",
+      "covers": [
+        "internal/hosted/review/context.go"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/SAFE_REPOSITORY_CLONING.md",
+      "title": "Safe repository cloning",
+      "section": "concepts",
+      "kind": "narrative",
+      "status": "built",
+      "covers": [
+        "internal/hosted/repository/"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/SCIP_INDEXING.md",
+      "title": "Sandboxed SCIP indexing",
+      "section": "concepts",
+      "kind": "narrative",
+      "status": "built",
+      "covers": [
+        "internal/hosted/graph/"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/STATIC_REVIEW_EXPLANATIONS.md",
+      "title": "Static review explanations",
+      "section": "guides",
+      "kind": "narrative",
+      "status": "shipped",
+      "covers": [
+        "explanations.go",
+        "explanation_generate.go"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/TERMS.md",
+      "title": "Hosted service terms",
+      "section": "policies",
+      "kind": "narrative",
+      "status": "shipped",
+      "covers": [],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/VERIFICATION_REPORT.md",
+      "title": "GitHub Actions verification input",
+      "section": "concepts",
+      "kind": "narrative",
+      "status": "shipped",
+      "covers": [
+        "verification.go",
+        ".github/workflows/px1-review-report.yml"
+      ],
+      "verified_at": ""
+    }
+  ]
+}

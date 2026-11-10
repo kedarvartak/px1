@@ -1,3 +1,18 @@
+---
+title: Hosted v1 architecture decision
+section: concepts
+kind: narrative
+status: built
+covers:
+  - cmd/px1d/
+  - internal/hosted/runtime/
+  - internal/hosted/webhook/
+  - internal/hosted/llm/
+  - deploy/fly/
+  - migrations/
+verified_at:
+---
+
 # Hosted v1 architecture decision
 
 Status: accepted for the hosted v1 foundation.

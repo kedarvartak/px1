@@ -1,3 +1,16 @@
+---
+title: px1 agentic-review
+section: guides
+kind: narrative
+status: shipped
+covers:
+  - agentic_review.go
+  - agentic_review_prep.go
+  - internal/hosted/agent/run.go
+  - internal/hosted/agent/gitstore.go
+verified_at:
+---
+
 # `px1 agentic-review`
 
 Reviews two commits of a **local clone** with the agentic pipeline

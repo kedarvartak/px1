@@ -1,3 +1,13 @@
+---
+title: GitHub App registration
+section: operations
+kind: narrative
+status: planned
+covers:
+  - deploy/github-app/
+verified_at:
+---
+
 # GitHub App registration
 
 px1 uses separate GitHub Apps for development and production. The checked-in

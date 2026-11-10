@@ -1,3 +1,13 @@
+---
+title: Hosted v1 dogfood program
+section: operations
+kind: narrative
+status: shipped
+covers:
+  - internal/hosted/eval/dogfood.go
+verified_at:
+---
+
 # Hosted v1 dogfood program
 
 The v1 launch gate is a two-week dogfood run across the px1 repository and at

@@ -1,3 +1,12 @@
+---
+title: Hosted service terms
+section: policies
+kind: narrative
+status: shipped
+covers: []
+verified_at:
+---
+
 # Hosted service terms
 
 These are product terms for the planned hosted px1 v1 and are not a substitute

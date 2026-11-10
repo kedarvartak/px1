@@ -1,3 +1,14 @@
+---
+title: Private-code delivery
+section: guides
+kind: narrative
+status: shipped
+covers:
+  - privacy.go
+  - examples/px1-review-private.yml
+verified_at:
+---
+
 # Private-code delivery
 
 Use [`examples/px1-review-private.yml`](../examples/px1-review-private.yml) for

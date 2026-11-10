@@ -1,3 +1,13 @@
+---
+title: Repository indexing limits
+section: concepts
+kind: narrative
+status: built
+covers:
+  - internal/hosted/indexer/limits.go
+verified_at:
+---
+
 # Repository indexing limits
 
 Hosted v1 indexes at most 50,000 files or 2 GiB of source per repository.

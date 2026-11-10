@@ -1,3 +1,13 @@
+---
+title: API keys
+section: reference
+kind: reference
+status: built
+covers:
+  - internal/hosted/apikeys/
+verified_at:
+---
+
 # API keys
 
 Organization API keys authenticate the public API and the MCP server.

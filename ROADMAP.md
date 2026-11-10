@@ -230,6 +230,11 @@ backend-foundation tasks are:
 92. [x] **Plan self-evolving documentation.** `docs/DOCS_ROADMAP.md` sets the
     design and phases; `docs/DOCS_INVENTORY.md` audits the current pages and
     assigns each one a section, status and action.
+93. [x] **Give the documentation a checked structure.** Every page carries
+    front matter (section, status, the code it covers). `px1 docs manifest`
+    writes `docs/manifest.json` and the index; `px1 docs check` runs in the
+    tests and fails on broken links, stale generated files and code with no
+    page.
 
 The v1 review pipeline, indexing, report hosting, evaluation, and launch gates
 follow these foundations. AI findings must remain auditable: evidence,

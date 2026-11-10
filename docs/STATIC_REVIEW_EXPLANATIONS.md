@@ -1,3 +1,14 @@
+---
+title: Static review explanations
+section: guides
+kind: narrative
+status: shipped
+covers:
+  - explanations.go
+  - explanation_generate.go
+verified_at:
+---
+
 # Static review explanations
 
 Explanations help a human understand agent-written code before merging. They
