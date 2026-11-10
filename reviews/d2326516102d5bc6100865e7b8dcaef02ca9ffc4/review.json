@@ -1,0 +1,1865 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "3ddaf4a425c27aee703b216ce38362779d24feeb",
+  "head": "d2326516102d5bc6100865e7b8dcaef02ca9ffc4",
+  "generatedAt": "2026-11-10T13:00:16.618457623Z",
+  "files": [
+    {
+      "path": "docs/AGENTIC_CI.md",
+      "status": "M",
+      "diff": "diff --git a/docs/AGENTIC_CI.md b/docs/AGENTIC_CI.md\nindex 9c74c73..a59d36b 100644\n--- a/docs/AGENTIC_CI.md\n+++ b/docs/AGENTIC_CI.md\n@@ -33,6 +33,17 @@ Each run uploads the report as one unzipped `px1-review.html` artifact (kept 14\n \n `GITHUB_TOKEN` is read from the environment only. The workflow needs `pull-requests: write`.\n \n+## Measuring real use\n+\n+    GITHUB_TOKEN=$(gh auth token) px1 feedback-collect --repo owner/name --days 30 [--out feedback.json]\n+\n+Counts what people did with px1's inline comments: 👍, 👎, replies, and how many\n+comments drew any response. Acceptance is 👍 out of all reactions, and is reported as\n+unknown until someone has reacted, because silence is not agreement. Only\n+comments carrying px1's hidden marker are counted, and replies from bots are ignored.\n+It is a rough signal: people react to few comments, and it complements the seeded\n+benchmark rather than replacing it.\n+\n ## Known limits\n \n - Very large pull requests are reviewed in part: by default at most 40 files and 120,000 diff bytes go to the model, highest-risk first (workflows, migrations, auth and security paths, then source, then tests, then docs). The summary comment opens with a \"Partial review\" line naming what was left out. Raise `--max-files` and `--max-diff-bytes` to review more, at more cost.\n",
+      "hunks": [
+        {
+          "id": "diff-a90c641c4c7637f2",
+          "header": "@@ -33,6 +33,17 @@ Each run uploads the report as one unzipped `px1-review.html` artifact (kept 14",
+          "lines": [
+            {
+              "oldLine": 33,
+              "newLine": 33,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 34,
+              "newLine": 34,
+              "kind": "context",
+              "text": "`GITHUB_TOKEN` is read from the environment only. The workflow needs `pull-requests: write`."
+            },
+            {
+              "oldLine": 35,
+              "newLine": 35,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "## Measuring real use"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "    GITHUB_TOKEN=$(gh auth token) px1 feedback-collect --repo owner/name --days 30 [--out feedback.json]"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "Counts what people did with px1's inline comments: 👍, 👎, replies, and how many"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "comments drew any response. Acceptance is 👍 out of all reactions, and is reported as"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "unknown until someone has reacted, because silence is not agreement. Only"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "comments carrying px1's hidden marker are counted, and replies from bots are ignored."
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "It is a rough signal: people react to few comments, and it complements the seeded"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "benchmark rather than replacing it."
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 36,
+              "newLine": 47,
+              "kind": "context",
+              "text": "## Known limits"
+            },
+            {
+              "oldLine": 37,
+              "newLine": 48,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 38,
+              "newLine": 49,
+              "kind": "context",
+              "text": "- Very large pull requests are reviewed in part: by default at most 40 files and 120,000 diff bytes go to the model, highest-risk first (workflows, migrations, auth and security paths, then source, then tests, then docs). The summary comment opens with a \"Partial review\" line naming what was left out. Raise `--max-files` and `--max-diff-bytes` to review more, at more cost."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "feedback_collect.go",
+      "status": "A",
+      "diff": "diff --git a/feedback_collect.go b/feedback_collect.go\nnew file mode 100644\nindex 0000000..de74261\n--- /dev/null\n+++ b/feedback_collect.go\n@@ -0,0 +1,175 @@\n+package main\n+\n+import (\n+\t\"context\"\n+\t\"encoding/json\"\n+\t\"errors\"\n+\t\"flag\"\n+\t\"fmt\"\n+\t\"io\"\n+\t\"net/http\"\n+\t\"os\"\n+\t\"sort\"\n+\t\"strings\"\n+\t\"time\"\n+)\n+\n+// feedbackStats is what people did with px1's inline comments: the only\n+// precision signal that comes from real use instead of a seeded benchmark.\n+type feedbackStats struct {\n+\tRepo       string            `json:\"repo\"`\n+\tSince      string            `json:\"since\"`\n+\tComments   int               `json:\"comments\"`\n+\tThumbsUp   int               `json:\"thumbs_up\"`\n+\tThumbsDown int               `json:\"thumbs_down\"`\n+\tReplied    int               `json:\"replied\"`\n+\tEngaged    int               `json:\"engaged\"` // reacted to or replied to\n+\tFindings   []feedbackFinding `json:\"findings\"`\n+}\n+\n+type feedbackFinding struct {\n+\tPullRequest string `json:\"pull_request\"`\n+\tPath        string `json:\"path\"`\n+\tLine        int    `json:\"line\"`\n+\tTitle       string `json:\"title\"`\n+\tThumbsUp    int    `json:\"thumbs_up\"`\n+\tThumbsDown  int    `json:\"thumbs_down\"`\n+\tReplies     int    `json:\"replies\"`\n+}\n+\n+// Acceptance is thumbs-up out of all thumbs. It is undefined (ok=false) until\n+// someone has reacted: silence is not agreement.\n+func (s feedbackStats) Acceptance() (float64, bool) {\n+\tif s.ThumbsUp+s.ThumbsDown == 0 {\n+\t\treturn 0, false\n+\t}\n+\treturn float64(s.ThumbsUp) / float64(s.ThumbsUp+s.ThumbsDown), true\n+}\n+\n+func runFeedbackCollect(args []string, stdout io.Writer) error {\n+\tfs := flag.NewFlagSet(\"feedback-collect\", flag.ContinueOnError)\n+\tfs.SetOutput(os.Stderr)\n+\trepo := fs.String(\"repo\", os.Getenv(\"GITHUB_REPOSITORY\"), \"owner/name (default: $GITHUB_REPOSITORY)\")\n+\tdays := fs.Int(\"days\", 30, \"only comments from the last N days\")\n+\tapiURL := fs.String(\"api-url\", envOr(\"GITHUB_API_URL\", \"https://api.github.com\"), \"GitHub API base URL\")\n+\tout := fs.String(\"out\", \"\", \"optional file for the JSON result\")\n+\tif err := fs.Parse(args); err != nil {\n+\t\treturn err\n+\t}\n+\tif !validRepoSlug(*repo) || *days \u003c 1 || *days \u003e 365 {\n+\t\treturn errors.New(\"feedback-collect requires --repo owner/name and --days between 1 and 365\")\n+\t}\n+\ttoken := os.Getenv(\"GITHUB_TOKEN\")\n+\tif token == \"\" {\n+\t\treturn errors.New(\"GITHUB_TOKEN is required (for a private repository try GITHUB_TOKEN=$(gh auth token))\")\n+\t}\n+\tgh := githubClient{base: strings.TrimRight(*apiURL, \"/\"), token: token, http: \u0026http.Client{Timeout: 30 * time.Second}}\n+\tsince := time.Now().UTC().AddDate(0, 0, -*days)\n+\tstats, err := collectFeedback(context.Background(), gh, *repo, since)\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\tif *out != \"\" {\n+\t\tdata, _ := json.MarshalIndent(stats, \"\", \"  \")\n+\t\tif err := os.WriteFile(*out, append(data, '\\n'), 0o600); err != nil {\n+\t\t\treturn err\n+\t\t}\n+\t}\n+\t_, err = io.WriteString(stdout, stats.Markdown())\n+\treturn err\n+}\n+\n+type reviewCommentAPI struct {\n+\tID          int64     `json:\"id\"`\n+\tInReplyTo   int64     `json:\"in_reply_to_id\"`\n+\tBody        string    `json:\"body\"`\n+\tPath        string    `json:\"path\"`\n+\tLine        int       `json:\"line\"`\n+\tPullRequest string    `json:\"pull_request_url\"`\n+\tCreatedAt   time.Time `json:\"created_at\"`\n+\tUser        struct {\n+\t\tType string `json:\"type\"`\n+\t} `json:\"user\"`\n+\tReactions struct {\n+\t\tUp   int `json:\"+1\"`\n+\t\tDown int `json:\"-1\"`\n+\t} `json:\"reactions\"`\n+}\n+\n+func collectFeedback(ctx context.Context, gh githubClient, repo string, since time.Time) (feedbackStats, error) {\n+\tstats := feedbackStats{Repo: repo, Since: since.Format(\"2006-01-02\")}\n+\tvar all []reviewCommentAPI\n+\tfor page := 1; page \u003c= maxFilePages; page++ {\n+\t\tvar comments []reviewCommentAPI\n+\t\tpath := fmt.Sprintf(\"%s/pulls/comments?per_page=100\u0026sort=created\u0026direction=desc\u0026since=%s\u0026page=%d\", repoPath(repo), since.Format(time.RFC3339), page)\n+\t\tif err := gh.do(ctx, http.MethodGet, path, nil, \u0026comments); err != nil {\n+\t\t\treturn stats, err\n+\t\t}\n+\t\tall = append(all, comments...)\n+\t\tif len(comments) \u003c 100 {\n+\t\t\tbreak\n+\t\t}\n+\t}\n+\treplies := map[int64]int{}\n+\tfor _, c := range all {\n+\t\tif c.InReplyTo != 0 \u0026\u0026 c.User.Type != \"Bot\" {\n+\t\t\treplies[c.InReplyTo]++\n+\t\t}\n+\t}\n+\tfor _, c := range all {\n+\t\tif c.InReplyTo != 0 || c.CreatedAt.Before(since) || !strings.Contains(c.Body, \"\u003c!-- px1-finding:\") {\n+\t\t\tcontinue\n+\t\t}\n+\t\tf := feedbackFinding{PullRequest: c.PullRequest, Path: c.Path, Line: c.Line, Title: findingTitle(c.Body),\n+\t\t\tThumbsUp: c.Reactions.Up, ThumbsDown: c.Reactions.Down, Replies: replies[c.ID]}\n+\t\tstats.Comments++\n+\t\tstats.ThumbsUp += f.ThumbsUp\n+\t\tstats.ThumbsDown += f.ThumbsDown\n+\t\tif f.Replies \u003e 0 {\n+\t\t\tstats.Replied++\n+\t\t}\n+\t\tif f.ThumbsUp+f.ThumbsDown+f.Replies \u003e 0 {\n+\t\t\tstats.Engaged++\n+\t\t}\n+\t\tstats.Findings = append(stats.Findings, f)\n+\t}\n+\tsort.SliceStable(stats.Findings, func(i, j int) bool {\n+\t\treturn stats.Findings[i].ThumbsDown-stats.Findings[i].ThumbsUp \u003e stats.Findings[j].ThumbsDown-stats.Findings[j].ThumbsUp\n+\t})\n+\treturn stats, nil\n+}\n+\n+// findingTitle pulls the bold \"**P2: title**\" line out of an inline comment.\n+func findingTitle(body string) string {\n+\tfor _, line := range strings.Split(body, \"\\n\") {\n+\t\tif strings.HasPrefix(line, \"**\") \u0026\u0026 strings.HasSuffix(line, \"**\") {\n+\t\t\treturn strings.Trim(line, \"*\")\n+\t\t}\n+\t}\n+\treturn \"\"\n+}\n+\n+func (s feedbackStats) Markdown() string {\n+\tvar b strings.Builder\n+\tfmt.Fprintf(\u0026b, \"# px1 feedback on %s since %s\\n\\n\", s.Repo, s.Since)\n+\tif s.Comments == 0 {\n+\t\tb.WriteString(\"No px1 inline comments in this period.\\n\")\n+\t\treturn b.String()\n+\t}\n+\tfmt.Fprintf(\u0026b, \"- %d inline comments; %d reacted to or replied to (%.0f%% engaged)\\n\", s.Comments, s.Engaged, 100*float64(s.Engaged)/float64(s.Comments))\n+\tfmt.Fprintf(\u0026b, \"- 👍 %d, 👎 %d, replies on %d comments\\n\", s.ThumbsUp, s.ThumbsDown, s.Replied)\n+\tif a, ok := s.Acceptance(); ok {\n+\t\tfmt.Fprintf(\u0026b, \"- **Acceptance %.0f%%** of reactions were 👍 (from %d reactions; read it as a rough signal, people react to few comments)\\n\", a*100, s.ThumbsUp+s.ThumbsDown)\n+\t} else {\n+\t\tb.WriteString(\"- **Acceptance unknown:** nobody has reacted yet. Silence is not agreement.\\n\")\n+\t}\n+\tb.WriteString(\"\\n| Finding | 👍 | 👎 | Replies |\\n| --- | --- | --- | --- |\\n\")\n+\tfor _, f := range s.Findings {\n+\t\ttitle := f.Title\n+\t\tif title == \"\" {\n+\t\t\ttitle = f.Path\n+\t\t}\n+\t\tfmt.Fprintf(\u0026b, \"| %s (`%s:%d`) | %d | %d | %d |\\n\", title, f.Path, f.Line, f.ThumbsUp, f.ThumbsDown, f.Replies)\n+\t}\n+\treturn b.String()\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-c4ce35484e5e50b3",
+          "header": "@@ -0,0 +1,175 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package main"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"context\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"flag\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"io\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"net/http\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\"sort\""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "// feedbackStats is what people did with px1's inline comments: the only"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "// precision signal that comes from real use instead of a seeded benchmark."
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "type feedbackStats struct {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tRepo       string            `json:\"repo\"`"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\tSince      string            `json:\"since\"`"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tComments   int               `json:\"comments\"`"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tThumbsUp   int               `json:\"thumbs_up\"`"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tThumbsDown int               `json:\"thumbs_down\"`"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\tReplied    int               `json:\"replied\"`"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\tEngaged    int               `json:\"engaged\"` // reacted to or replied to"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tFindings   []feedbackFinding `json:\"findings\"`"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "type feedbackFinding struct {"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\tPullRequest string `json:\"pull_request\"`"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tPath        string `json:\"path\"`"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tLine        int    `json:\"line\"`"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tTitle       string `json:\"title\"`"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tThumbsUp    int    `json:\"thumbs_up\"`"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tThumbsDown  int    `json:\"thumbs_down\"`"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\tReplies     int    `json:\"replies\"`"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "// Acceptance is thumbs-up out of all thumbs. It is undefined (ok=false) until"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "// someone has reacted: silence is not agreement."
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "func (s feedbackStats) Acceptance() (float64, bool) {"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tif s.ThumbsUp+s.ThumbsDown == 0 {"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\t\treturn 0, false"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\treturn float64(s.ThumbsUp) / float64(s.ThumbsUp+s.ThumbsDown), true"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "func runFeedbackCollect(args []string, stdout io.Writer) error {"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\tfs := flag.NewFlagSet(\"feedback-collect\", flag.ContinueOnError)"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\tfs.SetOutput(os.Stderr)"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\trepo := fs.String(\"repo\", os.Getenv(\"GITHUB_REPOSITORY\"), \"owner/name (default: $GITHUB_REPOSITORY)\")"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\tdays := fs.Int(\"days\", 30, \"only comments from the last N days\")"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\tapiURL := fs.String(\"api-url\", envOr(\"GITHUB_API_URL\", \"https://api.github.com\"), \"GitHub API base URL\")"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\tout := fs.String(\"out\", \"\", \"optional file for the JSON result\")"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\tif err := fs.Parse(args); err != nil {"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\tif !validRepoSlug(*repo) || *days \u003c 1 || *days \u003e 365 {"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"feedback-collect requires --repo owner/name and --days between 1 and 365\")"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\ttoken := os.Getenv(\"GITHUB_TOKEN\")"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\tif token == \"\" {"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"GITHUB_TOKEN is required (for a private repository try GITHUB_TOKEN=$(gh auth token))\")"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\tgh := githubClient{base: strings.TrimRight(*apiURL, \"/\"), token: token, http: \u0026http.Client{Timeout: 30 * time.Second}}"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\tsince := time.Now().UTC().AddDate(0, 0, -*days)"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\tstats, err := collectFeedback(context.Background(), gh, *repo, since)"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\tif *out != \"\" {"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\tdata, _ := json.MarshalIndent(stats, \"\", \"  \")"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t\tif err := os.WriteFile(*out, append(data, '\\n'), 0o600); err != nil {"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\t\t\treturn err"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t_, err = io.WriteString(stdout, stats.Markdown())"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\treturn err"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "type reviewCommentAPI struct {"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\tID          int64     `json:\"id\"`"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\tInReplyTo   int64     `json:\"in_reply_to_id\"`"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\tBody        string    `json:\"body\"`"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\tPath        string    `json:\"path\"`"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\tLine        int       `json:\"line\"`"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\tPullRequest string    `json:\"pull_request_url\"`"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\tCreatedAt   time.Time `json:\"created_at\"`"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\tUser        struct {"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t\tType string `json:\"type\"`"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\t} `json:\"user\"`"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\tReactions struct {"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t\tUp   int `json:\"+1\"`"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t\tDown int `json:\"-1\"`"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\t} `json:\"reactions\"`"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "func collectFeedback(ctx context.Context, gh githubClient, repo string, since time.Time) (feedbackStats, error) {"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\tstats := feedbackStats{Repo: repo, Since: since.Format(\"2006-01-02\")}"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\tvar all []reviewCommentAPI"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\tfor page := 1; page \u003c= maxFilePages; page++ {"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t\tvar comments []reviewCommentAPI"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t\tpath := fmt.Sprintf(\"%s/pulls/comments?per_page=100\u0026sort=created\u0026direction=desc\u0026since=%s\u0026page=%d\", repoPath(repo), since.Format(time.RFC3339), page)"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\t\tif err := gh.do(ctx, http.MethodGet, path, nil, \u0026comments); err != nil {"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\t\t\treturn stats, err"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\t\tall = append(all, comments...)"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\t\tif len(comments) \u003c 100 {"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\t\t\tbreak"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\treplies := map[int64]int{}"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "\tfor _, c := range all {"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "\t\tif c.InReplyTo != 0 \u0026\u0026 c.User.Type != \"Bot\" {"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "\t\t\treplies[c.InReplyTo]++"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\tfor _, c := range all {"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\t\tif c.InReplyTo != 0 || c.CreatedAt.Before(since) || !strings.Contains(c.Body, \"\u003c!-- px1-finding:\") {"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "\t\tf := feedbackFinding{PullRequest: c.PullRequest, Path: c.Path, Line: c.Line, Title: findingTitle(c.Body),"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\t\t\tThumbsUp: c.Reactions.Up, ThumbsDown: c.Reactions.Down, Replies: replies[c.ID]}"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\t\tstats.Comments++"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\t\tstats.ThumbsUp += f.ThumbsUp"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\t\tstats.ThumbsDown += f.ThumbsDown"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\t\tif f.Replies \u003e 0 {"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\t\t\tstats.Replied++"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\t\tif f.ThumbsUp+f.ThumbsDown+f.Replies \u003e 0 {"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\t\t\tstats.Engaged++"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\t\tstats.Findings = append(stats.Findings, f)"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\tsort.SliceStable(stats.Findings, func(i, j int) bool {"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\t\treturn stats.Findings[i].ThumbsDown-stats.Findings[i].ThumbsUp \u003e stats.Findings[j].ThumbsDown-stats.Findings[j].ThumbsUp"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\t})"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\treturn stats, nil"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "// findingTitle pulls the bold \"**P2: title**\" line out of an inline comment."
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "func findingTitle(body string) string {"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\tfor _, line := range strings.Split(body, \"\\n\") {"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\t\tif strings.HasPrefix(line, \"**\") \u0026\u0026 strings.HasSuffix(line, \"**\") {"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\t\t\treturn strings.Trim(line, \"*\")"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "\treturn \"\""
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "func (s feedbackStats) Markdown() string {"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "\tvar b strings.Builder"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "\tfmt.Fprintf(\u0026b, \"# px1 feedback on %s since %s\\n\\n\", s.Repo, s.Since)"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "\tif s.Comments == 0 {"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "\t\tb.WriteString(\"No px1 inline comments in this period.\\n\")"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "\t\treturn b.String()"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "\tfmt.Fprintf(\u0026b, \"- %d inline comments; %d reacted to or replied to (%.0f%% engaged)\\n\", s.Comments, s.Engaged, 100*float64(s.Engaged)/float64(s.Comments))"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "\tfmt.Fprintf(\u0026b, \"- 👍 %d, 👎 %d, replies on %d comments\\n\", s.ThumbsUp, s.ThumbsDown, s.Replied)"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "\tif a, ok := s.Acceptance(); ok {"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "\t\tfmt.Fprintf(\u0026b, \"- **Acceptance %.0f%%** of reactions were 👍 (from %d reactions; read it as a rough signal, people react to few comments)\\n\", a*100, s.ThumbsUp+s.ThumbsDown)"
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "\t} else {"
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "\t\tb.WriteString(\"- **Acceptance unknown:** nobody has reacted yet. Silence is not agreement.\\n\")"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "\tb.WriteString(\"\\n| Finding | 👍 | 👎 | Replies |\\n| --- | --- | --- | --- |\\n\")"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": "\tfor _, f := range s.Findings {"
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": "\t\ttitle := f.Title"
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "\t\tif title == \"\" {"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "\t\t\ttitle = f.Path"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "\t\tfmt.Fprintf(\u0026b, \"| %s (`%s:%d`) | %d | %d | %d |\\n\", title, f.Path, f.Line, f.ThumbsUp, f.ThumbsDown, f.Replies)"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "\treturn b.String()"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "feedback_collect_test.go",
+      "status": "A",
+      "diff": "diff --git a/feedback_collect_test.go b/feedback_collect_test.go\nnew file mode 100644\nindex 0000000..18e988c\n--- /dev/null\n+++ b/feedback_collect_test.go\n@@ -0,0 +1,113 @@\n+package main\n+\n+import (\n+\t\"bytes\"\n+\t\"encoding/json\"\n+\t\"net/http\"\n+\t\"net/http/httptest\"\n+\t\"os\"\n+\t\"path/filepath\"\n+\t\"strings\"\n+\t\"testing\"\n+\t\"time\"\n+)\n+\n+func px1Comment(id int64, title string, up, down int, created time.Time) map[string]any {\n+\treturn map[string]any{\"id\": id, \"body\": \"\u003c!-- px1-finding:abcdef123456 --\u003e\\n**P2: \" + title + \"**\\n\\nwhy\", \"path\": \"src/a.ts\", \"line\": 10,\n+\t\t\"pull_request_url\": \"https://api.github.com/repos/o/r/pulls/7\", \"created_at\": created.Format(time.RFC3339),\n+\t\t\"user\": map[string]any{\"type\": \"Bot\"}, \"reactions\": map[string]any{\"+1\": up, \"-1\": down}}\n+}\n+\n+func fakeCommentsServer(t *testing.T, comments []map[string]any) *httptest.Server {\n+\tt.Helper()\n+\tserver := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {\n+\t\tif r.Header.Get(\"Authorization\") != \"Bearer tok\" || !strings.HasSuffix(r.URL.Path, \"/repos/o/r/pulls/comments\") {\n+\t\t\thttp.Error(w, \"no\", http.StatusUnauthorized)\n+\t\t\treturn\n+\t\t}\n+\t\tif r.URL.Query().Get(\"since\") == \"\" {\n+\t\t\thttp.Error(w, \"since is required\", http.StatusBadRequest)\n+\t\t\treturn\n+\t\t}\n+\t\tjson.NewEncoder(w).Encode(comments)\n+\t}))\n+\tt.Cleanup(server.Close)\n+\treturn server\n+}\n+\n+func TestFeedbackCollectCountsReactionsAndRepliesOnPx1CommentsOnly(t *testing.T) {\n+\tnow := time.Now().UTC()\n+\thuman := map[string]any{\"id\": int64(99), \"body\": \"I disagree\", \"created_at\": now.Format(time.RFC3339), \"user\": map[string]any{\"type\": \"User\"}, \"in_reply_to_id\": int64(1), \"reactions\": map[string]any{\"+1\": 5, \"-1\": 0}}\n+\tbotReply := map[string]any{\"id\": int64(98), \"body\": \"thanks\", \"created_at\": now.Format(time.RFC3339), \"user\": map[string]any{\"type\": \"Bot\"}, \"in_reply_to_id\": int64(1)}\n+\tsomeoneElses := map[string]any{\"id\": int64(50), \"body\": \"nit: rename this\", \"path\": \"x.ts\", \"created_at\": now.Format(time.RFC3339), \"user\": map[string]any{\"type\": \"User\"}, \"reactions\": map[string]any{\"+1\": 9, \"-1\": 0}}\n+\told := px1Comment(60, \"Too old\", 3, 0, now.AddDate(0, 0, -90))\n+\tserver := fakeCommentsServer(t, []map[string]any{\n+\t\tpx1Comment(1, \"Boundary off by one\", 2, 1, now), human, botReply, someoneElses, old,\n+\t\tpx1Comment(2, \"Never reacted\", 0, 0, now),\n+\t})\n+\tt.Setenv(\"GITHUB_TOKEN\", \"tok\")\n+\tout := filepath.Join(t.TempDir(), \"fb.json\")\n+\tvar stdout bytes.Buffer\n+\tif err := runFeedbackCollect([]string{\"--repo\", \"o/r\", \"--days\", \"30\", \"--api-url\", server.URL, \"--out\", out}, \u0026stdout); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tdata, _ := os.ReadFile(out)\n+\tvar stats feedbackStats\n+\tif err := json.Unmarshal(data, \u0026stats); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif stats.Comments != 2 || stats.ThumbsUp != 2 || stats.ThumbsDown != 1 || stats.Replied != 1 || stats.Engaged != 1 {\n+\t\tt.Fatalf(\"stats=%+v (a human reply and another person's comment must not count as px1's)\", stats)\n+\t}\n+\tif a, ok := stats.Acceptance(); !ok || a \u003c 0.66 || a \u003e 0.67 {\n+\t\tt.Fatalf(\"acceptance=%v ok=%v\", a, ok)\n+\t}\n+\tmd := stdout.String()\n+\tfor _, want := range []string{\"2 inline comments\", \"Acceptance 67%\", \"Boundary off by one\", \"Never reacted\"} {\n+\t\tif !strings.Contains(md, want) {\n+\t\t\tt.Fatalf(\"markdown lacks %q:\\n%s\", want, md)\n+\t\t}\n+\t}\n+\tif strings.Contains(md, \"Too old\") || strings.Contains(md, \"rename this\") {\n+\t\tt.Fatalf(\"out-of-period or non-px1 comments leaked in:\\n%s\", md)\n+\t}\n+\tinfo, _ := os.Stat(out)\n+\tif info.Mode().Perm() != 0o600 {\n+\t\tt.Fatalf(\"output is %v, want owner-only\", info.Mode().Perm())\n+\t}\n+}\n+\n+func TestFeedbackSilenceIsNotAgreement(t *testing.T) {\n+\tnow := time.Now().UTC()\n+\tserver := fakeCommentsServer(t, []map[string]any{px1Comment(1, \"Quiet finding\", 0, 0, now)})\n+\tt.Setenv(\"GITHUB_TOKEN\", \"tok\")\n+\tvar stdout bytes.Buffer\n+\tif err := runFeedbackCollect([]string{\"--repo\", \"o/r\", \"--api-url\", server.URL}, \u0026stdout); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif !strings.Contains(stdout.String(), \"Acceptance unknown\") || strings.Contains(stdout.String(), \"Acceptance 0%\") {\n+\t\tt.Fatalf(\"no reactions must read as unknown, not 0%% or 100%%:\\n%s\", stdout.String())\n+\t}\n+}\n+\n+func TestFeedbackCollectEmptyAndInvalidInput(t *testing.T) {\n+\tserver := fakeCommentsServer(t, nil)\n+\tt.Setenv(\"GITHUB_TOKEN\", \"tok\")\n+\tvar stdout bytes.Buffer\n+\tif err := runFeedbackCollect([]string{\"--repo\", \"o/r\", \"--api-url\", server.URL}, \u0026stdout); err != nil || !strings.Contains(stdout.String(), \"No px1 inline comments\") {\n+\t\tt.Fatalf(\"err=%v out=%s\", err, stdout.String())\n+\t}\n+\tfor name, args := range map[string][]string{\"bad repo\": {\"--repo\", \"nope\"}, \"zero days\": {\"--repo\", \"o/r\", \"--days\", \"0\"}} {\n+\t\tif err := runFeedbackCollect(args, \u0026bytes.Buffer{}); err == nil {\n+\t\t\tt.Errorf(\"%s accepted\", name)\n+\t\t}\n+\t}\n+\tt.Setenv(\"GITHUB_TOKEN\", \"\")\n+\tif err := runFeedbackCollect([]string{\"--repo\", \"o/r\", \"--api-url\", server.URL}, \u0026bytes.Buffer{}); err == nil || !strings.Contains(err.Error(), \"GITHUB_TOKEN\") {\n+\t\tt.Fatalf(\"missing token: %v\", err)\n+\t}\n+\tt.Setenv(\"GITHUB_TOKEN\", \"wrong-secret-token\")\n+\tif err := runFeedbackCollect([]string{\"--repo\", \"o/r\", \"--api-url\", server.URL}, \u0026bytes.Buffer{}); err == nil || strings.Contains(err.Error(), \"wrong-secret-token\") {\n+\t\tt.Fatalf(\"a rejected token must not be echoed: %v\", err)\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-05f91a726c23efa9",
+          "header": "@@ -0,0 +1,113 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package main"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"bytes\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"net/http\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"net/http/httptest\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"path/filepath\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\"time\""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "func px1Comment(id int64, title string, up, down int, created time.Time) map[string]any {"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\treturn map[string]any{\"id\": id, \"body\": \"\u003c!-- px1-finding:abcdef123456 --\u003e\\n**P2: \" + title + \"**\\n\\nwhy\", \"path\": \"src/a.ts\", \"line\": 10,"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "\t\t\"pull_request_url\": \"https://api.github.com/repos/o/r/pulls/7\", \"created_at\": created.Format(time.RFC3339),"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\t\t\"user\": map[string]any{\"type\": \"Bot\"}, \"reactions\": map[string]any{\"+1\": up, \"-1\": down}}"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "func fakeCommentsServer(t *testing.T, comments []map[string]any) *httptest.Server {"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\tt.Helper()"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\tserver := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\t\tif r.Header.Get(\"Authorization\") != \"Bearer tok\" || !strings.HasSuffix(r.URL.Path, \"/repos/o/r/pulls/comments\") {"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t\t\thttp.Error(w, \"no\", http.StatusUnauthorized)"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t\t\treturn"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t\tif r.URL.Query().Get(\"since\") == \"\" {"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\t\t\thttp.Error(w, \"since is required\", http.StatusBadRequest)"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\t\t\treturn"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\t\tjson.NewEncoder(w).Encode(comments)"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\t}))"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tt.Cleanup(server.Close)"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\treturn server"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "func TestFeedbackCollectCountsReactionsAndRepliesOnPx1CommentsOnly(t *testing.T) {"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tnow := time.Now().UTC()"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\thuman := map[string]any{\"id\": int64(99), \"body\": \"I disagree\", \"created_at\": now.Format(time.RFC3339), \"user\": map[string]any{\"type\": \"User\"}, \"in_reply_to_id\": int64(1), \"reactions\": map[string]any{\"+1\": 5, \"-1\": 0}}"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\tbotReply := map[string]any{\"id\": int64(98), \"body\": \"thanks\", \"created_at\": now.Format(time.RFC3339), \"user\": map[string]any{\"type\": \"Bot\"}, \"in_reply_to_id\": int64(1)}"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\tsomeoneElses := map[string]any{\"id\": int64(50), \"body\": \"nit: rename this\", \"path\": \"x.ts\", \"created_at\": now.Format(time.RFC3339), \"user\": map[string]any{\"type\": \"User\"}, \"reactions\": map[string]any{\"+1\": 9, \"-1\": 0}}"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\told := px1Comment(60, \"Too old\", 3, 0, now.AddDate(0, 0, -90))"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tserver := fakeCommentsServer(t, []map[string]any{"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "\t\tpx1Comment(1, \"Boundary off by one\", 2, 1, now), human, botReply, someoneElses, old,"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\t\tpx1Comment(2, \"Never reacted\", 0, 0, now),"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t})"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\tt.Setenv(\"GITHUB_TOKEN\", \"tok\")"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\tout := filepath.Join(t.TempDir(), \"fb.json\")"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\tvar stdout bytes.Buffer"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\tif err := runFeedbackCollect([]string{\"--repo\", \"o/r\", \"--days\", \"30\", \"--api-url\", server.URL, \"--out\", out}, \u0026stdout); err != nil {"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\tdata, _ := os.ReadFile(out)"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\tvar stats feedbackStats"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\tif err := json.Unmarshal(data, \u0026stats); err != nil {"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\tif stats.Comments != 2 || stats.ThumbsUp != 2 || stats.ThumbsDown != 1 || stats.Replied != 1 || stats.Engaged != 1 {"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"stats=%+v (a human reply and another person's comment must not count as px1's)\", stats)"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\tif a, ok := stats.Acceptance(); !ok || a \u003c 0.66 || a \u003e 0.67 {"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"acceptance=%v ok=%v\", a, ok)"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\tmd := stdout.String()"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\tfor _, want := range []string{\"2 inline comments\", \"Acceptance 67%\", \"Boundary off by one\", \"Never reacted\"} {"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\tif !strings.Contains(md, want) {"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"markdown lacks %q:\\n%s\", want, md)"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\tif strings.Contains(md, \"Too old\") || strings.Contains(md, \"rename this\") {"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"out-of-period or non-px1 comments leaked in:\\n%s\", md)"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\tinfo, _ := os.Stat(out)"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\tif info.Mode().Perm() != 0o600 {"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"output is %v, want owner-only\", info.Mode().Perm())"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "func TestFeedbackSilenceIsNotAgreement(t *testing.T) {"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\tnow := time.Now().UTC()"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\tserver := fakeCommentsServer(t, []map[string]any{px1Comment(1, \"Quiet finding\", 0, 0, now)})"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\tt.Setenv(\"GITHUB_TOKEN\", \"tok\")"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\tvar stdout bytes.Buffer"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\tif err := runFeedbackCollect([]string{\"--repo\", \"o/r\", \"--api-url\", server.URL}, \u0026stdout); err != nil {"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\tif !strings.Contains(stdout.String(), \"Acceptance unknown\") || strings.Contains(stdout.String(), \"Acceptance 0%\") {"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"no reactions must read as unknown, not 0%% or 100%%:\\n%s\", stdout.String())"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "func TestFeedbackCollectEmptyAndInvalidInput(t *testing.T) {"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\tserver := fakeCommentsServer(t, nil)"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\tt.Setenv(\"GITHUB_TOKEN\", \"tok\")"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\tvar stdout bytes.Buffer"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\tif err := runFeedbackCollect([]string{\"--repo\", \"o/r\", \"--api-url\", server.URL}, \u0026stdout); err != nil || !strings.Contains(stdout.String(), \"No px1 inline comments\") {"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"err=%v out=%s\", err, stdout.String())"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\tfor name, args := range map[string][]string{\"bad repo\": {\"--repo\", \"nope\"}, \"zero days\": {\"--repo\", \"o/r\", \"--days\", \"0\"}} {"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\t\tif err := runFeedbackCollect(args, \u0026bytes.Buffer{}); err == nil {"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"%s accepted\", name)"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\tt.Setenv(\"GITHUB_TOKEN\", \"\")"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\tif err := runFeedbackCollect([]string{\"--repo\", \"o/r\", \"--api-url\", server.URL}, \u0026bytes.Buffer{}); err == nil || !strings.Contains(err.Error(), \"GITHUB_TOKEN\") {"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"missing token: %v\", err)"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\tt.Setenv(\"GITHUB_TOKEN\", \"wrong-secret-token\")"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\tif err := runFeedbackCollect([]string{\"--repo\", \"o/r\", \"--api-url\", server.URL}, \u0026bytes.Buffer{}); err == nil || strings.Contains(err.Error(), \"wrong-secret-token\") {"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"a rejected token must not be echoed: %v\", err)"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "main.go",
+      "status": "M",
+      "diff": "diff --git a/main.go b/main.go\nindex 020b5ee..19ef649 100644\n--- a/main.go\n+++ b/main.go\n@@ -62,6 +62,12 @@ func main() {\n \t\t}\n \t\treturn\n \t}\n+\tif len(os.Args) \u003e 1 \u0026\u0026 os.Args[1] == \"feedback-collect\" {\n+\t\tif err := runFeedbackCollect(os.Args[2:], os.Stdout); err != nil {\n+\t\t\tfatal(err)\n+\t\t}\n+\t\treturn\n+\t}\n \tif len(os.Args) \u003e 1 \u0026\u0026 os.Args[1] == \"eval-run\" {\n \t\tif err := runEvalRun(os.Args[2:], os.Stdout); err != nil {\n \t\t\tfatal(err)\n@@ -85,7 +91,7 @@ func main() {\n \t\treturn\n \t}\n \tfmt.Fprintf(os.Stderr, \"px1 %s - understand the code your agent wrote before you merge it\\n\\n\", version)\n-\tfmt.Fprintln(os.Stderr, \"usage: px1 \u003cagentic-review|eval-compare|eval-run|post-github|export-review|generate-explanations|privacy-check|summary-comment|validate-config|validate-rules\u003e [options]\")\n+\tfmt.Fprintln(os.Stderr, \"usage: px1 \u003cagentic-review|feedback-collect|eval-compare|eval-run|post-github|export-review|generate-explanations|privacy-check|summary-comment|validate-config|validate-rules\u003e [options]\")\n \tos.Exit(2)\n }\n \n",
+      "hunks": [
+        {
+          "id": "diff-d01c4262eacd30a9",
+          "header": "@@ -62,6 +62,12 @@ func main() {",
+          "lines": [
+            {
+              "oldLine": 62,
+              "newLine": 62,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 63,
+              "newLine": 63,
+              "kind": "context",
+              "text": "\t\treturn"
+            },
+            {
+              "oldLine": 64,
+              "newLine": 64,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\tif len(os.Args) \u003e 1 \u0026\u0026 os.Args[1] == \"feedback-collect\" {"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t\tif err := runFeedbackCollect(os.Args[2:], os.Stdout); err != nil {"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\t\t\tfatal(err)"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\t\treturn"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 65,
+              "newLine": 71,
+              "kind": "context",
+              "text": "\tif len(os.Args) \u003e 1 \u0026\u0026 os.Args[1] == \"eval-run\" {"
+            },
+            {
+              "oldLine": 66,
+              "newLine": 72,
+              "kind": "context",
+              "text": "\t\tif err := runEvalRun(os.Args[2:], os.Stdout); err != nil {"
+            },
+            {
+              "oldLine": 67,
+              "newLine": 73,
+              "kind": "context",
+              "text": "\t\t\tfatal(err)"
+            }
+          ]
+        },
+        {
+          "id": "diff-6b24a5bacf93d900",
+          "header": "@@ -85,7 +91,7 @@ func main() {",
+          "lines": [
+            {
+              "oldLine": 85,
+              "newLine": 91,
+              "kind": "context",
+              "text": "\t\treturn"
+            },
+            {
+              "oldLine": 86,
+              "newLine": 92,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 87,
+              "newLine": 93,
+              "kind": "context",
+              "text": "\tfmt.Fprintf(os.Stderr, \"px1 %s - understand the code your agent wrote before you merge it\\n\\n\", version)"
+            },
+            {
+              "oldLine": 88,
+              "kind": "removed",
+              "text": "\tfmt.Fprintln(os.Stderr, \"usage: px1 \u003cagentic-review|eval-compare|eval-run|post-github|export-review|generate-explanations|privacy-check|summary-comment|validate-config|validate-rules\u003e [options]\")"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\tfmt.Fprintln(os.Stderr, \"usage: px1 \u003cagentic-review|feedback-collect|eval-compare|eval-run|post-github|export-review|generate-explanations|privacy-check|summary-comment|validate-config|validate-rules\u003e [options]\")"
+            },
+            {
+              "oldLine": 89,
+              "newLine": 95,
+              "kind": "context",
+              "text": "\tos.Exit(2)"
+            },
+            {
+              "oldLine": 90,
+              "newLine": 96,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 91,
+              "newLine": 97,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-99ad581cfa0b534a",
+      "title": "Main changes",
+      "summary": "4 related files share the \"main\" change signal.",
+      "paths": [
+        "docs/AGENTIC_CI.md",
+        "feedback_collect.go",
+        "feedback_collect_test.go",
+        "main.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-1c6f4d5da57dc463",
+      "path": "feedback_collect.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "feedback_collect_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-e72838278b2fd924",
+      "path": "feedback_collect.go",
+      "line": 42,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func (s feedbackStats) Acceptance() (float64, bool) {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 4,
+    "filesAnalyzed": 4,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "acceptance-unknown",
+      "path": "feedback_collect.go",
+      "lineStart": 41,
+      "lineEnd": 47,
+      "title": "Treats silence as unknown",
+      "summary": "Acceptance is left undefined until at least one thumbs-up or thumbs-down exists, so a lack of reactions is not reported as rejection or agreement."
+    },
+    {
+      "id": "feedback-scope",
+      "path": "feedback_collect.go",
+      "lineStart": 101,
+      "lineEnd": 139,
+      "title": "Measures feedback on px1 findings only",
+      "summary": "The report counts only marked px1 inline comments created within the requested period. It aggregates reactions and human replies, while excluding unrelated comments and bot replies from the feedback metrics."
+    },
+    {
+      "id": "feedback-collect-command",
+      "path": "main.go",
+      "lineStart": 65,
+      "lineEnd": 70,
+      "title": "Adds the feedback collection command",
+      "summary": "`px1 feedback-collect` is now routed as a CLI subcommand, so users can run the new real-use feedback report instead of receiving the usage error."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "3ddaf4a425c27aee703b216ce38362779d24feeb",
+      "revision": "d2326516102d5bc6100865e7b8dcaef02ca9ffc4",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "3ddaf4a425c27aee703b216ce38362779d24feeb",
+      "revision": "d2326516102d5bc6100865e7b8dcaef02ca9ffc4",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "d2326516102d5bc6100865e7b8dcaef02ca9ffc4",
+      "detail": "3 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "d2326516102d5bc6100865e7b8dcaef02ca9ffc4",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-c0e12746f562d641",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "feedback_collect.go",
+      "line": 42,
+      "evidence": "func (s feedbackStats) Acceptance() (float64, bool) {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "d2326516102d5bc6100865e7b8dcaef02ca9ffc4",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42820303126",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42820303126/job/129843992357",
+        "startedAt": "2026-11-10T12:58:51Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42820303203/job/129843850090",
+        "startedAt": "2026-11-10T12:58:30Z"
+      }
+    ]
+  }
+}
