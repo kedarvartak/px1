@@ -3,7 +3,7 @@
   "repository": "px1",
   "base": "6a1561995f9e3f8b7dc854abb533e57a61c22162",
   "head": "24d9bf42a92f601bfdf3a910c42a05a35340e2c8",
-  "generatedAt": "2026-11-10T10:31:17.426185357Z",
+  "generatedAt": "2026-11-10T10:43:21.664514649Z",
   "files": [
     {
       "path": "agentic-action/action.yml",
@@ -361,18 +361,18 @@
     {
       "id": "artifact-content",
       "path": "agentic-action/action.yml",
-      "lineStart": 87,
-      "lineEnd": 95,
+      "lineStart": 91,
+      "lineEnd": 94,
       "title": "Upload only the HTML report",
-      "summary": "The uploaded artifact is now just the standalone HTML report, rather than the report directory plus `findings.json` and `trace.json`. It is kept for 14 days and uploaded without an archive."
+      "summary": "The uploaded artifact is now a single unzipped HTML report; `findings.json` and `trace.json` are no longer included in the artifact."
     },
     {
       "id": "pr-report-link",
       "path": "agentic-action/action.yml",
       "lineStart": 97,
       "lineEnd": 110,
-      "title": "Link PR comments to the report",
-      "summary": "PR findings are posted in a separate step, and the comment links directly to the uploaded report. If upload produces no URL, the comment says the report was not uploaded; because the step uses `always()`, posting is still attempted when the upload step fails, provided the review output exists."
+      "title": "Link pull-request comments to the report",
+      "summary": "When posting is enabled, findings are posted after the upload and link directly to the artifact. If the upload provides no URL, the comment instead directs readers to the workflow run."
     }
   ],
   "findings": [],
@@ -433,8 +433,8 @@
       {
         "name": "publish",
         "status": "running",
-        "url": "https://github.com/kedarvartak/px1/actions/runs/42799659579/job/129773647345",
-        "startedAt": "2026-11-10T10:30:12Z"
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42799659579/job/129779354259",
+        "startedAt": "2026-11-10T10:42:04Z"
       }
     ]
   }
