@@ -1,0 +1,2416 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "23ab12527a4dab2eae043b3561633cf659f0a881",
+  "head": "270d2f024704cc64efb09080253d850e9a526daf",
+  "generatedAt": "2026-11-10T11:26:12.232006876Z",
+  "files": [
+    {
+      "path": "agentic-action/action.yml",
+      "status": "M",
+      "diff": "diff --git a/agentic-action/action.yml b/agentic-action/action.yml\nindex d5791cd..7a2687e 100644\n--- a/agentic-action/action.yml\n+++ b/agentic-action/action.yml\n@@ -108,5 +108,5 @@ runs:\n         set -euo pipefail\n         link=\"Full report and trace: [open the report]($PX1_REPORT_URL) (a GitHub Actions artifact; visible only to people who can read this repository).\"\n         if [[ -z \"$PX1_REPORT_URL\" ]]; then link=\"The report was not uploaded; see the workflow run.\"; fi\n-        \"${RUNNER_TEMP:-/tmp}/px1\" post-github --findings \"$PX1_OUT/findings.json\" --pr \"$PX1_PR\" --head \"$PX1_HEAD\" \\\n+        \"${RUNNER_TEMP:-/tmp}/px1\" post-github --findings \"$PX1_OUT/findings.json\" --scope \"$PX1_OUT/scope.json\" --pr \"$PX1_PR\" --head \"$PX1_HEAD\" \\\n           --footer \"$PX1_COST $link\"\n",
+      "hunks": [
+        {
+          "id": "diff-00fc7cf8d141ce02",
+          "header": "@@ -108,5 +108,5 @@ runs:",
+          "lines": [
+            {
+              "oldLine": 108,
+              "newLine": 108,
+              "kind": "context",
+              "text": "        set -euo pipefail"
+            },
+            {
+              "oldLine": 109,
+              "newLine": 109,
+              "kind": "context",
+              "text": "        link=\"Full report and trace: [open the report]($PX1_REPORT_URL) (a GitHub Actions artifact; visible only to people who can read this repository).\""
+            },
+            {
+              "oldLine": 110,
+              "newLine": 110,
+              "kind": "context",
+              "text": "        if [[ -z \"$PX1_REPORT_URL\" ]]; then link=\"The report was not uploaded; see the workflow run.\"; fi"
+            },
+            {
+              "oldLine": 111,
+              "kind": "removed",
+              "text": "        \"${RUNNER_TEMP:-/tmp}/px1\" post-github --findings \"$PX1_OUT/findings.json\" --pr \"$PX1_PR\" --head \"$PX1_HEAD\" \\"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "        \"${RUNNER_TEMP:-/tmp}/px1\" post-github --findings \"$PX1_OUT/findings.json\" --scope \"$PX1_OUT/scope.json\" --pr \"$PX1_PR\" --head \"$PX1_HEAD\" \\"
+            },
+            {
+              "oldLine": 112,
+              "newLine": 112,
+              "kind": "context",
+              "text": "          --footer \"$PX1_COST $link\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "agentic_review.go",
+      "status": "M",
+      "diff": "diff --git a/agentic_review.go b/agentic_review.go\nindex 192a8c8..84accf1 100644\n--- a/agentic_review.go\n+++ b/agentic_review.go\n@@ -27,6 +27,7 @@ type agenticOptions struct {\n \tbase, head, root, out, model, endpoint, title, body, tier string\n \tpriceIn, priceOut, priceCached                            float64\n \tmaxCost                                                   float64\n+\tmaxFiles, maxDiffBytes                                    int\n \tmaxMinutes, maxOutput, concurrency                        int\n \texcludes                                                  repeatedStringFlag\n \tyes, dryRun, transcripts                                  bool\n@@ -52,7 +53,7 @@ func runAgenticReview(args []string, stdout io.Writer) error {\n \tif err != nil {\n \t\treturn err\n \t}\n-\tprep, err := prepareAgenticReview(root, opts.base, opts.head, policy)\n+\tprep, err := prepareAgenticReview(root, opts.base, opts.head, policy, reviewLimits{maxFiles: opts.maxFiles, maxDiffBytes: opts.maxDiffBytes})\n \tif err != nil {\n \t\treturn err\n \t}\n@@ -152,6 +153,8 @@ func parseAgenticFlags(args []string) (agenticOptions, error) {\n \tfs.Float64Var(\u0026o.maxCost, \"max-cost\", 1.00, \"hard cost cap in USD; the review stops when it could be crossed\")\n \tfs.IntVar(\u0026o.maxMinutes, \"max-minutes\", 0, \"wall-time limit in minutes (default: the tier's)\")\n \tfs.IntVar(\u0026o.maxOutput, \"max-output-tokens\", 4000, \"output-token limit per model call; reasoning models need room for their reasoning\")\n+\tfs.IntVar(\u0026o.maxFiles, \"max-files\", defaultMaxReviewFiles, \"most changed files sent to the model; a larger change is reviewed in part, risky files first (0 = no limit)\")\n+\tfs.IntVar(\u0026o.maxDiffBytes, \"max-diff-bytes\", defaultMaxReviewDiffBytes, \"most diff bytes sent to the model (0 = no limit)\")\n \tfs.IntVar(\u0026o.concurrency, \"concurrency\", 3, \"sub-agents running at once\")\n \tfs.Var(\u0026o.excludes, \"exclude-glob\", \"repository-relative glob never shown to the model (repeatable)\")\n \tfs.StringVar(\u0026o.title, \"title\", \"\", \"pull request title (default: the head commit subject)\")\n@@ -218,6 +221,12 @@ func printAgenticPlan(w io.Writer, o agenticOptions, prep agenticPrep, budget ag\n \tif len(prep.TruncatedFiles) \u003e 0 {\n \t\tfmt.Fprintf(w, \"  diffs cut at %d bytes: %s\\n\", maxFileDiffBytes, strings.Join(prep.TruncatedFiles, \", \"))\n \t}\n+\tif len(prep.Skipped) \u003e 0 {\n+\t\tfmt.Fprintf(w, \"\\nLarge change: reviewing %d of %d files, highest-risk first. Left out of the diff (the model can still read them with its tools; raise --max-files or --max-diff-bytes to include them):\\n\", len(prep.Files), prep.TotalReviewable)\n+\t\tfor _, e := range prep.Skipped {\n+\t\t\tfmt.Fprintf(w, \"  %s\\n\", e.Path)\n+\t\t}\n+\t}\n \tif len(prep.Excluded) \u003e 0 {\n \t\tfmt.Fprintln(w, \"\\nNever shown to the model (also blocked from every tool):\")\n \t\tfor _, e := range prep.Excluded {\n@@ -325,6 +334,13 @@ func writeAgenticOutputs(out, private string, o agenticOptions, prep agenticPrep\n \tif err := writeJSON(filepath.Join(out, \"findings.json\"), hostedFindingsEnvelope{Revision: prep.HeadSHA, Findings: findings}, 0o644); err != nil {\n \t\treturn err\n \t}\n+\tscope := reviewScope{Reviewed: len(prep.Files), Total: prep.TotalReviewable}\n+\tfor _, e := range prep.Skipped {\n+\t\tscope.Skipped = append(scope.Skipped, e.Path)\n+\t}\n+\tif err := writeJSON(filepath.Join(out, \"scope.json\"), scope, 0o644); err != nil {\n+\t\treturn err\n+\t}\n \tif err := writeJSON(filepath.Join(out, \"trace.json\"), trace.File(result.Spend), 0o644); err != nil {\n \t\treturn err\n \t}\n@@ -425,3 +441,11 @@ func commitSubjects(root, base, head string) ([]string, error) {\n \t}\n \treturn subjects, nil\n }\n+\n+// reviewScope records how much of the change was reviewed, so a partial\n+// review is never mistaken for a full one.\n+type reviewScope struct {\n+\tReviewed int      `json:\"reviewed\"`\n+\tTotal    int      `json:\"total\"`\n+\tSkipped  []string `json:\"skipped,omitempty\"`\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-644ddc0739511def",
+          "header": "@@ -27,6 +27,7 @@ type agenticOptions struct {",
+          "lines": [
+            {
+              "oldLine": 27,
+              "newLine": 27,
+              "kind": "context",
+              "text": "\tbase, head, root, out, model, endpoint, title, body, tier string"
+            },
+            {
+              "oldLine": 28,
+              "newLine": 28,
+              "kind": "context",
+              "text": "\tpriceIn, priceOut, priceCached                            float64"
+            },
+            {
+              "oldLine": 29,
+              "newLine": 29,
+              "kind": "context",
+              "text": "\tmaxCost                                                   float64"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tmaxFiles, maxDiffBytes                                    int"
+            },
+            {
+              "oldLine": 30,
+              "newLine": 31,
+              "kind": "context",
+              "text": "\tmaxMinutes, maxOutput, concurrency                        int"
+            },
+            {
+              "oldLine": 31,
+              "newLine": 32,
+              "kind": "context",
+              "text": "\texcludes                                                  repeatedStringFlag"
+            },
+            {
+              "oldLine": 32,
+              "newLine": 33,
+              "kind": "context",
+              "text": "\tyes, dryRun, transcripts                                  bool"
+            }
+          ]
+        },
+        {
+          "id": "diff-e290b5786778f721",
+          "header": "@@ -52,7 +53,7 @@ func runAgenticReview(args []string, stdout io.Writer) error {",
+          "lines": [
+            {
+              "oldLine": 52,
+              "newLine": 53,
+              "kind": "context",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 53,
+              "newLine": 54,
+              "kind": "context",
+              "text": "\t\treturn err"
+            },
+            {
+              "oldLine": 54,
+              "newLine": 55,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 55,
+              "kind": "removed",
+              "text": "\tprep, err := prepareAgenticReview(root, opts.base, opts.head, policy)"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\tprep, err := prepareAgenticReview(root, opts.base, opts.head, policy, reviewLimits{maxFiles: opts.maxFiles, maxDiffBytes: opts.maxDiffBytes})"
+            },
+            {
+              "oldLine": 56,
+              "newLine": 57,
+              "kind": "context",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 57,
+              "newLine": 58,
+              "kind": "context",
+              "text": "\t\treturn err"
+            },
+            {
+              "oldLine": 58,
+              "newLine": 59,
+              "kind": "context",
+              "text": "\t}"
+            }
+          ]
+        },
+        {
+          "id": "diff-7370f7a70608ac25",
+          "header": "@@ -152,6 +153,8 @@ func parseAgenticFlags(args []string) (agenticOptions, error) {",
+          "lines": [
+            {
+              "oldLine": 152,
+              "newLine": 153,
+              "kind": "context",
+              "text": "\tfs.Float64Var(\u0026o.maxCost, \"max-cost\", 1.00, \"hard cost cap in USD; the review stops when it could be crossed\")"
+            },
+            {
+              "oldLine": 153,
+              "newLine": 154,
+              "kind": "context",
+              "text": "\tfs.IntVar(\u0026o.maxMinutes, \"max-minutes\", 0, \"wall-time limit in minutes (default: the tier's)\")"
+            },
+            {
+              "oldLine": 154,
+              "newLine": 155,
+              "kind": "context",
+              "text": "\tfs.IntVar(\u0026o.maxOutput, \"max-output-tokens\", 4000, \"output-token limit per model call; reasoning models need room for their reasoning\")"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "\tfs.IntVar(\u0026o.maxFiles, \"max-files\", defaultMaxReviewFiles, \"most changed files sent to the model; a larger change is reviewed in part, risky files first (0 = no limit)\")"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "\tfs.IntVar(\u0026o.maxDiffBytes, \"max-diff-bytes\", defaultMaxReviewDiffBytes, \"most diff bytes sent to the model (0 = no limit)\")"
+            },
+            {
+              "oldLine": 155,
+              "newLine": 158,
+              "kind": "context",
+              "text": "\tfs.IntVar(\u0026o.concurrency, \"concurrency\", 3, \"sub-agents running at once\")"
+            },
+            {
+              "oldLine": 156,
+              "newLine": 159,
+              "kind": "context",
+              "text": "\tfs.Var(\u0026o.excludes, \"exclude-glob\", \"repository-relative glob never shown to the model (repeatable)\")"
+            },
+            {
+              "oldLine": 157,
+              "newLine": 160,
+              "kind": "context",
+              "text": "\tfs.StringVar(\u0026o.title, \"title\", \"\", \"pull request title (default: the head commit subject)\")"
+            }
+          ]
+        },
+        {
+          "id": "diff-a53bfbdb3752fccb",
+          "header": "@@ -218,6 +221,12 @@ func printAgenticPlan(w io.Writer, o agenticOptions, prep agenticPrep, budget ag",
+          "lines": [
+            {
+              "oldLine": 218,
+              "newLine": 221,
+              "kind": "context",
+              "text": "\tif len(prep.TruncatedFiles) \u003e 0 {"
+            },
+            {
+              "oldLine": 219,
+              "newLine": 222,
+              "kind": "context",
+              "text": "\t\tfmt.Fprintf(w, \"  diffs cut at %d bytes: %s\\n\", maxFileDiffBytes, strings.Join(prep.TruncatedFiles, \", \"))"
+            },
+            {
+              "oldLine": 220,
+              "newLine": 223,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "newLine": 224,
+              "kind": "added",
+              "text": "\tif len(prep.Skipped) \u003e 0 {"
+            },
+            {
+              "newLine": 225,
+              "kind": "added",
+              "text": "\t\tfmt.Fprintf(w, \"\\nLarge change: reviewing %d of %d files, highest-risk first. Left out of the diff (the model can still read them with its tools; raise --max-files or --max-diff-bytes to include them):\\n\", len(prep.Files), prep.TotalReviewable)"
+            },
+            {
+              "newLine": 226,
+              "kind": "added",
+              "text": "\t\tfor _, e := range prep.Skipped {"
+            },
+            {
+              "newLine": 227,
+              "kind": "added",
+              "text": "\t\t\tfmt.Fprintf(w, \"  %s\\n\", e.Path)"
+            },
+            {
+              "newLine": 228,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 229,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 221,
+              "newLine": 230,
+              "kind": "context",
+              "text": "\tif len(prep.Excluded) \u003e 0 {"
+            },
+            {
+              "oldLine": 222,
+              "newLine": 231,
+              "kind": "context",
+              "text": "\t\tfmt.Fprintln(w, \"\\nNever shown to the model (also blocked from every tool):\")"
+            },
+            {
+              "oldLine": 223,
+              "newLine": 232,
+              "kind": "context",
+              "text": "\t\tfor _, e := range prep.Excluded {"
+            }
+          ]
+        },
+        {
+          "id": "diff-8a8d0505ced813f1",
+          "header": "@@ -325,6 +334,13 @@ func writeAgenticOutputs(out, private string, o agenticOptions, prep agenticPrep",
+          "lines": [
+            {
+              "oldLine": 325,
+              "newLine": 334,
+              "kind": "context",
+              "text": "\tif err := writeJSON(filepath.Join(out, \"findings.json\"), hostedFindingsEnvelope{Revision: prep.HeadSHA, Findings: findings}, 0o644); err != nil {"
+            },
+            {
+              "oldLine": 326,
+              "newLine": 335,
+              "kind": "context",
+              "text": "\t\treturn err"
+            },
+            {
+              "oldLine": 327,
+              "newLine": 336,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "newLine": 337,
+              "kind": "added",
+              "text": "\tscope := reviewScope{Reviewed: len(prep.Files), Total: prep.TotalReviewable}"
+            },
+            {
+              "newLine": 338,
+              "kind": "added",
+              "text": "\tfor _, e := range prep.Skipped {"
+            },
+            {
+              "newLine": 339,
+              "kind": "added",
+              "text": "\t\tscope.Skipped = append(scope.Skipped, e.Path)"
+            },
+            {
+              "newLine": 340,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 341,
+              "kind": "added",
+              "text": "\tif err := writeJSON(filepath.Join(out, \"scope.json\"), scope, 0o644); err != nil {"
+            },
+            {
+              "newLine": 342,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 343,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 328,
+              "newLine": 344,
+              "kind": "context",
+              "text": "\tif err := writeJSON(filepath.Join(out, \"trace.json\"), trace.File(result.Spend), 0o644); err != nil {"
+            },
+            {
+              "oldLine": 329,
+              "newLine": 345,
+              "kind": "context",
+              "text": "\t\treturn err"
+            },
+            {
+              "oldLine": 330,
+              "newLine": 346,
+              "kind": "context",
+              "text": "\t}"
+            }
+          ]
+        },
+        {
+          "id": "diff-0ffe8a1b79195443",
+          "header": "@@ -425,3 +441,11 @@ func commitSubjects(root, base, head string) ([]string, error) {",
+          "lines": [
+            {
+              "oldLine": 425,
+              "newLine": 441,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 426,
+              "newLine": 442,
+              "kind": "context",
+              "text": "\treturn subjects, nil"
+            },
+            {
+              "oldLine": 427,
+              "newLine": 443,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "newLine": 444,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 445,
+              "kind": "added",
+              "text": "// reviewScope records how much of the change was reviewed, so a partial"
+            },
+            {
+              "newLine": 446,
+              "kind": "added",
+              "text": "// review is never mistaken for a full one."
+            },
+            {
+              "newLine": 447,
+              "kind": "added",
+              "text": "type reviewScope struct {"
+            },
+            {
+              "newLine": 448,
+              "kind": "added",
+              "text": "\tReviewed int      `json:\"reviewed\"`"
+            },
+            {
+              "newLine": 449,
+              "kind": "added",
+              "text": "\tTotal    int      `json:\"total\"`"
+            },
+            {
+              "newLine": 450,
+              "kind": "added",
+              "text": "\tSkipped  []string `json:\"skipped,omitempty\"`"
+            },
+            {
+              "newLine": 451,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "agentic_review_limits_test.go",
+      "status": "A",
+      "diff": "diff --git a/agentic_review_limits_test.go b/agentic_review_limits_test.go\nnew file mode 100644\nindex 0000000..c3593d9\n--- /dev/null\n+++ b/agentic_review_limits_test.go\n@@ -0,0 +1,114 @@\n+package main\n+\n+import (\n+\t\"bytes\"\n+\t\"encoding/json\"\n+\t\"fmt\"\n+\t\"os\"\n+\t\"path/filepath\"\n+\t\"strings\"\n+\t\"testing\"\n+\n+\t\"px1/internal/hosted/agent\"\n+)\n+\n+func entryOf(path string, size int) reviewEntry {\n+\treturn reviewEntry{file: staticReviewFile{Path: path}, review: agent.ReviewFile{Path: path, Diff: strings.Repeat(\"x\", size)}}\n+}\n+\n+func TestFilePriorityRanksRiskFirstAndDocsLast(t *testing.T) {\n+\tcases := map[string]int{\n+\t\t\".github/workflows/ci.yml\": 3, \"db/migrations/001.sql\": 3, \"src/auth/login.ts\": 3,\n+\t\t\"src/refund.ts\": 2, \"src/refund.test.ts\": 1, \"README.md\": 0, \"eval/cases.jsonl\": 0,\n+\t}\n+\tfor path, want := range cases {\n+\t\tif got := filePriority(path); got != want {\n+\t\t\tt.Errorf(\"filePriority(%q) = %d, want %d\", path, got, want)\n+\t\t}\n+\t}\n+}\n+\n+func TestSelectWithinLimitsKeepsRiskyFilesAndPreservesOrder(t *testing.T) {\n+\tentries := []reviewEntry{entryOf(\"README.md\", 10), entryOf(\"src/a.ts\", 10), entryOf(\"src/auth/login.ts\", 10), entryOf(\"src/a.test.ts\", 10), entryOf(\"src/b.ts\", 10)}\n+\tkept, skipped := selectWithinLimits(entries, reviewLimits{maxFiles: 3})\n+\tvar names []string\n+\tfor _, e := range kept {\n+\t\tnames = append(names, e.file.Path)\n+\t}\n+\tif got := strings.Join(names, \",\"); got != \"src/a.ts,src/auth/login.ts,src/b.ts\" {\n+\t\tt.Fatalf(\"kept %s (risky first, then source, original order kept)\", got)\n+\t}\n+\tif len(skipped) != 2 || skipped[0].Path != \"README.md\" || skipped[1].Path != \"src/a.test.ts\" {\n+\t\tt.Fatalf(\"skipped %+v\", skipped)\n+\t}\n+}\n+\n+func TestSelectWithinLimitsHonoursByteBudgetAndNoLimit(t *testing.T) {\n+\tentries := []reviewEntry{entryOf(\"src/big.ts\", 100), entryOf(\"src/small.ts\", 10), entryOf(\"src/mid.ts\", 30)}\n+\tkept, skipped := selectWithinLimits(entries, reviewLimits{maxDiffBytes: 50})\n+\tif len(kept) != 2 || len(skipped) != 1 || skipped[0].Path != \"src/big.ts\" {\n+\t\tt.Fatalf(\"kept=%d skipped=%+v: smaller diffs fill the budget first\", len(kept), skipped)\n+\t}\n+\tif kept, skipped := selectWithinLimits(entries, reviewLimits{}); len(kept) != 3 || skipped != nil {\n+\t\tt.Fatal(\"zero limits mean no limit\")\n+\t}\n+\tif kept, _ := selectWithinLimits(entries, reviewLimits{maxFiles: 3, maxDiffBytes: 1000}); len(kept) != 3 {\n+\t\tt.Fatal(\"a change within both limits is reviewed whole\")\n+\t}\n+}\n+\n+func TestLargeChangeIsReviewedInPartAndSaysSo(t *testing.T) {\n+\tt.Setenv(\"OPENAI_API_KEY\", fakeKey)\n+\tf := newFakeOpenAI(t)\n+\troot, base, _ := newAgenticRepo(t, cleanHead)\n+\tfor i := 0; i \u003c 6; i++ {\n+\t\twriteExportTestFile(t, root, fmt.Sprintf(\"src/extra%d.ts\", i), fmt.Sprintf(\"export const v%d = %d;\\n\", i, i))\n+\t}\n+\twriteExportTestFile(t, root, \"docs/notes.md\", \"# notes\\n\")\n+\trunGitTest(t, root, \"add\", \".\")\n+\trunGitTest(t, root, \"commit\", \"-m\", \"More files\")\n+\n+\tvar dry bytes.Buffer\n+\tif err := runAgenticReview(agenticArgs(f, root, base, t.TempDir(), \"--dry-run\", \"--max-files\", \"3\"), \u0026dry); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tfor _, want := range []string{\"Large change: reviewing 3 of 8 files\", \"docs/notes.md\", \"highest-risk first\"} {\n+\t\tif !strings.Contains(dry.String(), want) {\n+\t\t\tt.Fatalf(\"dry run missing %q:\\n%s\", want, dry.String())\n+\t\t}\n+\t}\n+\n+\tout := t.TempDir()\n+\tif err := runAgenticReview(agenticArgs(f, root, base, out, \"--yes\", \"--max-files\", \"3\"), \u0026bytes.Buffer{}); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tdata, err := os.ReadFile(filepath.Join(out, \"scope.json\"))\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tvar scope reviewScope\n+\tif err := json.Unmarshal(data, \u0026scope); err != nil || scope.Reviewed != 3 || scope.Total != 8 || len(scope.Skipped) != 5 {\n+\t\tt.Fatalf(\"scope=%+v err=%v\", scope, err)\n+\t}\n+\tif strings.Contains(f.allPrompts(), \"docs/notes.md\") \u0026\u0026 strings.Contains(f.allPrompts(), \"# notes\") {\n+\t\tt.Fatal(\"a skipped file's diff was sent to the model\")\n+\t}\n+}\n+\n+func TestPartialReviewNoteLeadsTheSummary(t *testing.T) {\n+\tpath := filepath.Join(t.TempDir(), \"scope.json\")\n+\tos.WriteFile(path, []byte(`{\"reviewed\":3,\"total\":8,\"skipped\":[\"a.ts\",\"b.ts\"]}`), 0o600)\n+\tnote, err := readScopeNote(path)\n+\tif err != nil || !strings.Contains(note, \"reviewed 3 of 8 files\") || !strings.Contains(note, \"`a.ts`, `b.ts`\") {\n+\t\tt.Fatalf(\"note=%q err=%v\", note, err)\n+\t}\n+\tsummary := renderAgenticSummary(postPlan{inlined: map[string]bool{}}, testHead, note, \"\")\n+\tif i, j := strings.Index(summary, \"Partial review\"), strings.Index(summary, \"No verified findings\"); i \u003c 0 || j \u003c 0 || i \u003e j {\n+\t\tt.Fatalf(\"the partial-review warning must come before the result:\\n%s\", summary)\n+\t}\n+\tfull := filepath.Join(t.TempDir(), \"full.json\")\n+\tos.WriteFile(full, []byte(`{\"reviewed\":3,\"total\":3}`), 0o600)\n+\tif note, _ := readScopeNote(full); note != \"\" {\n+\t\tt.Fatalf(\"a full review needs no note, got %q\", note)\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-7ce8a22da560d3b8",
+          "header": "@@ -0,0 +1,114 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package main"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"bytes\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"path/filepath\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "\t\"px1/internal/hosted/agent\""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "func entryOf(path string, size int) reviewEntry {"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "\treturn reviewEntry{file: staticReviewFile{Path: path}, review: agent.ReviewFile{Path: path, Diff: strings.Repeat(\"x\", size)}}"
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "func TestFilePriorityRanksRiskFirstAndDocsLast(t *testing.T) {"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tcases := map[string]int{"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "\t\t\".github/workflows/ci.yml\": 3, \"db/migrations/001.sql\": 3, \"src/auth/login.ts\": 3,"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "\t\t\"src/refund.ts\": 2, \"src/refund.test.ts\": 1, \"README.md\": 0, \"eval/cases.jsonl\": 0,"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "\tfor path, want := range cases {"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "\t\tif got := filePriority(path); got != want {"
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"filePriority(%q) = %d, want %d\", path, got, want)"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "func TestSelectWithinLimitsKeepsRiskyFilesAndPreservesOrder(t *testing.T) {"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tentries := []reviewEntry{entryOf(\"README.md\", 10), entryOf(\"src/a.ts\", 10), entryOf(\"src/auth/login.ts\", 10), entryOf(\"src/a.test.ts\", 10), entryOf(\"src/b.ts\", 10)}"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tkept, skipped := selectWithinLimits(entries, reviewLimits{maxFiles: 3})"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tvar names []string"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\tfor _, e := range kept {"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\t\tnames = append(names, e.file.Path)"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tif got := strings.Join(names, \",\"); got != \"src/a.ts,src/auth/login.ts,src/b.ts\" {"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"kept %s (risky first, then source, original order kept)\", got)"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\tif len(skipped) != 2 || skipped[0].Path != \"README.md\" || skipped[1].Path != \"src/a.test.ts\" {"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"skipped %+v\", skipped)"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "func TestSelectWithinLimitsHonoursByteBudgetAndNoLimit(t *testing.T) {"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\tentries := []reviewEntry{entryOf(\"src/big.ts\", 100), entryOf(\"src/small.ts\", 10), entryOf(\"src/mid.ts\", 30)}"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\tkept, skipped := selectWithinLimits(entries, reviewLimits{maxDiffBytes: 50})"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\tif len(kept) != 2 || len(skipped) != 1 || skipped[0].Path != \"src/big.ts\" {"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"kept=%d skipped=%+v: smaller diffs fill the budget first\", len(kept), skipped)"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\tif kept, skipped := selectWithinLimits(entries, reviewLimits{}); len(kept) != 3 || skipped != nil {"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"zero limits mean no limit\")"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\tif kept, _ := selectWithinLimits(entries, reviewLimits{maxFiles: 3, maxDiffBytes: 1000}); len(kept) != 3 {"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"a change within both limits is reviewed whole\")"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "func TestLargeChangeIsReviewedInPartAndSaysSo(t *testing.T) {"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\tt.Setenv(\"OPENAI_API_KEY\", fakeKey)"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\tf := newFakeOpenAI(t)"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\troot, base, _ := newAgenticRepo(t, cleanHead)"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\tfor i := 0; i \u003c 6; i++ {"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "\t\twriteExportTestFile(t, root, fmt.Sprintf(\"src/extra%d.ts\", i), fmt.Sprintf(\"export const v%d = %d;\\n\", i, i))"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "\twriteExportTestFile(t, root, \"docs/notes.md\", \"# notes\\n\")"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"add\", \".\")"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"commit\", \"-m\", \"More files\")"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\tvar dry bytes.Buffer"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\tif err := runAgenticReview(agenticArgs(f, root, base, t.TempDir(), \"--dry-run\", \"--max-files\", \"3\"), \u0026dry); err != nil {"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\tfor _, want := range []string{\"Large change: reviewing 3 of 8 files\", \"docs/notes.md\", \"highest-risk first\"} {"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\t\tif !strings.Contains(dry.String(), want) {"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"dry run missing %q:\\n%s\", want, dry.String())"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\tout := t.TempDir()"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\tif err := runAgenticReview(agenticArgs(f, root, base, out, \"--yes\", \"--max-files\", \"3\"), \u0026bytes.Buffer{}); err != nil {"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\tdata, err := os.ReadFile(filepath.Join(out, \"scope.json\"))"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\tvar scope reviewScope"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\tif err := json.Unmarshal(data, \u0026scope); err != nil || scope.Reviewed != 3 || scope.Total != 8 || len(scope.Skipped) != 5 {"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"scope=%+v err=%v\", scope, err)"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\tif strings.Contains(f.allPrompts(), \"docs/notes.md\") \u0026\u0026 strings.Contains(f.allPrompts(), \"# notes\") {"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"a skipped file's diff was sent to the model\")"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "func TestPartialReviewNoteLeadsTheSummary(t *testing.T) {"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\tpath := filepath.Join(t.TempDir(), \"scope.json\")"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\tos.WriteFile(path, []byte(`{\"reviewed\":3,\"total\":8,\"skipped\":[\"a.ts\",\"b.ts\"]}`), 0o600)"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\tnote, err := readScopeNote(path)"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\tif err != nil || !strings.Contains(note, \"reviewed 3 of 8 files\") || !strings.Contains(note, \"`a.ts`, `b.ts`\") {"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"note=%q err=%v\", note, err)"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\tsummary := renderAgenticSummary(postPlan{inlined: map[string]bool{}}, testHead, note, \"\")"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\tif i, j := strings.Index(summary, \"Partial review\"), strings.Index(summary, \"No verified findings\"); i \u003c 0 || j \u003c 0 || i \u003e j {"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"the partial-review warning must come before the result:\\n%s\", summary)"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\tfull := filepath.Join(t.TempDir(), \"full.json\")"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\tos.WriteFile(full, []byte(`{\"reviewed\":3,\"total\":3}`), 0o600)"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\tif note, _ := readScopeNote(full); note != \"\" {"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"a full review needs no note, got %q\", note)"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "agentic_review_prep.go",
+      "status": "M",
+      "diff": "diff --git a/agentic_review_prep.go b/agentic_review_prep.go\nindex 0b2e500..6546070 100644\n--- a/agentic_review_prep.go\n+++ b/agentic_review_prep.go\n@@ -117,11 +117,89 @@ func numberedDiff(file staticReviewFile) (string, []hostedreview.DiffRange) {\n \treturn text, ranges\n }\n \n+// reviewLimits bound how much of a large change goes to the model. A change\n+// that exceeds them is reviewed in part, highest-risk files first, and says so.\n+type reviewLimits struct{ maxFiles, maxDiffBytes int }\n+\n+const (\n+\tdefaultMaxReviewFiles     = 40\n+\tdefaultMaxReviewDiffBytes = 120_000\n+)\n+\n+type reviewEntry struct {\n+\tfile   staticReviewFile\n+\treview agent.ReviewFile\n+}\n+\n+// filePriority ranks a path by how much a missed bug there would cost:\n+// pipelines, migrations and security-sensitive code first, then other source,\n+// then tests, then documentation and data.\n+func filePriority(path string) int {\n+\tlower := strings.ToLower(path)\n+\tfor _, risky := range []string{\".github/workflows\", \"dockerfile\", \"migration\", \"auth\", \"security\", \"secret\", \"crypto\", \"permission\", \"payment\", \"billing\", \"token\", \"password\", \".sql\"} {\n+\t\tif strings.Contains(lower, risky) {\n+\t\t\treturn 3\n+\t\t}\n+\t}\n+\tswitch {\n+\tcase strings.HasSuffix(lower, \".md\"), strings.HasSuffix(lower, \".txt\"), strings.HasSuffix(lower, \".rst\"), strings.HasPrefix(lower, \"docs/\"), strings.HasSuffix(lower, \".jsonl\"), strings.HasSuffix(lower, \".json\"):\n+\t\treturn 0\n+\tcase strings.Contains(lower, \"test\"), strings.Contains(lower, \"spec.\"), strings.Contains(lower, \"__tests__\"):\n+\t\treturn 1\n+\t}\n+\treturn 2\n+}\n+\n+// selectWithinLimits keeps the highest-priority files that fit, preferring\n+// smaller diffs inside a priority so more files are covered. The kept files\n+// retain their original order. Limits of zero or less mean no limit.\n+func selectWithinLimits(entries []reviewEntry, limits reviewLimits) (kept []reviewEntry, skipped []excludedFile) {\n+\ttotalBytes := 0\n+\tfor _, e := range entries {\n+\t\ttotalBytes += len(e.review.Diff)\n+\t}\n+\tif (limits.maxFiles \u003c= 0 || len(entries) \u003c= limits.maxFiles) \u0026\u0026 (limits.maxDiffBytes \u003c= 0 || totalBytes \u003c= limits.maxDiffBytes) {\n+\t\treturn entries, nil\n+\t}\n+\torder := make([]int, len(entries))\n+\tfor i := range order {\n+\t\torder[i] = i\n+\t}\n+\tsort.SliceStable(order, func(a, b int) bool {\n+\t\tea, eb := entries[order[a]], entries[order[b]]\n+\t\tif pa, pb := filePriority(ea.file.Path), filePriority(eb.file.Path); pa != pb {\n+\t\t\treturn pa \u003e pb\n+\t\t}\n+\t\treturn len(ea.review.Diff) \u003c len(eb.review.Diff)\n+\t})\n+\tkeep := map[int]bool{}\n+\tcount, bytes := 0, 0\n+\tfor _, i := range order {\n+\t\tsize := len(entries[i].review.Diff)\n+\t\tif (limits.maxFiles \u003e 0 \u0026\u0026 count \u003e= limits.maxFiles) || (limits.maxDiffBytes \u003e 0 \u0026\u0026 bytes+size \u003e limits.maxDiffBytes) {\n+\t\t\tcontinue\n+\t\t}\n+\t\tkeep[i] = true\n+\t\tcount++\n+\t\tbytes += size\n+\t}\n+\tfor i, e := range entries {\n+\t\tif keep[i] {\n+\t\t\tkept = append(kept, e)\n+\t\t} else {\n+\t\t\tskipped = append(skipped, excludedFile{Path: e.file.Path, Reason: \"over the size limit\"})\n+\t\t}\n+\t}\n+\treturn kept, skipped\n+}\n+\n type agenticPrep struct {\n \tBaseSHA, HeadSHA string\n \tFiles            []agent.ReviewFile\n \tBlocks           []hostedreview.Block\n \tExcluded         []excludedFile\n+\tSkipped          []excludedFile // reviewable, but left out of the diff for size\n+\tTotalReviewable  int\n \tDiffBytes        int\n \tTruncatedFiles   []string\n \tPolicy           privacyPolicy\n@@ -130,7 +208,7 @@ type agenticPrep struct {\n // prepareAgenticReview reads the diff from git and decides what the models\n // may see. It refuses to continue if the text bound for the model contains a\n // high-confidence secret: excluding the file is the operator's decision.\n-func prepareAgenticReview(root, base, head string, policy privacyPolicy) (agenticPrep, error) {\n+func prepareAgenticReview(root, base, head string, policy privacyPolicy, limits reviewLimits) (agenticPrep, error) {\n \tbaseSHA, err := resolveCommit(root, base)\n \tif err != nil {\n \t\treturn agenticPrep{}, err\n@@ -148,8 +226,7 @@ func prepareAgenticReview(root, base, head string, policy privacyPolicy) (agenti\n \t\treturn agenticPrep{}, err\n \t}\n \tprep := agenticPrep{BaseSHA: baseSHA, HeadSHA: headSHA, Policy: policy}\n-\tvar allowed []staticReviewFile\n-\tsecrets := map[string][]string{}\n+\tvar entries []reviewEntry\n \tfor _, file := range all {\n \t\tif ok, reason := policy.Allow(file.Path); !ok {\n \t\t\tprep.Excluded = append(prep.Excluded, excludedFile{Path: file.Path, Reason: reason})\n@@ -160,6 +237,16 @@ func prepareAgenticReview(root, base, head string, policy privacyPolicy) (agenti\n \t\t\tcontinue\n \t\t}\n \t\ttext, ranges := numberedDiff(file)\n+\t\tentries = append(entries, reviewEntry{file: file, review: agent.ReviewFile{Path: file.Path, Diff: text, Changed: ranges}})\n+\t}\n+\tprep.TotalReviewable = len(entries)\n+\t// Limits apply before the secret scan: a file that is never sent cannot\n+\t// block the run.\n+\tentries, prep.Skipped = selectWithinLimits(entries, limits)\n+\tvar allowed []staticReviewFile\n+\tsecrets := map[string][]string{}\n+\tfor _, entry := range entries {\n+\t\tfile, text := entry.file, entry.review.Diff\n \t\tif strings.Contains(text, \"[diff truncated by px1\") {\n \t\t\tprep.TruncatedFiles = append(prep.TruncatedFiles, file.Path)\n \t\t}\n@@ -171,7 +258,7 @@ func prepareAgenticReview(root, base, head string, policy privacyPolicy) (agenti\n \t\tif privateKeyBlock.MatchString(text) {\n \t\t\tsecrets[file.Path] = append(secrets[file.Path], \"private key\")\n \t\t}\n-\t\tprep.Files = append(prep.Files, agent.ReviewFile{Path: file.Path, Diff: text, Changed: ranges})\n+\t\tprep.Files = append(prep.Files, entry.review)\n \t\tprep.DiffBytes += len(text)\n \t\tallowed = append(allowed, file)\n \t}\n",
+      "hunks": [
+        {
+          "id": "diff-9a3e5525e90b18ff",
+          "header": "@@ -117,11 +117,89 @@ func numberedDiff(file staticReviewFile) (string, []hostedreview.DiffRange) {",
+          "lines": [
+            {
+              "oldLine": 117,
+              "newLine": 117,
+              "kind": "context",
+              "text": "\treturn text, ranges"
+            },
+            {
+              "oldLine": 118,
+              "newLine": 118,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 119,
+              "newLine": 119,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "// reviewLimits bound how much of a large change goes to the model. A change"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "// that exceeds them is reviewed in part, highest-risk files first, and says so."
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "type reviewLimits struct{ maxFiles, maxDiffBytes int }"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "const ("
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\tdefaultMaxReviewFiles     = 40"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\tdefaultMaxReviewDiffBytes = 120_000"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "type reviewEntry struct {"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\tfile   staticReviewFile"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\treview agent.ReviewFile"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "// filePriority ranks a path by how much a missed bug there would cost:"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "// pipelines, migrations and security-sensitive code first, then other source,"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "// then tests, then documentation and data."
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "func filePriority(path string) int {"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\tlower := strings.ToLower(path)"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\tfor _, risky := range []string{\".github/workflows\", \"dockerfile\", \"migration\", \"auth\", \"security\", \"secret\", \"crypto\", \"permission\", \"payment\", \"billing\", \"token\", \"password\", \".sql\"} {"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "\t\tif strings.Contains(lower, risky) {"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "\t\t\treturn 3"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\tswitch {"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\tcase strings.HasSuffix(lower, \".md\"), strings.HasSuffix(lower, \".txt\"), strings.HasSuffix(lower, \".rst\"), strings.HasPrefix(lower, \"docs/\"), strings.HasSuffix(lower, \".jsonl\"), strings.HasSuffix(lower, \".json\"):"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\t\treturn 0"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "\tcase strings.Contains(lower, \"test\"), strings.Contains(lower, \"spec.\"), strings.Contains(lower, \"__tests__\"):"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "\t\treturn 1"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "\treturn 2"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "// selectWithinLimits keeps the highest-priority files that fit, preferring"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "// smaller diffs inside a priority so more files are covered. The kept files"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "// retain their original order. Limits of zero or less mean no limit."
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "func selectWithinLimits(entries []reviewEntry, limits reviewLimits) (kept []reviewEntry, skipped []excludedFile) {"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "\ttotalBytes := 0"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "\tfor _, e := range entries {"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "\t\ttotalBytes += len(e.review.Diff)"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "\tif (limits.maxFiles \u003c= 0 || len(entries) \u003c= limits.maxFiles) \u0026\u0026 (limits.maxDiffBytes \u003c= 0 || totalBytes \u003c= limits.maxDiffBytes) {"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "\t\treturn entries, nil"
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "\torder := make([]int, len(entries))"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": "\tfor i := range order {"
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "\t\torder[i] = i"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": "\tsort.SliceStable(order, func(a, b int) bool {"
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "\t\tea, eb := entries[order[a]], entries[order[b]]"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "\t\tif pa, pb := filePriority(ea.file.Path), filePriority(eb.file.Path); pa != pb {"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "\t\t\treturn pa \u003e pb"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "\t\treturn len(ea.review.Diff) \u003c len(eb.review.Diff)"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "\t})"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "\tkeep := map[int]bool{}"
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "\tcount, bytes := 0, 0"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": "\tfor _, i := range order {"
+            },
+            {
+              "newLine": 178,
+              "kind": "added",
+              "text": "\t\tsize := len(entries[i].review.Diff)"
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": "\t\tif (limits.maxFiles \u003e 0 \u0026\u0026 count \u003e= limits.maxFiles) || (limits.maxDiffBytes \u003e 0 \u0026\u0026 bytes+size \u003e limits.maxDiffBytes) {"
+            },
+            {
+              "newLine": 180,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": "\t\tkeep[i] = true"
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": "\t\tcount++"
+            },
+            {
+              "newLine": 184,
+              "kind": "added",
+              "text": "\t\tbytes += size"
+            },
+            {
+              "newLine": 185,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 186,
+              "kind": "added",
+              "text": "\tfor i, e := range entries {"
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "\t\tif keep[i] {"
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": "\t\t\tkept = append(kept, e)"
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "\t\t} else {"
+            },
+            {
+              "newLine": 190,
+              "kind": "added",
+              "text": "\t\t\tskipped = append(skipped, excludedFile{Path: e.file.Path, Reason: \"over the size limit\"})"
+            },
+            {
+              "newLine": 191,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 192,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 193,
+              "kind": "added",
+              "text": "\treturn kept, skipped"
+            },
+            {
+              "newLine": 194,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 195,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 120,
+              "newLine": 196,
+              "kind": "context",
+              "text": "type agenticPrep struct {"
+            },
+            {
+              "oldLine": 121,
+              "newLine": 197,
+              "kind": "context",
+              "text": "\tBaseSHA, HeadSHA string"
+            },
+            {
+              "oldLine": 122,
+              "newLine": 198,
+              "kind": "context",
+              "text": "\tFiles            []agent.ReviewFile"
+            },
+            {
+              "oldLine": 123,
+              "newLine": 199,
+              "kind": "context",
+              "text": "\tBlocks           []hostedreview.Block"
+            },
+            {
+              "oldLine": 124,
+              "newLine": 200,
+              "kind": "context",
+              "text": "\tExcluded         []excludedFile"
+            },
+            {
+              "newLine": 201,
+              "kind": "added",
+              "text": "\tSkipped          []excludedFile // reviewable, but left out of the diff for size"
+            },
+            {
+              "newLine": 202,
+              "kind": "added",
+              "text": "\tTotalReviewable  int"
+            },
+            {
+              "oldLine": 125,
+              "newLine": 203,
+              "kind": "context",
+              "text": "\tDiffBytes        int"
+            },
+            {
+              "oldLine": 126,
+              "newLine": 204,
+              "kind": "context",
+              "text": "\tTruncatedFiles   []string"
+            },
+            {
+              "oldLine": 127,
+              "newLine": 205,
+              "kind": "context",
+              "text": "\tPolicy           privacyPolicy"
+            }
+          ]
+        },
+        {
+          "id": "diff-bfb974b9ac603538",
+          "header": "@@ -130,7 +208,7 @@ type agenticPrep struct {",
+          "lines": [
+            {
+              "oldLine": 130,
+              "newLine": 208,
+              "kind": "context",
+              "text": "// prepareAgenticReview reads the diff from git and decides what the models"
+            },
+            {
+              "oldLine": 131,
+              "newLine": 209,
+              "kind": "context",
+              "text": "// may see. It refuses to continue if the text bound for the model contains a"
+            },
+            {
+              "oldLine": 132,
+              "newLine": 210,
+              "kind": "context",
+              "text": "// high-confidence secret: excluding the file is the operator's decision."
+            },
+            {
+              "oldLine": 133,
+              "kind": "removed",
+              "text": "func prepareAgenticReview(root, base, head string, policy privacyPolicy) (agenticPrep, error) {"
+            },
+            {
+              "newLine": 211,
+              "kind": "added",
+              "text": "func prepareAgenticReview(root, base, head string, policy privacyPolicy, limits reviewLimits) (agenticPrep, error) {"
+            },
+            {
+              "oldLine": 134,
+              "newLine": 212,
+              "kind": "context",
+              "text": "\tbaseSHA, err := resolveCommit(root, base)"
+            },
+            {
+              "oldLine": 135,
+              "newLine": 213,
+              "kind": "context",
+              "text": "\tif err != nil {"
+            },
+            {
+              "oldLine": 136,
+              "newLine": 214,
+              "kind": "context",
+              "text": "\t\treturn agenticPrep{}, err"
+            }
+          ]
+        },
+        {
+          "id": "diff-d2bd3210562bb841",
+          "header": "@@ -148,8 +226,7 @@ func prepareAgenticReview(root, base, head string, policy privacyPolicy) (agenti",
+          "lines": [
+            {
+              "oldLine": 148,
+              "newLine": 226,
+              "kind": "context",
+              "text": "\t\treturn agenticPrep{}, err"
+            },
+            {
+              "oldLine": 149,
+              "newLine": 227,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 150,
+              "newLine": 228,
+              "kind": "context",
+              "text": "\tprep := agenticPrep{BaseSHA: baseSHA, HeadSHA: headSHA, Policy: policy}"
+            },
+            {
+              "oldLine": 151,
+              "kind": "removed",
+              "text": "\tvar allowed []staticReviewFile"
+            },
+            {
+              "oldLine": 152,
+              "kind": "removed",
+              "text": "\tsecrets := map[string][]string{}"
+            },
+            {
+              "newLine": 229,
+              "kind": "added",
+              "text": "\tvar entries []reviewEntry"
+            },
+            {
+              "oldLine": 153,
+              "newLine": 230,
+              "kind": "context",
+              "text": "\tfor _, file := range all {"
+            },
+            {
+              "oldLine": 154,
+              "newLine": 231,
+              "kind": "context",
+              "text": "\t\tif ok, reason := policy.Allow(file.Path); !ok {"
+            },
+            {
+              "oldLine": 155,
+              "newLine": 232,
+              "kind": "context",
+              "text": "\t\t\tprep.Excluded = append(prep.Excluded, excludedFile{Path: file.Path, Reason: reason})"
+            }
+          ]
+        },
+        {
+          "id": "diff-b8151c02c78ab363",
+          "header": "@@ -160,6 +237,16 @@ func prepareAgenticReview(root, base, head string, policy privacyPolicy) (agenti",
+          "lines": [
+            {
+              "oldLine": 160,
+              "newLine": 237,
+              "kind": "context",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "oldLine": 161,
+              "newLine": 238,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 162,
+              "newLine": 239,
+              "kind": "context",
+              "text": "\t\ttext, ranges := numberedDiff(file)"
+            },
+            {
+              "newLine": 240,
+              "kind": "added",
+              "text": "\t\tentries = append(entries, reviewEntry{file: file, review: agent.ReviewFile{Path: file.Path, Diff: text, Changed: ranges}})"
+            },
+            {
+              "newLine": 241,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 242,
+              "kind": "added",
+              "text": "\tprep.TotalReviewable = len(entries)"
+            },
+            {
+              "newLine": 243,
+              "kind": "added",
+              "text": "\t// Limits apply before the secret scan: a file that is never sent cannot"
+            },
+            {
+              "newLine": 244,
+              "kind": "added",
+              "text": "\t// block the run."
+            },
+            {
+              "newLine": 245,
+              "kind": "added",
+              "text": "\tentries, prep.Skipped = selectWithinLimits(entries, limits)"
+            },
+            {
+              "newLine": 246,
+              "kind": "added",
+              "text": "\tvar allowed []staticReviewFile"
+            },
+            {
+              "newLine": 247,
+              "kind": "added",
+              "text": "\tsecrets := map[string][]string{}"
+            },
+            {
+              "newLine": 248,
+              "kind": "added",
+              "text": "\tfor _, entry := range entries {"
+            },
+            {
+              "newLine": 249,
+              "kind": "added",
+              "text": "\t\tfile, text := entry.file, entry.review.Diff"
+            },
+            {
+              "oldLine": 163,
+              "newLine": 250,
+              "kind": "context",
+              "text": "\t\tif strings.Contains(text, \"[diff truncated by px1\") {"
+            },
+            {
+              "oldLine": 164,
+              "newLine": 251,
+              "kind": "context",
+              "text": "\t\t\tprep.TruncatedFiles = append(prep.TruncatedFiles, file.Path)"
+            },
+            {
+              "oldLine": 165,
+              "newLine": 252,
+              "kind": "context",
+              "text": "\t\t}"
+            }
+          ]
+        },
+        {
+          "id": "diff-c7b710221b0b33a2",
+          "header": "@@ -171,7 +258,7 @@ func prepareAgenticReview(root, base, head string, policy privacyPolicy) (agenti",
+          "lines": [
+            {
+              "oldLine": 171,
+              "newLine": 258,
+              "kind": "context",
+              "text": "\t\tif privateKeyBlock.MatchString(text) {"
+            },
+            {
+              "oldLine": 172,
+              "newLine": 259,
+              "kind": "context",
+              "text": "\t\t\tsecrets[file.Path] = append(secrets[file.Path], \"private key\")"
+            },
+            {
+              "oldLine": 173,
+              "newLine": 260,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 174,
+              "kind": "removed",
+              "text": "\t\tprep.Files = append(prep.Files, agent.ReviewFile{Path: file.Path, Diff: text, Changed: ranges})"
+            },
+            {
+              "newLine": 261,
+              "kind": "added",
+              "text": "\t\tprep.Files = append(prep.Files, entry.review)"
+            },
+            {
+              "oldLine": 175,
+              "newLine": 262,
+              "kind": "context",
+              "text": "\t\tprep.DiffBytes += len(text)"
+            },
+            {
+              "oldLine": 176,
+              "newLine": 263,
+              "kind": "context",
+              "text": "\t\tallowed = append(allowed, file)"
+            },
+            {
+              "oldLine": 177,
+              "newLine": 264,
+              "kind": "context",
+              "text": "\t}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/AGENTIC_CI.md",
+      "status": "M",
+      "diff": "diff --git a/docs/AGENTIC_CI.md b/docs/AGENTIC_CI.md\nindex 91669aa..9c74c73 100644\n--- a/docs/AGENTIC_CI.md\n+++ b/docs/AGENTIC_CI.md\n@@ -35,5 +35,5 @@ Each run uploads the report as one unzipped `px1-review.html` artifact (kept 14\n \n ## Known limits\n \n-- Very large pull requests exceed the model budget and fail; there is no fallback yet.\n+- Very large pull requests are reviewed in part: by default at most 40 files and 120,000 diff bytes go to the model, highest-risk first (workflows, migrations, auth and security paths, then source, then tests, then docs). The summary comment opens with a \"Partial review\" line naming what was left out. Raise `--max-files` and `--max-diff-bytes` to review more, at more cost.\n - If the provider's safety filter rejects a prompt, the call is retried once (it is non-deterministic: the same prompt has been accepted on the next try). Both attempts are metered and count against the cost cap. A second rejection fails that step and is reported in the notes.\n",
+      "hunks": [
+        {
+          "id": "diff-46a584654f05d12c",
+          "header": "@@ -35,5 +35,5 @@ Each run uploads the report as one unzipped `px1-review.html` artifact (kept 14",
+          "lines": [
+            {
+              "oldLine": 35,
+              "newLine": 35,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 36,
+              "newLine": 36,
+              "kind": "context",
+              "text": "## Known limits"
+            },
+            {
+              "oldLine": 37,
+              "newLine": 37,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 38,
+              "kind": "removed",
+              "text": "- Very large pull requests exceed the model budget and fail; there is no fallback yet."
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "- Very large pull requests are reviewed in part: by default at most 40 files and 120,000 diff bytes go to the model, highest-risk first (workflows, migrations, auth and security paths, then source, then tests, then docs). The summary comment opens with a \"Partial review\" line naming what was left out. Raise `--max-files` and `--max-diff-bytes` to review more, at more cost."
+            },
+            {
+              "oldLine": 39,
+              "newLine": 39,
+              "kind": "context",
+              "text": "- If the provider's safety filter rejects a prompt, the call is retried once (it is non-deterministic: the same prompt has been accepted on the next try). Both attempts are metered and count against the cost cap. A second rejection fails that step and is reported in the notes."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/AGENTIC_REVIEW_CLI.md",
+      "status": "M",
+      "diff": "diff --git a/docs/AGENTIC_REVIEW_CLI.md b/docs/AGENTIC_REVIEW_CLI.md\nindex b1748a8..5259cbf 100644\n--- a/docs/AGENTIC_REVIEW_CLI.md\n+++ b/docs/AGENTIC_REVIEW_CLI.md\n@@ -85,3 +85,7 @@ Fill in `private/feedback.md` for each finding (real, false alarm, or unclear),\n whether you already knew, whether you would have caught it in a normal review,\n and what it missed. That is the data the roadmap's pilot needs; time to read the\n report and whether the trace helped you decide what to trust are asked too.\n+\n+## Large changes\n+\n+`--max-files` (default 40) and `--max-diff-bytes` (default 120000) bound what is sent as the diff. A larger change is reviewed in part, highest-risk files first, and the dry run lists what was left out. Left-out files are not blocked: the model may still read them with its tools. `scope.json` in the output directory records reviewed and skipped files; `post-github --scope` turns it into a \"Partial review\" note on the pull request.\n",
+      "hunks": [
+        {
+          "id": "diff-4842f5561e72cc55",
+          "header": "@@ -85,3 +85,7 @@ Fill in `private/feedback.md` for each finding (real, false alarm, or unclear),",
+          "lines": [
+            {
+              "oldLine": 85,
+              "newLine": 85,
+              "kind": "context",
+              "text": "whether you already knew, whether you would have caught it in a normal review,"
+            },
+            {
+              "oldLine": 86,
+              "newLine": 86,
+              "kind": "context",
+              "text": "and what it missed. That is the data the roadmap's pilot needs; time to read the"
+            },
+            {
+              "oldLine": 87,
+              "newLine": 87,
+              "kind": "context",
+              "text": "report and whether the trace helped you decide what to trust are asked too."
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "## Large changes"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "`--max-files` (default 40) and `--max-diff-bytes` (default 120000) bound what is sent as the diff. A larger change is reviewed in part, highest-risk files first, and the dry run lists what was left out. Left-out files are not blocked: the model may still read them with its tools. `scope.json` in the output directory records reviewed and skipped files; `post-github --scope` turns it into a \"Partial review\" note on the pull request."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "post_github.go",
+      "status": "M",
+      "diff": "diff --git a/post_github.go b/post_github.go\nindex 2ffdaaf..0d63c57 100644\n--- a/post_github.go\n+++ b/post_github.go\n@@ -29,9 +29,9 @@ const (\n )\n \n type postGitHubOptions struct {\n-\tfindings, repo, head, footer, apiURL string\n-\tpr                                   int\n-\tdryRun                               bool\n+\tfindings, repo, head, footer, apiURL, scope string\n+\tpr                                          int\n+\tdryRun                                      bool\n }\n \n // runPostGitHub publishes findings.json to a pull request: one sticky summary\n@@ -45,6 +45,7 @@ func runPostGitHub(args []string, stdout io.Writer) error {\n \tfs.StringVar(\u0026o.repo, \"repo\", os.Getenv(\"GITHUB_REPOSITORY\"), \"owner/name (default: $GITHUB_REPOSITORY)\")\n \tfs.IntVar(\u0026o.pr, \"pr\", 0, \"pull request number (required)\")\n \tfs.StringVar(\u0026o.head, \"head\", \"\", \"full head commit SHA the review was run on (default: the findings revision)\")\n+\tfs.StringVar(\u0026o.scope, \"scope\", \"\", \"scope.json written by agentic-review; states when only part of a large change was reviewed\")\n \tfs.StringVar(\u0026o.footer, \"footer\", \"\", \"one line appended to the summary, such as the run cost\")\n \tfs.StringVar(\u0026o.apiURL, \"api-url\", envOr(\"GITHUB_API_URL\", \"https://api.github.com\"), \"GitHub API base URL\")\n \tfs.BoolVar(\u0026o.dryRun, \"dry-run\", false, \"print what would be posted; call nothing\")\n@@ -97,7 +98,11 @@ func runPostGitHub(args []string, stdout io.Writer) error {\n \t\tposted = map[string]bool{}\n \t}\n \tplan := planPost(envelope.Findings, commentable, posted)\n-\tsummary := renderAgenticSummary(plan, o.head, o.footer)\n+\tscopeNote, err := readScopeNote(o.scope)\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\tsummary := renderAgenticSummary(plan, o.head, scopeNote, o.footer)\n \tif o.dryRun {\n \t\tfmt.Fprintf(stdout, \"Would post %d inline comment(s) and a summary:\\n\\n%s\\n\", len(plan.inline), summary)\n \t\treturn nil\n@@ -175,10 +180,14 @@ func renderInlineFinding(f hostedreview.Finding, key string) string {\n \treturn b.String()\n }\n \n-func renderAgenticSummary(plan postPlan, head, footer string) string {\n+func renderAgenticSummary(plan postPlan, head, scopeNote, footer string) string {\n \tvar b strings.Builder\n \tb.WriteString(agenticCommentMarker + \"\\n\")\n-\tfmt.Fprintf(\u0026b, \"## px1 review\\n\\nReviewed `%s`. \", shortRevision(head))\n+\tfmt.Fprintf(\u0026b, \"## px1 review\\n\\n\")\n+\tif scopeNote != \"\" {\n+\t\tb.WriteString(scopeNote)\n+\t}\n+\tfmt.Fprintf(\u0026b, \"Reviewed `%s`. \", shortRevision(head))\n \tif len(plan.all) == 0 {\n \t\tb.WriteString(\"No verified findings. That is not evidence the change is correct: it means nothing the model proposed survived verification.\\n\")\n \t} else {\n@@ -354,3 +363,29 @@ func envOr(key, fallback string) string {\n \t}\n \treturn fallback\n }\n+\n+// readScopeNote turns scope.json into a sentence, or nothing when the whole\n+// change was reviewed.\n+func readScopeNote(path string) (string, error) {\n+\tif path == \"\" {\n+\t\treturn \"\", nil\n+\t}\n+\tdata, err := os.ReadFile(path)\n+\tif err != nil {\n+\t\treturn \"\", fmt.Errorf(\"read scope: %w\", err)\n+\t}\n+\tvar scope reviewScope\n+\tif err := json.Unmarshal(data, \u0026scope); err != nil {\n+\t\treturn \"\", fmt.Errorf(\"decode scope: %w\", err)\n+\t}\n+\tif len(scope.Skipped) == 0 {\n+\t\treturn \"\", nil\n+\t}\n+\tshown := scope.Skipped\n+\tmore := \"\"\n+\tif len(shown) \u003e 10 {\n+\t\tmore = fmt.Sprintf(\" and %d more\", len(shown)-10)\n+\t\tshown = shown[:10]\n+\t}\n+\treturn fmt.Sprintf(\"**Partial review:** this change is large, so px1 reviewed %d of %d files, highest-risk first. Not reviewed: `%s`%s.\\n\\n\", scope.Reviewed, scope.Total, strings.Join(shown, \"`, `\"), more), nil\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-c8118f05cf00a298",
+          "header": "@@ -29,9 +29,9 @@ const (",
+          "lines": [
+            {
+              "oldLine": 29,
+              "newLine": 29,
+              "kind": "context",
+              "text": ")"
+            },
+            {
+              "oldLine": 30,
+              "newLine": 30,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 31,
+              "newLine": 31,
+              "kind": "context",
+              "text": "type postGitHubOptions struct {"
+            },
+            {
+              "oldLine": 32,
+              "kind": "removed",
+              "text": "\tfindings, repo, head, footer, apiURL string"
+            },
+            {
+              "oldLine": 33,
+              "kind": "removed",
+              "text": "\tpr                                   int"
+            },
+            {
+              "oldLine": 34,
+              "kind": "removed",
+              "text": "\tdryRun                               bool"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "\tfindings, repo, head, footer, apiURL, scope string"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tpr                                          int"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tdryRun                                      bool"
+            },
+            {
+              "oldLine": 35,
+              "newLine": 35,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 36,
+              "newLine": 36,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 37,
+              "newLine": 37,
+              "kind": "context",
+              "text": "// runPostGitHub publishes findings.json to a pull request: one sticky summary"
+            }
+          ]
+        },
+        {
+          "id": "diff-79ad6c4ac6289ccd",
+          "header": "@@ -45,6 +45,7 @@ func runPostGitHub(args []string, stdout io.Writer) error {",
+          "lines": [
+            {
+              "oldLine": 45,
+              "newLine": 45,
+              "kind": "context",
+              "text": "\tfs.StringVar(\u0026o.repo, \"repo\", os.Getenv(\"GITHUB_REPOSITORY\"), \"owner/name (default: $GITHUB_REPOSITORY)\")"
+            },
+            {
+              "oldLine": 46,
+              "newLine": 46,
+              "kind": "context",
+              "text": "\tfs.IntVar(\u0026o.pr, \"pr\", 0, \"pull request number (required)\")"
+            },
+            {
+              "oldLine": 47,
+              "newLine": 47,
+              "kind": "context",
+              "text": "\tfs.StringVar(\u0026o.head, \"head\", \"\", \"full head commit SHA the review was run on (default: the findings revision)\")"
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\tfs.StringVar(\u0026o.scope, \"scope\", \"\", \"scope.json written by agentic-review; states when only part of a large change was reviewed\")"
+            },
+            {
+              "oldLine": 48,
+              "newLine": 49,
+              "kind": "context",
+              "text": "\tfs.StringVar(\u0026o.footer, \"footer\", \"\", \"one line appended to the summary, such as the run cost\")"
+            },
+            {
+              "oldLine": 49,
+              "newLine": 50,
+              "kind": "context",
+              "text": "\tfs.StringVar(\u0026o.apiURL, \"api-url\", envOr(\"GITHUB_API_URL\", \"https://api.github.com\"), \"GitHub API base URL\")"
+            },
+            {
+              "oldLine": 50,
+              "newLine": 51,
+              "kind": "context",
+              "text": "\tfs.BoolVar(\u0026o.dryRun, \"dry-run\", false, \"print what would be posted; call nothing\")"
+            }
+          ]
+        },
+        {
+          "id": "diff-e4fc10e2b1d6a841",
+          "header": "@@ -97,7 +98,11 @@ func runPostGitHub(args []string, stdout io.Writer) error {",
+          "lines": [
+            {
+              "oldLine": 97,
+              "newLine": 98,
+              "kind": "context",
+              "text": "\t\tposted = map[string]bool{}"
+            },
+            {
+              "oldLine": 98,
+              "newLine": 99,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 99,
+              "newLine": 100,
+              "kind": "context",
+              "text": "\tplan := planPost(envelope.Findings, commentable, posted)"
+            },
+            {
+              "oldLine": 100,
+              "kind": "removed",
+              "text": "\tsummary := renderAgenticSummary(plan, o.head, o.footer)"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\tscopeNote, err := readScopeNote(o.scope)"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\tsummary := renderAgenticSummary(plan, o.head, scopeNote, o.footer)"
+            },
+            {
+              "oldLine": 101,
+              "newLine": 106,
+              "kind": "context",
+              "text": "\tif o.dryRun {"
+            },
+            {
+              "oldLine": 102,
+              "newLine": 107,
+              "kind": "context",
+              "text": "\t\tfmt.Fprintf(stdout, \"Would post %d inline comment(s) and a summary:\\n\\n%s\\n\", len(plan.inline), summary)"
+            },
+            {
+              "oldLine": 103,
+              "newLine": 108,
+              "kind": "context",
+              "text": "\t\treturn nil"
+            }
+          ]
+        },
+        {
+          "id": "diff-78d74bc2b8d56893",
+          "header": "@@ -175,10 +180,14 @@ func renderInlineFinding(f hostedreview.Finding, key string) string {",
+          "lines": [
+            {
+              "oldLine": 175,
+              "newLine": 180,
+              "kind": "context",
+              "text": "\treturn b.String()"
+            },
+            {
+              "oldLine": 176,
+              "newLine": 181,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 177,
+              "newLine": 182,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 178,
+              "kind": "removed",
+              "text": "func renderAgenticSummary(plan postPlan, head, footer string) string {"
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": "func renderAgenticSummary(plan postPlan, head, scopeNote, footer string) string {"
+            },
+            {
+              "oldLine": 179,
+              "newLine": 184,
+              "kind": "context",
+              "text": "\tvar b strings.Builder"
+            },
+            {
+              "oldLine": 180,
+              "newLine": 185,
+              "kind": "context",
+              "text": "\tb.WriteString(agenticCommentMarker + \"\\n\")"
+            },
+            {
+              "oldLine": 181,
+              "kind": "removed",
+              "text": "\tfmt.Fprintf(\u0026b, \"## px1 review\\n\\nReviewed `%s`. \", shortRevision(head))"
+            },
+            {
+              "newLine": 186,
+              "kind": "added",
+              "text": "\tfmt.Fprintf(\u0026b, \"## px1 review\\n\\n\")"
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "\tif scopeNote != \"\" {"
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": "\t\tb.WriteString(scopeNote)"
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 190,
+              "kind": "added",
+              "text": "\tfmt.Fprintf(\u0026b, \"Reviewed `%s`. \", shortRevision(head))"
+            },
+            {
+              "oldLine": 182,
+              "newLine": 191,
+              "kind": "context",
+              "text": "\tif len(plan.all) == 0 {"
+            },
+            {
+              "oldLine": 183,
+              "newLine": 192,
+              "kind": "context",
+              "text": "\t\tb.WriteString(\"No verified findings. That is not evidence the change is correct: it means nothing the model proposed survived verification.\\n\")"
+            },
+            {
+              "oldLine": 184,
+              "newLine": 193,
+              "kind": "context",
+              "text": "\t} else {"
+            }
+          ]
+        },
+        {
+          "id": "diff-7c501db0a918c3d5",
+          "header": "@@ -354,3 +363,29 @@ func envOr(key, fallback string) string {",
+          "lines": [
+            {
+              "oldLine": 354,
+              "newLine": 363,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 355,
+              "newLine": 364,
+              "kind": "context",
+              "text": "\treturn fallback"
+            },
+            {
+              "oldLine": 356,
+              "newLine": 365,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "newLine": 366,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 367,
+              "kind": "added",
+              "text": "// readScopeNote turns scope.json into a sentence, or nothing when the whole"
+            },
+            {
+              "newLine": 368,
+              "kind": "added",
+              "text": "// change was reviewed."
+            },
+            {
+              "newLine": 369,
+              "kind": "added",
+              "text": "func readScopeNote(path string) (string, error) {"
+            },
+            {
+              "newLine": 370,
+              "kind": "added",
+              "text": "\tif path == \"\" {"
+            },
+            {
+              "newLine": 371,
+              "kind": "added",
+              "text": "\t\treturn \"\", nil"
+            },
+            {
+              "newLine": 372,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 373,
+              "kind": "added",
+              "text": "\tdata, err := os.ReadFile(path)"
+            },
+            {
+              "newLine": 374,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 375,
+              "kind": "added",
+              "text": "\t\treturn \"\", fmt.Errorf(\"read scope: %w\", err)"
+            },
+            {
+              "newLine": 376,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 377,
+              "kind": "added",
+              "text": "\tvar scope reviewScope"
+            },
+            {
+              "newLine": 378,
+              "kind": "added",
+              "text": "\tif err := json.Unmarshal(data, \u0026scope); err != nil {"
+            },
+            {
+              "newLine": 379,
+              "kind": "added",
+              "text": "\t\treturn \"\", fmt.Errorf(\"decode scope: %w\", err)"
+            },
+            {
+              "newLine": 380,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 381,
+              "kind": "added",
+              "text": "\tif len(scope.Skipped) == 0 {"
+            },
+            {
+              "newLine": 382,
+              "kind": "added",
+              "text": "\t\treturn \"\", nil"
+            },
+            {
+              "newLine": 383,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 384,
+              "kind": "added",
+              "text": "\tshown := scope.Skipped"
+            },
+            {
+              "newLine": 385,
+              "kind": "added",
+              "text": "\tmore := \"\""
+            },
+            {
+              "newLine": 386,
+              "kind": "added",
+              "text": "\tif len(shown) \u003e 10 {"
+            },
+            {
+              "newLine": 387,
+              "kind": "added",
+              "text": "\t\tmore = fmt.Sprintf(\" and %d more\", len(shown)-10)"
+            },
+            {
+              "newLine": 388,
+              "kind": "added",
+              "text": "\t\tshown = shown[:10]"
+            },
+            {
+              "newLine": 389,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 390,
+              "kind": "added",
+              "text": "\treturn fmt.Sprintf(\"**Partial review:** this change is large, so px1 reviewed %d of %d files, highest-risk first. Not reviewed: `%s`%s.\\n\\n\", scope.Reviewed, scope.Total, strings.Join(shown, \"`, `\"), more), nil"
+            },
+            {
+              "newLine": 391,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-5f0b1caf1c860e44",
+      "title": "Files changes",
+      "summary": "7 related files share the \"files\" change signal.",
+      "paths": [
+        "agentic-action/action.yml",
+        "agentic_review.go",
+        "agentic_review_limits_test.go",
+        "agentic_review_prep.go",
+        "docs/AGENTIC_CI.md",
+        "docs/AGENTIC_REVIEW_CLI.md",
+        "post_github.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 7,
+    "filesAnalyzed": 7,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "action-scope",
+      "path": "agentic-action/action.yml",
+      "lineStart": 111,
+      "lineEnd": 112,
+      "title": "The Action publishes review scope",
+      "summary": "The GitHub Action now passes the generated scope file to the posting command, so its pull-request summary can disclose when the review was partial."
+    },
+    {
+      "id": "scope-output",
+      "path": "agentic_review.go",
+      "lineStart": 337,
+      "lineEnd": 344,
+      "title": "Review coverage is recorded",
+      "summary": "The output now includes scope.json with the reviewed count, total reviewable count, and skipped paths, allowing consumers to distinguish a partial review from a full one."
+    },
+    {
+      "id": "review-limits",
+      "path": "agentic_review_prep.go",
+      "lineStart": 120,
+      "lineEnd": 195,
+      "title": "Large changes get a risk-prioritized partial review",
+      "summary": "Large changes are now reviewed in part instead of being rejected for exceeding the model budget. By default, the review selects up to 40 files and 120,000 diff bytes, favoring higher-risk paths and smaller diffs; zero disables a limit."
+    },
+    {
+      "id": "skipped-file-access",
+      "path": "agentic_review_prep.go",
+      "lineStart": 237,
+      "lineEnd": 260,
+      "title": "Skipped diffs are not fully out of scope",
+      "summary": "Files left out by the limits are not included in the diff sent for review, and their diffs are not checked by the secret scan. They are still available to the model through its tools, so skipping a file does not prevent it from being read."
+    },
+    {
+      "id": "partial-summary",
+      "path": "post_github.go",
+      "lineStart": 365,
+      "lineEnd": 391,
+      "title": "Pull-request summaries disclose partial coverage",
+      "summary": "When scope.json lists skipped files, the pull-request summary starts with a Partial review warning and names up to 10 omitted paths. If no files were skipped, no warning is added."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "23ab12527a4dab2eae043b3561633cf659f0a881",
+      "revision": "270d2f024704cc64efb09080253d850e9a526daf",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "23ab12527a4dab2eae043b3561633cf659f0a881",
+      "revision": "270d2f024704cc64efb09080253d850e9a526daf",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "270d2f024704cc64efb09080253d850e9a526daf",
+      "detail": "5 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "270d2f024704cc64efb09080253d850e9a526daf",
+      "detail": "2 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "270d2f024704cc64efb09080253d850e9a526daf",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/42807280995",
+    "checks": [
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42807284797/job/129799547373",
+        "startedAt": "2026-11-10T11:25:04Z"
+      },
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/42807280995/job/129799542234",
+        "startedAt": "2026-11-10T11:25:06Z"
+      }
+    ]
+  }
+}
