@@ -7,6 +7,8 @@ covers:
   - internal/docs/
   - docs_cmd.go
   - docs_update.go
+  - docs_eval.go
+  - eval/docs-cases.json
 verified_at:
 ---
 
@@ -49,7 +51,7 @@ request as the code it describes.
 | 3. UI | A static site built from the Markdown: sidebar, search, per-page status and "verified at commit", source links, and a "changed in this pull request" view. Published on Pages with a preview per pull-request head. | No |
 | 4. Drift detection | `px1 docs impact --base --head` lists the pages a diff affects, using `covers`. Posted as a pull-request comment; stale pages are marked in the UI. | No |
 | 5. Self-evolving agent | `px1 docs apply` applies edits that stay in one section and quote real code. `px1 docs update` has a model draft them, under the existing budget meter, and checks each against the code it cites. Committing to the branch from CI comes last. | Yes |
-| 6. Quality gates | A docs evaluation set: seeded code changes with known documentation consequences, and clean changes that must produce no edits. Scored with `eval-run` and `eval-compare`. | Yes |
+| 6. Quality gates | A docs evaluation set: invented code changes with known documentation consequences, and clean changes that must produce no edits. Scored by `px1 docs eval`; the review tools `eval-run` and `eval-compare` score findings by line and do not fit. | Yes |
 | 7. Rollout | px1's own pull requests first, then a second repository, then as a product feature. | Yes |
 
 Phases 1 to 4 are useful without any generation and ship first.
@@ -261,6 +263,61 @@ Limits:
   statements; it does not remove the need for a person to read the diff.
 - It does not commit or push. Committing to the pull-request branch from CI is
   a later step.
+
+## Measuring the updater (phase 6)
+
+`px1 docs eval --model M --price-input N --price-output N --yes` runs
+`docs update` on the cases in `eval/docs-cases.json` and scores it. Each case
+is a small invented repository: one page, the files it covers before and
+after a change, and what a correct update does.
+
+| Kind | The change | A correct update |
+| --- | --- | --- |
+| stale | makes a statement on the page false | edits the named section so that it holds the new fact and no longer holds the old one |
+| clean | touches nothing the page says | applies no edit |
+
+The set has 8 stale cases (a limit, a default, a removed format, a changed
+failure mode, a renamed flag, a changed unit, a changed status code, and a
+fact in one of two changed files) and 6 clean cases (an internal rename,
+comments only, a bug fix that makes the code match the page, a speed-up, an
+addition the page does not describe, a reworded log message).
+
+The run prints each case and three numbers: stale pages corrected, unaffected
+pages left alone, and edits applied to sections that were not stale.
+`--min-fixed` and `--min-quiet` make the command fail below a bar, `--only ID`
+runs one case, and `--out FILE` writes the outcomes. Without `--yes` the
+command only validates the case file. `--max-cost` caps the whole set.
+
+A case file is rejected if a case could not tell a good update from a bad
+one: a stale case must name one section, every `must_not_contain` string must
+be in that section to begin with, and every `must_contain` string must not.
+
+What the set found on its first run: the check in `docs update` refused a
+correct edit. The edit changed "5 minutes" to "15 minutes" in a sentence, and
+the check objected that the code did not establish the rest of the sentence,
+which was already on the page. The check now judges only what differs
+between the old and the new text.
+
+Measured with `gpt-6-luna` after that fix, two runs of the whole set:
+
+| Run | Stale pages corrected | Unaffected pages left alone | Edits elsewhere | Cost |
+| --- | --- | --- | --- | --- |
+| 1 | 8 of 8 | 6 of 6 | 0 | $0.0025 |
+| 2 | 7 of 8 | 6 of 6 | 0 | $0.0027 |
+
+The miss in run 2 was a refusal that was right: the draft fixed the status
+code but dropped a true sentence, and the check refused it for that. The page
+stayed stale, which `docs impact` still reports as "needs review".
+
+Limits of the set:
+
+- 14 cases is enough to catch a broken prompt, not to rank two good ones.
+- The cases are invented and small: one page, one or two short files. Real
+  pages are longer and real diffs noisier.
+- Scoring is by strings in the section. It shows the old fact is gone and the
+  new one is present; it does not judge the wording.
+- Model replies vary between runs, and a failed network call counts as a
+  failed case.
 
 ## In CI
 

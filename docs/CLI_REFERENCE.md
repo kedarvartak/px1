@@ -72,7 +72,7 @@ Reviews two commits of a local clone with the agentic pipeline and writes a comm
 
 ## px1 docs
 
-Maintains the documentation under docs/. "px1 docs gen" writes the reference pages, the manifest and the index from the code and the pages; "px1 docs check" fails when they are out of date, a link is broken, or code has no page; "px1 docs impact" lists the pages whose covered code a diff touches; "px1 docs apply" applies edits to those pages when each one stays inside a section and quotes the code it rests on; "px1 docs update" has a model draft such edits and checks each against the code it cites; "px1 docs site" renders the pages as a static website. It reads repository files only and runs nothing from them.
+Maintains the documentation under docs/. "px1 docs gen" writes the reference pages, the manifest and the index from the code and the pages; "px1 docs check" fails when they are out of date, a link is broken, or code has no page; "px1 docs impact" lists the pages whose covered code a diff touches; "px1 docs apply" applies edits to those pages when each one stays inside a section and quotes the code it rests on; "px1 docs update" has a model draft such edits and checks each against the code it cites; "px1 docs eval" measures that on a set of invented cases; "px1 docs site" renders the pages as a static website. It reads repository files only and runs nothing from them.
 
 | Flag | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -86,15 +86,19 @@ Maintains the documentation under docs/. "px1 docs gen" writes the reference pag
 | `--json` | boolean |  | impact, apply: write JSON instead of Markdown |
 | `--impact` | string |  | site: impact JSON written by docs impact --json; marks the pages a pull request affects |
 | `--commit` | string |  | site: the commit the site is built from, shown on each page |
+| `--cases` | string | `eval/docs-cases.json` | eval: case file |
+| `--only` | string |  | eval: run only the case with this id |
+| `--min-fixed` | number | `0` | eval: fail unless at least this fraction of stale cases is corrected |
+| `--min-quiet` | number | `0` | eval: fail unless at least this fraction of clean cases gets no edit |
 | `--model` | string |  | update: OpenAI model (required) |
 | `--endpoint` | string | `https://api.openai.com/v1/responses` | update: Responses API endpoint |
 | `--price-input` | number | `0` | update: model input price in USD per million tokens (required) |
 | `--price-output` | number | `0` | update: model output price in USD per million tokens (required) |
-| `--max-cost` | number | `0.50` | update: hard cost cap in USD; drafting stops when it could be crossed |
-| `--max-pages` | integer | `6` | update: most pages drafted for in one run |
-| `--max-output-tokens` | integer | `4000` | update: output-token limit per model call |
+| `--max-cost` | number | `0.50` | update: hard cost cap in USD; eval: the cap for the whole set |
 | `--verify` | boolean | `true` | update: have the model check each edit against the code it cites before applying it |
 | `--yes` | boolean |  | update: send the pages and diffs to the model provider |
+| `--max-pages` | integer | `6` | update: most pages drafted for in one run |
+| `--max-output-tokens` | integer | `4000` | update: output-token limit per model call |
 | `--exclude-glob` | value |  | update: repository-relative glob never shown to the model (repeatable) |
 
 ## px1 eval-compare

@@ -20,15 +20,18 @@ import (
 // has no page; "px1 docs impact" lists the pages whose covered code a diff
 // touches; "px1 docs apply" applies edits to those pages when each one stays
 // inside a section and quotes the code it rests on; "px1 docs update" has a model draft
-// such edits and checks each against the code it cites; "px1 docs site" renders the pages as a
+// such edits and checks each against the code it cites; "px1 docs eval" measures that on a set of invented cases; "px1 docs site" renders the pages as a
 // static website. It reads repository files only and runs
 // nothing from them.
 func runDocs(args []string, stdout io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("usage: px1 docs <apply|check|gen|impact|site|update> [--root dir]")
+		return errors.New("usage: px1 docs <apply|check|eval|gen|impact|site|update> [--root dir]")
 	}
-	if args[0] == "update" {
+	switch args[0] {
+	case "update":
 		return runDocsUpdate(args[1:], stdout)
+	case "eval":
+		return runDocsEval(args[1:], stdout)
 	}
 	fs := flag.NewFlagSet("docs "+args[0], flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
@@ -171,7 +174,7 @@ func runDocs(args []string, stdout io.Writer) error {
 		fmt.Fprintf(stdout, "wrote %d files to %s\n", n, *out)
 		return nil
 	}
-	return fmt.Errorf("unknown docs command %q: use apply, check, gen, impact, site or update", args[0])
+	return fmt.Errorf("unknown docs command %q: use apply, check, eval, gen, impact, site or update", args[0])
 }
 
 // applyDocsEdits applies the edits, or only plans them on a dry run.

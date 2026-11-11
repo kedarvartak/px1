@@ -272,3 +272,72 @@ func TestEvidenceForShowsTheCitedLinesInContext(t *testing.T) {
 		t.Fatalf("section text = %q (page %s)", got, pages[1].Path)
 	}
 }
+
+func TestParseEvalSetRejectsCasesThatCannotJudge(t *testing.T) {
+	good := `{"id":"a-case","kind":"stale","what":"w","page":"# P\n\n## S\n\nOld value 10.\n","files":{"a.go":{"before":"package a\n","after":"package a\n\nvar x = 1\n"}},"expect":{"section":"S","must_contain":["25"],"must_not_contain":["10"]}}`
+	wrap := func(c string) []byte { return []byte(`{"version":1,"cases":[` + c + `]}`) }
+	if _, err := ParseEvalSet(wrap(good)); err != nil {
+		t.Fatal(err)
+	}
+	bad := map[string]string{
+		"twice":                          good + "," + good,
+		"must be stale or clean":         strings.Replace(good, `"stale"`, `"other"`, 1),
+		"same before and after":          strings.Replace(good, `"package a\n\nvar x = 1\n"`, `"package a\n"`, 1),
+		"already in the section":         strings.Replace(good, `["25"]`, `["Old"]`, 1),
+		"not in the section":             strings.Replace(good, `["10"]`, `["99"]`, 1),
+		"names 0 sections":               strings.Replace(good, `"section":"S"`, `"section":"T"`, 1),
+		"not a plain path":               strings.Replace(good, `"a.go"`, `"../a.go"`, 1),
+		`"..\\a.go" is not a plain path`: strings.Replace(good, `"a.go"`, `"..\\a.go"`, 1),
+		`"c:a.go" is not a plain path`:   strings.Replace(good, `"a.go"`, `"c:a.go"`, 1),
+		"unknown field":                  strings.Replace(good, `"what":"w"`, `"what":"w","extra":1`, 1),
+		"a stale case needs expect":      good[:strings.Index(good, `,"expect"`)] + "}",
+	}
+	for want, c := range bad {
+		if _, err := ParseEvalSet(wrap(c)); err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("want %q, got %v", want, err)
+		}
+	}
+	clean := strings.Replace(good, `"stale"`, `"clean"`, 1)
+	if _, err := ParseEvalSet(wrap(clean)); err == nil || !strings.Contains(err.Error(), "has no expect") {
+		t.Errorf("clean case with expect: %v", err)
+	}
+	if _, err := ParseEvalSet([]byte(`{"version":2,"cases":[]}`)); err == nil {
+		t.Error("version 2 was accepted")
+	}
+}
+
+func TestScoreEvalCase(t *testing.T) {
+	stale := EvalCase{ID: "s", Kind: EvalStale, Expect: &EvalExpect{Section: "S", MustContain: []string{"25"}, MustNotContain: []string{"10"}}}
+	page := func(text string) string { return goodFront + "\n# P\n\n## S\n\n" + text + "\n\n## T\n\nOther.\n" }
+	onS := EditResult{Edit: Edit{Heading: "S"}, Applied: true}
+	onT := EditResult{Edit: Edit{Heading: "T"}, Applied: true}
+	refused := EditResult{Edit: Edit{Heading: "S"}}
+	for _, tc := range []struct {
+		name    string
+		after   string
+		results []EditResult
+		pass    bool
+	}{
+		{"fixed", page("Now 25."), []EditResult{onS}, true},
+		{"fixed, with an edit elsewhere", page("Now 25."), []EditResult{onS, onT}, true},
+		{"not edited", page("Old value 10."), []EditResult{refused}, false},
+		{"only another section edited", page("Old value 10."), []EditResult{onT}, false},
+		{"edited but still wrong", page("Was 10, now 25."), []EditResult{onS}, false},
+		{"edited without the new value", page("Changed."), []EditResult{onS}, false},
+	} {
+		if got := ScoreEvalCase(stale, tc.after, tc.results); got.Pass != tc.pass {
+			t.Errorf("%s: pass=%v detail=%q", tc.name, got.Pass, got.Detail)
+		}
+	}
+	clean := EvalCase{ID: "c", Kind: EvalClean}
+	if got := ScoreEvalCase(clean, page("x"), []EditResult{refused}); !got.Pass || got.Refused != 1 {
+		t.Errorf("clean with a refused edit: %+v", got)
+	}
+	if got := ScoreEvalCase(clean, page("x"), []EditResult{onT}); got.Pass || got.Elsewhere != 1 {
+		t.Errorf("clean with an applied edit: %+v", got)
+	}
+	s := SummarizeEval([]EvalOutcome{{Kind: EvalStale, Pass: true}, {Kind: EvalStale}, {Kind: EvalClean, Pass: true, CostMicrousd: 5}})
+	if s.Stale != 2 || s.StaleFixed != 1 || s.Clean != 1 || s.CleanQuiet != 1 || s.CostMicrousd != 5 || Rate(0, 0) != 1 {
+		t.Errorf("summary: %+v", s)
+	}
+}
