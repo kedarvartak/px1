@@ -22,19 +22,27 @@ Each page states a status: **shipped** (usable now), **built** (code and tests e
 ## Concepts
 
 - [Agentic review: prompts and budgets](AGENTIC_REVIEW.md) (shipped)
+- [Hosted billing](BILLING.md) (built)
 - [Review confidence score](CONFIDENCE_SCORE.md) (shipped)
+- [Cascading configuration](CONFIG_CASCADE.md) (shipped)
 - [Embedding batches and versioning](EMBEDDING_INDEX.md) (built)
 - [File summaries](FILE_SUMMARIES.md) (built)
 - [Finding verifier](FINDING_VERIFIER.md) (shipped)
+- [GitHub App delivery](GITHUB_APP.md) (built)
 - [GitHub review artifact architecture](GITHUB_REVIEW_INTEGRATION_PLAN.md) (shipped)
 - [Hosted v1 architecture decision](HOSTED_ARCHITECTURE.md) (built)
+- [Hosted report publishing and access](HOSTED_REPORTS.md) (built)
 - [Incremental repository indexing](INCREMENTAL_REINDEX.md) (built)
 - [Retrieval chunking](INDEX_CHUNKING.md) (built)
 - [Repository indexing limits](INDEX_LIMITS.md) (built)
+- [Issue tracker and Slack integrations](INTEGRATIONS.md) (built)
 - [Language parsing boundary](LANGUAGE_PARSING.md) (built)
+- [Feedback learning](LEARNING.md) (built)
+- [Onboarding demo reviews](ONBOARDING_DEMO.md) (built)
 - [Review context assembly](REVIEW_CONTEXT.md) (built)
 - [Safe repository cloning](SAFE_REPOSITORY_CLONING.md) (built)
 - [Sandboxed SCIP indexing](SCIP_INDEXING.md) (built)
+- [SCM providers](SCM_PROVIDERS.md) (built)
 - [GitHub Actions verification input](VERIFICATION_REPORT.md) (shipped)
 
 ## Reference
