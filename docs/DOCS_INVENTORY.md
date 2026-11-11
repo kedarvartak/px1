@@ -42,7 +42,8 @@ check possible page by page.
    `onboarding` and `scm`: 5 of 22 packages under `internal/hosted`.
    Phase 1's `covers` mapping is stricter than a name search and adds
    `billing`, `gitlab` and `report`, which pages mention but none describes.
-   The current list is `known_gaps` in `docs.config.json`.
+   The current list is `known_gaps` in `docs.config.json`. It is now empty:
+   each of these packages, and `config_cascade.go`, has a page.
 7. **Stubs.** 12 pages are under 100 words. Six of them, with `SCIP_INDEXING.md`,
    describe parts of indexing and read better as one page.
 8. **Overlap.** Agentic review is spread over four pages with repeated

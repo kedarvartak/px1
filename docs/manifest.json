@@ -91,6 +91,17 @@
       "verified_at": ""
     },
     {
+      "path": "docs/BILLING.md",
+      "title": "Hosted billing",
+      "section": "concepts",
+      "kind": "narrative",
+      "status": "built",
+      "covers": [
+        "internal/hosted/billing/"
+      ],
+      "verified_at": ""
+    },
+    {
       "path": "docs/CLI_REFERENCE.md",
       "title": "Command-line reference",
       "section": "reference",
@@ -122,6 +133,17 @@
       "status": "shipped",
       "covers": [
         "internal/hosted/review/confidence.go"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/CONFIG_CASCADE.md",
+      "title": "Cascading configuration",
+      "section": "concepts",
+      "kind": "narrative",
+      "status": "shipped",
+      "covers": [
+        "config_cascade.go"
       ],
       "verified_at": ""
     },
@@ -255,6 +277,17 @@
       "verified_at": ""
     },
     {
+      "path": "docs/GITHUB_APP.md",
+      "title": "GitHub App delivery",
+      "section": "concepts",
+      "kind": "narrative",
+      "status": "built",
+      "covers": [
+        "internal/hosted/githubapp/"
+      ],
+      "verified_at": ""
+    },
+    {
       "path": "docs/GITHUB_APP_REGISTRATION.md",
       "title": "GitHub App registration",
       "section": "operations",
@@ -308,6 +341,17 @@
       "verified_at": ""
     },
     {
+      "path": "docs/HOSTED_REPORTS.md",
+      "title": "Hosted report publishing and access",
+      "section": "concepts",
+      "kind": "narrative",
+      "status": "built",
+      "covers": [
+        "internal/hosted/report/"
+      ],
+      "verified_at": ""
+    },
+    {
       "path": "docs/INCREMENTAL_REINDEX.md",
       "title": "Incremental repository indexing",
       "section": "concepts",
@@ -341,6 +385,18 @@
       "verified_at": ""
     },
     {
+      "path": "docs/INTEGRATIONS.md",
+      "title": "Issue tracker and Slack integrations",
+      "section": "concepts",
+      "kind": "narrative",
+      "status": "built",
+      "covers": [
+        "internal/hosted/integrations/issues/",
+        "internal/hosted/integrations/slack/"
+      ],
+      "verified_at": ""
+    },
+    {
       "path": "docs/LANGUAGE_PARSING.md",
       "title": "Language parsing boundary",
       "section": "concepts",
@@ -349,6 +405,17 @@
       "covers": [
         "internal/hosted/indexer/language.go",
         "internal/hosted/indexer/tree_sitter.go"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/LEARNING.md",
+      "title": "Feedback learning",
+      "section": "concepts",
+      "kind": "narrative",
+      "status": "built",
+      "covers": [
+        "internal/hosted/learning/"
       ],
       "verified_at": ""
     },
@@ -373,6 +440,17 @@
       "covers": [
         "web/dashboard/lib/metric-definitions.ts",
         "internal/hosted/analytics/"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/ONBOARDING_DEMO.md",
+      "title": "Onboarding demo reviews",
+      "section": "concepts",
+      "kind": "narrative",
+      "status": "built",
+      "covers": [
+        "internal/hosted/onboarding/"
       ],
       "verified_at": ""
     },
@@ -460,6 +538,18 @@
       "status": "built",
       "covers": [
         "internal/hosted/graph/"
+      ],
+      "verified_at": ""
+    },
+    {
+      "path": "docs/SCM_PROVIDERS.md",
+      "title": "SCM providers",
+      "section": "concepts",
+      "kind": "narrative",
+      "status": "built",
+      "covers": [
+        "internal/hosted/scm/",
+        "internal/hosted/gitlab/"
       ],
       "verified_at": ""
     },
