@@ -1,0 +1,247 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "limit-raised",
+      "kind": "stale",
+      "what": "A documented numeric limit changes.",
+      "page": "# Uploads\n\n## Size limit\n\nA file larger than 10 MB is rejected with status 413.\n\n## Formats\n\nPNG and JPEG are accepted.\n",
+      "files": {
+        "upload.go": {
+          "before": "package upload\n\n// maxBytes is the largest upload accepted.\nconst maxBytes = 10 << 20\n\nfunc tooLarge(n int64) bool { return n > maxBytes }\n",
+          "after": "package upload\n\n// maxBytes is the largest upload accepted.\nconst maxBytes = 25 << 20\n\nfunc tooLarge(n int64) bool { return n > maxBytes }\n"
+        }
+      },
+      "expect": {
+        "section": "Size limit",
+        "must_contain": [
+          "25"
+        ],
+        "must_not_contain": [
+          "10 MB"
+        ]
+      }
+    },
+    {
+      "id": "default-flipped",
+      "kind": "stale",
+      "what": "The default of a documented flag changes.",
+      "page": "# Sync command\n\n## Flags\n\n`--retries` sets how many times a failed request is tried again. The default is 3.\n\n`--verbose` prints each request.\n\n## Exit codes\n\nThe command exits 0 on success and 1 on failure.\n",
+      "files": {
+        "sync.go": {
+          "before": "package main\n\nimport \"flag\"\n\nvar (\n\tretries = flag.Int(\"retries\", 3, \"times a failed request is tried again\")\n\tverbose = flag.Bool(\"verbose\", false, \"print each request\")\n)\n",
+          "after": "package main\n\nimport \"flag\"\n\nvar (\n\tretries = flag.Int(\"retries\", 5, \"times a failed request is tried again\")\n\tverbose = flag.Bool(\"verbose\", false, \"print each request\")\n)\n"
+        }
+      },
+      "expect": {
+        "section": "Flags",
+        "must_contain": [
+          "default is 5"
+        ],
+        "must_not_contain": [
+          "default is 3"
+        ]
+      }
+    },
+    {
+      "id": "format-removed",
+      "kind": "stale",
+      "what": "Support for a documented input format is removed.",
+      "page": "# Importer\n\n## Formats\n\nThe importer reads CSV, JSON and XML files. The format is chosen from the file extension.\n\n## Errors\n\nA row that cannot be parsed is skipped and counted.\n",
+      "files": {
+        "importer.go": {
+          "before": "package importer\n\nimport \"errors\"\n\nfunc parserFor(ext string) (func([]byte) error, error) {\n\tswitch ext {\n\tcase \".csv\":\n\t\treturn parseCSV, nil\n\tcase \".json\":\n\t\treturn parseJSON, nil\n\tcase \".xml\":\n\t\treturn parseXML, nil\n\t}\n\treturn nil, errors.New(\"unsupported format\")\n}\n\nfunc parseCSV(b []byte) error  { return nil }\nfunc parseJSON(b []byte) error { return nil }\nfunc parseXML(b []byte) error  { return nil }\n",
+          "after": "package importer\n\nimport \"errors\"\n\nfunc parserFor(ext string) (func([]byte) error, error) {\n\tswitch ext {\n\tcase \".csv\":\n\t\treturn parseCSV, nil\n\tcase \".json\":\n\t\treturn parseJSON, nil\n\t}\n\treturn nil, errors.New(\"unsupported format\")\n}\n\nfunc parseCSV(b []byte) error  { return nil }\nfunc parseJSON(b []byte) error { return nil }\n"
+        }
+      },
+      "expect": {
+        "section": "Formats",
+        "must_contain": [],
+        "must_not_contain": [
+          "XML"
+        ]
+      }
+    },
+    {
+      "id": "error-behaviour-changed",
+      "kind": "stale",
+      "what": "A documented failure mode changes from skipping to stopping.",
+      "page": "# Batch runner\n\n## Failures\n\nWhen a job fails, the runner logs the error and continues with the next job.\n\n## Order\n\nJobs run in the order they were added.\n",
+      "files": {
+        "runner.go": {
+          "before": "package runner\n\nimport \"log\"\n\nfunc Run(jobs []func() error) error {\n\tfor _, job := range jobs {\n\t\tif err := job(); err != nil {\n\t\t\tlog.Printf(\"job failed: %v\", err)\n\t\t\tcontinue\n\t\t}\n\t}\n\treturn nil\n}\n",
+          "after": "package runner\n\nimport \"fmt\"\n\n// Run stops at the first job that fails and returns its error.\nfunc Run(jobs []func() error) error {\n\tfor i, job := range jobs {\n\t\tif err := job(); err != nil {\n\t\t\treturn fmt.Errorf(\"job %d failed: %w\", i, err)\n\t\t}\n\t}\n\treturn nil\n}\n"
+        }
+      },
+      "expect": {
+        "section": "Failures",
+        "must_contain": [
+          "stops"
+        ],
+        "must_not_contain": [
+          "continues with the next job"
+        ]
+      }
+    },
+    {
+      "id": "flag-renamed",
+      "kind": "stale",
+      "what": "A documented flag is renamed.",
+      "page": "# Export command\n\n## Usage\n\nRun `tool export --output-dir DIR` to write one file per record into DIR.\n\n## Overwriting\n\nExisting files are never overwritten.\n",
+      "files": {
+        "export.go": {
+          "before": "package main\n\nimport \"flag\"\n\nfunc exportFlags(fs *flag.FlagSet) *string {\n\treturn fs.String(\"output-dir\", \"\", \"directory to write one file per record into\")\n}\n",
+          "after": "package main\n\nimport \"flag\"\n\nfunc exportFlags(fs *flag.FlagSet) *string {\n\treturn fs.String(\"out\", \"\", \"directory to write one file per record into\")\n}\n"
+        }
+      },
+      "expect": {
+        "section": "Usage",
+        "must_contain": [
+          "--out "
+        ],
+        "must_not_contain": [
+          "--output-dir"
+        ]
+      }
+    },
+    {
+      "id": "unit-changed",
+      "kind": "stale",
+      "what": "A documented timeout changes value and unit.",
+      "page": "# Client\n\n## Timeouts\n\nEach request times out after 30 seconds.\n\n## Headers\n\nEvery request carries a `User-Agent` header.\n",
+      "files": {
+        "client.go": {
+          "before": "package client\n\nimport \"time\"\n\n// requestTimeout bounds one request.\nconst requestTimeout = 30 * time.Second\n",
+          "after": "package client\n\nimport \"time\"\n\n// requestTimeout bounds one request.\nconst requestTimeout = 2 * time.Minute\n"
+        }
+      },
+      "expect": {
+        "section": "Timeouts",
+        "must_contain": [
+          "2 minutes"
+        ],
+        "must_not_contain": [
+          "30 seconds"
+        ]
+      }
+    },
+    {
+      "id": "status-code-changed",
+      "kind": "stale",
+      "what": "A documented HTTP status changes.",
+      "page": "# Rate limiting\n\n## Response\n\nA client over its limit receives status 503 and should retry later.\n\n## Limits\n\nThe limit is 100 requests per minute per key.\n",
+      "files": {
+        "limit.go": {
+          "before": "package api\n\nimport \"net/http\"\n\nconst perMinute = 100\n\nfunc reject(w http.ResponseWriter) {\n\thttp.Error(w, \"rate limit exceeded\", http.StatusServiceUnavailable)\n}\n",
+          "after": "package api\n\nimport \"net/http\"\n\nconst perMinute = 100\n\nfunc reject(w http.ResponseWriter) {\n\tw.Header().Set(\"Retry-After\", \"60\")\n\thttp.Error(w, \"rate limit exceeded\", http.StatusTooManyRequests)\n}\n"
+        }
+      },
+      "expect": {
+        "section": "Response",
+        "must_contain": [
+          "429"
+        ],
+        "must_not_contain": [
+          "503"
+        ]
+      }
+    },
+    {
+      "id": "two-files-one-fact",
+      "kind": "stale",
+      "what": "The fact is in one of two covered files; the other changes without consequence.",
+      "page": "# Cache\n\n## Expiry\n\nAn entry expires 5 minutes after it is written.\n\n## Keys\n\nKeys are compared exactly, including case.\n",
+      "files": {
+        "cache/ttl.go": {
+          "before": "package cache\n\nimport \"time\"\n\nconst ttl = 5 * time.Minute\n",
+          "after": "package cache\n\nimport \"time\"\n\nconst ttl = 15 * time.Minute\n"
+        },
+        "cache/store.go": {
+          "before": "package cache\n\ntype store struct {\n\tm map[string]entry\n}\n\ntype entry struct{ value string }\n",
+          "after": "package cache\n\ntype store struct {\n\tentries map[string]entry\n}\n\ntype entry struct{ value string }\n"
+        }
+      },
+      "expect": {
+        "section": "Expiry",
+        "must_contain": [
+          "15 minutes"
+        ],
+        "must_not_contain": [
+          "expires 5 minutes"
+        ]
+      }
+    },
+    {
+      "id": "internal-rename",
+      "kind": "clean",
+      "what": "An unexported identifier the page never mentions is renamed.",
+      "page": "# Uploads\n\n## Size limit\n\nA file larger than 10 MB is rejected with status 413.\n",
+      "files": {
+        "upload.go": {
+          "before": "package upload\n\nconst maxBytes = 10 << 20\n\nfunc tooLarge(n int64) bool { return n > maxBytes }\n",
+          "after": "package upload\n\nconst maxUploadBytes = 10 << 20\n\nfunc exceedsLimit(n int64) bool { return n > maxUploadBytes }\n"
+        }
+      }
+    },
+    {
+      "id": "comment-only",
+      "kind": "clean",
+      "what": "Only comments change.",
+      "page": "# Client\n\n## Timeouts\n\nEach request times out after 30 seconds.\n",
+      "files": {
+        "client.go": {
+          "before": "package client\n\nimport \"time\"\n\nconst requestTimeout = 30 * time.Second\n",
+          "after": "package client\n\nimport \"time\"\n\n// requestTimeout bounds one request, including reading the body.\n// It is deliberately generous for slow links.\nconst requestTimeout = 30 * time.Second\n"
+        }
+      }
+    },
+    {
+      "id": "bug-fix-matches-docs",
+      "kind": "clean",
+      "what": "A bug is fixed so the code now does what the page already says.",
+      "page": "# Rate limiting\n\n## Limits\n\nThe limit is 100 requests per minute per key. The 101st request in a minute is rejected.\n",
+      "files": {
+        "limit.go": {
+          "before": "package api\n\nconst perMinute = 100\n\nfunc over(count int) bool { return count >= perMinute+2 }\n",
+          "after": "package api\n\nconst perMinute = 100\n\nfunc over(count int) bool { return count > perMinute }\n"
+        }
+      }
+    },
+    {
+      "id": "performance-only",
+      "kind": "clean",
+      "what": "An implementation detail the page does not describe is made faster.",
+      "page": "# Search\n\n## Matching\n\nA query matches a title when every word of the query appears in the title, in any order. Matching ignores case.\n",
+      "files": {
+        "search.go": {
+          "before": "package search\n\nimport \"strings\"\n\nfunc matches(title, query string) bool {\n\tfor _, word := range strings.Fields(strings.ToLower(query)) {\n\t\tif !strings.Contains(strings.ToLower(title), word) {\n\t\t\treturn false\n\t\t}\n\t}\n\treturn true\n}\n",
+          "after": "package search\n\nimport \"strings\"\n\nfunc matches(title, query string) bool {\n\tlower := strings.ToLower(title) // lowered once, not once per word\n\tfor _, word := range strings.Fields(strings.ToLower(query)) {\n\t\tif !strings.Contains(lower, word) {\n\t\t\treturn false\n\t\t}\n\t}\n\treturn true\n}\n"
+        }
+      }
+    },
+    {
+      "id": "undocumented-addition",
+      "kind": "clean",
+      "what": "A helper is added that the page's sections do not describe.",
+      "page": "# Importer\n\n## Formats\n\nThe importer reads CSV and JSON files. The format is chosen from the file extension.\n",
+      "files": {
+        "importer.go": {
+          "before": "package importer\n\nfunc parseCSV(b []byte) error  { return nil }\nfunc parseJSON(b []byte) error { return nil }\n",
+          "after": "package importer\n\nfunc parseCSV(b []byte) error  { return nil }\nfunc parseJSON(b []byte) error { return nil }\n\n// countLines is used by the progress bar.\nfunc countLines(b []byte) int {\n\tn := 0\n\tfor _, c := range b {\n\t\tif c == '\\n' {\n\t\t\tn++\n\t\t}\n\t}\n\treturn n\n}\n"
+        }
+      }
+    },
+    {
+      "id": "log-message-reworded",
+      "kind": "clean",
+      "what": "A log message is reworded; the documented behaviour is the same.",
+      "page": "# Batch runner\n\n## Failures\n\nWhen a job fails, the runner logs the error and continues with the next job.\n",
+      "files": {
+        "runner.go": {
+          "before": "package runner\n\nimport \"log\"\n\nfunc Run(jobs []func() error) {\n\tfor _, job := range jobs {\n\t\tif err := job(); err != nil {\n\t\t\tlog.Printf(\"job failed: %v\", err)\n\t\t}\n\t}\n}\n",
+          "after": "package runner\n\nimport \"log\"\n\nfunc Run(jobs []func() error) {\n\tfor i, job := range jobs {\n\t\tif err := job(); err != nil {\n\t\t\tlog.Printf(\"job %d did not complete: %v\", i, err)\n\t\t}\n\t}\n}\n"
+        }
+      }
+    }
+  ]
+}
