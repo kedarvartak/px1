@@ -120,6 +120,7 @@ func TestEditsAreRefused(t *testing.T) {
 		{"same text", func(e *Edit) { e.Body = "The tool reads   at most 10 files.\n\n```\n# not a heading\n```" }, "says the same"},
 		{"heading in body", func(e *Edit) { e.Body = "Text.\n\n## New part\n\nMore." }, "contains a heading"},
 		{"open fence", func(e *Edit) { e.Body = "Text.\n\n```\ncode" }, "code fence open"},
+		{"fence closed by the other marker", func(e *Edit) { e.Body = "Text.\n\n```\ncode\n~~~" }, "code fence open"},
 		{"marker", func(e *Edit) { e.Body = "<!-- px1:generated x -->" }, "px1 marker"},
 		{"broken link", func(e *Edit) { e.Body = "See [this](MISSING.md)." }, "broken link"},
 		{"no reason", func(e *Edit) { e.Reason = "" }, "gives no reason"},
