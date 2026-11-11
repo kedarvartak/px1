@@ -75,6 +75,23 @@ func fenceMarker(line string) string {
 	return ""
 }
 
+// openFence returns the marker of the fence that is still open at the end of
+// the text, or "". A fence is closed only by its own marker, as in
+// SplitSections: a ~~~ line inside a ``` fence is content.
+func openFence(text string) string {
+	fence := ""
+	for _, line := range strings.Split(text, "\n") {
+		switch marker := fenceMarker(line); {
+		case marker == "":
+		case fence == "":
+			fence = marker
+		case fence == marker:
+			fence = ""
+		}
+	}
+	return fence
+}
+
 // headingOf returns the level and text of an ATX heading line.
 func headingOf(line string) (int, string, bool) {
 	level := 0
@@ -224,13 +241,7 @@ func VerifyEdit(root string, pages []Page, impact Impact, edit Edit) (Edit, erro
 	if inner := SplitSections(body); len(inner) > 0 {
 		return edit, fmt.Errorf("the new text contains a heading (%q); an edit stays inside one section", inner[0].Heading)
 	}
-	fences := 0
-	for _, line := range strings.Split(body, "\n") {
-		if fenceMarker(line) != "" {
-			fences++
-		}
-	}
-	if fences%2 != 0 {
+	if openFence(body) != "" {
 		return edit, errors.New("the new text leaves a code fence open")
 	}
 	draft := Page{Path: page.Path, body: body, bodyStart: 1}
