@@ -72,20 +72,30 @@ Reviews two commits of a local clone with the agentic pipeline and writes a comm
 
 ## px1 docs
 
-Maintains the documentation under docs/. "px1 docs gen" writes the reference pages, the manifest and the index from the code and the pages; "px1 docs check" fails when they are out of date, a link is broken, or code has no page; "px1 docs impact" lists the pages whose covered code a diff touches; "px1 docs apply" applies edits to those pages when each one stays inside a section and quotes the code it rests on; "px1 docs site" renders the pages as a static website. It reads repository files only and runs nothing from them.
+Maintains the documentation under docs/. "px1 docs gen" writes the reference pages, the manifest and the index from the code and the pages; "px1 docs check" fails when they are out of date, a link is broken, or code has no page; "px1 docs impact" lists the pages whose covered code a diff touches; "px1 docs apply" applies edits to those pages when each one stays inside a section and quotes the code it rests on; "px1 docs update" has a model draft such edits and checks each against the code it cites; "px1 docs site" renders the pages as a static website. It reads repository files only and runs nothing from them.
 
 | Flag | Type | Default | Description |
 | --- | --- | --- | --- |
 | `--root` | string | `.` | repository root |
-| `--out` | string |  | site: directory to write the site to, which must be empty or not exist (required); impact: optional file to write instead of stdout |
+| `--out` | string |  | site: directory to write the site to, which must be empty or not exist (required); impact: optional file to write instead of stdout; update: optional file to write the results to as JSON |
 | `--source-url` | string |  | site, apply: web address of the repository tree at one commit (on GitHub, the blob address); links to code point there |
-| `--base` | string |  | impact, apply: base commit or ref (required) |
+| `--base` | string |  | impact, apply, update: base commit or ref (required) |
 | `--edits` | string |  | apply: JSON file holding a list of edits (required) |
-| `--dry-run` | boolean |  | apply: check the edits and report, but write nothing |
+| `--dry-run` | boolean |  | apply: check the edits and report, but write nothing; update: show what would be sent and send nothing |
 | `--head` | string | `HEAD` | impact: head commit or ref; the pages are read from the working tree, which must be at this commit |
 | `--json` | boolean |  | impact, apply: write JSON instead of Markdown |
 | `--impact` | string |  | site: impact JSON written by docs impact --json; marks the pages a pull request affects |
 | `--commit` | string |  | site: the commit the site is built from, shown on each page |
+| `--model` | string |  | update: OpenAI model (required) |
+| `--endpoint` | string | `https://api.openai.com/v1/responses` | update: Responses API endpoint |
+| `--price-input` | number | `0` | update: model input price in USD per million tokens (required) |
+| `--price-output` | number | `0` | update: model output price in USD per million tokens (required) |
+| `--max-cost` | number | `0.50` | update: hard cost cap in USD; drafting stops when it could be crossed |
+| `--max-pages` | integer | `6` | update: most pages drafted for in one run |
+| `--max-output-tokens` | integer | `4000` | update: output-token limit per model call |
+| `--verify` | boolean | `true` | update: have the model check each edit against the code it cites before applying it |
+| `--yes` | boolean |  | update: send the pages and diffs to the model provider |
+| `--exclude-glob` | value |  | update: repository-relative glob never shown to the model (repeatable) |
 
 ## px1 eval-compare
 

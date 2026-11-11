@@ -19,21 +19,25 @@ import (
 // "px1 docs check" fails when they are out of date, a link is broken, or code
 // has no page; "px1 docs impact" lists the pages whose covered code a diff
 // touches; "px1 docs apply" applies edits to those pages when each one stays
-// inside a section and quotes the code it rests on; "px1 docs site" renders
-// the pages as a static website. It reads repository files only and runs
+// inside a section and quotes the code it rests on; "px1 docs update" has a model draft
+// such edits and checks each against the code it cites; "px1 docs site" renders the pages as a
+// static website. It reads repository files only and runs
 // nothing from them.
 func runDocs(args []string, stdout io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("usage: px1 docs <apply|check|gen|impact|site> [--root dir]")
+		return errors.New("usage: px1 docs <apply|check|gen|impact|site|update> [--root dir]")
+	}
+	if args[0] == "update" {
+		return runDocsUpdate(args[1:], stdout)
 	}
 	fs := flag.NewFlagSet("docs "+args[0], flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	root := fs.String("root", ".", "repository root")
-	out := fs.String("out", "", "site: directory to write the site to, which must be empty or not exist (required); impact: optional file to write instead of stdout")
+	out := fs.String("out", "", "site: directory to write the site to, which must be empty or not exist (required); impact: optional file to write instead of stdout; update: optional file to write the results to as JSON")
 	sourceURL := fs.String("source-url", "", "site, apply: web address of the repository tree at one commit (on GitHub, the blob address); links to code point there")
-	base := fs.String("base", "", "impact, apply: base commit or ref (required)")
+	base := fs.String("base", "", "impact, apply, update: base commit or ref (required)")
 	editsFile := fs.String("edits", "", "apply: JSON file holding a list of edits (required)")
-	dryRun := fs.Bool("dry-run", false, "apply: check the edits and report, but write nothing")
+	dryRun := fs.Bool("dry-run", false, "apply: check the edits and report, but write nothing; update: show what would be sent and send nothing")
 	head := fs.String("head", "HEAD", "impact: head commit or ref; the pages are read from the working tree, which must be at this commit")
 	asJSON := fs.Bool("json", false, "impact, apply: write JSON instead of Markdown")
 	impactFile := fs.String("impact", "", "site: impact JSON written by docs impact --json; marks the pages a pull request affects")
@@ -167,7 +171,7 @@ func runDocs(args []string, stdout io.Writer) error {
 		fmt.Fprintf(stdout, "wrote %d files to %s\n", n, *out)
 		return nil
 	}
-	return fmt.Errorf("unknown docs command %q: use apply, check, gen, impact or site", args[0])
+	return fmt.Errorf("unknown docs command %q: use apply, check, gen, impact, site or update", args[0])
 }
 
 // applyDocsEdits applies the edits, or only plans them on a dry run.

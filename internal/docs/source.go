@@ -190,7 +190,21 @@ func Commands(root string) ([]Command, error) {
 				return true
 			})
 			if command != "" {
-				sets[command] = flagSet{file: name, flags: flags}
+				// A command may define flags in more than one function,
+				// one per subcommand. The first definition of a name wins.
+				set, seen := sets[command], map[string]bool{}
+				if set.file == "" {
+					set.file = name
+				}
+				for _, f := range set.flags {
+					seen[f.Name] = true
+				}
+				for _, f := range flags {
+					if !seen[f.Name] {
+						set.flags = append(set.flags, f)
+					}
+				}
+				sets[command] = set
 			}
 		}
 	}
