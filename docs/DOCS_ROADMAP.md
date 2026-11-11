@@ -192,6 +192,10 @@ heading of any level. It is applied only when all of this holds:
   supplied with the edit are ignored;
 - at least one citation is from a file the diff changed.
 
+Quotes are checked against the files on disk, so the working tree must be
+checked out at the head commit; the command refuses to run otherwise. Every
+page to be written is checked before any is written.
+
 One edit is accepted per section. A refused edit changes nothing and is
 reported with its reason, and the command exits with an error. `--dry-run`
 reports without writing; `--json` prints the results, including the line

@@ -203,6 +203,9 @@ func TestDocsApplyCommand(t *testing.T) {
 	if data, _ := os.ReadFile(filepath.Join(root, "docs/PAGE.md")); string(data) != strings.Replace(page, "10 files", "25 files", 1) {
 		t.Fatalf("page after apply:\n%s", data)
 	}
+	if err := runDocs([]string{"apply", "--root", root, "--base", base, "--head", base, "--edits", edits}, &out); err == nil || !strings.Contains(err.Error(), "checked out at --head") {
+		t.Fatalf("head that is not checked out: %v", err)
+	}
 	if err := os.WriteFile(edits, []byte(`[{"page":"docs/PAGE.md","surprise":1}]`), 0o644); err != nil {
 		t.Fatal(err)
 	}
