@@ -195,6 +195,10 @@ func runDocsUpdate(args []string, stdout io.Writer) error {
 		return errors.New("docs update edits the working tree, which must be checked out at --head")
 	}
 	redactor := &secretRedactor{}
+	policy, err := newPrivacyPolicy(o.excludes)
+	if err != nil {
+		return err
+	}
 	jobs, notes, err := docsUpdateJobs(root, impact, o, redactor.Redact)
 	if err != nil {
 		return err
@@ -278,7 +282,7 @@ func runDocsUpdate(args []string, stdout io.Writer) error {
 			continue
 		}
 		if o.verify {
-			if problem := docsEditUnsupported(ctx, root, model, results[i].Edit, pageFor[results[i].Edit.Page], changedFor[results[i].Edit.Page]); problem != "" {
+			if problem := docsEditUnsupported(ctx, root, model, results[i].Edit, pageFor[results[i].Edit.Page], changedFor[results[i].Edit.Page], policy.Allow, redactor.Redact); problem != "" {
 				results[i].Applied, results[i].Rejected = false, problem
 				continue
 			}
@@ -302,10 +306,22 @@ func runDocsUpdate(args []string, stdout io.Writer) error {
 // docsEditUnsupported asks the model whether an edit follows from the code
 // it cites. It returns why the edit must not be applied, or "" when it may.
 // An edit that cannot be checked is not applied.
-func docsEditUnsupported(ctx context.Context, root string, model agent.Model, edit docs.Edit, page docs.Page, changed []docs.ChangedFile) string {
+//
+// The cited code is read from disk, and a citation may name any file the page
+// covers, not only one whose diff was already sent. So the privacy policy and
+// the redactor are applied here as they are to the diffs.
+func docsEditUnsupported(ctx context.Context, root string, model agent.Model, edit docs.Edit, page docs.Page, changed []docs.ChangedFile, allow func(string) (bool, string), redact func(string) string) string {
+	for _, citation := range edit.Citations {
+		if allowed, reason := allow(citation.File); !allowed {
+			return fmt.Sprintf("could not be checked: %s may not be shown to the model (%s)", citation.File, reason)
+		}
+	}
 	evidence, err := docs.EvidenceFor(root, edit)
 	if err != nil {
 		return "could not be checked: " + err.Error()
+	}
+	for i := range evidence {
+		evidence[i].Text = redact(evidence[i].Text)
 	}
 	system, user, err := docs.SupportPrompt(edit, docs.SectionText(page, edit.Heading), evidence, changed)
 	if err != nil {

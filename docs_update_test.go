@@ -185,3 +185,49 @@ func TestDocsUpdateStopsAtTheCostCap(t *testing.T) {
 		t.Fatalf("%d prompt(s)\n%s", len(model.prompts), out.String())
 	}
 }
+
+func TestDocsUpdateCheckNeverSeesExcludedOrSecretCode(t *testing.T) {
+	// The page covers two files. Only tool.go changes, but the draft also
+	// cites notes.go, which was never sent as a diff.
+	setup := func(notes string) (string, string) {
+		root := t.TempDir()
+		runGitTest(t, root, "init", "-q")
+		runGitTest(t, root, "config", "user.email", "test@example.com")
+		runGitTest(t, root, "config", "user.name", "Test")
+		writeExportTestFile(t, root, "tool.go", "package main\n\nconst maxFiles = 10\n")
+		writeExportTestFile(t, root, "notes.go", notes)
+		writeExportTestFile(t, root, "docs/PAGE.md", strings.Replace(docsUpdatePage, "  - tool.go\n", "  - tool.go\n  - notes.go\n", 1))
+		runGitTest(t, root, "add", "-A")
+		runGitTest(t, root, "commit", "-qm", "base")
+		base := strings.TrimSpace(runGitTest(t, root, "rev-parse", "HEAD"))
+		writeExportTestFile(t, root, "tool.go", "package main\n\nconst maxFiles = 25\n")
+		runGitTest(t, root, "commit", "-qam", "raise the limit")
+		return root, base
+	}
+	draft := strings.Replace(goodDraft, `"citations":[`, `"citations":[{"file":"notes.go","quote":"const unrelatedNote = 1"},`, 1)
+	begin, end := "-----BEGIN RSA "+"PRIVATE KEY-----", "-----END RSA "+"PRIVATE KEY-----"
+	t.Setenv("OPENAI_API_KEY", "test-key")
+
+	root, base := setup("package main\n\nconst unrelatedNote = 1\n\nconst key = \"" + begin + "\\nabc\\n" + end + "\"\n")
+	model := &docsModel{draft: draft, verdict: `{"supported":true}`}
+	var out bytes.Buffer
+	if err := runDocs(docsUpdateArgs(root, base, model.serve(t), "--yes"), &out); err != nil {
+		t.Fatal(err)
+	}
+	if len(model.prompts) != 2 || !strings.Contains(model.prompts[1], "unrelatedNote") || strings.Contains(model.prompts[1], begin) || !strings.Contains(model.prompts[1], "redacted") {
+		t.Fatalf("the check saw a secret: %q", model.prompts)
+	}
+
+	root, base = setup("package main\n\nconst unrelatedNote = 1\n")
+	model = &docsModel{draft: draft, verdict: `{"supported":true}`}
+	out.Reset()
+	if err := runDocs(docsUpdateArgs(root, base, model.serve(t), "--yes", "--exclude-glob", "notes.go"), &out); err != nil {
+		t.Fatal(err)
+	}
+	if len(model.prompts) != 1 || !strings.Contains(out.String(), "notes.go may not be shown to the model") {
+		t.Fatalf("%d prompt(s)\n%s", len(model.prompts), out.String())
+	}
+	if page, _ := os.ReadFile(filepath.Join(root, "docs/PAGE.md")); !strings.Contains(string(page), "10 files") {
+		t.Fatal("an edit that could not be checked was applied")
+	}
+}

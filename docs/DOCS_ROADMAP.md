@@ -233,6 +233,8 @@ What is sent and what it can cost:
 - Only the page and the diffs of the files it covers are sent. Files the
   privacy policy excludes (the same one as `agentic-review`, plus
   `--exclude-glob`) are never sent, and secret-like values are redacted.
+  This holds for the check too: an edit that cites an excluded file is
+  refused without a call, and the cited lines are redacted.
 - A diff is cut at 12 KB per file and 40 KB per page; `--max-pages` (default
   6) bounds the pages. What was left out is listed.
 - `--dry-run` lists what would be sent and sends nothing. Without `--yes`
