@@ -1,0 +1,4475 @@
+{
+  "version": 1,
+  "repository": "px1",
+  "base": "884c8a12c784f12e4bc270f5c113de67266fed90",
+  "head": "5d1d6a019f3bcddd9e1edc3a2deab65ae3c71d8f",
+  "generatedAt": "2026-11-11T11:58:30.085088499Z",
+  "files": [
+    {
+      "path": "docs/CLI_REFERENCE.md",
+      "status": "M",
+      "diff": "diff --git a/docs/CLI_REFERENCE.md b/docs/CLI_REFERENCE.md\nindex 448577b..c39e93b 100644\n--- a/docs/CLI_REFERENCE.md\n+++ b/docs/CLI_REFERENCE.md\n@@ -72,16 +72,18 @@ Reviews two commits of a local clone with the agentic pipeline and writes a comm\n \n ## px1 docs\n \n-Maintains the documentation under docs/. \"px1 docs gen\" writes the reference pages, the manifest and the index from the code and the pages; \"px1 docs check\" fails when they are out of date, a link is broken, or code has no page; \"px1 docs impact\" lists the pages whose covered code a diff touches; \"px1 docs site\" renders the pages as a static website. It reads repository files only and runs nothing from them.\n+Maintains the documentation under docs/. \"px1 docs gen\" writes the reference pages, the manifest and the index from the code and the pages; \"px1 docs check\" fails when they are out of date, a link is broken, or code has no page; \"px1 docs impact\" lists the pages whose covered code a diff touches; \"px1 docs apply\" applies edits to those pages when each one stays inside a section and quotes the code it rests on; \"px1 docs site\" renders the pages as a static website. It reads repository files only and runs nothing from them.\n \n | Flag | Type | Default | Description |\n | --- | --- | --- | --- |\n | `--root` | string | `.` | repository root |\n | `--out` | string |  | site: directory to write the site to, which must be empty or not exist (required); impact: optional file to write instead of stdout |\n-| `--source-url` | string |  | site: web address of the repository tree at one commit (on GitHub, the blob address); links to code point there |\n-| `--base` | string |  | impact: base commit or ref (required) |\n+| `--source-url` | string |  | site, apply: web address of the repository tree at one commit (on GitHub, the blob address); links to code point there |\n+| `--base` | string |  | impact, apply: base commit or ref (required) |\n+| `--edits` | string |  | apply: JSON file holding a list of edits (required) |\n+| `--dry-run` | boolean |  | apply: check the edits and report, but write nothing |\n | `--head` | string | `HEAD` | impact: head commit or ref; the pages are read from the working tree, which must be at this commit |\n-| `--json` | boolean |  | impact: write JSON instead of Markdown |\n+| `--json` | boolean |  | impact, apply: write JSON instead of Markdown |\n | `--impact` | string |  | site: impact JSON written by docs impact --json; marks the pages a pull request affects |\n | `--commit` | string |  | site: the commit the site is built from, shown on each page |\n \n",
+      "hunks": [
+        {
+          "id": "diff-349e8c3b7246b62a",
+          "header": "@@ -72,16 +72,18 @@ Reviews two commits of a local clone with the agentic pipeline and writes a comm",
+          "lines": [
+            {
+              "oldLine": 72,
+              "newLine": 72,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 73,
+              "newLine": 73,
+              "kind": "context",
+              "text": "## px1 docs"
+            },
+            {
+              "oldLine": 74,
+              "newLine": 74,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 75,
+              "kind": "removed",
+              "text": "Maintains the documentation under docs/. \"px1 docs gen\" writes the reference pages, the manifest and the index from the code and the pages; \"px1 docs check\" fails when they are out of date, a link is broken, or code has no page; \"px1 docs impact\" lists the pages whose covered code a diff touches; \"px1 docs site\" renders the pages as a static website. It reads repository files only and runs nothing from them."
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "Maintains the documentation under docs/. \"px1 docs gen\" writes the reference pages, the manifest and the index from the code and the pages; \"px1 docs check\" fails when they are out of date, a link is broken, or code has no page; \"px1 docs impact\" lists the pages whose covered code a diff touches; \"px1 docs apply\" applies edits to those pages when each one stays inside a section and quotes the code it rests on; \"px1 docs site\" renders the pages as a static website. It reads repository files only and runs nothing from them."
+            },
+            {
+              "oldLine": 76,
+              "newLine": 76,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 77,
+              "newLine": 77,
+              "kind": "context",
+              "text": "| Flag | Type | Default | Description |"
+            },
+            {
+              "oldLine": 78,
+              "newLine": 78,
+              "kind": "context",
+              "text": "| --- | --- | --- | --- |"
+            },
+            {
+              "oldLine": 79,
+              "newLine": 79,
+              "kind": "context",
+              "text": "| `--root` | string | `.` | repository root |"
+            },
+            {
+              "oldLine": 80,
+              "newLine": 80,
+              "kind": "context",
+              "text": "| `--out` | string |  | site: directory to write the site to, which must be empty or not exist (required); impact: optional file to write instead of stdout |"
+            },
+            {
+              "oldLine": 81,
+              "kind": "removed",
+              "text": "| `--source-url` | string |  | site: web address of the repository tree at one commit (on GitHub, the blob address); links to code point there |"
+            },
+            {
+              "oldLine": 82,
+              "kind": "removed",
+              "text": "| `--base` | string |  | impact: base commit or ref (required) |"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "| `--source-url` | string |  | site, apply: web address of the repository tree at one commit (on GitHub, the blob address); links to code point there |"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "| `--base` | string |  | impact, apply: base commit or ref (required) |"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "| `--edits` | string |  | apply: JSON file holding a list of edits (required) |"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "| `--dry-run` | boolean |  | apply: check the edits and report, but write nothing |"
+            },
+            {
+              "oldLine": 83,
+              "newLine": 85,
+              "kind": "context",
+              "text": "| `--head` | string | `HEAD` | impact: head commit or ref; the pages are read from the working tree, which must be at this commit |"
+            },
+            {
+              "oldLine": 84,
+              "kind": "removed",
+              "text": "| `--json` | boolean |  | impact: write JSON instead of Markdown |"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "| `--json` | boolean |  | impact, apply: write JSON instead of Markdown |"
+            },
+            {
+              "oldLine": 85,
+              "newLine": 87,
+              "kind": "context",
+              "text": "| `--impact` | string |  | site: impact JSON written by docs impact --json; marks the pages a pull request affects |"
+            },
+            {
+              "oldLine": 86,
+              "newLine": 88,
+              "kind": "context",
+              "text": "| `--commit` | string |  | site: the commit the site is built from, shown on each page |"
+            },
+            {
+              "oldLine": 87,
+              "newLine": 89,
+              "kind": "context",
+              "text": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/DOCS_ROADMAP.md",
+      "status": "M",
+      "diff": "diff --git a/docs/DOCS_ROADMAP.md b/docs/DOCS_ROADMAP.md\nindex 443d528..0e696dd 100644\n--- a/docs/DOCS_ROADMAP.md\n+++ b/docs/DOCS_ROADMAP.md\n@@ -161,6 +161,46 @@ The report is a map, not a judgment. \"Updated\" means the page file changed,\n not that the change is the right one, and \"needs review\" does not mean the\n page is wrong. Deciding that is phase 5.\n \n+## Applying edits (phase 5, first part)\n+\n+`px1 docs apply --base BASE --edits FILE` applies edits to pages. An edit is\n+data, whoever wrote it:\n+\n+```\n+[{\n+  \"page\": \"docs/INDEX_LIMITS.md\",\n+  \"heading\": \"Limits\",\n+  \"body\": \"The indexer reads at most 25 files per run.\",\n+  \"reason\": \"The file limit rose from 10 to 25.\",\n+  \"citations\": [{\"file\": \"indexer.go\", \"quote\": \"const maxFiles = 25\"}]\n+}]\n+```\n+\n+An edit replaces the text of one section, from its heading to the next\n+heading of any level. It is applied only when all of this holds:\n+\n+- the page is a narrative page that the diff from BASE affects;\n+- the heading names exactly one section, and that section holds no generated\n+  content;\n+- the new text is not empty, not the old text reworded only in white space,\n+  at most 8 KB, has no heading of its own, closes its code fences, and its\n+  links resolve;\n+- it gives a reason and one to eight citations;\n+- every citation names a file the page covers and quotes at least 12\n+  characters that are really in that file at the head commit, compared with\n+  white space collapsed. The line numbers are found from the quote; numbers\n+  supplied with the edit are ignored;\n+- at least one citation is from a file the diff changed.\n+\n+One edit is accepted per section. A refused edit changes nothing and is\n+reported with its reason, and the command exits with an error. `--dry-run`\n+reports without writing; `--json` prints the results, including the line\n+numbers found for each citation.\n+\n+These rules bound what an edit can touch and prove that its evidence exists.\n+They do not prove that the new sentence follows from the evidence. That is\n+the job of the reviewer of the diff, and of the model check in the next part.\n+\n ## In CI\n \n The review-report workflow builds the documentation with the trusted base\n",
+      "hunks": [
+        {
+          "id": "diff-f6d7aa05c000c19e",
+          "header": "@@ -161,6 +161,46 @@ The report is a map, not a judgment. \"Updated\" means the page file changed,",
+          "lines": [
+            {
+              "oldLine": 161,
+              "newLine": 161,
+              "kind": "context",
+              "text": "not that the change is the right one, and \"needs review\" does not mean the"
+            },
+            {
+              "oldLine": 162,
+              "newLine": 162,
+              "kind": "context",
+              "text": "page is wrong. Deciding that is phase 5."
+            },
+            {
+              "oldLine": 163,
+              "newLine": 163,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "## Applying edits (phase 5, first part)"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "`px1 docs apply --base BASE --edits FILE` applies edits to pages. An edit is"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": "data, whoever wrote it:"
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "```"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "[{"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "  \"page\": \"docs/INDEX_LIMITS.md\","
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "  \"heading\": \"Limits\","
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "  \"body\": \"The indexer reads at most 25 files per run.\","
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "  \"reason\": \"The file limit rose from 10 to 25.\","
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "  \"citations\": [{\"file\": \"indexer.go\", \"quote\": \"const maxFiles = 25\"}]"
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "}]"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": "```"
+            },
+            {
+              "newLine": 178,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": "An edit replaces the text of one section, from its heading to the next"
+            },
+            {
+              "newLine": 180,
+              "kind": "added",
+              "text": "heading of any level. It is applied only when all of this holds:"
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": "- the page is a narrative page that the diff from BASE affects;"
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": "- the heading names exactly one section, and that section holds no generated"
+            },
+            {
+              "newLine": 184,
+              "kind": "added",
+              "text": "  content;"
+            },
+            {
+              "newLine": 185,
+              "kind": "added",
+              "text": "- the new text is not empty, not the old text reworded only in white space,"
+            },
+            {
+              "newLine": 186,
+              "kind": "added",
+              "text": "  at most 8 KB, has no heading of its own, closes its code fences, and its"
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "  links resolve;"
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": "- it gives a reason and one to eight citations;"
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "- every citation names a file the page covers and quotes at least 12"
+            },
+            {
+              "newLine": 190,
+              "kind": "added",
+              "text": "  characters that are really in that file at the head commit, compared with"
+            },
+            {
+              "newLine": 191,
+              "kind": "added",
+              "text": "  white space collapsed. The line numbers are found from the quote; numbers"
+            },
+            {
+              "newLine": 192,
+              "kind": "added",
+              "text": "  supplied with the edit are ignored;"
+            },
+            {
+              "newLine": 193,
+              "kind": "added",
+              "text": "- at least one citation is from a file the diff changed."
+            },
+            {
+              "newLine": 194,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 195,
+              "kind": "added",
+              "text": "One edit is accepted per section. A refused edit changes nothing and is"
+            },
+            {
+              "newLine": 196,
+              "kind": "added",
+              "text": "reported with its reason, and the command exits with an error. `--dry-run`"
+            },
+            {
+              "newLine": 197,
+              "kind": "added",
+              "text": "reports without writing; `--json` prints the results, including the line"
+            },
+            {
+              "newLine": 198,
+              "kind": "added",
+              "text": "numbers found for each citation."
+            },
+            {
+              "newLine": 199,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 200,
+              "kind": "added",
+              "text": "These rules bound what an edit can touch and prove that its evidence exists."
+            },
+            {
+              "newLine": 201,
+              "kind": "added",
+              "text": "They do not prove that the new sentence follows from the evidence. That is"
+            },
+            {
+              "newLine": 202,
+              "kind": "added",
+              "text": "the job of the reviewer of the diff, and of the model check in the next part."
+            },
+            {
+              "newLine": 203,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "oldLine": 164,
+              "newLine": 204,
+              "kind": "context",
+              "text": "## In CI"
+            },
+            {
+              "oldLine": 165,
+              "newLine": 205,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 166,
+              "newLine": 206,
+              "kind": "context",
+              "text": "The review-report workflow builds the documentation with the trusted base"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs_check_test.go",
+      "status": "M",
+      "diff": "diff --git a/docs_check_test.go b/docs_check_test.go\nindex 02327bd..856f8cb 100644\n--- a/docs_check_test.go\n+++ b/docs_check_test.go\n@@ -161,3 +161,52 @@ func TestReviewWorkflowBuildsDocsFromTheTrustedBase(t *testing.T) {\n \t\t}\n \t}\n }\n+\n+func TestDocsApplyCommand(t *testing.T) {\n+\troot := t.TempDir()\n+\trunGitTest(t, root, \"init\", \"-q\")\n+\trunGitTest(t, root, \"config\", \"user.email\", \"test@example.com\")\n+\trunGitTest(t, root, \"config\", \"user.name\", \"Test\")\n+\twriteExportTestFile(t, root, \"tool.go\", \"package main\\n\\nconst maxFiles = 10\\n\")\n+\tpage := \"---\\ntitle: A page\\nsection: guides\\nkind: narrative\\nstatus: shipped\\ncovers:\\n  - tool.go\\nverified_at:\\n---\\n\\n# A page\\n\\n## Limits\\n\\nAt most 10 files.\\n\"\n+\twriteExportTestFile(t, root, \"docs/PAGE.md\", page)\n+\trunGitTest(t, root, \"add\", \"-A\")\n+\trunGitTest(t, root, \"commit\", \"-qm\", \"base\")\n+\tbase := strings.TrimSpace(runGitTest(t, root, \"rev-parse\", \"HEAD\"))\n+\twriteExportTestFile(t, root, \"tool.go\", \"package main\\n\\nconst maxFiles = 25\\n\")\n+\trunGitTest(t, root, \"commit\", \"-qam\", \"raise the limit\")\n+\n+\tedits := filepath.Join(t.TempDir(), \"edits.json\")\n+\tgood := `{\"page\":\"docs/PAGE.md\",\"heading\":\"Limits\",\"body\":\"At most 25 files.\",\"reason\":\"The limit rose.\",\"citations\":[{\"file\":\"tool.go\",\"quote\":\"const maxFiles = 25\"}]}`\n+\tbad := `{\"page\":\"docs/PAGE.md\",\"heading\":\"A page\",\"body\":\"It reads 99 files.\",\"reason\":\"Invented.\",\"citations\":[{\"file\":\"tool.go\",\"quote\":\"const maxFiles = 99\"}]}`\n+\tif err := os.WriteFile(edits, []byte(\"[\"+good+\",\"+bad+\"]\"), 0o644); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\n+\tvar out bytes.Buffer\n+\terr := runDocs([]string{\"apply\", \"--root\", root, \"--base\", base, \"--edits\", edits, \"--dry-run\"}, \u0026out)\n+\tif err == nil || !strings.Contains(err.Error(), \"1 of 2 edit(s) refused\") {\n+\t\tt.Fatalf(\"dry run: %v\", err)\n+\t}\n+\tif data, _ := os.ReadFile(filepath.Join(root, \"docs/PAGE.md\")); string(data) != page {\n+\t\tt.Fatal(\"a dry run changed the page\")\n+\t}\n+\tout.Reset()\n+\tif err := runDocs([]string{\"apply\", \"--root\", root, \"--base\", base, \"--edits\", edits}, \u0026out); err == nil {\n+\t\tt.Fatal(\"a refused edit did not fail the command\")\n+\t}\n+\tfor _, want := range []string{\"**docs/PAGE.md**, section \\\"Limits\\\": The limit rose.\", \"`tool.go:3`\", \"the quote is not in tool.go\"} {\n+\t\tif !strings.Contains(out.String(), want) {\n+\t\t\tt.Errorf(\"output lacks %q:\\n%s\", want, out.String())\n+\t\t}\n+\t}\n+\tif data, _ := os.ReadFile(filepath.Join(root, \"docs/PAGE.md\")); string(data) != strings.Replace(page, \"10 files\", \"25 files\", 1) {\n+\t\tt.Fatalf(\"page after apply:\\n%s\", data)\n+\t}\n+\tif err := os.WriteFile(edits, []byte(`[{\"page\":\"docs/PAGE.md\",\"surprise\":1}]`), 0o644); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif err := runDocs([]string{\"apply\", \"--root\", root, \"--base\", base, \"--edits\", edits}, \u0026out); err == nil || !strings.Contains(err.Error(), \"unknown field\") {\n+\t\tt.Fatalf(\"unknown field: %v\", err)\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-a7902252d37cc27b",
+          "header": "@@ -161,3 +161,52 @@ func TestReviewWorkflowBuildsDocsFromTheTrustedBase(t *testing.T) {",
+          "lines": [
+            {
+              "oldLine": 161,
+              "newLine": 161,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 162,
+              "newLine": 162,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 163,
+              "newLine": 163,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": "func TestDocsApplyCommand(t *testing.T) {"
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "\troot := t.TempDir()"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"init\", \"-q\")"
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"config\", \"user.email\", \"test@example.com\")"
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"config\", \"user.name\", \"Test\")"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "\twriteExportTestFile(t, root, \"tool.go\", \"package main\\n\\nconst maxFiles = 10\\n\")"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "\tpage := \"---\\ntitle: A page\\nsection: guides\\nkind: narrative\\nstatus: shipped\\ncovers:\\n  - tool.go\\nverified_at:\\n---\\n\\n# A page\\n\\n## Limits\\n\\nAt most 10 files.\\n\""
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "\twriteExportTestFile(t, root, \"docs/PAGE.md\", page)"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"add\", \"-A\")"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"commit\", \"-qm\", \"base\")"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "\tbase := strings.TrimSpace(runGitTest(t, root, \"rev-parse\", \"HEAD\"))"
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "\twriteExportTestFile(t, root, \"tool.go\", \"package main\\n\\nconst maxFiles = 25\\n\")"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": "\trunGitTest(t, root, \"commit\", \"-qam\", \"raise the limit\")"
+            },
+            {
+              "newLine": 178,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": "\tedits := filepath.Join(t.TempDir(), \"edits.json\")"
+            },
+            {
+              "newLine": 180,
+              "kind": "added",
+              "text": "\tgood := `{\"page\":\"docs/PAGE.md\",\"heading\":\"Limits\",\"body\":\"At most 25 files.\",\"reason\":\"The limit rose.\",\"citations\":[{\"file\":\"tool.go\",\"quote\":\"const maxFiles = 25\"}]}`"
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": "\tbad := `{\"page\":\"docs/PAGE.md\",\"heading\":\"A page\",\"body\":\"It reads 99 files.\",\"reason\":\"Invented.\",\"citations\":[{\"file\":\"tool.go\",\"quote\":\"const maxFiles = 99\"}]}`"
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": "\tif err := os.WriteFile(edits, []byte(\"[\"+good+\",\"+bad+\"]\"), 0o644); err != nil {"
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 184,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 185,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 186,
+              "kind": "added",
+              "text": "\tvar out bytes.Buffer"
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "\terr := runDocs([]string{\"apply\", \"--root\", root, \"--base\", base, \"--edits\", edits, \"--dry-run\"}, \u0026out)"
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": "\tif err == nil || !strings.Contains(err.Error(), \"1 of 2 edit(s) refused\") {"
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"dry run: %v\", err)"
+            },
+            {
+              "newLine": 190,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 191,
+              "kind": "added",
+              "text": "\tif data, _ := os.ReadFile(filepath.Join(root, \"docs/PAGE.md\")); string(data) != page {"
+            },
+            {
+              "newLine": 192,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"a dry run changed the page\")"
+            },
+            {
+              "newLine": 193,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 194,
+              "kind": "added",
+              "text": "\tout.Reset()"
+            },
+            {
+              "newLine": 195,
+              "kind": "added",
+              "text": "\tif err := runDocs([]string{\"apply\", \"--root\", root, \"--base\", base, \"--edits\", edits}, \u0026out); err == nil {"
+            },
+            {
+              "newLine": 196,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"a refused edit did not fail the command\")"
+            },
+            {
+              "newLine": 197,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 198,
+              "kind": "added",
+              "text": "\tfor _, want := range []string{\"**docs/PAGE.md**, section \\\"Limits\\\": The limit rose.\", \"`tool.go:3`\", \"the quote is not in tool.go\"} {"
+            },
+            {
+              "newLine": 199,
+              "kind": "added",
+              "text": "\t\tif !strings.Contains(out.String(), want) {"
+            },
+            {
+              "newLine": 200,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"output lacks %q:\\n%s\", want, out.String())"
+            },
+            {
+              "newLine": 201,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 202,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 203,
+              "kind": "added",
+              "text": "\tif data, _ := os.ReadFile(filepath.Join(root, \"docs/PAGE.md\")); string(data) != strings.Replace(page, \"10 files\", \"25 files\", 1) {"
+            },
+            {
+              "newLine": 204,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"page after apply:\\n%s\", data)"
+            },
+            {
+              "newLine": 205,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 206,
+              "kind": "added",
+              "text": "\tif err := os.WriteFile(edits, []byte(`[{\"page\":\"docs/PAGE.md\",\"surprise\":1}]`), 0o644); err != nil {"
+            },
+            {
+              "newLine": 207,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 208,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 209,
+              "kind": "added",
+              "text": "\tif err := runDocs([]string{\"apply\", \"--root\", root, \"--base\", base, \"--edits\", edits}, \u0026out); err == nil || !strings.Contains(err.Error(), \"unknown field\") {"
+            },
+            {
+              "newLine": 210,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"unknown field: %v\", err)"
+            },
+            {
+              "newLine": 211,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 212,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs_cmd.go",
+      "status": "M",
+      "diff": "diff --git a/docs_cmd.go b/docs_cmd.go\nindex 36a0321..3b6fd6b 100644\n--- a/docs_cmd.go\n+++ b/docs_cmd.go\n@@ -1,6 +1,7 @@\n package main\n \n import (\n+\t\"bytes\"\n \t\"encoding/json\"\n \t\"errors\"\n \t\"flag\"\n@@ -17,20 +18,24 @@ import (\n // reference pages, the manifest and the index from the code and the pages;\n // \"px1 docs check\" fails when they are out of date, a link is broken, or code\n // has no page; \"px1 docs impact\" lists the pages whose covered code a diff\n-// touches; \"px1 docs site\" renders the pages as a static website. It reads\n-// repository files only and runs nothing from them.\n+// touches; \"px1 docs apply\" applies edits to those pages when each one stays\n+// inside a section and quotes the code it rests on; \"px1 docs site\" renders\n+// the pages as a static website. It reads repository files only and runs\n+// nothing from them.\n func runDocs(args []string, stdout io.Writer) error {\n \tif len(args) == 0 {\n-\t\treturn errors.New(\"usage: px1 docs \u003ccheck|gen|impact|site\u003e [--root dir]\")\n+\t\treturn errors.New(\"usage: px1 docs \u003capply|check|gen|impact|site\u003e [--root dir]\")\n \t}\n \tfs := flag.NewFlagSet(\"docs \"+args[0], flag.ContinueOnError)\n \tfs.SetOutput(os.Stderr)\n \troot := fs.String(\"root\", \".\", \"repository root\")\n \tout := fs.String(\"out\", \"\", \"site: directory to write the site to, which must be empty or not exist (required); impact: optional file to write instead of stdout\")\n-\tsourceURL := fs.String(\"source-url\", \"\", \"site: web address of the repository tree at one commit (on GitHub, the blob address); links to code point there\")\n-\tbase := fs.String(\"base\", \"\", \"impact: base commit or ref (required)\")\n+\tsourceURL := fs.String(\"source-url\", \"\", \"site, apply: web address of the repository tree at one commit (on GitHub, the blob address); links to code point there\")\n+\tbase := fs.String(\"base\", \"\", \"impact, apply: base commit or ref (required)\")\n+\teditsFile := fs.String(\"edits\", \"\", \"apply: JSON file holding a list of edits (required)\")\n+\tdryRun := fs.Bool(\"dry-run\", false, \"apply: check the edits and report, but write nothing\")\n \thead := fs.String(\"head\", \"HEAD\", \"impact: head commit or ref; the pages are read from the working tree, which must be at this commit\")\n-\tasJSON := fs.Bool(\"json\", false, \"impact: write JSON instead of Markdown\")\n+\tasJSON := fs.Bool(\"json\", false, \"impact, apply: write JSON instead of Markdown\")\n \timpactFile := fs.String(\"impact\", \"\", \"site: impact JSON written by docs impact --json; marks the pages a pull request affects\")\n \tcommit := fs.String(\"commit\", \"\", \"site: the commit the site is built from, shown on each page\")\n \tif err := fs.Parse(args[1:]); err != nil {\n@@ -80,6 +85,49 @@ func runDocs(args []string, stdout io.Writer) error {\n \t\t}\n \t\t_, err = io.WriteString(stdout, text)\n \t\treturn err\n+\tcase \"apply\":\n+\t\tif *editsFile == \"\" {\n+\t\t\treturn errors.New(\"docs apply requires --edits\")\n+\t\t}\n+\t\tdata, err := os.ReadFile(*editsFile)\n+\t\tif err != nil {\n+\t\t\treturn err\n+\t\t}\n+\t\tvar edits []docs.Edit\n+\t\tdecoder := json.NewDecoder(bytes.NewReader(data))\n+\t\tdecoder.DisallowUnknownFields()\n+\t\tif err := decoder.Decode(\u0026edits); err != nil {\n+\t\t\treturn fmt.Errorf(\"%s: %w\", *editsFile, err)\n+\t\t}\n+\t\timpact, err := docsImpact(*root, *base, *head)\n+\t\tif err != nil {\n+\t\t\treturn err\n+\t\t}\n+\t\tresults, err := applyDocsEdits(*root, impact, edits, *dryRun)\n+\t\tif err != nil {\n+\t\t\treturn err\n+\t\t}\n+\t\ttext := docs.EditsMarkdown(results, *sourceURL)\n+\t\tif *asJSON {\n+\t\t\tencoded, err := json.MarshalIndent(results, \"\", \"  \")\n+\t\t\tif err != nil {\n+\t\t\t\treturn err\n+\t\t\t}\n+\t\t\ttext = string(encoded) + \"\\n\"\n+\t\t}\n+\t\tif _, err := io.WriteString(stdout, text); err != nil {\n+\t\t\treturn err\n+\t\t}\n+\t\trefused := 0\n+\t\tfor _, result := range results {\n+\t\t\tif !result.Applied {\n+\t\t\t\trefused++\n+\t\t\t}\n+\t\t}\n+\t\tif refused \u003e 0 {\n+\t\t\treturn fmt.Errorf(\"%d of %d edit(s) refused\", refused, len(results))\n+\t\t}\n+\t\treturn nil\n \tcase \"site\":\n \t\tif *out == \"\" {\n \t\t\treturn errors.New(\"docs site requires --out\")\n@@ -114,7 +162,16 @@ func runDocs(args []string, stdout io.Writer) error {\n \t\tfmt.Fprintf(stdout, \"wrote %d files to %s\\n\", n, *out)\n \t\treturn nil\n \t}\n-\treturn fmt.Errorf(\"unknown docs command %q: use check, gen, impact or site\", args[0])\n+\treturn fmt.Errorf(\"unknown docs command %q: use apply, check, gen, impact or site\", args[0])\n+}\n+\n+// applyDocsEdits applies the edits, or only plans them on a dry run.\n+func applyDocsEdits(root string, impact docs.Impact, edits []docs.Edit, dryRun bool) ([]docs.EditResult, error) {\n+\tif dryRun {\n+\t\tresults, _, err := docs.PlanEdits(root, impact, edits)\n+\t\treturn results, err\n+\t}\n+\treturn docs.ApplyEdits(root, impact, edits)\n }\n \n // docsImpact asks git which files differ between two commits and maps them to\n",
+      "hunks": [
+        {
+          "id": "diff-618d628e47b6c003",
+          "header": "@@ -1,6 +1,7 @@",
+          "lines": [
+            {
+              "oldLine": 1,
+              "newLine": 1,
+              "kind": "context",
+              "text": "package main"
+            },
+            {
+              "oldLine": 2,
+              "newLine": 2,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 3,
+              "newLine": 3,
+              "kind": "context",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"bytes\""
+            },
+            {
+              "oldLine": 4,
+              "newLine": 5,
+              "kind": "context",
+              "text": "\t\"encoding/json\""
+            },
+            {
+              "oldLine": 5,
+              "newLine": 6,
+              "kind": "context",
+              "text": "\t\"errors\""
+            },
+            {
+              "oldLine": 6,
+              "newLine": 7,
+              "kind": "context",
+              "text": "\t\"flag\""
+            }
+          ]
+        },
+        {
+          "id": "diff-636fc6d1b10e0efb",
+          "header": "@@ -17,20 +18,24 @@ import (",
+          "lines": [
+            {
+              "oldLine": 17,
+              "newLine": 18,
+              "kind": "context",
+              "text": "// reference pages, the manifest and the index from the code and the pages;"
+            },
+            {
+              "oldLine": 18,
+              "newLine": 19,
+              "kind": "context",
+              "text": "// \"px1 docs check\" fails when they are out of date, a link is broken, or code"
+            },
+            {
+              "oldLine": 19,
+              "newLine": 20,
+              "kind": "context",
+              "text": "// has no page; \"px1 docs impact\" lists the pages whose covered code a diff"
+            },
+            {
+              "oldLine": 20,
+              "kind": "removed",
+              "text": "// touches; \"px1 docs site\" renders the pages as a static website. It reads"
+            },
+            {
+              "oldLine": 21,
+              "kind": "removed",
+              "text": "// repository files only and runs nothing from them."
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "// touches; \"px1 docs apply\" applies edits to those pages when each one stays"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": "// inside a section and quotes the code it rests on; \"px1 docs site\" renders"
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "// the pages as a static website. It reads repository files only and runs"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "// nothing from them."
+            },
+            {
+              "oldLine": 22,
+              "newLine": 25,
+              "kind": "context",
+              "text": "func runDocs(args []string, stdout io.Writer) error {"
+            },
+            {
+              "oldLine": 23,
+              "newLine": 26,
+              "kind": "context",
+              "text": "\tif len(args) == 0 {"
+            },
+            {
+              "oldLine": 24,
+              "kind": "removed",
+              "text": "\t\treturn errors.New(\"usage: px1 docs \u003ccheck|gen|impact|site\u003e [--root dir]\")"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\t\treturn errors.New(\"usage: px1 docs \u003capply|check|gen|impact|site\u003e [--root dir]\")"
+            },
+            {
+              "oldLine": 25,
+              "newLine": 28,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 26,
+              "newLine": 29,
+              "kind": "context",
+              "text": "\tfs := flag.NewFlagSet(\"docs \"+args[0], flag.ContinueOnError)"
+            },
+            {
+              "oldLine": 27,
+              "newLine": 30,
+              "kind": "context",
+              "text": "\tfs.SetOutput(os.Stderr)"
+            },
+            {
+              "oldLine": 28,
+              "newLine": 31,
+              "kind": "context",
+              "text": "\troot := fs.String(\"root\", \".\", \"repository root\")"
+            },
+            {
+              "oldLine": 29,
+              "newLine": 32,
+              "kind": "context",
+              "text": "\tout := fs.String(\"out\", \"\", \"site: directory to write the site to, which must be empty or not exist (required); impact: optional file to write instead of stdout\")"
+            },
+            {
+              "oldLine": 30,
+              "kind": "removed",
+              "text": "\tsourceURL := fs.String(\"source-url\", \"\", \"site: web address of the repository tree at one commit (on GitHub, the blob address); links to code point there\")"
+            },
+            {
+              "oldLine": 31,
+              "kind": "removed",
+              "text": "\tbase := fs.String(\"base\", \"\", \"impact: base commit or ref (required)\")"
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "\tsourceURL := fs.String(\"source-url\", \"\", \"site, apply: web address of the repository tree at one commit (on GitHub, the blob address); links to code point there\")"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tbase := fs.String(\"base\", \"\", \"impact, apply: base commit or ref (required)\")"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\teditsFile := fs.String(\"edits\", \"\", \"apply: JSON file holding a list of edits (required)\")"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tdryRun := fs.Bool(\"dry-run\", false, \"apply: check the edits and report, but write nothing\")"
+            },
+            {
+              "oldLine": 32,
+              "newLine": 37,
+              "kind": "context",
+              "text": "\thead := fs.String(\"head\", \"HEAD\", \"impact: head commit or ref; the pages are read from the working tree, which must be at this commit\")"
+            },
+            {
+              "oldLine": 33,
+              "kind": "removed",
+              "text": "\tasJSON := fs.Bool(\"json\", false, \"impact: write JSON instead of Markdown\")"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tasJSON := fs.Bool(\"json\", false, \"impact, apply: write JSON instead of Markdown\")"
+            },
+            {
+              "oldLine": 34,
+              "newLine": 39,
+              "kind": "context",
+              "text": "\timpactFile := fs.String(\"impact\", \"\", \"site: impact JSON written by docs impact --json; marks the pages a pull request affects\")"
+            },
+            {
+              "oldLine": 35,
+              "newLine": 40,
+              "kind": "context",
+              "text": "\tcommit := fs.String(\"commit\", \"\", \"site: the commit the site is built from, shown on each page\")"
+            },
+            {
+              "oldLine": 36,
+              "newLine": 41,
+              "kind": "context",
+              "text": "\tif err := fs.Parse(args[1:]); err != nil {"
+            }
+          ]
+        },
+        {
+          "id": "diff-9aef0c795a2e5599",
+          "header": "@@ -80,6 +85,49 @@ func runDocs(args []string, stdout io.Writer) error {",
+          "lines": [
+            {
+              "oldLine": 80,
+              "newLine": 85,
+              "kind": "context",
+              "text": "\t\t}"
+            },
+            {
+              "oldLine": 81,
+              "newLine": 86,
+              "kind": "context",
+              "text": "\t\t_, err = io.WriteString(stdout, text)"
+            },
+            {
+              "oldLine": 82,
+              "newLine": 87,
+              "kind": "context",
+              "text": "\t\treturn err"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\tcase \"apply\":"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\t\tif *editsFile == \"\" {"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t\t\treturn errors.New(\"docs apply requires --edits\")"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "\t\tdata, err := os.ReadFile(*editsFile)"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\t\t\treturn err"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\t\tvar edits []docs.Edit"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t\tdecoder := json.NewDecoder(bytes.NewReader(data))"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t\tdecoder.DisallowUnknownFields()"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\t\tif err := decoder.Decode(\u0026edits); err != nil {"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\t\t\treturn fmt.Errorf(\"%s: %w\", *editsFile, err)"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\t\timpact, err := docsImpact(*root, *base, *head)"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t\t\treturn err"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\t\tresults, err := applyDocsEdits(*root, impact, edits, *dryRun)"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\t\t\treturn err"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\t\ttext := docs.EditsMarkdown(results, *sourceURL)"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\t\tif *asJSON {"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\t\t\tencoded, err := json.MarshalIndent(results, \"\", \"  \")"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\t\t\tif err != nil {"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "\t\t\t\treturn err"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "\t\t\ttext = string(encoded) + \"\\n\""
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\t\tif _, err := io.WriteString(stdout, text); err != nil {"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\t\t\treturn err"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\t\trefused := 0"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\t\tfor _, result := range results {"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "\t\t\tif !result.Applied {"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\t\t\t\trefused++"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\t\tif refused \u003e 0 {"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\t\t\treturn fmt.Errorf(\"%d of %d edit(s) refused\", refused, len(results))"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\t\treturn nil"
+            },
+            {
+              "oldLine": 83,
+              "newLine": 131,
+              "kind": "context",
+              "text": "\tcase \"site\":"
+            },
+            {
+              "oldLine": 84,
+              "newLine": 132,
+              "kind": "context",
+              "text": "\t\tif *out == \"\" {"
+            },
+            {
+              "oldLine": 85,
+              "newLine": 133,
+              "kind": "context",
+              "text": "\t\t\treturn errors.New(\"docs site requires --out\")"
+            }
+          ]
+        },
+        {
+          "id": "diff-80a8862cecb90a01",
+          "header": "@@ -114,7 +162,16 @@ func runDocs(args []string, stdout io.Writer) error {",
+          "lines": [
+            {
+              "oldLine": 114,
+              "newLine": 162,
+              "kind": "context",
+              "text": "\t\tfmt.Fprintf(stdout, \"wrote %d files to %s\\n\", n, *out)"
+            },
+            {
+              "oldLine": 115,
+              "newLine": 163,
+              "kind": "context",
+              "text": "\t\treturn nil"
+            },
+            {
+              "oldLine": 116,
+              "newLine": 164,
+              "kind": "context",
+              "text": "\t}"
+            },
+            {
+              "oldLine": 117,
+              "kind": "removed",
+              "text": "\treturn fmt.Errorf(\"unknown docs command %q: use check, gen, impact or site\", args[0])"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": "\treturn fmt.Errorf(\"unknown docs command %q: use apply, check, gen, impact or site\", args[0])"
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": "// applyDocsEdits applies the edits, or only plans them on a dry run."
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "func applyDocsEdits(root string, impact docs.Impact, edits []docs.Edit, dryRun bool) ([]docs.EditResult, error) {"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "\tif dryRun {"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "\t\tresults, _, err := docs.PlanEdits(root, impact, edits)"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "\t\treturn results, err"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "\treturn docs.ApplyEdits(root, impact, edits)"
+            },
+            {
+              "oldLine": 118,
+              "newLine": 175,
+              "kind": "context",
+              "text": "}"
+            },
+            {
+              "oldLine": 119,
+              "newLine": 176,
+              "kind": "context",
+              "text": ""
+            },
+            {
+              "oldLine": 120,
+              "newLine": 177,
+              "kind": "context",
+              "text": "// docsImpact asks git which files differ between two commits and maps them to"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/docs/edits.go",
+      "status": "A",
+      "diff": "diff --git a/internal/docs/edits.go b/internal/docs/edits.go\nnew file mode 100644\nindex 0000000..eb0cc7b\n--- /dev/null\n+++ b/internal/docs/edits.go\n@@ -0,0 +1,412 @@\n+package docs\n+\n+import (\n+\t\"errors\"\n+\t\"fmt\"\n+\t\"os\"\n+\t\"path/filepath\"\n+\t\"sort\"\n+\t\"strings\"\n+)\n+\n+// An edit to a page is data, whoever wrote it: a person or a model. It is\n+// applied only when it stays inside one section of a page that the diff\n+// affects and every citation quotes text that is really in the code.\n+\n+// Limits on one edit.\n+const (\n+\tMaxEditBodyBytes = 8 \u003c\u003c 10\n+\tMinQuoteBytes    = 12\n+\tMaxCitations     = 8\n+)\n+\n+// Citation is the code an edit rests on. Quote is the anchor: it must appear\n+// in File. Start and End are the lines it was found at, filled in by\n+// VerifyEdit; values supplied with the edit are ignored.\n+type Citation struct {\n+\tFile  string `json:\"file\"`\n+\tStart int    `json:\"start,omitempty\"`\n+\tEnd   int    `json:\"end,omitempty\"`\n+\tQuote string `json:\"quote\"`\n+}\n+\n+// Edit replaces the text of one section of one page.\n+type Edit struct {\n+\t// Page is the page's path, such as docs/AGENT_TOOLS.md.\n+\tPage string `json:\"page\"`\n+\t// Heading is the text of the section's heading, without the # marks.\n+\tHeading string `json:\"heading\"`\n+\t// Body is the section's new text, without its heading. It replaces the\n+\t// text up to the next heading of any level, so subsections are untouched.\n+\tBody string `json:\"body\"`\n+\t// Reason says, in a sentence, what changed in the code.\n+\tReason    string     `json:\"reason\"`\n+\tCitations []Citation `json:\"citations\"`\n+}\n+\n+// EditResult is what happened to one edit.\n+type EditResult struct {\n+\tEdit    Edit `json:\"edit\"`\n+\tApplied bool `json:\"applied\"`\n+\t// Rejected is why the edit was not applied; empty when it was.\n+\tRejected string `json:\"rejected,omitempty\"`\n+}\n+\n+// Section is one heading of a page and the text under it, up to the next\n+// heading of any level.\n+type Section struct {\n+\tHeading string\n+\tLevel   int\n+\t// Text is the section's own text, without the heading line.\n+\tText string\n+\t// first and end are line indexes into the page body: the section's text\n+\t// is lines[first:end]. The heading is at first-1.\n+\tfirst, end int\n+}\n+\n+// fenceMarker returns the fence a line opens or closes (\"```\" or \"~~~\").\n+func fenceMarker(line string) string {\n+\ttrimmed := strings.TrimSpace(line)\n+\tfor _, marker := range []string{\"```\", \"~~~\"} {\n+\t\tif strings.HasPrefix(trimmed, marker) {\n+\t\t\treturn marker\n+\t\t}\n+\t}\n+\treturn \"\"\n+}\n+\n+// headingOf returns the level and text of an ATX heading line.\n+func headingOf(line string) (int, string, bool) {\n+\tlevel := 0\n+\tfor level \u003c len(line) \u0026\u0026 line[level] == '#' {\n+\t\tlevel++\n+\t}\n+\tif level == 0 || level \u003e 6 || level \u003e= len(line) || line[level] != ' ' {\n+\t\treturn 0, \"\", false\n+\t}\n+\treturn level, strings.TrimSpace(strings.TrimRight(strings.TrimSpace(line[level:]), \"#\")), true\n+}\n+\n+// SplitSections splits a page body at its headings. Lines inside fenced code\n+// are never headings.\n+func SplitSections(body string) []Section {\n+\tlines := strings.Split(body, \"\\n\")\n+\tvar sections []Section\n+\tfence := \"\"\n+\tfor i, line := range lines {\n+\t\tif marker := fenceMarker(line); marker != \"\" {\n+\t\t\tswitch fence {\n+\t\t\tcase \"\":\n+\t\t\t\tfence = marker\n+\t\t\tcase marker:\n+\t\t\t\tfence = \"\"\n+\t\t\t}\n+\t\t\tcontinue\n+\t\t}\n+\t\tif fence != \"\" {\n+\t\t\tcontinue\n+\t\t}\n+\t\tlevel, text, ok := headingOf(line)\n+\t\tif !ok {\n+\t\t\tcontinue\n+\t\t}\n+\t\tif n := len(sections); n \u003e 0 {\n+\t\t\tsections[n-1].end = i\n+\t\t}\n+\t\tsections = append(sections, Section{Heading: text, Level: level, first: i + 1, end: len(lines)})\n+\t}\n+\tfor i := range sections {\n+\t\tsections[i].Text = strings.Join(lines[sections[i].first:sections[i].end], \"\\n\")\n+\t}\n+\treturn sections\n+}\n+\n+// Sections returns the sections of the page.\n+func (p Page) Sections() []Section { return SplitSections(p.body) }\n+\n+// Body returns the page's Markdown without its front matter.\n+func (p Page) Body() string { return p.body }\n+\n+func squash(text string) string { return strings.Join(strings.Fields(text), \" \") }\n+\n+// locate finds a quote in a file, comparing with runs of white space\n+// collapsed, and returns the first and last line it spans.\n+func locate(content, quote string) (int, int, bool) {\n+\twant := squash(quote)\n+\tif want == \"\" {\n+\t\treturn 0, 0, false\n+\t}\n+\tlines := strings.Split(content, \"\\n\")\n+\t// Join the squashed lines with single spaces and remember where each\n+\t// line starts, so an offset in the joined text maps back to a line.\n+\tvar joined strings.Builder\n+\tvar lineAt []int // offset in joined at which each non-empty line starts\n+\tvar lineNo []int\n+\tfor i, line := range lines {\n+\t\ts := squash(line)\n+\t\tif s == \"\" {\n+\t\t\tcontinue\n+\t\t}\n+\t\tif joined.Len() \u003e 0 {\n+\t\t\tjoined.WriteByte(' ')\n+\t\t}\n+\t\tlineAt = append(lineAt, joined.Len())\n+\t\tlineNo = append(lineNo, i+1)\n+\t\tjoined.WriteString(s)\n+\t}\n+\tat := strings.Index(joined.String(), want)\n+\tif at \u003c 0 {\n+\t\treturn 0, 0, false\n+\t}\n+\tlineFor := func(offset int) int {\n+\t\tn := sort.Search(len(lineAt), func(i int) bool { return lineAt[i] \u003e offset }) - 1\n+\t\treturn lineNo[n]\n+\t}\n+\treturn lineFor(at), lineFor(at + len(want) - 1), true\n+}\n+\n+// VerifyEdit checks one edit against the pages and the impact of the diff.\n+// It returns the edit with its citations' lines filled in, or the reason the\n+// edit must not be applied.\n+func VerifyEdit(root string, pages []Page, impact Impact, edit Edit) (Edit, error) {\n+\tvar page *Page\n+\tfor i := range pages {\n+\t\tif pages[i].Path == edit.Page {\n+\t\t\tpage = \u0026pages[i]\n+\t\t}\n+\t}\n+\tif page == nil {\n+\t\treturn edit, fmt.Errorf(\"%s is not a documentation page\", edit.Page)\n+\t}\n+\tvar affected *PageImpact\n+\tfor i := range impact.Pages {\n+\t\tif impact.Pages[i].Path == edit.Page {\n+\t\t\taffected = \u0026impact.Pages[i]\n+\t\t}\n+\t}\n+\tswitch {\n+\tcase affected == nil:\n+\t\treturn edit, errors.New(\"the change touches no code this page covers\")\n+\tcase affected.State == Regenerated || page.Kind != \"narrative\":\n+\t\treturn edit, errors.New(\"the page is generated or a reference page; px1 docs gen writes it\")\n+\t}\n+\n+\tvar section *Section\n+\tsections := page.Sections()\n+\tfor i := range sections {\n+\t\tif sections[i].Heading == strings.TrimSpace(edit.Heading) {\n+\t\t\tif section != nil {\n+\t\t\t\treturn edit, fmt.Errorf(\"the page has more than one section headed %q\", edit.Heading)\n+\t\t\t}\n+\t\t\tsection = \u0026sections[i]\n+\t\t}\n+\t}\n+\tif section == nil {\n+\t\treturn edit, fmt.Errorf(\"the page has no section headed %q\", edit.Heading)\n+\t}\n+\tif strings.Contains(section.Text, \"\u003c!-- px1:\") {\n+\t\treturn edit, errors.New(\"the section holds generated content\")\n+\t}\n+\n+\tbody := strings.TrimSpace(edit.Body)\n+\tswitch {\n+\tcase body == \"\":\n+\t\treturn edit, errors.New(\"the new text is empty; an edit cannot delete a section\")\n+\tcase len(body) \u003e MaxEditBodyBytes:\n+\t\treturn edit, fmt.Errorf(\"the new text is over %d bytes\", MaxEditBodyBytes)\n+\tcase strings.Contains(body, \"\u003c!-- px1:\"):\n+\t\treturn edit, errors.New(\"the new text contains a px1 marker\")\n+\tcase squash(body) == squash(section.Text):\n+\t\treturn edit, errors.New(\"the new text says the same as the old\")\n+\tcase strings.TrimSpace(edit.Reason) == \"\":\n+\t\treturn edit, errors.New(\"the edit gives no reason\")\n+\t}\n+\tif inner := SplitSections(body); len(inner) \u003e 0 {\n+\t\treturn edit, fmt.Errorf(\"the new text contains a heading (%q); an edit stays inside one section\", inner[0].Heading)\n+\t}\n+\tfences := 0\n+\tfor _, line := range strings.Split(body, \"\\n\") {\n+\t\tif fenceMarker(line) != \"\" {\n+\t\t\tfences++\n+\t\t}\n+\t}\n+\tif fences%2 != 0 {\n+\t\treturn edit, errors.New(\"the new text leaves a code fence open\")\n+\t}\n+\tdraft := Page{Path: page.Path, body: body, bodyStart: 1}\n+\tif problems := checkLinks(root, draft); len(problems) \u003e 0 {\n+\t\treturn edit, errors.New(problems[0].Message)\n+\t}\n+\n+\tif len(edit.Citations) == 0 {\n+\t\treturn edit, errors.New(\"the edit cites no code\")\n+\t}\n+\tif len(edit.Citations) \u003e MaxCitations {\n+\t\treturn edit, fmt.Errorf(\"the edit has more than %d citations\", MaxCitations)\n+\t}\n+\tchanged := map[string]bool{}\n+\tfor _, file := range affected.Changed {\n+\t\tchanged[file] = true\n+\t}\n+\tcitesChange := false\n+\tcited := make([]Citation, len(edit.Citations))\n+\tfor i, citation := range edit.Citations {\n+\t\tfile := filepath.ToSlash(filepath.Clean(citation.File))\n+\t\tcovers := false\n+\t\tfor _, entry := range page.Covers {\n+\t\t\tcovers = covers || touches(file, entry)\n+\t\t}\n+\t\tif !covers {\n+\t\t\treturn edit, fmt.Errorf(\"citation %d: %s is not code this page covers\", i+1, citation.File)\n+\t\t}\n+\t\tif len(squash(citation.Quote)) \u003c MinQuoteBytes {\n+\t\t\treturn edit, fmt.Errorf(\"citation %d: the quote is shorter than %d characters\", i+1, MinQuoteBytes)\n+\t\t}\n+\t\tdata, err := readRepo(root, filepath.Join(root, filepath.FromSlash(file)))\n+\t\tif err != nil {\n+\t\t\treturn edit, fmt.Errorf(\"citation %d: %s cannot be read\", i+1, file)\n+\t\t}\n+\t\tstart, end, ok := locate(string(data), citation.Quote)\n+\t\tif !ok {\n+\t\t\treturn edit, fmt.Errorf(\"citation %d: the quote is not in %s\", i+1, file)\n+\t\t}\n+\t\tcited[i] = Citation{File: file, Start: start, End: end, Quote: citation.Quote}\n+\t\tcitesChange = citesChange || changed[file]\n+\t}\n+\tif !citesChange {\n+\t\treturn edit, errors.New(\"no citation is from a file the change touches\")\n+\t}\n+\tedit.Body, edit.Heading, edit.Citations = body, section.Heading, cited\n+\treturn edit, nil\n+}\n+\n+// PlanEdits verifies every edit and returns what would happen to each, and\n+// the new text of each page that an accepted edit changes. It writes nothing.\n+// At most one edit is accepted for a section.\n+func PlanEdits(root string, impact Impact, edits []Edit) ([]EditResult, map[string]string, error) {\n+\tpages, problems, err := LoadPages(root)\n+\tif err != nil {\n+\t\treturn nil, nil, err\n+\t}\n+\tif len(problems) \u003e 0 {\n+\t\treturn nil, nil, fmt.Errorf(\"%s: fix the pages before editing them (px1 docs check)\", problems[0])\n+\t}\n+\tresults := make([]EditResult, len(edits))\n+\taccepted := map[string][]Edit{}\n+\ttaken := map[string]bool{}\n+\tfor i, edit := range edits {\n+\t\tverified, err := VerifyEdit(root, pages, impact, edit)\n+\t\tkey := verified.Page + \"\\x00\" + verified.Heading\n+\t\tswitch {\n+\t\tcase err != nil:\n+\t\t\tresults[i] = EditResult{Edit: edit, Rejected: err.Error()}\n+\t\tcase taken[key]:\n+\t\t\tresults[i] = EditResult{Edit: edit, Rejected: \"another edit already replaces this section\"}\n+\t\tdefault:\n+\t\t\ttaken[key] = true\n+\t\t\tresults[i] = EditResult{Edit: verified, Applied: true}\n+\t\t\taccepted[verified.Page] = append(accepted[verified.Page], verified)\n+\t\t}\n+\t}\n+\ttexts := map[string]string{}\n+\tfor _, page := range pages {\n+\t\tpageEdits := accepted[page.Path]\n+\t\tif len(pageEdits) == 0 {\n+\t\t\tcontinue\n+\t\t}\n+\t\tdata, err := readRepo(root, filepath.Join(root, filepath.FromSlash(page.Path)))\n+\t\tif err != nil {\n+\t\t\treturn nil, nil, err\n+\t\t}\n+\t\tlines := strings.Split(string(data), \"\\n\")\n+\t\toffset := page.bodyStart - 1 // body line 0 is file line offset\n+\t\tbodyLines := len(lines) - offset\n+\t\tsections := page.Sections()\n+\t\tbyHeading := map[string]Section{}\n+\t\tfor _, section := range sections {\n+\t\t\tbyHeading[section.Heading] = section\n+\t\t}\n+\t\t// Replace from the bottom up so earlier line numbers stay valid.\n+\t\tsort.Slice(pageEdits, func(i, j int) bool {\n+\t\t\treturn byHeading[pageEdits[i].Heading].first \u003e byHeading[pageEdits[j].Heading].first\n+\t\t})\n+\t\tfor _, edit := range pageEdits {\n+\t\t\tsection := byHeading[edit.Heading]\n+\t\t\treplacement := append([]string{\"\"}, strings.Split(edit.Body, \"\\n\")...)\n+\t\t\tif section.end \u003c bodyLines {\n+\t\t\t\treplacement = append(replacement, \"\") // blank line before the next heading\n+\t\t\t}\n+\t\t\trebuilt := append([]string{}, lines[:offset+section.first]...)\n+\t\t\trebuilt = append(rebuilt, replacement...)\n+\t\t\tlines = append(rebuilt, lines[offset+section.end:]...)\n+\t\t}\n+\t\ttext := strings.Join(lines, \"\\n\")\n+\t\tif !strings.HasSuffix(text, \"\\n\") {\n+\t\t\ttext += \"\\n\"\n+\t\t}\n+\t\ttexts[page.Path] = text\n+\t}\n+\treturn results, texts, nil\n+}\n+\n+// ApplyEdits verifies the edits and writes the pages the accepted ones\n+// change. A page that is a symbolic link is never written.\n+func ApplyEdits(root string, impact Impact, edits []Edit) ([]EditResult, error) {\n+\tresults, texts, err := PlanEdits(root, impact, edits)\n+\tif err != nil {\n+\t\treturn nil, err\n+\t}\n+\tfor rel, text := range texts {\n+\t\tfull := filepath.Join(root, filepath.FromSlash(rel))\n+\t\tinfo, err := os.Lstat(full)\n+\t\tif err != nil {\n+\t\t\treturn nil, err\n+\t\t}\n+\t\tif !info.Mode().IsRegular() {\n+\t\t\treturn nil, fmt.Errorf(\"%s is not a regular file\", rel)\n+\t\t}\n+\t\tif err := os.WriteFile(full, []byte(text), info.Mode().Perm()); err != nil {\n+\t\t\treturn nil, err\n+\t\t}\n+\t}\n+\treturn results, nil\n+}\n+\n+// EditsMarkdown describes the results for a person: what was changed and on\n+// what evidence, and what was refused and why.\n+func EditsMarkdown(results []EditResult, sourceURL string) string {\n+\tvar applied, rejected []EditResult\n+\tfor _, result := range results {\n+\t\tif result.Applied {\n+\t\t\tapplied = append(applied, result)\n+\t\t} else {\n+\t\t\trejected = append(rejected, result)\n+\t\t}\n+\t}\n+\tvar b strings.Builder\n+\tif len(applied) == 0 {\n+\t\tb.WriteString(\"No documentation edit was applied.\\n\")\n+\t}\n+\tfor _, result := range applied {\n+\t\tedit := result.Edit\n+\t\tfmt.Fprintf(\u0026b, \"- **%s**, section \\\"%s\\\": %s\\n\", edit.Page, edit.Heading, strings.TrimSpace(edit.Reason))\n+\t\tfor _, c := range edit.Citations {\n+\t\t\twhere := fmt.Sprintf(\"%s:%d-%d\", c.File, c.Start, c.End)\n+\t\t\tif c.Start == c.End {\n+\t\t\t\twhere = fmt.Sprintf(\"%s:%d\", c.File, c.Start)\n+\t\t\t}\n+\t\t\tif sourceURL != \"\" {\n+\t\t\t\tfmt.Fprintf(\u0026b, \"  - [`%s`](%s/%s#L%d-L%d)\\n\", where, strings.TrimRight(sourceURL, \"/\"), c.File, c.Start, c.End)\n+\t\t\t} else {\n+\t\t\t\tfmt.Fprintf(\u0026b, \"  - `%s`\\n\", where)\n+\t\t\t}\n+\t\t}\n+\t}\n+\tif len(rejected) \u003e 0 {\n+\t\tb.WriteString(\"\\nRefused:\\n\\n\")\n+\t\tfor _, result := range rejected {\n+\t\t\tfmt.Fprintf(\u0026b, \"- %s, section \\\"%s\\\": %s\\n\", result.Edit.Page, result.Edit.Heading, result.Rejected)\n+\t\t}\n+\t}\n+\treturn b.String()\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-2c733f5c282fd8f4",
+          "header": "@@ -0,0 +1,412 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package docs"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"errors\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"fmt\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"path/filepath\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": "\t\"sort\""
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": "// An edit to a page is data, whoever wrote it: a person or a model. It is"
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "// applied only when it stays inside one section of a page that the diff"
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": "// affects and every citation quotes text that is really in the code."
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": "// Limits on one edit."
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "const ("
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": "\tMaxEditBodyBytes = 8 \u003c\u003c 10"
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "\tMinQuoteBytes    = 12"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "\tMaxCitations     = 8"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "// Citation is the code an edit rests on. Quote is the anchor: it must appear"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": "// in File. Start and End are the lines it was found at, filled in by"
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "// VerifyEdit; values supplied with the edit are ignored."
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": "type Citation struct {"
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "\tFile  string `json:\"file\"`"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": "\tStart int    `json:\"start,omitempty\"`"
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "\tEnd   int    `json:\"end,omitempty\"`"
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "\tQuote string `json:\"quote\"`"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "// Edit replaces the text of one section of one page."
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "type Edit struct {"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\t// Page is the page's path, such as docs/AGENT_TOOLS.md."
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\tPage string `json:\"page\"`"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\t// Heading is the text of the section's heading, without the # marks."
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tHeading string `json:\"heading\"`"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\t// Body is the section's new text, without its heading. It replaces the"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t// text up to the next heading of any level, so subsections are untouched."
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\tBody string `json:\"body\"`"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\t// Reason says, in a sentence, what changed in the code."
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "\tReason    string     `json:\"reason\"`"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": "\tCitations []Citation `json:\"citations\"`"
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "// EditResult is what happened to one edit."
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "type EditResult struct {"
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\tEdit    Edit `json:\"edit\"`"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\tApplied bool `json:\"applied\"`"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "\t// Rejected is why the edit was not applied; empty when it was."
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": "\tRejected string `json:\"rejected,omitempty\"`"
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "// Section is one heading of a page and the text under it, up to the next"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "// heading of any level."
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "type Section struct {"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\tHeading string"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\tLevel   int"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t// Text is the section's own text, without the heading line."
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\tText string"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\t// first and end are line indexes into the page body: the section's text"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t// is lines[first:end]. The heading is at first-1."
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\tfirst, end int"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "// fenceMarker returns the fence a line opens or closes (\"```\" or \"~~~\")."
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "func fenceMarker(line string) string {"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\ttrimmed := strings.TrimSpace(line)"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\tfor _, marker := range []string{\"```\", \"~~~\"} {"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\tif strings.HasPrefix(trimmed, marker) {"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t\t\treturn marker"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\treturn \"\""
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "// headingOf returns the level and text of an ATX heading line."
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "func headingOf(line string) (int, string, bool) {"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\tlevel := 0"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\tfor level \u003c len(line) \u0026\u0026 line[level] == '#' {"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\t\tlevel++"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\tif level == 0 || level \u003e 6 || level \u003e= len(line) || line[level] != ' ' {"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\t\treturn 0, \"\", false"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\treturn level, strings.TrimSpace(strings.TrimRight(strings.TrimSpace(line[level:]), \"#\")), true"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "// SplitSections splits a page body at its headings. Lines inside fenced code"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "// are never headings."
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": "func SplitSections(body string) []Section {"
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "\tlines := strings.Split(body, \"\\n\")"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\tvar sections []Section"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\tfence := \"\""
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\tfor i, line := range lines {"
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\t\tif marker := fenceMarker(line); marker != \"\" {"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\t\t\tswitch fence {"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\t\t\tcase \"\":"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\t\t\t\tfence = marker"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\t\t\tcase marker:"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\t\t\t\tfence = \"\""
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": "\t\tif fence != \"\" {"
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\t\tlevel, text, ok := headingOf(line)"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\t\tif !ok {"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\t\tif n := len(sections); n \u003e 0 {"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "\t\t\tsections[n-1].end = i"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "\t\tsections = append(sections, Section{Heading: text, Level: level, first: i + 1, end: len(lines)})"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\tfor i := range sections {"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\t\tsections[i].Text = strings.Join(lines[sections[i].first:sections[i].end], \"\\n\")"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\treturn sections"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "// Sections returns the sections of the page."
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "func (p Page) Sections() []Section { return SplitSections(p.body) }"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "// Body returns the page's Markdown without its front matter."
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "func (p Page) Body() string { return p.body }"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "func squash(text string) string { return strings.Join(strings.Fields(text), \" \") }"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "// locate finds a quote in a file, comparing with runs of white space"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "// collapsed, and returns the first and last line it spans."
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "func locate(content, quote string) (int, int, bool) {"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\twant := squash(quote)"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\tif want == \"\" {"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\t\treturn 0, 0, false"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\tlines := strings.Split(content, \"\\n\")"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "\t// Join the squashed lines with single spaces and remember where each"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "\t// line starts, so an offset in the joined text maps back to a line."
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "\tvar joined strings.Builder"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "\tvar lineAt []int // offset in joined at which each non-empty line starts"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\tvar lineNo []int"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\tfor i, line := range lines {"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\t\ts := squash(line)"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "\t\tif s == \"\" {"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "\t\tif joined.Len() \u003e 0 {"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": "\t\t\tjoined.WriteByte(' ')"
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "\t\tlineAt = append(lineAt, joined.Len())"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "\t\tlineNo = append(lineNo, i+1)"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "\t\tjoined.WriteString(s)"
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "\tat := strings.Index(joined.String(), want)"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "\tif at \u003c 0 {"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "\t\treturn 0, 0, false"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "\tlineFor := func(offset int) int {"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "\t\tn := sort.Search(len(lineAt), func(i int) bool { return lineAt[i] \u003e offset }) - 1"
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "\t\treturn lineNo[n]"
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": "\treturn lineFor(at), lineFor(at + len(want) - 1), true"
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": "// VerifyEdit checks one edit against the pages and the impact of the diff."
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "// It returns the edit with its citations' lines filled in, or the reason the"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "// edit must not be applied."
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": "func VerifyEdit(root string, pages []Page, impact Impact, edit Edit) (Edit, error) {"
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "\tvar page *Page"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "\tfor i := range pages {"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "\t\tif pages[i].Path == edit.Page {"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "\t\t\tpage = \u0026pages[i]"
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 178,
+              "kind": "added",
+              "text": "\tif page == nil {"
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": "\t\treturn edit, fmt.Errorf(\"%s is not a documentation page\", edit.Page)"
+            },
+            {
+              "newLine": 180,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": "\tvar affected *PageImpact"
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": "\tfor i := range impact.Pages {"
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": "\t\tif impact.Pages[i].Path == edit.Page {"
+            },
+            {
+              "newLine": 184,
+              "kind": "added",
+              "text": "\t\t\taffected = \u0026impact.Pages[i]"
+            },
+            {
+              "newLine": 185,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 186,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "\tswitch {"
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": "\tcase affected == nil:"
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "\t\treturn edit, errors.New(\"the change touches no code this page covers\")"
+            },
+            {
+              "newLine": 190,
+              "kind": "added",
+              "text": "\tcase affected.State == Regenerated || page.Kind != \"narrative\":"
+            },
+            {
+              "newLine": 191,
+              "kind": "added",
+              "text": "\t\treturn edit, errors.New(\"the page is generated or a reference page; px1 docs gen writes it\")"
+            },
+            {
+              "newLine": 192,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 193,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 194,
+              "kind": "added",
+              "text": "\tvar section *Section"
+            },
+            {
+              "newLine": 195,
+              "kind": "added",
+              "text": "\tsections := page.Sections()"
+            },
+            {
+              "newLine": 196,
+              "kind": "added",
+              "text": "\tfor i := range sections {"
+            },
+            {
+              "newLine": 197,
+              "kind": "added",
+              "text": "\t\tif sections[i].Heading == strings.TrimSpace(edit.Heading) {"
+            },
+            {
+              "newLine": 198,
+              "kind": "added",
+              "text": "\t\t\tif section != nil {"
+            },
+            {
+              "newLine": 199,
+              "kind": "added",
+              "text": "\t\t\t\treturn edit, fmt.Errorf(\"the page has more than one section headed %q\", edit.Heading)"
+            },
+            {
+              "newLine": 200,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 201,
+              "kind": "added",
+              "text": "\t\t\tsection = \u0026sections[i]"
+            },
+            {
+              "newLine": 202,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 203,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 204,
+              "kind": "added",
+              "text": "\tif section == nil {"
+            },
+            {
+              "newLine": 205,
+              "kind": "added",
+              "text": "\t\treturn edit, fmt.Errorf(\"the page has no section headed %q\", edit.Heading)"
+            },
+            {
+              "newLine": 206,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 207,
+              "kind": "added",
+              "text": "\tif strings.Contains(section.Text, \"\u003c!-- px1:\") {"
+            },
+            {
+              "newLine": 208,
+              "kind": "added",
+              "text": "\t\treturn edit, errors.New(\"the section holds generated content\")"
+            },
+            {
+              "newLine": 209,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 210,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 211,
+              "kind": "added",
+              "text": "\tbody := strings.TrimSpace(edit.Body)"
+            },
+            {
+              "newLine": 212,
+              "kind": "added",
+              "text": "\tswitch {"
+            },
+            {
+              "newLine": 213,
+              "kind": "added",
+              "text": "\tcase body == \"\":"
+            },
+            {
+              "newLine": 214,
+              "kind": "added",
+              "text": "\t\treturn edit, errors.New(\"the new text is empty; an edit cannot delete a section\")"
+            },
+            {
+              "newLine": 215,
+              "kind": "added",
+              "text": "\tcase len(body) \u003e MaxEditBodyBytes:"
+            },
+            {
+              "newLine": 216,
+              "kind": "added",
+              "text": "\t\treturn edit, fmt.Errorf(\"the new text is over %d bytes\", MaxEditBodyBytes)"
+            },
+            {
+              "newLine": 217,
+              "kind": "added",
+              "text": "\tcase strings.Contains(body, \"\u003c!-- px1:\"):"
+            },
+            {
+              "newLine": 218,
+              "kind": "added",
+              "text": "\t\treturn edit, errors.New(\"the new text contains a px1 marker\")"
+            },
+            {
+              "newLine": 219,
+              "kind": "added",
+              "text": "\tcase squash(body) == squash(section.Text):"
+            },
+            {
+              "newLine": 220,
+              "kind": "added",
+              "text": "\t\treturn edit, errors.New(\"the new text says the same as the old\")"
+            },
+            {
+              "newLine": 221,
+              "kind": "added",
+              "text": "\tcase strings.TrimSpace(edit.Reason) == \"\":"
+            },
+            {
+              "newLine": 222,
+              "kind": "added",
+              "text": "\t\treturn edit, errors.New(\"the edit gives no reason\")"
+            },
+            {
+              "newLine": 223,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 224,
+              "kind": "added",
+              "text": "\tif inner := SplitSections(body); len(inner) \u003e 0 {"
+            },
+            {
+              "newLine": 225,
+              "kind": "added",
+              "text": "\t\treturn edit, fmt.Errorf(\"the new text contains a heading (%q); an edit stays inside one section\", inner[0].Heading)"
+            },
+            {
+              "newLine": 226,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 227,
+              "kind": "added",
+              "text": "\tfences := 0"
+            },
+            {
+              "newLine": 228,
+              "kind": "added",
+              "text": "\tfor _, line := range strings.Split(body, \"\\n\") {"
+            },
+            {
+              "newLine": 229,
+              "kind": "added",
+              "text": "\t\tif fenceMarker(line) != \"\" {"
+            },
+            {
+              "newLine": 230,
+              "kind": "added",
+              "text": "\t\t\tfences++"
+            },
+            {
+              "newLine": 231,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 232,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 233,
+              "kind": "added",
+              "text": "\tif fences%2 != 0 {"
+            },
+            {
+              "newLine": 234,
+              "kind": "added",
+              "text": "\t\treturn edit, errors.New(\"the new text leaves a code fence open\")"
+            },
+            {
+              "newLine": 235,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 236,
+              "kind": "added",
+              "text": "\tdraft := Page{Path: page.Path, body: body, bodyStart: 1}"
+            },
+            {
+              "newLine": 237,
+              "kind": "added",
+              "text": "\tif problems := checkLinks(root, draft); len(problems) \u003e 0 {"
+            },
+            {
+              "newLine": 238,
+              "kind": "added",
+              "text": "\t\treturn edit, errors.New(problems[0].Message)"
+            },
+            {
+              "newLine": 239,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 240,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 241,
+              "kind": "added",
+              "text": "\tif len(edit.Citations) == 0 {"
+            },
+            {
+              "newLine": 242,
+              "kind": "added",
+              "text": "\t\treturn edit, errors.New(\"the edit cites no code\")"
+            },
+            {
+              "newLine": 243,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 244,
+              "kind": "added",
+              "text": "\tif len(edit.Citations) \u003e MaxCitations {"
+            },
+            {
+              "newLine": 245,
+              "kind": "added",
+              "text": "\t\treturn edit, fmt.Errorf(\"the edit has more than %d citations\", MaxCitations)"
+            },
+            {
+              "newLine": 246,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 247,
+              "kind": "added",
+              "text": "\tchanged := map[string]bool{}"
+            },
+            {
+              "newLine": 248,
+              "kind": "added",
+              "text": "\tfor _, file := range affected.Changed {"
+            },
+            {
+              "newLine": 249,
+              "kind": "added",
+              "text": "\t\tchanged[file] = true"
+            },
+            {
+              "newLine": 250,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 251,
+              "kind": "added",
+              "text": "\tcitesChange := false"
+            },
+            {
+              "newLine": 252,
+              "kind": "added",
+              "text": "\tcited := make([]Citation, len(edit.Citations))"
+            },
+            {
+              "newLine": 253,
+              "kind": "added",
+              "text": "\tfor i, citation := range edit.Citations {"
+            },
+            {
+              "newLine": 254,
+              "kind": "added",
+              "text": "\t\tfile := filepath.ToSlash(filepath.Clean(citation.File))"
+            },
+            {
+              "newLine": 255,
+              "kind": "added",
+              "text": "\t\tcovers := false"
+            },
+            {
+              "newLine": 256,
+              "kind": "added",
+              "text": "\t\tfor _, entry := range page.Covers {"
+            },
+            {
+              "newLine": 257,
+              "kind": "added",
+              "text": "\t\t\tcovers = covers || touches(file, entry)"
+            },
+            {
+              "newLine": 258,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 259,
+              "kind": "added",
+              "text": "\t\tif !covers {"
+            },
+            {
+              "newLine": 260,
+              "kind": "added",
+              "text": "\t\t\treturn edit, fmt.Errorf(\"citation %d: %s is not code this page covers\", i+1, citation.File)"
+            },
+            {
+              "newLine": 261,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 262,
+              "kind": "added",
+              "text": "\t\tif len(squash(citation.Quote)) \u003c MinQuoteBytes {"
+            },
+            {
+              "newLine": 263,
+              "kind": "added",
+              "text": "\t\t\treturn edit, fmt.Errorf(\"citation %d: the quote is shorter than %d characters\", i+1, MinQuoteBytes)"
+            },
+            {
+              "newLine": 264,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 265,
+              "kind": "added",
+              "text": "\t\tdata, err := readRepo(root, filepath.Join(root, filepath.FromSlash(file)))"
+            },
+            {
+              "newLine": 266,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 267,
+              "kind": "added",
+              "text": "\t\t\treturn edit, fmt.Errorf(\"citation %d: %s cannot be read\", i+1, file)"
+            },
+            {
+              "newLine": 268,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 269,
+              "kind": "added",
+              "text": "\t\tstart, end, ok := locate(string(data), citation.Quote)"
+            },
+            {
+              "newLine": 270,
+              "kind": "added",
+              "text": "\t\tif !ok {"
+            },
+            {
+              "newLine": 271,
+              "kind": "added",
+              "text": "\t\t\treturn edit, fmt.Errorf(\"citation %d: the quote is not in %s\", i+1, file)"
+            },
+            {
+              "newLine": 272,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 273,
+              "kind": "added",
+              "text": "\t\tcited[i] = Citation{File: file, Start: start, End: end, Quote: citation.Quote}"
+            },
+            {
+              "newLine": 274,
+              "kind": "added",
+              "text": "\t\tcitesChange = citesChange || changed[file]"
+            },
+            {
+              "newLine": 275,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 276,
+              "kind": "added",
+              "text": "\tif !citesChange {"
+            },
+            {
+              "newLine": 277,
+              "kind": "added",
+              "text": "\t\treturn edit, errors.New(\"no citation is from a file the change touches\")"
+            },
+            {
+              "newLine": 278,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 279,
+              "kind": "added",
+              "text": "\tedit.Body, edit.Heading, edit.Citations = body, section.Heading, cited"
+            },
+            {
+              "newLine": 280,
+              "kind": "added",
+              "text": "\treturn edit, nil"
+            },
+            {
+              "newLine": 281,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 282,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 283,
+              "kind": "added",
+              "text": "// PlanEdits verifies every edit and returns what would happen to each, and"
+            },
+            {
+              "newLine": 284,
+              "kind": "added",
+              "text": "// the new text of each page that an accepted edit changes. It writes nothing."
+            },
+            {
+              "newLine": 285,
+              "kind": "added",
+              "text": "// At most one edit is accepted for a section."
+            },
+            {
+              "newLine": 286,
+              "kind": "added",
+              "text": "func PlanEdits(root string, impact Impact, edits []Edit) ([]EditResult, map[string]string, error) {"
+            },
+            {
+              "newLine": 287,
+              "kind": "added",
+              "text": "\tpages, problems, err := LoadPages(root)"
+            },
+            {
+              "newLine": 288,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 289,
+              "kind": "added",
+              "text": "\t\treturn nil, nil, err"
+            },
+            {
+              "newLine": 290,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 291,
+              "kind": "added",
+              "text": "\tif len(problems) \u003e 0 {"
+            },
+            {
+              "newLine": 292,
+              "kind": "added",
+              "text": "\t\treturn nil, nil, fmt.Errorf(\"%s: fix the pages before editing them (px1 docs check)\", problems[0])"
+            },
+            {
+              "newLine": 293,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 294,
+              "kind": "added",
+              "text": "\tresults := make([]EditResult, len(edits))"
+            },
+            {
+              "newLine": 295,
+              "kind": "added",
+              "text": "\taccepted := map[string][]Edit{}"
+            },
+            {
+              "newLine": 296,
+              "kind": "added",
+              "text": "\ttaken := map[string]bool{}"
+            },
+            {
+              "newLine": 297,
+              "kind": "added",
+              "text": "\tfor i, edit := range edits {"
+            },
+            {
+              "newLine": 298,
+              "kind": "added",
+              "text": "\t\tverified, err := VerifyEdit(root, pages, impact, edit)"
+            },
+            {
+              "newLine": 299,
+              "kind": "added",
+              "text": "\t\tkey := verified.Page + \"\\x00\" + verified.Heading"
+            },
+            {
+              "newLine": 300,
+              "kind": "added",
+              "text": "\t\tswitch {"
+            },
+            {
+              "newLine": 301,
+              "kind": "added",
+              "text": "\t\tcase err != nil:"
+            },
+            {
+              "newLine": 302,
+              "kind": "added",
+              "text": "\t\t\tresults[i] = EditResult{Edit: edit, Rejected: err.Error()}"
+            },
+            {
+              "newLine": 303,
+              "kind": "added",
+              "text": "\t\tcase taken[key]:"
+            },
+            {
+              "newLine": 304,
+              "kind": "added",
+              "text": "\t\t\tresults[i] = EditResult{Edit: edit, Rejected: \"another edit already replaces this section\"}"
+            },
+            {
+              "newLine": 305,
+              "kind": "added",
+              "text": "\t\tdefault:"
+            },
+            {
+              "newLine": 306,
+              "kind": "added",
+              "text": "\t\t\ttaken[key] = true"
+            },
+            {
+              "newLine": 307,
+              "kind": "added",
+              "text": "\t\t\tresults[i] = EditResult{Edit: verified, Applied: true}"
+            },
+            {
+              "newLine": 308,
+              "kind": "added",
+              "text": "\t\t\taccepted[verified.Page] = append(accepted[verified.Page], verified)"
+            },
+            {
+              "newLine": 309,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 310,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 311,
+              "kind": "added",
+              "text": "\ttexts := map[string]string{}"
+            },
+            {
+              "newLine": 312,
+              "kind": "added",
+              "text": "\tfor _, page := range pages {"
+            },
+            {
+              "newLine": 313,
+              "kind": "added",
+              "text": "\t\tpageEdits := accepted[page.Path]"
+            },
+            {
+              "newLine": 314,
+              "kind": "added",
+              "text": "\t\tif len(pageEdits) == 0 {"
+            },
+            {
+              "newLine": 315,
+              "kind": "added",
+              "text": "\t\t\tcontinue"
+            },
+            {
+              "newLine": 316,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 317,
+              "kind": "added",
+              "text": "\t\tdata, err := readRepo(root, filepath.Join(root, filepath.FromSlash(page.Path)))"
+            },
+            {
+              "newLine": 318,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 319,
+              "kind": "added",
+              "text": "\t\t\treturn nil, nil, err"
+            },
+            {
+              "newLine": 320,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 321,
+              "kind": "added",
+              "text": "\t\tlines := strings.Split(string(data), \"\\n\")"
+            },
+            {
+              "newLine": 322,
+              "kind": "added",
+              "text": "\t\toffset := page.bodyStart - 1 // body line 0 is file line offset"
+            },
+            {
+              "newLine": 323,
+              "kind": "added",
+              "text": "\t\tbodyLines := len(lines) - offset"
+            },
+            {
+              "newLine": 324,
+              "kind": "added",
+              "text": "\t\tsections := page.Sections()"
+            },
+            {
+              "newLine": 325,
+              "kind": "added",
+              "text": "\t\tbyHeading := map[string]Section{}"
+            },
+            {
+              "newLine": 326,
+              "kind": "added",
+              "text": "\t\tfor _, section := range sections {"
+            },
+            {
+              "newLine": 327,
+              "kind": "added",
+              "text": "\t\t\tbyHeading[section.Heading] = section"
+            },
+            {
+              "newLine": 328,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 329,
+              "kind": "added",
+              "text": "\t\t// Replace from the bottom up so earlier line numbers stay valid."
+            },
+            {
+              "newLine": 330,
+              "kind": "added",
+              "text": "\t\tsort.Slice(pageEdits, func(i, j int) bool {"
+            },
+            {
+              "newLine": 331,
+              "kind": "added",
+              "text": "\t\t\treturn byHeading[pageEdits[i].Heading].first \u003e byHeading[pageEdits[j].Heading].first"
+            },
+            {
+              "newLine": 332,
+              "kind": "added",
+              "text": "\t\t})"
+            },
+            {
+              "newLine": 333,
+              "kind": "added",
+              "text": "\t\tfor _, edit := range pageEdits {"
+            },
+            {
+              "newLine": 334,
+              "kind": "added",
+              "text": "\t\t\tsection := byHeading[edit.Heading]"
+            },
+            {
+              "newLine": 335,
+              "kind": "added",
+              "text": "\t\t\treplacement := append([]string{\"\"}, strings.Split(edit.Body, \"\\n\")...)"
+            },
+            {
+              "newLine": 336,
+              "kind": "added",
+              "text": "\t\t\tif section.end \u003c bodyLines {"
+            },
+            {
+              "newLine": 337,
+              "kind": "added",
+              "text": "\t\t\t\treplacement = append(replacement, \"\") // blank line before the next heading"
+            },
+            {
+              "newLine": 338,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 339,
+              "kind": "added",
+              "text": "\t\t\trebuilt := append([]string{}, lines[:offset+section.first]...)"
+            },
+            {
+              "newLine": 340,
+              "kind": "added",
+              "text": "\t\t\trebuilt = append(rebuilt, replacement...)"
+            },
+            {
+              "newLine": 341,
+              "kind": "added",
+              "text": "\t\t\tlines = append(rebuilt, lines[offset+section.end:]...)"
+            },
+            {
+              "newLine": 342,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 343,
+              "kind": "added",
+              "text": "\t\ttext := strings.Join(lines, \"\\n\")"
+            },
+            {
+              "newLine": 344,
+              "kind": "added",
+              "text": "\t\tif !strings.HasSuffix(text, \"\\n\") {"
+            },
+            {
+              "newLine": 345,
+              "kind": "added",
+              "text": "\t\t\ttext += \"\\n\""
+            },
+            {
+              "newLine": 346,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 347,
+              "kind": "added",
+              "text": "\t\ttexts[page.Path] = text"
+            },
+            {
+              "newLine": 348,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 349,
+              "kind": "added",
+              "text": "\treturn results, texts, nil"
+            },
+            {
+              "newLine": 350,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 351,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 352,
+              "kind": "added",
+              "text": "// ApplyEdits verifies the edits and writes the pages the accepted ones"
+            },
+            {
+              "newLine": 353,
+              "kind": "added",
+              "text": "// change. A page that is a symbolic link is never written."
+            },
+            {
+              "newLine": 354,
+              "kind": "added",
+              "text": "func ApplyEdits(root string, impact Impact, edits []Edit) ([]EditResult, error) {"
+            },
+            {
+              "newLine": 355,
+              "kind": "added",
+              "text": "\tresults, texts, err := PlanEdits(root, impact, edits)"
+            },
+            {
+              "newLine": 356,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 357,
+              "kind": "added",
+              "text": "\t\treturn nil, err"
+            },
+            {
+              "newLine": 358,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 359,
+              "kind": "added",
+              "text": "\tfor rel, text := range texts {"
+            },
+            {
+              "newLine": 360,
+              "kind": "added",
+              "text": "\t\tfull := filepath.Join(root, filepath.FromSlash(rel))"
+            },
+            {
+              "newLine": 361,
+              "kind": "added",
+              "text": "\t\tinfo, err := os.Lstat(full)"
+            },
+            {
+              "newLine": 362,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 363,
+              "kind": "added",
+              "text": "\t\t\treturn nil, err"
+            },
+            {
+              "newLine": 364,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 365,
+              "kind": "added",
+              "text": "\t\tif !info.Mode().IsRegular() {"
+            },
+            {
+              "newLine": 366,
+              "kind": "added",
+              "text": "\t\t\treturn nil, fmt.Errorf(\"%s is not a regular file\", rel)"
+            },
+            {
+              "newLine": 367,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 368,
+              "kind": "added",
+              "text": "\t\tif err := os.WriteFile(full, []byte(text), info.Mode().Perm()); err != nil {"
+            },
+            {
+              "newLine": 369,
+              "kind": "added",
+              "text": "\t\t\treturn nil, err"
+            },
+            {
+              "newLine": 370,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 371,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 372,
+              "kind": "added",
+              "text": "\treturn results, nil"
+            },
+            {
+              "newLine": 373,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 374,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 375,
+              "kind": "added",
+              "text": "// EditsMarkdown describes the results for a person: what was changed and on"
+            },
+            {
+              "newLine": 376,
+              "kind": "added",
+              "text": "// what evidence, and what was refused and why."
+            },
+            {
+              "newLine": 377,
+              "kind": "added",
+              "text": "func EditsMarkdown(results []EditResult, sourceURL string) string {"
+            },
+            {
+              "newLine": 378,
+              "kind": "added",
+              "text": "\tvar applied, rejected []EditResult"
+            },
+            {
+              "newLine": 379,
+              "kind": "added",
+              "text": "\tfor _, result := range results {"
+            },
+            {
+              "newLine": 380,
+              "kind": "added",
+              "text": "\t\tif result.Applied {"
+            },
+            {
+              "newLine": 381,
+              "kind": "added",
+              "text": "\t\t\tapplied = append(applied, result)"
+            },
+            {
+              "newLine": 382,
+              "kind": "added",
+              "text": "\t\t} else {"
+            },
+            {
+              "newLine": 383,
+              "kind": "added",
+              "text": "\t\t\trejected = append(rejected, result)"
+            },
+            {
+              "newLine": 384,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 385,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 386,
+              "kind": "added",
+              "text": "\tvar b strings.Builder"
+            },
+            {
+              "newLine": 387,
+              "kind": "added",
+              "text": "\tif len(applied) == 0 {"
+            },
+            {
+              "newLine": 388,
+              "kind": "added",
+              "text": "\t\tb.WriteString(\"No documentation edit was applied.\\n\")"
+            },
+            {
+              "newLine": 389,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 390,
+              "kind": "added",
+              "text": "\tfor _, result := range applied {"
+            },
+            {
+              "newLine": 391,
+              "kind": "added",
+              "text": "\t\tedit := result.Edit"
+            },
+            {
+              "newLine": 392,
+              "kind": "added",
+              "text": "\t\tfmt.Fprintf(\u0026b, \"- **%s**, section \\\"%s\\\": %s\\n\", edit.Page, edit.Heading, strings.TrimSpace(edit.Reason))"
+            },
+            {
+              "newLine": 393,
+              "kind": "added",
+              "text": "\t\tfor _, c := range edit.Citations {"
+            },
+            {
+              "newLine": 394,
+              "kind": "added",
+              "text": "\t\t\twhere := fmt.Sprintf(\"%s:%d-%d\", c.File, c.Start, c.End)"
+            },
+            {
+              "newLine": 395,
+              "kind": "added",
+              "text": "\t\t\tif c.Start == c.End {"
+            },
+            {
+              "newLine": 396,
+              "kind": "added",
+              "text": "\t\t\t\twhere = fmt.Sprintf(\"%s:%d\", c.File, c.Start)"
+            },
+            {
+              "newLine": 397,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 398,
+              "kind": "added",
+              "text": "\t\t\tif sourceURL != \"\" {"
+            },
+            {
+              "newLine": 399,
+              "kind": "added",
+              "text": "\t\t\t\tfmt.Fprintf(\u0026b, \"  - [`%s`](%s/%s#L%d-L%d)\\n\", where, strings.TrimRight(sourceURL, \"/\"), c.File, c.Start, c.End)"
+            },
+            {
+              "newLine": 400,
+              "kind": "added",
+              "text": "\t\t\t} else {"
+            },
+            {
+              "newLine": 401,
+              "kind": "added",
+              "text": "\t\t\t\tfmt.Fprintf(\u0026b, \"  - `%s`\\n\", where)"
+            },
+            {
+              "newLine": 402,
+              "kind": "added",
+              "text": "\t\t\t}"
+            },
+            {
+              "newLine": 403,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 404,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 405,
+              "kind": "added",
+              "text": "\tif len(rejected) \u003e 0 {"
+            },
+            {
+              "newLine": 406,
+              "kind": "added",
+              "text": "\t\tb.WriteString(\"\\nRefused:\\n\\n\")"
+            },
+            {
+              "newLine": 407,
+              "kind": "added",
+              "text": "\t\tfor _, result := range rejected {"
+            },
+            {
+              "newLine": 408,
+              "kind": "added",
+              "text": "\t\t\tfmt.Fprintf(\u0026b, \"- %s, section \\\"%s\\\": %s\\n\", result.Edit.Page, result.Edit.Heading, result.Rejected)"
+            },
+            {
+              "newLine": 409,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 410,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 411,
+              "kind": "added",
+              "text": "\treturn b.String()"
+            },
+            {
+              "newLine": 412,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "internal/docs/edits_test.go",
+      "status": "A",
+      "diff": "diff --git a/internal/docs/edits_test.go b/internal/docs/edits_test.go\nnew file mode 100644\nindex 0000000..673595b\n--- /dev/null\n+++ b/internal/docs/edits_test.go\n@@ -0,0 +1,191 @@\n+package docs\n+\n+import (\n+\t\"os\"\n+\t\"path/filepath\"\n+\t\"strings\"\n+\t\"testing\"\n+)\n+\n+const editPage = goodFront + `\n+# A page\n+\n+Intro.\n+\n+## Limits\n+\n+The tool reads at most 10 files.\n+\n+` + \"```\" + `\n+# not a heading\n+` + \"```\" + `\n+\n+### Detail\n+\n+Kept as it is.\n+\n+## Other\n+\n+See [the other page](OTHER.md).\n+`\n+\n+// editRepo is a repository whose page covers tool.go, which the diff changed.\n+func editRepo(t *testing.T) (string, Impact) {\n+\tt.Helper()\n+\troot := repo(t)\n+\twrite(t, root, \"tool.go\", \"package main\\n\\n// maxFiles is the most files one run reads.\\nconst maxFiles = 25\\n\\nfunc   run()   {}\\n\")\n+\twrite(t, root, \"docs/PAGE.md\", editPage)\n+\tpages, problems, err := LoadPages(root)\n+\tif err != nil || len(problems) \u003e 0 {\n+\t\tt.Fatal(err, problems)\n+\t}\n+\treturn root, ComputeImpact(pages, []string{\"tool.go\"})\n+}\n+\n+func goodEdit() Edit {\n+\treturn Edit{\n+\t\tPage: \"docs/PAGE.md\", Heading: \"Limits\", Body: \"The tool reads at most 25 files.\\n\\n```\\n# not a heading\\n```\",\n+\t\tReason:    \"The file limit rose from 10 to 25.\",\n+\t\tCitations: []Citation{{File: \"tool.go\", Start: 99, End: 99, Quote: \"const   maxFiles = 25\"}},\n+\t}\n+}\n+\n+func TestSplitSections(t *testing.T) {\n+\tpage, _ := parsePage(\"docs/PAGE.md\", editPage)\n+\tvar got []string\n+\tfor _, section := range page.Sections() {\n+\t\tgot = append(got, strings.Repeat(\"#\", section.Level)+section.Heading)\n+\t}\n+\tif want := \"#A page ##Limits ###Detail ##Other\"; strings.Join(got, \" \") != want {\n+\t\tt.Fatalf(\"sections = %v, want %s\", got, want)\n+\t}\n+\tif text := page.Sections()[1].Text; !strings.Contains(text, \"# not a heading\") || strings.Contains(text, \"Kept as it is\") {\n+\t\tt.Fatalf(\"section text = %q\", text)\n+\t}\n+}\n+\n+func TestApplyEditReplacesOnlyTheSection(t *testing.T) {\n+\troot, impact := editRepo(t)\n+\tresults, err := ApplyEdits(root, impact, []Edit{goodEdit()})\n+\tif err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif !results[0].Applied {\n+\t\tt.Fatalf(\"rejected: %s\", results[0].Rejected)\n+\t}\n+\tif c := results[0].Edit.Citations[0]; c.Start != 4 || c.End != 4 {\n+\t\tt.Fatalf(\"citation lines = %d-%d, want 4-4\", c.Start, c.End)\n+\t}\n+\tdata, _ := os.ReadFile(filepath.Join(root, \"docs/PAGE.md\"))\n+\twant := strings.Replace(editPage, \"at most 10 files\", \"at most 25 files\", 1)\n+\tif string(data) != want {\n+\t\tt.Fatalf(\"page after edit:\\n%s\\nwant:\\n%s\", data, want)\n+\t}\n+\tif got := messages(t, root); got != \"\" {\n+\t\tt.Fatalf(\"the edited repository fails the check:\\n%s\", got)\n+\t}\n+\tmd := EditsMarkdown(results, \"https://example.com/blob/abc\")\n+\tif !strings.Contains(md, \"[`tool.go:4`](https://example.com/blob/abc/tool.go#L4-L4)\") {\n+\t\tt.Fatalf(\"markdown = %s\", md)\n+\t}\n+}\n+\n+func TestEditOfTheLastSection(t *testing.T) {\n+\troot, impact := editRepo(t)\n+\tedit := goodEdit()\n+\tedit.Heading, edit.Body = \"Other\", \"Nothing else, since `maxFiles` is 25.\"\n+\tresults, err := ApplyEdits(root, impact, []Edit{edit, goodEdit()})\n+\tif err != nil || !results[0].Applied || !results[1].Applied {\n+\t\tt.Fatal(err, results)\n+\t}\n+\tdata, _ := os.ReadFile(filepath.Join(root, \"docs/PAGE.md\"))\n+\tif !strings.HasSuffix(string(data), \"## Other\\n\\nNothing else, since `maxFiles` is 25.\\n\") || !strings.Contains(string(data), \"at most 25 files.\\n\\n```\") {\n+\t\tt.Fatalf(\"page after edits:\\n%s\", data)\n+\t}\n+}\n+\n+func TestEditsAreRefused(t *testing.T) {\n+\troot, impact := editRepo(t)\n+\twrite(t, root, \"other.go\", \"package main\\n\\nconst somethingElse = 1\\n\")\n+\twrite(t, root, \"pkg/a.go\", \"package pkg\\n\\nconst unchangedValue = 2\\n\")\n+\tcases := []struct {\n+\t\tname   string\n+\t\tchange func(*Edit)\n+\t\twant   string\n+\t}{\n+\t\t{\"unknown page\", func(e *Edit) { e.Page = \"docs/NOPE.md\" }, \"not a documentation page\"},\n+\t\t{\"page the diff does not affect\", func(e *Edit) { e.Page = \"docs/OTHER.md\"; e.Heading = \"Other\" }, \"touches no code this page covers\"},\n+\t\t{\"unknown section\", func(e *Edit) { e.Heading = \"Limit\" }, \"no section headed\"},\n+\t\t{\"empty body\", func(e *Edit) { e.Body = \" \\n\" }, \"cannot delete a section\"},\n+\t\t{\"same text\", func(e *Edit) { e.Body = \"The tool reads   at most 10 files.\\n\\n```\\n# not a heading\\n```\" }, \"says the same\"},\n+\t\t{\"heading in body\", func(e *Edit) { e.Body = \"Text.\\n\\n## New part\\n\\nMore.\" }, \"contains a heading\"},\n+\t\t{\"open fence\", func(e *Edit) { e.Body = \"Text.\\n\\n```\\ncode\" }, \"code fence open\"},\n+\t\t{\"marker\", func(e *Edit) { e.Body = \"\u003c!-- px1:generated x --\u003e\" }, \"px1 marker\"},\n+\t\t{\"broken link\", func(e *Edit) { e.Body = \"See [this](MISSING.md).\" }, \"broken link\"},\n+\t\t{\"no reason\", func(e *Edit) { e.Reason = \"\" }, \"gives no reason\"},\n+\t\t{\"no citation\", func(e *Edit) { e.Citations = nil }, \"cites no code\"},\n+\t\t{\"quote not in file\", func(e *Edit) { e.Citations[0].Quote = \"const maxFiles = 30\" }, \"the quote is not in tool.go\"},\n+\t\t{\"short quote\", func(e *Edit) { e.Citations[0].Quote = \"= 25\" }, \"shorter than\"},\n+\t\t{\"file the page does not cover\", func(e *Edit) { e.Citations[0] = Citation{File: \"other.go\", Quote: \"const somethingElse = 1\"} }, \"not code this page covers\"},\n+\t\t{\"file outside the repository\", func(e *Edit) { e.Citations[0].File = \"../../etc/passwd\" }, \"not code this page covers\"},\n+\t\t{\"only unchanged files cited\", func(e *Edit) { e.Citations[0] = Citation{File: \"pkg/a.go\", Quote: \"const unchangedValue = 2\"} }, \"no citation is from a file the change touches\"},\n+\t\t{\"too big\", func(e *Edit) { e.Body = strings.Repeat(\"word \", 2000) }, \"over 8192 bytes\"},\n+\t}\n+\tbefore, _ := os.ReadFile(filepath.Join(root, \"docs/PAGE.md\"))\n+\tfor _, tc := range cases {\n+\t\tedit := goodEdit()\n+\t\ttc.change(\u0026edit)\n+\t\tresults, err := ApplyEdits(root, impact, []Edit{edit})\n+\t\tif err != nil {\n+\t\t\tt.Fatalf(\"%s: %v\", tc.name, err)\n+\t\t}\n+\t\tif results[0].Applied || !strings.Contains(results[0].Rejected, tc.want) {\n+\t\t\tt.Errorf(\"%s: applied=%v rejected=%q, want %q\", tc.name, results[0].Applied, results[0].Rejected, tc.want)\n+\t\t}\n+\t}\n+\tafter, _ := os.ReadFile(filepath.Join(root, \"docs/PAGE.md\"))\n+\tif string(before) != string(after) {\n+\t\tt.Fatal(\"a refused edit changed the page\")\n+\t}\n+}\n+\n+func TestOneEditPerSectionAndGeneratedPagesAreLeftAlone(t *testing.T) {\n+\troot, impact := editRepo(t)\n+\tsecond := goodEdit()\n+\tsecond.Body = \"The tool reads at most 25 files per run.\"\n+\tresults, _, err := PlanEdits(root, impact, []Edit{goodEdit(), second})\n+\tif err != nil || !results[0].Applied || results[1].Rejected != \"another edit already replaces this section\" {\n+\t\tt.Fatal(err, results)\n+\t}\n+\n+\twrite(t, root, \"docs/REF.md\", strings.Replace(goodFront, \"narrative\", \"reference\", 1)+generatedNote+\"\\n# Ref\\n\\n## Limits\\n\\nOld.\\n\")\n+\tpages, _, _ := LoadPages(root)\n+\timpact = ComputeImpact(pages, []string{\"tool.go\"})\n+\tedit := goodEdit()\n+\tedit.Page = \"docs/REF.md\"\n+\tresults, _, err = PlanEdits(root, impact, []Edit{edit})\n+\tif err != nil || !strings.Contains(results[0].Rejected, \"px1 docs gen writes it\") {\n+\t\tt.Fatal(err, results)\n+\t}\n+}\n+\n+func TestEditNeverWritesThroughALink(t *testing.T) {\n+\troot, impact := editRepo(t)\n+\toutside := filepath.Join(t.TempDir(), \"secret.md\")\n+\tif err := os.WriteFile(outside, []byte(editPage), 0o644); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tpage := filepath.Join(root, \"docs/PAGE.md\")\n+\tif err := os.Remove(page); err != nil {\n+\t\tt.Fatal(err)\n+\t}\n+\tif err := os.Symlink(outside, page); err != nil {\n+\t\tt.Skip(\"symbolic links are not available\")\n+\t}\n+\tif _, err := ApplyEdits(root, impact, []Edit{goodEdit()}); err == nil {\n+\t\tt.Fatal(\"an edit was applied through a link that leaves the repository\")\n+\t}\n+\tif data, _ := os.ReadFile(outside); string(data) != editPage {\n+\t\tt.Fatal(\"the file outside the repository was changed\")\n+\t}\n+}\n",
+      "hunks": [
+        {
+          "id": "diff-6ad13e6ed932b1b1",
+          "header": "@@ -0,0 +1,191 @@",
+          "lines": [
+            {
+              "newLine": 1,
+              "kind": "added",
+              "text": "package docs"
+            },
+            {
+              "newLine": 2,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 3,
+              "kind": "added",
+              "text": "import ("
+            },
+            {
+              "newLine": 4,
+              "kind": "added",
+              "text": "\t\"os\""
+            },
+            {
+              "newLine": 5,
+              "kind": "added",
+              "text": "\t\"path/filepath\""
+            },
+            {
+              "newLine": 6,
+              "kind": "added",
+              "text": "\t\"strings\""
+            },
+            {
+              "newLine": 7,
+              "kind": "added",
+              "text": "\t\"testing\""
+            },
+            {
+              "newLine": 8,
+              "kind": "added",
+              "text": ")"
+            },
+            {
+              "newLine": 9,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 10,
+              "kind": "added",
+              "text": "const editPage = goodFront + `"
+            },
+            {
+              "newLine": 11,
+              "kind": "added",
+              "text": "# A page"
+            },
+            {
+              "newLine": 12,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 13,
+              "kind": "added",
+              "text": "Intro."
+            },
+            {
+              "newLine": 14,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 15,
+              "kind": "added",
+              "text": "## Limits"
+            },
+            {
+              "newLine": 16,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 17,
+              "kind": "added",
+              "text": "The tool reads at most 10 files."
+            },
+            {
+              "newLine": 18,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 19,
+              "kind": "added",
+              "text": "` + \"```\" + `"
+            },
+            {
+              "newLine": 20,
+              "kind": "added",
+              "text": "# not a heading"
+            },
+            {
+              "newLine": 21,
+              "kind": "added",
+              "text": "` + \"```\" + `"
+            },
+            {
+              "newLine": 22,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 23,
+              "kind": "added",
+              "text": "### Detail"
+            },
+            {
+              "newLine": 24,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 25,
+              "kind": "added",
+              "text": "Kept as it is."
+            },
+            {
+              "newLine": 26,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 27,
+              "kind": "added",
+              "text": "## Other"
+            },
+            {
+              "newLine": 28,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 29,
+              "kind": "added",
+              "text": "See [the other page](OTHER.md)."
+            },
+            {
+              "newLine": 30,
+              "kind": "added",
+              "text": "`"
+            },
+            {
+              "newLine": 31,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 32,
+              "kind": "added",
+              "text": "// editRepo is a repository whose page covers tool.go, which the diff changed."
+            },
+            {
+              "newLine": 33,
+              "kind": "added",
+              "text": "func editRepo(t *testing.T) (string, Impact) {"
+            },
+            {
+              "newLine": 34,
+              "kind": "added",
+              "text": "\tt.Helper()"
+            },
+            {
+              "newLine": 35,
+              "kind": "added",
+              "text": "\troot := repo(t)"
+            },
+            {
+              "newLine": 36,
+              "kind": "added",
+              "text": "\twrite(t, root, \"tool.go\", \"package main\\n\\n// maxFiles is the most files one run reads.\\nconst maxFiles = 25\\n\\nfunc   run()   {}\\n\")"
+            },
+            {
+              "newLine": 37,
+              "kind": "added",
+              "text": "\twrite(t, root, \"docs/PAGE.md\", editPage)"
+            },
+            {
+              "newLine": 38,
+              "kind": "added",
+              "text": "\tpages, problems, err := LoadPages(root)"
+            },
+            {
+              "newLine": 39,
+              "kind": "added",
+              "text": "\tif err != nil || len(problems) \u003e 0 {"
+            },
+            {
+              "newLine": 40,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err, problems)"
+            },
+            {
+              "newLine": 41,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 42,
+              "kind": "added",
+              "text": "\treturn root, ComputeImpact(pages, []string{\"tool.go\"})"
+            },
+            {
+              "newLine": 43,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 44,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 45,
+              "kind": "added",
+              "text": "func goodEdit() Edit {"
+            },
+            {
+              "newLine": 46,
+              "kind": "added",
+              "text": "\treturn Edit{"
+            },
+            {
+              "newLine": 47,
+              "kind": "added",
+              "text": "\t\tPage: \"docs/PAGE.md\", Heading: \"Limits\", Body: \"The tool reads at most 25 files.\\n\\n```\\n# not a heading\\n```\","
+            },
+            {
+              "newLine": 48,
+              "kind": "added",
+              "text": "\t\tReason:    \"The file limit rose from 10 to 25.\","
+            },
+            {
+              "newLine": 49,
+              "kind": "added",
+              "text": "\t\tCitations: []Citation{{File: \"tool.go\", Start: 99, End: 99, Quote: \"const   maxFiles = 25\"}},"
+            },
+            {
+              "newLine": 50,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 51,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 52,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 53,
+              "kind": "added",
+              "text": "func TestSplitSections(t *testing.T) {"
+            },
+            {
+              "newLine": 54,
+              "kind": "added",
+              "text": "\tpage, _ := parsePage(\"docs/PAGE.md\", editPage)"
+            },
+            {
+              "newLine": 55,
+              "kind": "added",
+              "text": "\tvar got []string"
+            },
+            {
+              "newLine": 56,
+              "kind": "added",
+              "text": "\tfor _, section := range page.Sections() {"
+            },
+            {
+              "newLine": 57,
+              "kind": "added",
+              "text": "\t\tgot = append(got, strings.Repeat(\"#\", section.Level)+section.Heading)"
+            },
+            {
+              "newLine": 58,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 59,
+              "kind": "added",
+              "text": "\tif want := \"#A page ##Limits ###Detail ##Other\"; strings.Join(got, \" \") != want {"
+            },
+            {
+              "newLine": 60,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"sections = %v, want %s\", got, want)"
+            },
+            {
+              "newLine": 61,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 62,
+              "kind": "added",
+              "text": "\tif text := page.Sections()[1].Text; !strings.Contains(text, \"# not a heading\") || strings.Contains(text, \"Kept as it is\") {"
+            },
+            {
+              "newLine": 63,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"section text = %q\", text)"
+            },
+            {
+              "newLine": 64,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 65,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 66,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 67,
+              "kind": "added",
+              "text": "func TestApplyEditReplacesOnlyTheSection(t *testing.T) {"
+            },
+            {
+              "newLine": 68,
+              "kind": "added",
+              "text": "\troot, impact := editRepo(t)"
+            },
+            {
+              "newLine": 69,
+              "kind": "added",
+              "text": "\tresults, err := ApplyEdits(root, impact, []Edit{goodEdit()})"
+            },
+            {
+              "newLine": 70,
+              "kind": "added",
+              "text": "\tif err != nil {"
+            },
+            {
+              "newLine": 71,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 72,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 73,
+              "kind": "added",
+              "text": "\tif !results[0].Applied {"
+            },
+            {
+              "newLine": 74,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"rejected: %s\", results[0].Rejected)"
+            },
+            {
+              "newLine": 75,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 76,
+              "kind": "added",
+              "text": "\tif c := results[0].Edit.Citations[0]; c.Start != 4 || c.End != 4 {"
+            },
+            {
+              "newLine": 77,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"citation lines = %d-%d, want 4-4\", c.Start, c.End)"
+            },
+            {
+              "newLine": 78,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 79,
+              "kind": "added",
+              "text": "\tdata, _ := os.ReadFile(filepath.Join(root, \"docs/PAGE.md\"))"
+            },
+            {
+              "newLine": 80,
+              "kind": "added",
+              "text": "\twant := strings.Replace(editPage, \"at most 10 files\", \"at most 25 files\", 1)"
+            },
+            {
+              "newLine": 81,
+              "kind": "added",
+              "text": "\tif string(data) != want {"
+            },
+            {
+              "newLine": 82,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"page after edit:\\n%s\\nwant:\\n%s\", data, want)"
+            },
+            {
+              "newLine": 83,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 84,
+              "kind": "added",
+              "text": "\tif got := messages(t, root); got != \"\" {"
+            },
+            {
+              "newLine": 85,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"the edited repository fails the check:\\n%s\", got)"
+            },
+            {
+              "newLine": 86,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 87,
+              "kind": "added",
+              "text": "\tmd := EditsMarkdown(results, \"https://example.com/blob/abc\")"
+            },
+            {
+              "newLine": 88,
+              "kind": "added",
+              "text": "\tif !strings.Contains(md, \"[`tool.go:4`](https://example.com/blob/abc/tool.go#L4-L4)\") {"
+            },
+            {
+              "newLine": 89,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"markdown = %s\", md)"
+            },
+            {
+              "newLine": 90,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 91,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 92,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 93,
+              "kind": "added",
+              "text": "func TestEditOfTheLastSection(t *testing.T) {"
+            },
+            {
+              "newLine": 94,
+              "kind": "added",
+              "text": "\troot, impact := editRepo(t)"
+            },
+            {
+              "newLine": 95,
+              "kind": "added",
+              "text": "\tedit := goodEdit()"
+            },
+            {
+              "newLine": 96,
+              "kind": "added",
+              "text": "\tedit.Heading, edit.Body = \"Other\", \"Nothing else, since `maxFiles` is 25.\""
+            },
+            {
+              "newLine": 97,
+              "kind": "added",
+              "text": "\tresults, err := ApplyEdits(root, impact, []Edit{edit, goodEdit()})"
+            },
+            {
+              "newLine": 98,
+              "kind": "added",
+              "text": "\tif err != nil || !results[0].Applied || !results[1].Applied {"
+            },
+            {
+              "newLine": 99,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err, results)"
+            },
+            {
+              "newLine": 100,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 101,
+              "kind": "added",
+              "text": "\tdata, _ := os.ReadFile(filepath.Join(root, \"docs/PAGE.md\"))"
+            },
+            {
+              "newLine": 102,
+              "kind": "added",
+              "text": "\tif !strings.HasSuffix(string(data), \"## Other\\n\\nNothing else, since `maxFiles` is 25.\\n\") || !strings.Contains(string(data), \"at most 25 files.\\n\\n```\") {"
+            },
+            {
+              "newLine": 103,
+              "kind": "added",
+              "text": "\t\tt.Fatalf(\"page after edits:\\n%s\", data)"
+            },
+            {
+              "newLine": 104,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 105,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 106,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 107,
+              "kind": "added",
+              "text": "func TestEditsAreRefused(t *testing.T) {"
+            },
+            {
+              "newLine": 108,
+              "kind": "added",
+              "text": "\troot, impact := editRepo(t)"
+            },
+            {
+              "newLine": 109,
+              "kind": "added",
+              "text": "\twrite(t, root, \"other.go\", \"package main\\n\\nconst somethingElse = 1\\n\")"
+            },
+            {
+              "newLine": 110,
+              "kind": "added",
+              "text": "\twrite(t, root, \"pkg/a.go\", \"package pkg\\n\\nconst unchangedValue = 2\\n\")"
+            },
+            {
+              "newLine": 111,
+              "kind": "added",
+              "text": "\tcases := []struct {"
+            },
+            {
+              "newLine": 112,
+              "kind": "added",
+              "text": "\t\tname   string"
+            },
+            {
+              "newLine": 113,
+              "kind": "added",
+              "text": "\t\tchange func(*Edit)"
+            },
+            {
+              "newLine": 114,
+              "kind": "added",
+              "text": "\t\twant   string"
+            },
+            {
+              "newLine": 115,
+              "kind": "added",
+              "text": "\t}{"
+            },
+            {
+              "newLine": 116,
+              "kind": "added",
+              "text": "\t\t{\"unknown page\", func(e *Edit) { e.Page = \"docs/NOPE.md\" }, \"not a documentation page\"},"
+            },
+            {
+              "newLine": 117,
+              "kind": "added",
+              "text": "\t\t{\"page the diff does not affect\", func(e *Edit) { e.Page = \"docs/OTHER.md\"; e.Heading = \"Other\" }, \"touches no code this page covers\"},"
+            },
+            {
+              "newLine": 118,
+              "kind": "added",
+              "text": "\t\t{\"unknown section\", func(e *Edit) { e.Heading = \"Limit\" }, \"no section headed\"},"
+            },
+            {
+              "newLine": 119,
+              "kind": "added",
+              "text": "\t\t{\"empty body\", func(e *Edit) { e.Body = \" \\n\" }, \"cannot delete a section\"},"
+            },
+            {
+              "newLine": 120,
+              "kind": "added",
+              "text": "\t\t{\"same text\", func(e *Edit) { e.Body = \"The tool reads   at most 10 files.\\n\\n```\\n# not a heading\\n```\" }, \"says the same\"},"
+            },
+            {
+              "newLine": 121,
+              "kind": "added",
+              "text": "\t\t{\"heading in body\", func(e *Edit) { e.Body = \"Text.\\n\\n## New part\\n\\nMore.\" }, \"contains a heading\"},"
+            },
+            {
+              "newLine": 122,
+              "kind": "added",
+              "text": "\t\t{\"open fence\", func(e *Edit) { e.Body = \"Text.\\n\\n```\\ncode\" }, \"code fence open\"},"
+            },
+            {
+              "newLine": 123,
+              "kind": "added",
+              "text": "\t\t{\"marker\", func(e *Edit) { e.Body = \"\u003c!-- px1:generated x --\u003e\" }, \"px1 marker\"},"
+            },
+            {
+              "newLine": 124,
+              "kind": "added",
+              "text": "\t\t{\"broken link\", func(e *Edit) { e.Body = \"See [this](MISSING.md).\" }, \"broken link\"},"
+            },
+            {
+              "newLine": 125,
+              "kind": "added",
+              "text": "\t\t{\"no reason\", func(e *Edit) { e.Reason = \"\" }, \"gives no reason\"},"
+            },
+            {
+              "newLine": 126,
+              "kind": "added",
+              "text": "\t\t{\"no citation\", func(e *Edit) { e.Citations = nil }, \"cites no code\"},"
+            },
+            {
+              "newLine": 127,
+              "kind": "added",
+              "text": "\t\t{\"quote not in file\", func(e *Edit) { e.Citations[0].Quote = \"const maxFiles = 30\" }, \"the quote is not in tool.go\"},"
+            },
+            {
+              "newLine": 128,
+              "kind": "added",
+              "text": "\t\t{\"short quote\", func(e *Edit) { e.Citations[0].Quote = \"= 25\" }, \"shorter than\"},"
+            },
+            {
+              "newLine": 129,
+              "kind": "added",
+              "text": "\t\t{\"file the page does not cover\", func(e *Edit) { e.Citations[0] = Citation{File: \"other.go\", Quote: \"const somethingElse = 1\"} }, \"not code this page covers\"},"
+            },
+            {
+              "newLine": 130,
+              "kind": "added",
+              "text": "\t\t{\"file outside the repository\", func(e *Edit) { e.Citations[0].File = \"../../etc/passwd\" }, \"not code this page covers\"},"
+            },
+            {
+              "newLine": 131,
+              "kind": "added",
+              "text": "\t\t{\"only unchanged files cited\", func(e *Edit) { e.Citations[0] = Citation{File: \"pkg/a.go\", Quote: \"const unchangedValue = 2\"} }, \"no citation is from a file the change touches\"},"
+            },
+            {
+              "newLine": 132,
+              "kind": "added",
+              "text": "\t\t{\"too big\", func(e *Edit) { e.Body = strings.Repeat(\"word \", 2000) }, \"over 8192 bytes\"},"
+            },
+            {
+              "newLine": 133,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 134,
+              "kind": "added",
+              "text": "\tbefore, _ := os.ReadFile(filepath.Join(root, \"docs/PAGE.md\"))"
+            },
+            {
+              "newLine": 135,
+              "kind": "added",
+              "text": "\tfor _, tc := range cases {"
+            },
+            {
+              "newLine": 136,
+              "kind": "added",
+              "text": "\t\tedit := goodEdit()"
+            },
+            {
+              "newLine": 137,
+              "kind": "added",
+              "text": "\t\ttc.change(\u0026edit)"
+            },
+            {
+              "newLine": 138,
+              "kind": "added",
+              "text": "\t\tresults, err := ApplyEdits(root, impact, []Edit{edit})"
+            },
+            {
+              "newLine": 139,
+              "kind": "added",
+              "text": "\t\tif err != nil {"
+            },
+            {
+              "newLine": 140,
+              "kind": "added",
+              "text": "\t\t\tt.Fatalf(\"%s: %v\", tc.name, err)"
+            },
+            {
+              "newLine": 141,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 142,
+              "kind": "added",
+              "text": "\t\tif results[0].Applied || !strings.Contains(results[0].Rejected, tc.want) {"
+            },
+            {
+              "newLine": 143,
+              "kind": "added",
+              "text": "\t\t\tt.Errorf(\"%s: applied=%v rejected=%q, want %q\", tc.name, results[0].Applied, results[0].Rejected, tc.want)"
+            },
+            {
+              "newLine": 144,
+              "kind": "added",
+              "text": "\t\t}"
+            },
+            {
+              "newLine": 145,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 146,
+              "kind": "added",
+              "text": "\tafter, _ := os.ReadFile(filepath.Join(root, \"docs/PAGE.md\"))"
+            },
+            {
+              "newLine": 147,
+              "kind": "added",
+              "text": "\tif string(before) != string(after) {"
+            },
+            {
+              "newLine": 148,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"a refused edit changed the page\")"
+            },
+            {
+              "newLine": 149,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 150,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 151,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 152,
+              "kind": "added",
+              "text": "func TestOneEditPerSectionAndGeneratedPagesAreLeftAlone(t *testing.T) {"
+            },
+            {
+              "newLine": 153,
+              "kind": "added",
+              "text": "\troot, impact := editRepo(t)"
+            },
+            {
+              "newLine": 154,
+              "kind": "added",
+              "text": "\tsecond := goodEdit()"
+            },
+            {
+              "newLine": 155,
+              "kind": "added",
+              "text": "\tsecond.Body = \"The tool reads at most 25 files per run.\""
+            },
+            {
+              "newLine": 156,
+              "kind": "added",
+              "text": "\tresults, _, err := PlanEdits(root, impact, []Edit{goodEdit(), second})"
+            },
+            {
+              "newLine": 157,
+              "kind": "added",
+              "text": "\tif err != nil || !results[0].Applied || results[1].Rejected != \"another edit already replaces this section\" {"
+            },
+            {
+              "newLine": 158,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err, results)"
+            },
+            {
+              "newLine": 159,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 160,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 161,
+              "kind": "added",
+              "text": "\twrite(t, root, \"docs/REF.md\", strings.Replace(goodFront, \"narrative\", \"reference\", 1)+generatedNote+\"\\n# Ref\\n\\n## Limits\\n\\nOld.\\n\")"
+            },
+            {
+              "newLine": 162,
+              "kind": "added",
+              "text": "\tpages, _, _ := LoadPages(root)"
+            },
+            {
+              "newLine": 163,
+              "kind": "added",
+              "text": "\timpact = ComputeImpact(pages, []string{\"tool.go\"})"
+            },
+            {
+              "newLine": 164,
+              "kind": "added",
+              "text": "\tedit := goodEdit()"
+            },
+            {
+              "newLine": 165,
+              "kind": "added",
+              "text": "\tedit.Page = \"docs/REF.md\""
+            },
+            {
+              "newLine": 166,
+              "kind": "added",
+              "text": "\tresults, _, err = PlanEdits(root, impact, []Edit{edit})"
+            },
+            {
+              "newLine": 167,
+              "kind": "added",
+              "text": "\tif err != nil || !strings.Contains(results[0].Rejected, \"px1 docs gen writes it\") {"
+            },
+            {
+              "newLine": 168,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err, results)"
+            },
+            {
+              "newLine": 169,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 170,
+              "kind": "added",
+              "text": "}"
+            },
+            {
+              "newLine": 171,
+              "kind": "added",
+              "text": ""
+            },
+            {
+              "newLine": 172,
+              "kind": "added",
+              "text": "func TestEditNeverWritesThroughALink(t *testing.T) {"
+            },
+            {
+              "newLine": 173,
+              "kind": "added",
+              "text": "\troot, impact := editRepo(t)"
+            },
+            {
+              "newLine": 174,
+              "kind": "added",
+              "text": "\toutside := filepath.Join(t.TempDir(), \"secret.md\")"
+            },
+            {
+              "newLine": 175,
+              "kind": "added",
+              "text": "\tif err := os.WriteFile(outside, []byte(editPage), 0o644); err != nil {"
+            },
+            {
+              "newLine": 176,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 177,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 178,
+              "kind": "added",
+              "text": "\tpage := filepath.Join(root, \"docs/PAGE.md\")"
+            },
+            {
+              "newLine": 179,
+              "kind": "added",
+              "text": "\tif err := os.Remove(page); err != nil {"
+            },
+            {
+              "newLine": 180,
+              "kind": "added",
+              "text": "\t\tt.Fatal(err)"
+            },
+            {
+              "newLine": 181,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 182,
+              "kind": "added",
+              "text": "\tif err := os.Symlink(outside, page); err != nil {"
+            },
+            {
+              "newLine": 183,
+              "kind": "added",
+              "text": "\t\tt.Skip(\"symbolic links are not available\")"
+            },
+            {
+              "newLine": 184,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 185,
+              "kind": "added",
+              "text": "\tif _, err := ApplyEdits(root, impact, []Edit{goodEdit()}); err == nil {"
+            },
+            {
+              "newLine": 186,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"an edit was applied through a link that leaves the repository\")"
+            },
+            {
+              "newLine": 187,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 188,
+              "kind": "added",
+              "text": "\tif data, _ := os.ReadFile(outside); string(data) != editPage {"
+            },
+            {
+              "newLine": 189,
+              "kind": "added",
+              "text": "\t\tt.Fatal(\"the file outside the repository was changed\")"
+            },
+            {
+              "newLine": 190,
+              "kind": "added",
+              "text": "\t}"
+            },
+            {
+              "newLine": 191,
+              "kind": "added",
+              "text": "}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "blocks": [
+    {
+      "id": "change-24a1a91dcc69556d",
+      "title": "Edits changes",
+      "summary": "6 related files share the \"edits\" change signal.",
+      "paths": [
+        "docs/CLI_REFERENCE.md",
+        "docs/DOCS_ROADMAP.md",
+        "docs_check_test.go",
+        "docs_cmd.go",
+        "internal/docs/edits.go",
+        "internal/docs/edits_test.go"
+      ]
+    }
+  ],
+  "inspectionQuestions": [
+    {
+      "id": "inspect-c750cc7e5c85ecd8",
+      "path": "internal/docs/edits.go",
+      "kind": "changed-test",
+      "observation": "The implementation and a nearby companion test both changed in this diff.",
+      "question": "Which changed test demonstrates the new behavior, including its failure or boundary case?",
+      "related": [
+        {
+          "path": "internal/docs/edits_test.go",
+          "relationship": "changed companion test",
+          "inDiff": true
+        }
+      ]
+    },
+    {
+      "id": "inspect-197951cdec8e51da",
+      "path": "internal/docs/edits.go",
+      "line": 92,
+      "kind": "public-api",
+      "observation": "An added route or exported declaration was observed: func SplitSections(body string) []Section {.",
+      "question": "Who calls this interface, what should valid and invalid inputs do, and is compatibility preserved?",
+      "related": []
+    }
+  ],
+  "inspectionAnalysis": {
+    "truncated": false,
+    "limits": []
+  },
+  "attentionAnalysis": {
+    "candidateFiles": 6,
+    "filesAnalyzed": 6,
+    "contentUnavailable": 0,
+    "truncated": false,
+    "limits": []
+  },
+  "ruleHits": [],
+  "explanations": [
+    {
+      "id": "docs-apply-command",
+      "path": "docs_cmd.go",
+      "lineStart": 85,
+      "lineEnd": 133,
+      "title": "Adds a documentation edit command",
+      "summary": "Adds `px1 docs apply`, which reads an edits JSON file, checks it against the base-to-head documentation impact, and reports results as Markdown or JSON. `--dry-run` checks edits without writing; otherwise accepted edits are written, and any refusals make the command exit with an error."
+    },
+    {
+      "id": "edit-scope-validation",
+      "path": "internal/docs/edits.go",
+      "lineStart": 164,
+      "lineEnd": 224,
+      "title": "Restricts edits to validated sections",
+      "summary": "An edit is accepted only for an affected narrative page and a uniquely named section without generated content. Its replacement text is bounded and must not add headings or px1 markers, leave a code fence open, duplicate the old text, or contain broken links."
+    },
+    {
+      "id": "citation-verification",
+      "path": "internal/docs/edits.go",
+      "lineStart": 225,
+      "lineEnd": 278,
+      "title": "Verifies code citations",
+      "summary": "Each edit must cite covered code with quotes that appear in the file; at least one citation must come from a file changed by the diff. The command finds citation line numbers from the quotes rather than trusting supplied line numbers."
+    },
+    {
+      "id": "edit-planning",
+      "path": "internal/docs/edits.go",
+      "lineStart": 280,
+      "lineEnd": 350,
+      "title": "Plans and applies edits independently",
+      "summary": "Only one edit per section is accepted. Each edit is reported independently, so accepted edits can still be written when other edits are refused; dry runs return the same plan without changing files."
+    },
+    {
+      "id": "safe-page-writing",
+      "path": "internal/docs/edits.go",
+      "lineStart": 351,
+      "lineEnd": 374,
+      "title": "Limits page writes",
+      "summary": "Accepted text replaces only the selected section, leaving the next heading and its section in place. Before writing, the command also refuses to write a page that is not a regular file, preventing edits through a symbolic link."
+    }
+  ],
+  "findings": [],
+  "evidence": [
+    {
+      "id": "human",
+      "label": "Human review progress",
+      "state": "browser-local",
+      "base": "884c8a12c784f12e4bc270f5c113de67266fed90",
+      "revision": "5d1d6a019f3bcddd9e1edc3a2deab65ae3c71d8f",
+      "detail": "Your file marks and acknowledgements are local declarations for this comparison, not approval or proof of correctness.",
+      "limits": [
+        "Progress is stored only in this browser and is not shared with GitHub."
+      ]
+    },
+    {
+      "id": "automated",
+      "label": "Deterministic analysis",
+      "state": "available",
+      "base": "884c8a12c784f12e4bc270f5c113de67266fed90",
+      "revision": "5d1d6a019f3bcddd9e1edc3a2deab65ae3c71d8f",
+      "detail": "Rules, attention signals, and inspection questions were computed from this exact comparison. Zero findings means no matches, not that the change is safe.",
+      "limits": []
+    },
+    {
+      "id": "hosted-ai",
+      "label": "AI findings",
+      "state": "not-attached",
+      "detail": "No hosted AI finding set was attached.",
+      "limits": [
+        "AI findings are proposals to inspect, not proof of correctness."
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI explanations",
+      "state": "available",
+      "revision": "5d1d6a019f3bcddd9e1edc3a2deab65ae3c71d8f",
+      "detail": "5 optional AI explanations attached for the exact report head; they may be incomplete or wrong.",
+      "limits": []
+    },
+    {
+      "id": "ci",
+      "label": "CI verification",
+      "state": "available",
+      "revision": "5d1d6a019f3bcddd9e1edc3a2deab65ae3c71d8f",
+      "detail": "3 recorded GitHub Actions checks; this is not a live status feed.",
+      "limits": []
+    }
+  ],
+  "attention": [
+    {
+      "id": "attention-e99085fcc93700fe",
+      "rule": "large-diff",
+      "title": "Large diff",
+      "reason": "A large textual change deserves an explicit review pass.",
+      "path": "internal/docs/edits.go",
+      "evidence": "412 added, 0 removed lines"
+    },
+    {
+      "id": "attention-d925fbd0c7cde905",
+      "rule": "public-api",
+      "title": "New endpoint or public API",
+      "reason": "An added declaration looks externally callable or route-facing.",
+      "path": "internal/docs/edits.go",
+      "line": 92,
+      "evidence": "func SplitSections(body string) []Section {"
+    }
+  ],
+  "verification": {
+    "available": true,
+    "source": "github-actions",
+    "revision": "5d1d6a019f3bcddd9e1edc3a2deab65ae3c71d8f",
+    "url": "https://github.com/kedarvartak/px1/actions/runs/43016138574",
+    "checks": [
+      {
+        "name": "publish",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/43016138574/job/130507576861",
+        "startedAt": "2026-11-11T11:57:01Z"
+      },
+      {
+        "name": "review",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/43016139096/job/130507574531",
+        "startedAt": "2026-11-11T11:56:58Z"
+      },
+      {
+        "name": "browser",
+        "status": "running",
+        "url": "https://github.com/kedarvartak/px1/actions/runs/43016138710/job/130507572868",
+        "startedAt": "2026-11-11T11:56:58Z"
+      }
+    ]
+  }
+}
