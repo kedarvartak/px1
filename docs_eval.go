@@ -43,6 +43,15 @@ func runDocsEval(args []string, stdout io.Writer) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+	// Written so that NaN, which compares false to everything, is refused.
+	for _, bar := range []float64{*minFixed, *minQuiet} {
+		if !(bar >= 0 && bar <= 1) {
+			return errors.New("--min-fixed and --min-quiet must be fractions from 0 to 1")
+		}
+	}
+	if !(*maxCost > 0) {
+		return errors.New("--max-cost must be positive")
+	}
 	data, err := os.ReadFile(*casesFile)
 	if err != nil {
 		return err

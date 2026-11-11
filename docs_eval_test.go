@@ -76,6 +76,11 @@ func TestDocsEvalScoresACorrectUpdater(t *testing.T) {
 	if err := runDocs(append(args, "--only", "quiet", "--min-quiet", "1"), &out); err != nil || !strings.Contains(out.String(), "left alone: 1 of 1") {
 		t.Fatalf("--only: %v\n%s", err, out.String())
 	}
+	for _, bad := range [][]string{{"--min-fixed", "NaN"}, {"--min-quiet", "1.5"}, {"--min-fixed", "-1"}, {"--max-cost", "NaN"}} {
+		if err := runDocs(append(args, bad...), &out); err == nil || !strings.Contains(err.Error(), "must be") {
+			t.Fatalf("%v: %v", bad, err)
+		}
+	}
 	if err := runDocs(append(args, "--only", "nope"), &out); err == nil {
 		t.Fatal("an unknown case id was accepted")
 	}
