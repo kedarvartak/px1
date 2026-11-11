@@ -161,3 +161,52 @@ func TestReviewWorkflowBuildsDocsFromTheTrustedBase(t *testing.T) {
 		}
 	}
 }
+
+func TestDocsApplyCommand(t *testing.T) {
+	root := t.TempDir()
+	runGitTest(t, root, "init", "-q")
+	runGitTest(t, root, "config", "user.email", "test@example.com")
+	runGitTest(t, root, "config", "user.name", "Test")
+	writeExportTestFile(t, root, "tool.go", "package main\n\nconst maxFiles = 10\n")
+	page := "---\ntitle: A page\nsection: guides\nkind: narrative\nstatus: shipped\ncovers:\n  - tool.go\nverified_at:\n---\n\n# A page\n\n## Limits\n\nAt most 10 files.\n"
+	writeExportTestFile(t, root, "docs/PAGE.md", page)
+	runGitTest(t, root, "add", "-A")
+	runGitTest(t, root, "commit", "-qm", "base")
+	base := strings.TrimSpace(runGitTest(t, root, "rev-parse", "HEAD"))
+	writeExportTestFile(t, root, "tool.go", "package main\n\nconst maxFiles = 25\n")
+	runGitTest(t, root, "commit", "-qam", "raise the limit")
+
+	edits := filepath.Join(t.TempDir(), "edits.json")
+	good := `{"page":"docs/PAGE.md","heading":"Limits","body":"At most 25 files.","reason":"The limit rose.","citations":[{"file":"tool.go","quote":"const maxFiles = 25"}]}`
+	bad := `{"page":"docs/PAGE.md","heading":"A page","body":"It reads 99 files.","reason":"Invented.","citations":[{"file":"tool.go","quote":"const maxFiles = 99"}]}`
+	if err := os.WriteFile(edits, []byte("["+good+","+bad+"]"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var out bytes.Buffer
+	err := runDocs([]string{"apply", "--root", root, "--base", base, "--edits", edits, "--dry-run"}, &out)
+	if err == nil || !strings.Contains(err.Error(), "1 of 2 edit(s) refused") {
+		t.Fatalf("dry run: %v", err)
+	}
+	if data, _ := os.ReadFile(filepath.Join(root, "docs/PAGE.md")); string(data) != page {
+		t.Fatal("a dry run changed the page")
+	}
+	out.Reset()
+	if err := runDocs([]string{"apply", "--root", root, "--base", base, "--edits", edits}, &out); err == nil {
+		t.Fatal("a refused edit did not fail the command")
+	}
+	for _, want := range []string{"**docs/PAGE.md**, section \"Limits\": The limit rose.", "`tool.go:3`", "the quote is not in tool.go"} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("output lacks %q:\n%s", want, out.String())
+		}
+	}
+	if data, _ := os.ReadFile(filepath.Join(root, "docs/PAGE.md")); string(data) != strings.Replace(page, "10 files", "25 files", 1) {
+		t.Fatalf("page after apply:\n%s", data)
+	}
+	if err := os.WriteFile(edits, []byte(`[{"page":"docs/PAGE.md","surprise":1}]`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := runDocs([]string{"apply", "--root", root, "--base", base, "--edits", edits}, &out); err == nil || !strings.Contains(err.Error(), "unknown field") {
+		t.Fatalf("unknown field: %v", err)
+	}
+}

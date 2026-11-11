@@ -161,6 +161,46 @@ The report is a map, not a judgment. "Updated" means the page file changed,
 not that the change is the right one, and "needs review" does not mean the
 page is wrong. Deciding that is phase 5.
 
+## Applying edits (phase 5, first part)
+
+`px1 docs apply --base BASE --edits FILE` applies edits to pages. An edit is
+data, whoever wrote it:
+
+```
+[{
+  "page": "docs/INDEX_LIMITS.md",
+  "heading": "Limits",
+  "body": "The indexer reads at most 25 files per run.",
+  "reason": "The file limit rose from 10 to 25.",
+  "citations": [{"file": "indexer.go", "quote": "const maxFiles = 25"}]
+}]
+```
+
+An edit replaces the text of one section, from its heading to the next
+heading of any level. It is applied only when all of this holds:
+
+- the page is a narrative page that the diff from BASE affects;
+- the heading names exactly one section, and that section holds no generated
+  content;
+- the new text is not empty, not the old text reworded only in white space,
+  at most 8 KB, has no heading of its own, closes its code fences, and its
+  links resolve;
+- it gives a reason and one to eight citations;
+- every citation names a file the page covers and quotes at least 12
+  characters that are really in that file at the head commit, compared with
+  white space collapsed. The line numbers are found from the quote; numbers
+  supplied with the edit are ignored;
+- at least one citation is from a file the diff changed.
+
+One edit is accepted per section. A refused edit changes nothing and is
+reported with its reason, and the command exits with an error. `--dry-run`
+reports without writing; `--json` prints the results, including the line
+numbers found for each citation.
+
+These rules bound what an edit can touch and prove that its evidence exists.
+They do not prove that the new sentence follows from the evidence. That is
+the job of the reviewer of the diff, and of the model check in the next part.
+
 ## In CI
 
 The review-report workflow builds the documentation with the trusted base
