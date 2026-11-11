@@ -150,7 +150,9 @@ func TestDocsUpdateSendsNothingWithoutConsent(t *testing.T) {
 
 func TestDocsUpdateKeepsExcludedAndSecretContentFromTheModel(t *testing.T) {
 	root, base := docsUpdateRepo(t)
-	writeExportTestFile(t, root, "tool.go", "package main\n\nconst maxFiles = 25\n\nconst key = \"-----BEGIN RSA PRIVATE KEY-----\\nabc\\n-----END RSA PRIVATE KEY-----\"\n")
+	// The marker is assembled here so that this file holds no secret shape.
+	begin, end := "-----BEGIN RSA "+"PRIVATE KEY-----", "-----END RSA "+"PRIVATE KEY-----"
+	writeExportTestFile(t, root, "tool.go", "package main\n\nconst maxFiles = 25\n\nconst key = \""+begin+"\\nabc\\n"+end+"\"\n")
 	runGitTest(t, root, "commit", "-qam", "add a key")
 	t.Setenv("OPENAI_API_KEY", "test-key")
 	model := &docsModel{draft: `{"edits":[]}`, verdict: `{"supported":true}`}
@@ -159,7 +161,7 @@ func TestDocsUpdateKeepsExcludedAndSecretContentFromTheModel(t *testing.T) {
 	if err := runDocs(docsUpdateArgs(root, base, endpoint, "--yes"), &out); err != nil {
 		t.Fatal(err)
 	}
-	if len(model.prompts) != 1 || strings.Contains(model.prompts[0], "BEGIN RSA PRIVATE KEY") || !strings.Contains(model.prompts[0], "redacted") {
+	if len(model.prompts) != 1 || strings.Contains(model.prompts[0], begin) || !strings.Contains(model.prompts[0], "redacted") {
 		t.Fatalf("prompt: %q", model.prompts)
 	}
 	out.Reset()
