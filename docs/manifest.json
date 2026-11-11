@@ -186,7 +186,9 @@
       "covers": [
         "internal/docs/",
         "docs_cmd.go",
-        "docs_update.go"
+        "docs_update.go",
+        "docs_eval.go",
+        "eval/docs-cases.json"
       ],
       "verified_at": ""
     },
