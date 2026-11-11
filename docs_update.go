@@ -191,8 +191,8 @@ func runDocsUpdate(args []string, stdout io.Writer) error {
 	if err != nil {
 		return err
 	}
-	if current, err := resolveCommit(root, "HEAD"); err != nil || current != impact.Head {
-		return errors.New("docs update edits the working tree, which must be checked out at --head")
+	if err := docsTreeAtHead(root, impact.Head); err != nil {
+		return err
 	}
 	redactor := &secretRedactor{}
 	policy, err := newPrivacyPolicy(o.excludes)

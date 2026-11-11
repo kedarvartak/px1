@@ -112,8 +112,8 @@ func runDocs(args []string, stdout io.Writer) error {
 		}
 		// Quotes are checked against the files on disk, so the disk must
 		// hold the commit the impact was computed for.
-		if current, err := resolveCommit(*root, "HEAD"); err != nil || current != impact.Head {
-			return errors.New("docs apply reads and edits the working tree, which must be checked out at --head")
+		if err := docsTreeAtHead(*root, impact.Head); err != nil {
+			return err
 		}
 		results, err := applyDocsEdits(*root, impact, edits, *dryRun)
 		if err != nil {
@@ -184,6 +184,24 @@ func applyDocsEdits(root string, impact docs.Impact, edits []docs.Edit, dryRun b
 		return results, err
 	}
 	return docs.ApplyEdits(root, impact, edits)
+}
+
+// docsTreeAtHead returns an error unless the working tree is the head
+// commit exactly: checked out there, with no tracked file modified, staged
+// or deleted. Untracked files are allowed; they are in no commit and no page
+// covers them in the impact.
+func docsTreeAtHead(root, head string) error {
+	if current, err := resolveCommit(root, "HEAD"); err != nil || current != head {
+		return errors.New("the working tree is read and edited, so it must be checked out at --head")
+	}
+	out, err := exec.Command("git", "-C", root, "-c", "core.fsmonitor=false", "status", "--porcelain", "--untracked-files=no").Output()
+	if err != nil {
+		return fmt.Errorf("git status failed: %w", err)
+	}
+	if len(strings.TrimSpace(string(out))) > 0 {
+		return errors.New("the working tree has uncommitted changes to tracked files; commit or stash them first, so that quotes are checked against the head commit")
+	}
+	return nil
 }
 
 // docsImpact asks git which files differ between two commits and maps them to

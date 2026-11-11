@@ -196,7 +196,8 @@ heading of any level. It is applied only when all of this holds:
 - at least one citation is from a file the diff changed.
 
 Quotes are checked against the files on disk, so the working tree must be
-checked out at the head commit; the command refuses to run otherwise. Every
+checked out at the head commit with no uncommitted change to a tracked file;
+the command refuses to run otherwise. Every
 page to be written is checked before any is written.
 
 One edit is accepted per section. A refused edit changes nothing and is
