@@ -367,20 +367,33 @@ func ApplyEdits(root string, impact Impact, edits []Edit) ([]EditResult, error) 
 	if err != nil {
 		return nil, err
 	}
-	for rel, text := range texts {
-		full := filepath.Join(root, filepath.FromSlash(rel))
-		info, err := os.Lstat(full)
-		if err != nil {
-			return nil, err
-		}
-		if !info.Mode().IsRegular() {
-			return nil, fmt.Errorf("%s is not a regular file", rel)
-		}
-		if err := os.WriteFile(full, []byte(text), info.Mode().Perm()); err != nil {
-			return nil, err
-		}
+	if err := writeTexts(root, texts); err != nil {
+		return nil, err
 	}
 	return results, nil
+}
+
+// writeTexts writes page texts, keyed by path relative to root.
+func writeTexts(root string, texts map[string]string) error {
+	// Check every destination before writing any, so a page that cannot be
+	// written does not leave the others half applied.
+	modes := map[string]os.FileMode{}
+	for rel := range texts {
+		info, err := os.Lstat(filepath.Join(root, filepath.FromSlash(rel)))
+		if err != nil {
+			return err
+		}
+		if !info.Mode().IsRegular() {
+			return fmt.Errorf("%s is not a regular file", rel)
+		}
+		modes[rel] = info.Mode().Perm()
+	}
+	for rel, text := range texts {
+		if err := os.WriteFile(filepath.Join(root, filepath.FromSlash(rel)), []byte(text), modes[rel]); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // EditsMarkdown describes the results for a person: what was changed and on

@@ -170,6 +170,30 @@ func TestOneEditPerSectionAndGeneratedPagesAreLeftAlone(t *testing.T) {
 	}
 }
 
+func TestNoPageIsWrittenWhenOneCannotBe(t *testing.T) {
+	root, _ := editRepo(t)
+	write(t, root, "docs/SECOND.md", strings.Replace(editPage, "# A page", "# Second", 1))
+	pages, _, _ := LoadPages(root)
+	impact := ComputeImpact(pages, []string{"tool.go"})
+	second := goodEdit()
+	second.Page = "docs/SECOND.md"
+	results, texts, err := PlanEdits(root, impact, []Edit{goodEdit(), second})
+	if err != nil || len(texts) != 2 || !results[1].Applied {
+		t.Fatal(err, results)
+	}
+	// Between planning and writing, one page becomes a directory.
+	for _, victim := range []string{"docs/PAGE.md", "docs/SECOND.md"} {
+		other := map[string]string{"docs/PAGE.md": "docs/SECOND.md", "docs/SECOND.md": "docs/PAGE.md"}[victim]
+		before, _ := os.ReadFile(filepath.Join(root, other))
+		if err := writeTexts(root, map[string]string{victim: "x", other: "y", "docs/MISSING.md": "z"}); err == nil {
+			t.Fatal("a missing destination was accepted")
+		}
+		if after, _ := os.ReadFile(filepath.Join(root, other)); string(after) != string(before) {
+			t.Fatalf("%s was written although another destination failed", other)
+		}
+	}
+}
+
 func TestEditNeverWritesThroughALink(t *testing.T) {
 	root, impact := editRepo(t)
 	outside := filepath.Join(t.TempDir(), "secret.md")

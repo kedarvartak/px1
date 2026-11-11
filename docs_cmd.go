@@ -110,6 +110,11 @@ func runDocs(args []string, stdout io.Writer) error {
 		if err != nil {
 			return err
 		}
+		// Quotes are checked against the files on disk, so the disk must
+		// hold the commit the impact was computed for.
+		if current, err := resolveCommit(*root, "HEAD"); err != nil || current != impact.Head {
+			return errors.New("docs apply reads and edits the working tree, which must be checked out at --head")
+		}
 		results, err := applyDocsEdits(*root, impact, edits, *dryRun)
 		if err != nil {
 			return err
