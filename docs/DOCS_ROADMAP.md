@@ -6,6 +6,7 @@ status: planned
 covers:
   - internal/docs/
   - docs_cmd.go
+  - docs_update.go
 verified_at:
 ---
 
@@ -47,7 +48,7 @@ request as the code it describes.
 | 2. Generated reference | `px1 docs gen` writes reference pages from the real flag sets, schemas, tool specs and action inputs. CI fails when they are out of date. | No |
 | 3. UI | A static site built from the Markdown: sidebar, search, per-page status and "verified at commit", source links, and a "changed in this pull request" view. Published on Pages with a preview per pull-request head. | No |
 | 4. Drift detection | `px1 docs impact --base --head` lists the pages a diff affects, using `covers`. Posted as a pull-request comment; stale pages are marked in the UI. | No |
-| 5. Self-evolving agent | `px1 docs update` drafts edits to affected pages with the existing planner, tools, budget and verifier, adds a changelog entry, and commits to the branch. | Yes |
+| 5. Self-evolving agent | `px1 docs apply` applies edits that stay in one section and quote real code. `px1 docs update` has a model draft them, under the existing budget meter, and checks each against the code it cites. Committing to the branch from CI comes last. | Yes |
 | 6. Quality gates | A docs evaluation set: seeded code changes with known documentation consequences, and clean changes that must produce no edits. Scored with `eval-run` and `eval-compare`. | Yes |
 | 7. Rollout | px1's own pull requests first, then a second repository, then as a product feature. | Yes |
 
@@ -200,6 +201,59 @@ numbers found for each citation.
 These rules bound what an edit can touch and prove that its evidence exists.
 They do not prove that the new sentence follows from the evidence. That is
 the job of the reviewer of the diff, and of the model check in the next part.
+
+## Drafting edits with a model (phase 5, second part)
+
+`px1 docs update --base BASE --model M --price-input N --price-output N --yes`
+drafts edits to the narrative pages that `docs impact` marks "needs review",
+and writes the ones that survive to the working tree. Review them with
+`git diff -- docs/` and commit them like any other change.
+
+For each page, in order:
+
+1. **Draft.** The model is shown the page's sections and the diff of the
+   changed files the page covers. It replies with a list of edits, or an empty
+   list. It is told that most changes need no edit and to repeat unchanged
+   sentences exactly.
+2. **Gate.** Every drafted edit goes through the rules of `docs apply` above.
+   A reply cannot aim an edit at another page, and at most four edits are
+   taken per page.
+3. **Check.** Unless `--verify=false`, a second call shows the model the old
+   text, the new text, the cited lines as they are at the head commit and the
+   diff, and asks whether every new or changed statement follows from the
+   code. Anything but a clear yes refuses the edit. So does a failed call.
+4. **Write.** Surviving edits are applied.
+
+What is sent and what it can cost:
+
+- Only the page and the diffs of the files it covers are sent. Files the
+  privacy policy excludes (the same one as `agentic-review`, plus
+  `--exclude-glob`) are never sent, and secret-like values are redacted.
+- A diff is cut at 12 KB per file and 40 KB per page; `--max-pages` (default
+  6) bounds the pages. What was left out is listed.
+- `--dry-run` lists what would be sent and sends nothing. Without `--yes`
+  nothing is sent. The key is read from `OPENAI_API_KEY` only.
+- `--max-cost` (default $0.50) is a hard cap, enforced by reserving the worst
+  case of each call before it is sent.
+- `--out FILE` writes every edit, applied or refused, with its citations and
+  the metered cost.
+
+Measured on this repository with `gpt-6-luna`: a change that added a
+subcommand without making the page false drafted no edit, for one call and
+$0.0013. A change to two limits the page states drafted one edit that changed
+those two numbers and nothing else, for two calls and $0.0010.
+
+Limits:
+
+- A page is edited only where a section's text is wrong or incomplete. The
+  command does not add sections or pages, and does not see changed files that
+  no page covers; `docs impact` lists those.
+- It reads the diff, not the whole file or the rest of the repository. There
+  is no tool loop yet.
+- The check is a model's opinion. It lowers the rate of unsupported
+  statements; it does not remove the need for a person to read the diff.
+- It does not commit or push. Committing to the pull-request branch from CI is
+  a later step.
 
 ## In CI
 

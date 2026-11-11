@@ -163,7 +163,8 @@
       "status": "planned",
       "covers": [
         "internal/docs/",
-        "docs_cmd.go"
+        "docs_cmd.go",
+        "docs_update.go"
       ],
       "verified_at": ""
     },
