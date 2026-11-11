@@ -280,15 +280,17 @@ func TestParseEvalSetRejectsCasesThatCannotJudge(t *testing.T) {
 		t.Fatal(err)
 	}
 	bad := map[string]string{
-		"twice":                     good + "," + good,
-		"must be stale or clean":    strings.Replace(good, `"stale"`, `"other"`, 1),
-		"same before and after":     strings.Replace(good, `"package a\n\nvar x = 1\n"`, `"package a\n"`, 1),
-		"already in the section":    strings.Replace(good, `["25"]`, `["Old"]`, 1),
-		"not in the section":        strings.Replace(good, `["10"]`, `["99"]`, 1),
-		"names 0 sections":          strings.Replace(good, `"section":"S"`, `"section":"T"`, 1),
-		"not a plain path":          strings.Replace(good, `"a.go"`, `"../a.go"`, 1),
-		"unknown field":             strings.Replace(good, `"what":"w"`, `"what":"w","extra":1`, 1),
-		"a stale case needs expect": good[:strings.Index(good, `,"expect"`)] + "}",
+		"twice":                          good + "," + good,
+		"must be stale or clean":         strings.Replace(good, `"stale"`, `"other"`, 1),
+		"same before and after":          strings.Replace(good, `"package a\n\nvar x = 1\n"`, `"package a\n"`, 1),
+		"already in the section":         strings.Replace(good, `["25"]`, `["Old"]`, 1),
+		"not in the section":             strings.Replace(good, `["10"]`, `["99"]`, 1),
+		"names 0 sections":               strings.Replace(good, `"section":"S"`, `"section":"T"`, 1),
+		"not a plain path":               strings.Replace(good, `"a.go"`, `"../a.go"`, 1),
+		`"..\\a.go" is not a plain path`: strings.Replace(good, `"a.go"`, `"..\\a.go"`, 1),
+		`"c:a.go" is not a plain path`:   strings.Replace(good, `"a.go"`, `"c:a.go"`, 1),
+		"unknown field":                  strings.Replace(good, `"what":"w"`, `"what":"w","extra":1`, 1),
+		"a stale case needs expect":      good[:strings.Index(good, `,"expect"`)] + "}",
 	}
 	for want, c := range bad {
 		if _, err := ParseEvalSet(wrap(c)); err == nil || !strings.Contains(err.Error(), want) {

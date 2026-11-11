@@ -133,8 +133,10 @@ func validateEvalCase(c EvalCase) error {
 		return errors.New("the case changes no file")
 	}
 	for name, file := range c.Files {
+		// Names are slash paths. A backslash or a colon is refused so that
+		// no name means something else on Windows (a separator, a drive).
 		clean := path.Clean(name)
-		if name == "" || clean != name || path.IsAbs(name) || strings.HasPrefix(name, "..") || strings.HasPrefix(name, Dir+"/") || strings.HasPrefix(name, ".") {
+		if name == "" || clean != name || path.IsAbs(name) || strings.HasPrefix(name, "..") || strings.HasPrefix(name, Dir+"/") || strings.HasPrefix(name, ".") || strings.ContainsAny(name, "\\:") {
 			return fmt.Errorf("%q is not a plain path outside docs/", name)
 		}
 		if file.Before == file.After {
